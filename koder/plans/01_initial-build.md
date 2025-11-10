@@ -198,7 +198,7 @@
 **Duration**: 20-25 minutes
 
 ### Tasks:
-- [ ] Implement `internal/handlers/track.go`:
+- [x] Implement `internal/handlers/track.go`:
   - Parse JSON body
   - Extract domain (explicit > hostname from referrer > "unknown")
   - Parse tags (comma-separated string to array)
@@ -208,12 +208,12 @@
   - Return 204 No Content on success
   - Handle OPTIONS for CORS preflight
 
-- [ ] Add request validation:
+- [x] Add request validation:
   - Max body size (10KB)
   - Required fields check
   - Sanitize inputs
 
-- [ ] Create test script `test_track.sh`:
+- [x] Create test script `test_track.sh`:
   ```bash
   #!/bin/bash
   # Test pageview
@@ -232,8 +232,8 @@
     -d '{"h":"blog.com","p":"/post","e":"pageview","t":["blog"],"q":{"ref":"twitter"}}'
   ```
 
-- [ ] Test tracking endpoint with mock data
-- [ ] Verify data in SQLite
+- [x] Test tracking endpoint with mock data
+- [x] Verify data in SQLite
 
 **Commit**: `feat: tracking endpoint with validation`
 
