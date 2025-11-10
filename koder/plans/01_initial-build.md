@@ -14,7 +14,7 @@
 **Duration**: 5-10 minutes
 
 ### Tasks:
-- [ ] Create project structure
+- [x] Create project structure
   ```
   command-center/
   ├── cmd/
@@ -51,8 +51,8 @@
   └── README.md
   ```
 
-- [ ] Initialize Go module: `go mod init github.com/yourusername/command-center`
-- [ ] Create `.env.example` with:
+- [x] Initialize Go module: `go mod init github.com/yourusername/command-center`
+- [x] Create `.env.example` with:
   ```
   PORT=4698
   DB_PATH=./cc.db
@@ -60,8 +60,8 @@
   NTFY_URL=https://ntfy.sh
   ENV=development
   ```
-- [ ] Create basic Makefile with build/run/test targets
-- [ ] Create README with project description
+- [x] Create basic Makefile with build/run/test targets
+- [x] Create README with project description
 
 **Commit**: `feat: initial project scaffolding`
 
