@@ -366,20 +366,20 @@
 **Duration**: 15 minutes
 
 ### Tasks:
-- [ ] Implement `internal/notifier/ntfy.go`:
+- [x] Implement `internal/notifier/ntfy.go`:
   - Send notification function
   - Mock mode for testing (log instead of HTTP call)
   - Error handling and retries
   - Message formatting
 
-- [ ] Add notification triggers:
+- [x] Add notification triggers:
   - Traffic spike detection (10x avg in last hour)
   - New domain detection
   - Webhook events (configurable)
   - Error events
 
-- [ ] Create notification rules system (simple config)
-- [ ] Test with mock ntfy.sh calls (log output)
+- [x] Create notification rules system (simple config)
+- [x] Test with mock ntfy.sh calls (log output)
 
 **Commit**: `feat: ntfy.sh integration with event triggers`
 
