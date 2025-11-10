@@ -244,14 +244,14 @@
 **Duration**: 20 minutes
 
 ### Tasks:
-- [ ] Implement `internal/handlers/pixel.go`:
+- [x] Implement `internal/handlers/pixel.go`:
   - Parse query params (domain, tags, source)
   - Extract referrer, IP, User-Agent from request
   - Log event with source_type="pixel"
   - Return 1x1 transparent GIF
   - Set cache headers (no-cache)
 
-- [ ] Implement `internal/handlers/redirect.go`:
+- [x] Implement `internal/handlers/redirect.go`:
   - Extract slug from URL
   - Lookup redirect in database
   - Log event with source_type="redirect"
@@ -260,7 +260,7 @@
   - Return 302 redirect
   - Handle 404 for invalid slugs
 
-- [ ] Create test scripts:
+- [x] Create test scripts:
   ```bash
   # Test pixel
   curl "http://localhost:4698/pixel.gif?domain=newsletter&tags=dec,email"
@@ -269,7 +269,7 @@
   curl -I "http://localhost:4698/r/test123?tags=reddit,promo"
   ```
 
-- [ ] Add helper function to create test redirects via database
+- [x] Add helper function to create test redirects via database
 
 **Commit**: `feat: pixel tracking and redirect handler`
 
