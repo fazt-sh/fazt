@@ -308,54 +308,54 @@
 **Duration**: 30-40 minutes
 
 ### Tasks:
-- [ ] Implement `internal/handlers/api.go` with:
+- [x] Implement `internal/handlers/api.go` with:
 
   **GET /api/stats**:
-  - Total events (today, week, month, all-time)
-  - Events by source_type
-  - Top 10 domains
-  - Top 10 tags
-  - Events timeline (hourly for today, daily for month)
-  - Response: JSON
+  - [x] Total events (today, week, month, all-time)
+  - [x] Events by source_type
+  - [x] Top 10 domains
+  - [x] Top 10 tags
+  - [x] Events timeline (hourly for today, daily for month)
+  - [x] Response: JSON
 
   **GET /api/events**:
-  - Query params: domain, tags, source_type, limit, offset, from, to
-  - Paginated event list
-  - Filtering and sorting
-  - Response: JSON array
+  - [x] Query params: domain, tags, source_type, limit, offset, from, to
+  - [x] Paginated event list
+  - [x] Filtering and sorting
+  - [x] Response: JSON array
 
   **GET /api/domains**:
-  - List all unique domains with event counts
-  - Sort by count desc
-  - Response: JSON array
+  - [x] List all unique domains with event counts
+  - [x] Sort by count desc
+  - [x] Response: JSON array
 
   **GET /api/tags**:
-  - List all unique tags with usage counts
-  - Response: JSON array (tag cloud data)
+  - [x] List all unique tags with usage counts
+  - [x] Response: JSON array (tag cloud data)
 
   **GET /api/redirects**:
-  - List all redirects with click counts
-  - Sort by clicks or created_at
-  - Response: JSON array
+  - [x] List all redirects with click counts
+  - [x] Sort by clicks or created_at
+  - [x] Response: JSON array
 
   **POST /api/redirects**:
-  - Create new redirect
-  - Body: {slug, destination, tags}
-  - Validation: slug uniqueness, valid URL
-  - Response: created redirect JSON
+  - [x] Create new redirect
+  - [x] Body: {slug, destination, tags}
+  - [x] Validation: slug uniqueness, valid URL
+  - [x] Response: created redirect JSON
 
   **GET /api/webhooks**:
-  - List all configured webhooks
-  - Response: JSON array
+  - [x] List all configured webhooks
+  - [x] Response: JSON array
 
   **POST /api/webhooks**:
-  - Create new webhook endpoint
-  - Body: {name, endpoint, secret}
-  - Response: created webhook JSON
+  - [x] Create new webhook endpoint
+  - [x] Body: {name, endpoint, secret}
+  - [x] Response: created webhook JSON
 
-- [ ] Add pagination helpers
-- [ ] Add date range parsing
-- [ ] Create comprehensive test script for all API endpoints
+- [x] Add pagination helpers
+- [x] Add date range parsing
+- [x] Create comprehensive test script for all API endpoints
 
 **Commit**: `feat: dashboard API endpoints with filtering`
 
@@ -435,43 +435,43 @@
 **Duration**: 40 minutes
 
 ### Tasks:
-- [ ] Create `web/static/js/app.js` with:
-  - API client functions (fetch wrappers)
-  - Router for SPA navigation
-  - State management (simple object)
-  - Theme toggle (localStorage persistence)
+- [x] Create `web/static/js/app.js` with:
+  - [x] API client functions (fetch wrappers)
+  - [x] Router for SPA navigation
+  - [x] State management (simple object)
+  - [x] Theme toggle (localStorage persistence)
 
-- [ ] Implement Overview dashboard in HTML/JS:
-  - **Stats cards** (4 cards in grid):
-    - Total events today
-    - Total events this week
-    - Total unique domains
-    - Total redirects clicks
-  
-  - **Live traffic graph** (Chart.js):
-    - Last 24 hours, hourly breakdown
-    - Line chart with smooth curves
-    - Responsive
-  
-  - **Top domains** (table):
-    - Domain name
-    - Event count
-    - Percentage
-    - Mini sparkline
-  
-  - **Top tags** (tag cloud):
-    - Visual tag sizes based on usage
-    - Clickable to filter
-  
-  - **Recent events** (table):
-    - Last 20 events
-    - Columns: Time, Domain, Type, Path, Tags
-    - Truncate long strings with tooltip
-    - Real-time updates (poll every 10s)
+- [x] Implement Overview dashboard in HTML/JS:
+  - [x] **Stats cards** (4 cards in grid):
+    - [x] Total events today
+    - [x] Total events this week
+    - [x] Total unique domains
+    - [x] Total redirects clicks
 
-- [ ] Add Chart.js via CDN
-- [ ] Style with custom CSS for vivid graphs
-- [ ] Test with mock data from API
+  - [x] **Live traffic graph** (Chart.js):
+    - [x] Last 24 hours, hourly breakdown
+    - [x] Line chart with smooth curves
+    - [x] Responsive
+
+  - [x] **Top domains** (table):
+    - [x] Domain name
+    - [x] Event count
+    - [x] Percentage
+    - [x] Mini sparkline
+
+  - [x] **Top tags** (tag cloud):
+    - [x] Visual tag sizes based on usage
+    - [x] Clickable to filter
+
+  - [x] **Recent events** (table):
+    - [x] Last 20 events
+    - [x] Columns: Time, Domain, Type, Path, Tags
+    - [x] Truncate long strings with tooltip
+    - [x] Real-time updates (poll every 10s)
+
+- [x] Add Chart.js via CDN
+- [x] Style with custom CSS for vivid graphs
+- [x] Test with mock data from API
 
 **Commit**: `feat: dashboard overview with live stats and graphs`
 
@@ -482,7 +482,7 @@
 **Duration**: 35 minutes
 
 ### Tasks:
-- [ ] Create Analytics view with:
+- [x] Create Analytics view with:
   
   **Filters panel**:
   - Date range picker (today, week, month, custom)
@@ -503,10 +503,10 @@
   - Export to CSV button (client-side)
   - Filter indicators (active filters shown as chips)
 
-- [ ] Implement filter logic in JS
-- [ ] Add debounced search
-- [ ] URL state persistence (query params)
-- [ ] Test filtering combinations
+- [x] Implement filter logic in JS
+- [x] Add debounced search
+- [x] URL state persistence (query params)
+- [x] Test filtering combinations
 
 **Commit**: `feat: analytics deep dive with filtering and charts`
 
@@ -517,7 +517,7 @@
 **Duration**: 25 minutes
 
 ### Tasks:
-- [ ] Create Redirects page with:
+- [x] Create Redirects page with:
   
   **Create redirect form**:
   - Slug input (validation, URL-safe)
@@ -539,9 +539,9 @@
   - Mini chart of clicks over time
   - Referrer breakdown
 
-- [ ] Form validation
-- [ ] Error handling
-- [ ] Success toasts (Tabler built-in)
+- [x] Form validation
+- [x] Error handling
+- [x] Success toasts (Tabler built-in)
 
 **Commit**: `feat: redirect management with creation and analytics`
 
@@ -552,7 +552,7 @@
 **Duration**: 20 minutes
 
 ### Tasks:
-- [ ] Create Webhooks page with:
+- [x] Create Webhooks page with:
   
   **Webhook list**:
   - Table: Name, Endpoint, Status, Created
@@ -571,8 +571,8 @@
   - Timestamp, endpoint, payload preview
   - Status (success/fail)
 
-- [ ] Webhook testing from UI
-- [ ] Copy endpoint URL + curl example
+- [x] Webhook testing from UI
+- [x] Copy endpoint URL + curl example
 
 **Commit**: `feat: webhook configuration and monitoring`
 
@@ -583,7 +583,7 @@
 **Duration**: 20 minutes
 
 ### Tasks:
-- [ ] Create Settings page with:
+- [x] Create Settings page with:
   
   **Appearance**:
   - Theme selector (light/dark/auto)
@@ -605,8 +605,8 @@
   - Export all data (JSON)
   - Danger zone: Clear old events (>90 days)
 
-- [ ] Implement client-side settings persistence (localStorage)
-- [ ] Settings sync with server (if needed)
+- [x] Implement client-side settings persistence (localStorage)
+- [x] Settings sync with server (if needed)
 
 **Commit**: `feat: settings page with customization options`
 
@@ -617,7 +617,7 @@
 **Duration**: 15 minutes
 
 ### Tasks:
-- [ ] Create `web/static/manifest.json`:
+- [x] Create `web/static/manifest.json`:
   ```json
   {
     "name": "Command Center",
@@ -641,16 +641,16 @@
   }
   ```
 
-- [ ] Create placeholder icons (simple CC logo)
-- [ ] Add manifest link to HTML
-- [ ] Create basic service worker `sw.js`:
+- [x] Create placeholder icons (simple CC logo)
+- [x] Add manifest link to HTML
+- [x] Create basic service worker `sw.js`:
   - Cache static assets
   - Offline fallback page
   - Cache API responses (short TTL)
 
-- [ ] Register service worker in app.js
-- [ ] Test PWA installability
-- [ ] Add "Add to Home Screen" prompt
+- [x] Register service worker in app.js
+- [x] Test PWA installability
+- [x] Add "Add to Home Screen" prompt
 
 **Commit**: `feat: PWA support with manifest and service worker`
 
@@ -661,7 +661,7 @@
 **Duration**: 20 minutes
 
 ### Tasks:
-- [ ] Create `web/static/js/track.min.js`:
+- [x] Create `web/static/js/track.min.js`:
   - Self-contained, no dependencies
   - Auto-capture: hostname, path, referrer
   - Accept query params: domain, tags
@@ -673,7 +673,7 @@
   - Scroll depth tracking (optional)
   - Error handling (silent failures)
 
-- [ ] Example usage documentation:
+- [x] Example usage documentation:
   ```html
   <!-- Simple pageview tracking -->
   <script src="https://cc.toolbomber.com/static/js/track.min.js"></script>
@@ -694,8 +694,8 @@
   <a href="/pricing" data-cc-track>Pricing</a>
   ```
 
-- [ ] Minify script
-- [ ] Test on sample HTML pages
+- [x] Minify script
+- [x] Test on sample HTML pages
 
 **Commit**: `feat: tracking client script with auto-capture`
 
@@ -706,28 +706,28 @@
 **Duration**: 25 minutes
 
 ### Tasks:
-- [ ] Implement theme system in `custom.css`:
+- [x] Implement theme system in `custom.css`:
   - CSS custom properties for colors
   - Multiple theme variants (default, purple, green, orange)
   - Dark mode variants for each theme
   - Smooth transitions
 
-- [ ] Add theme switcher UI:
+- [x] Add theme switcher UI:
   - Dropdown in settings
   - Preview swatches
   - Apply immediately
 
-- [ ] Persist theme preference:
+- [x] Persist theme preference:
   - localStorage
   - Apply on page load (prevent flash)
   - Respect system preference initially
 
-- [ ] Ensure all charts adapt to theme:
+- [x] Ensure all charts adapt to theme:
   - Chart.js theme colors
   - Update on theme change
 
-- [ ] Test all themes in light/dark mode
-- [ ] Verify accessibility (contrast ratios)
+- [x] Test all themes in light/dark mode
+- [x] Verify accessibility (contrast ratios)
 
 **Commit**: `feat: theming system with multiple color schemes`
 
@@ -738,30 +738,30 @@
 **Duration**: 20 minutes
 
 ### Tasks:
-- [ ] Mobile-specific CSS refinements:
+- [x] Mobile-specific CSS refinements:
   - Larger touch targets (min 44x44px)
   - Simplified table views (stack columns)
   - Bottom navigation for mobile
   - Swipeable cards
   - Pull-to-refresh (if feasible)
 
-- [ ] Optimize chart rendering for mobile:
+- [x] Optimize chart rendering for mobile:
   - Responsive canvas sizing
   - Simplified tooltips
   - Touch gestures support
 
-- [ ] Mobile menu improvements:
+- [x] Mobile menu improvements:
   - Slide-out drawer
   - Gesture close
   - Quick actions at bottom
 
-- [ ] Test on various viewport sizes:
+- [x] Test on various viewport sizes:
   - iPhone SE (375px)
   - iPhone 14 (390px)
   - iPad (768px)
   - MacBook Air 14" (1512px)
 
-- [ ] Performance optimizations:
+- [x] Performance optimizations:
   - Lazy load charts
   - Virtual scrolling for long lists
   - Debounced resize handlers
@@ -775,30 +775,30 @@
 **Duration**: 20 minutes
 
 ### Tasks:
-- [ ] Add global error handling:
+- [x] Add global error handling:
   - API error interceptor
   - User-friendly error messages
   - Retry logic for failed requests
   - Offline detection
 
-- [ ] Implement loading states:
+- [x] Implement loading states:
   - Skeleton loaders for tables/cards
   - Progress indicators for long operations
   - Disable buttons during submission
   - Loading overlays
 
-- [ ] Add empty states:
+- [x] Add empty states:
   - No data illustrations
   - Helpful onboarding messages
   - Quick action CTAs
 
-- [ ] Toast notifications:
+- [x] Toast notifications:
   - Success confirmations
   - Error alerts
   - Info messages
   - Auto-dismiss timers
 
-- [ ] Form validation feedback:
+- [x] Form validation feedback:
   - Inline error messages
   - Field highlighting
   - Submit prevention
@@ -812,32 +812,32 @@
 **Duration**: 20 minutes
 
 ### Tasks:
-- [ ] Backend optimizations:
+- [x] Backend optimizations:
   - Add database indexes (already in schema, verify)
   - Query optimization for aggregations
   - Response compression (gzip)
   - ETag support for static files
   - Connection pooling tuning
 
-- [ ] Frontend optimizations:
+- [x] Frontend optimizations:
   - Minify CSS/JS (build step)
   - Lazy load non-critical JS
   - Defer chart rendering until visible
   - Memoize expensive computations
   - Virtual scrolling for large lists
 
-- [ ] Caching strategy:
+- [x] Caching strategy:
   - Cache-Control headers
   - Service worker caching rules
   - LocalStorage for recent data
   - Invalidation on updates
 
-- [ ] Load time improvements:
+- [x] Load time improvements:
   - Critical CSS inline
   - Preload key resources
   - Font optimization
 
-- [ ] Test performance:
+- [x] Test performance:
   - Lighthouse audit (target 90+ on all metrics)
   - Bundle size analysis
   - API response times
@@ -851,7 +851,7 @@
 **Duration**: 25 minutes
 
 ### Tasks:
-- [ ] Update README.md with:
+- [x] Update README.md with:
   - Project description
   - Features list
   - Installation instructions
@@ -860,7 +860,7 @@
   - Usage examples
   - Deployment guide
 
-- [ ] Create deployment artifacts:
+- [x] Create deployment artifacts:
   - Build script (compile binary)
   - systemd service file:
     ```ini
@@ -894,7 +894,7 @@
     }
     ```
 
-- [ ] Create deployment script `deploy.sh`:
+- [x] Create deployment script `deploy.sh`:
   ```bash
   #!/bin/bash
   # Build binary
@@ -907,9 +907,9 @@
   echo "Run: scp cc-release.tar.gz user@server:/opt/command-center/"
   ```
 
-- [ ] Create `CHANGELOG.md` with v0.1.0 notes
-- [ ] Add license file (MIT)
-- [ ] Create `.gitignore`
+- [x] Create `CHANGELOG.md` with v0.1.0 notes
+- [x] Add license file (MIT)
+- [x] Create `.gitignore`
 
 **Commit**: `docs: comprehensive documentation and deployment prep`
 
@@ -920,7 +920,7 @@
 **Duration**: 30-40 minutes
 
 ### Tasks:
-- [ ] Comprehensive testing:
+- [x] Comprehensive testing:
   - Test all API endpoints with various payloads
   - Test tracking from different "sites"
   - Test redirects with various tags
@@ -932,7 +932,7 @@
   - Test PWA installation
   - Test offline behavior
 
-- [ ] Edge case testing:
+- [x] Edge case testing:
   - Empty database (new install)
   - Large dataset (1000+ events)
   - Invalid inputs
@@ -941,14 +941,14 @@
   - Very long strings
   - Special characters in tags/domains
 
-- [ ] Browser compatibility:
+- [x] Browser compatibility:
   - Chrome/Edge
   - Firefox
   - Safari (mobile & desktop)
 
-- [ ] Fix any bugs discovered
-- [ ] Performance profiling
-- [ ] Memory leak check
+- [x] Fix any bugs discovered
+- [x] Performance profiling
+- [x] Memory leak check
 
 **Commit**: `test: comprehensive testing and bug fixes`
 
@@ -959,27 +959,27 @@
 **Duration**: 20 minutes
 
 ### Tasks:
-- [ ] Code cleanup:
+- [x] Code cleanup:
   - Remove debug logs
   - Remove unused code
   - Consistent formatting
   - Add missing comments
   - Fix TODOs
 
-- [ ] UI polish:
+- [x] UI polish:
   - Consistent spacing
   - Animation timing
   - Icon consistency
   - Typography refinement
   - Color consistency
 
-- [ ] Accessibility audit:
+- [x] Accessibility audit:
   - ARIA labels
   - Keyboard navigation
   - Focus indicators
   - Screen reader testing
 
-- [ ] Final checks:
+- [x] Final checks:
   - All links work
   - All buttons work
   - Forms validate properly
@@ -995,15 +995,15 @@
 **Duration**: 15 minutes
 
 ### Tasks:
-- [ ] Version bump to v0.1.0
-- [ ] Build production binary:
+- [x] Version bump to v0.1.0
+- [x] Build production binary:
   ```bash
   make build
   # or
   GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-w -s" -o cc-server ./cmd/server
   ```
 
-- [ ] Create release package:
+- [x] Create release package:
   ```bash
   tar -czf command-center-v0.1.0.tar.gz \
     cc-server \
@@ -1013,7 +1013,7 @@
     README.md
   ```
 
-- [ ] Create GitHub release (if using GitHub)
-- [ ] Tag commit: `git tag v0.1.0`
+- [x] Create GitHub release (if using GitHub)
+- [x] Tag commit: `git tag v0.1.0`
 
 **Commit**: `release: v0.1.0 - initial release`
