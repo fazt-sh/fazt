@@ -14,7 +14,7 @@
 **Duration**: 5-10 minutes
 
 ### Tasks:
-- [ ] Create project structure
+- [x] Create project structure
   ```
   command-center/
   ├── cmd/
@@ -51,8 +51,8 @@
   └── README.md
   ```
 
-- [ ] Initialize Go module: `go mod init github.com/yourusername/command-center`
-- [ ] Create `.env.example` with:
+- [x] Initialize Go module: `go mod init github.com/yourusername/command-center`
+- [x] Create `.env.example` with:
   ```
   PORT=4698
   DB_PATH=./cc.db
@@ -60,8 +60,8 @@
   NTFY_URL=https://ntfy.sh
   ENV=development
   ```
-- [ ] Create basic Makefile with build/run/test targets
-- [ ] Create README with project description
+- [x] Create basic Makefile with build/run/test targets
+- [x] Create README with project description
 
 **Commit**: `feat: initial project scaffolding`
 
@@ -72,7 +72,7 @@
 **Duration**: 15-20 minutes
 
 ### Tasks:
-- [ ] Create SQLite schema in `migrations/001_initial.sql`:
+- [x] Create SQLite schema in `migrations/001_initial.sql`:
   ```sql
   CREATE TABLE IF NOT EXISTS events (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -121,20 +121,20 @@
   );
   ```
 
-- [ ] Implement `internal/database/db.go`:
+- [x] Implement `internal/database/db.go`:
   - Initialize SQLite connection with WAL mode
   - Run migrations on startup
   - Connection pool configuration
   - Helper functions: `GetDB()`, `Close()`
 
-- [ ] Implement `internal/models/models.go`:
+- [x] Implement `internal/models/models.go`:
   - Event struct
   - Redirect struct
   - Webhook struct
   - Notification struct
   - Helper methods for JSON marshaling tags
 
-- [ ] Create mock data generator for testing:
+- [x] Create mock data generator for testing:
   - Insert 100 sample events across different domains/tags
   - Insert 10 sample redirects
   - Insert 5 sample webhooks
@@ -148,13 +148,13 @@
 **Duration**: 10-15 minutes
 
 ### Tasks:
-- [ ] Implement `internal/config/config.go`:
+- [x] Implement `internal/config/config.go`:
   - Load from environment variables
   - Fallback to defaults
   - Validation
   - Config struct with all settings
 
-- [ ] Implement `cmd/server/main.go`:
+- [x] Implement `cmd/server/main.go`:
   - Load configuration
   - Initialize database
   - Setup HTTP router (use `gorilla/mux` or `chi`)
@@ -163,7 +163,7 @@
   - Logging middleware
   - Recovery middleware
 
-- [ ] Setup routing structure (no handlers yet):
+- [x] Setup routing structure (no handlers yet):
   ```go
   // API routes
   r.HandleFunc("/track", trackHandler).Methods("POST", "OPTIONS")
@@ -187,7 +187,7 @@
   r.HandleFunc("/", dashboardHandler).Methods("GET")
   ```
 
-- [ ] Test server starts and responds on :4698
+- [x] Test server starts and responds on :4698
 
 **Commit**: `feat: core server setup with routing and middleware`
 
@@ -198,7 +198,7 @@
 **Duration**: 20-25 minutes
 
 ### Tasks:
-- [ ] Implement `internal/handlers/track.go`:
+- [x] Implement `internal/handlers/track.go`:
   - Parse JSON body
   - Extract domain (explicit > hostname from referrer > "unknown")
   - Parse tags (comma-separated string to array)
@@ -208,12 +208,12 @@
   - Return 204 No Content on success
   - Handle OPTIONS for CORS preflight
 
-- [ ] Add request validation:
+- [x] Add request validation:
   - Max body size (10KB)
   - Required fields check
   - Sanitize inputs
 
-- [ ] Create test script `test_track.sh`:
+- [x] Create test script `test_track.sh`:
   ```bash
   #!/bin/bash
   # Test pageview
@@ -232,8 +232,8 @@
     -d '{"h":"blog.com","p":"/post","e":"pageview","t":["blog"],"q":{"ref":"twitter"}}'
   ```
 
-- [ ] Test tracking endpoint with mock data
-- [ ] Verify data in SQLite
+- [x] Test tracking endpoint with mock data
+- [x] Verify data in SQLite
 
 **Commit**: `feat: tracking endpoint with validation`
 
@@ -244,14 +244,14 @@
 **Duration**: 20 minutes
 
 ### Tasks:
-- [ ] Implement `internal/handlers/pixel.go`:
+- [x] Implement `internal/handlers/pixel.go`:
   - Parse query params (domain, tags, source)
   - Extract referrer, IP, User-Agent from request
   - Log event with source_type="pixel"
   - Return 1x1 transparent GIF
   - Set cache headers (no-cache)
 
-- [ ] Implement `internal/handlers/redirect.go`:
+- [x] Implement `internal/handlers/redirect.go`:
   - Extract slug from URL
   - Lookup redirect in database
   - Log event with source_type="redirect"
@@ -260,7 +260,7 @@
   - Return 302 redirect
   - Handle 404 for invalid slugs
 
-- [ ] Create test scripts:
+- [x] Create test scripts:
   ```bash
   # Test pixel
   curl "http://localhost:4698/pixel.gif?domain=newsletter&tags=dec,email"
@@ -269,7 +269,7 @@
   curl -I "http://localhost:4698/r/test123?tags=reddit,promo"
   ```
 
-- [ ] Add helper function to create test redirects via database
+- [x] Add helper function to create test redirects via database
 
 **Commit**: `feat: pixel tracking and redirect handler`
 
@@ -280,7 +280,7 @@
 **Duration**: 15 minutes
 
 ### Tasks:
-- [ ] Implement `internal/handlers/webhook.go`:
+- [x] Implement `internal/handlers/webhook.go`:
   - Validate webhook endpoint exists and is active
   - Verify secret if configured (HMAC SHA256)
   - Parse JSON payload (flexible structure)
@@ -288,8 +288,8 @@
   - Extract useful fields (event type, source, etc.)
   - Return 200 OK with confirmation JSON
 
-- [ ] Create webhook registration helpers
-- [ ] Mock webhook sender for testing:
+- [x] Create webhook registration helpers
+- [x] Mock webhook sender for testing:
   ```bash
   # Test webhook
   curl -X POST http://localhost:4698/webhook/deployment \
@@ -297,7 +297,7 @@
     -d '{"event":"deploy","project":"my-site","status":"success"}'
   ```
 
-- [ ] Test webhook logging
+- [x] Test webhook logging
 
 **Commit**: `feat: webhook handler with secret validation`
 
@@ -366,20 +366,20 @@
 **Duration**: 15 minutes
 
 ### Tasks:
-- [ ] Implement `internal/notifier/ntfy.go`:
+- [x] Implement `internal/notifier/ntfy.go`:
   - Send notification function
   - Mock mode for testing (log instead of HTTP call)
   - Error handling and retries
   - Message formatting
 
-- [ ] Add notification triggers:
+- [x] Add notification triggers:
   - Traffic spike detection (10x avg in last hour)
   - New domain detection
   - Webhook events (configurable)
   - Error events
 
-- [ ] Create notification rules system (simple config)
-- [ ] Test with mock ntfy.sh calls (log output)
+- [x] Create notification rules system (simple config)
+- [x] Test with mock ntfy.sh calls (log output)
 
 **Commit**: `feat: ntfy.sh integration with event triggers`
 
@@ -390,12 +390,12 @@
 **Duration**: 30 minutes
 
 ### Tasks:
-- [ ] Download Tabler from CDN or npm (use dist files):
+- [x] Download Tabler from CDN or npm (use dist files):
   - tabler.min.css
   - tabler.min.js
   - tabler-icons.min.css
 
-- [ ] Place in `web/static/`:
+- [x] Place in `web/static/`:
   ```
   web/static/
   ├── css/
@@ -409,7 +409,7 @@
       └── logo-placeholder.svg
   ```
 
-- [ ] Create `web/templates/index.html`:
+- [x] Create `web/templates/index.html`:
   - Base HTML structure
   - Tabler theme setup (light/dark mode toggle)
   - Navigation sidebar with sections:
@@ -422,9 +422,9 @@
   - Mobile-responsive header
   - PWA meta tags
 
-- [ ] Create placeholder logo SVG
-- [ ] Test static file serving
-- [ ] Verify responsive layout on different viewport sizes
+- [x] Create placeholder logo SVG
+- [x] Test static file serving
+- [x] Verify responsive layout on different viewport sizes
 
 **Commit**: `feat: tabler frontend integration with responsive layout`
 
