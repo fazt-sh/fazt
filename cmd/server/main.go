@@ -39,6 +39,12 @@ func main() {
 	sessionStore := auth.NewSessionStore(auth.SessionTTL)
 	defer sessionStore.Stop()
 
+	// Initialize rate limiter
+	rateLimiter := auth.NewRateLimiter()
+
+	// Initialize auth handlers with session store and rate limiter
+	handlers.InitAuth(sessionStore, rateLimiter)
+
 	// Log auth status
 	if cfg.Auth.Enabled {
 		log.Printf("Authentication: enabled (user: %s)", cfg.Auth.Username)
@@ -80,6 +86,12 @@ func main() {
 			),
 		),
 	)
+
+	// Authentication routes
+	mux.HandleFunc("/login", handlers.LoginPageHandler)
+	mux.HandleFunc("/api/login", handlers.LoginHandler)
+	mux.HandleFunc("/api/logout", handlers.LogoutHandler)
+	mux.HandleFunc("/api/auth/status", handlers.AuthStatusHandler)
 
 	// API routes - Tracking
 	mux.HandleFunc("/track", handlers.TrackHandler)

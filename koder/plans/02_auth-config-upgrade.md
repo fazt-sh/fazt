@@ -273,7 +273,7 @@
 **Duration**: 30 minutes
 
 ### Tasks:
-- [ ] Create `internal/handlers/auth.go`:
+- [x] Create `internal/handlers/auth.go`:
 
   **POST /api/login**:
   - Accept JSON: `{username, password}`
@@ -292,7 +292,7 @@
   - Check if user is authenticated
   - Return session info if valid
 
-- [ ] Create `web/templates/login.html`:
+- [x] Create `web/templates/login.html`:
   - Clean, minimal login form
   - Tabler styling for consistency
   - Username field
@@ -304,26 +304,26 @@
   - Mobile responsive
   - No external dependencies
 
-- [ ] Add login page route in `cmd/server/main.go`:
+- [x] Add login page route in `cmd/server/main.go`:
   ```go
   mux.HandleFunc("/login", handlers.LoginPageHandler)
   mux.HandleFunc("/api/login", handlers.LoginHandler)
   mux.HandleFunc("/api/logout", handlers.LogoutHandler)
   ```
 
-- [ ] Implement rate limiting:
+- [x] Implement rate limiting:
   - Track login attempts by IP
   - Max 5 failed attempts per 15 minutes
   - Return 429 Too Many Requests
   - Exponential backoff
   - Clear attempts after 15 minutes
 
-- [ ] Add CSRF protection (basic):
+- [x] Add CSRF protection (basic):
   - Generate CSRF token on login page load
   - Validate token on login submission
   - Store in session
 
-- [ ] Security headers:
+- [x] Security headers:
   - X-Frame-Options: DENY
   - X-Content-Type-Options: nosniff
   - Referrer-Policy: no-referrer
