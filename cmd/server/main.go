@@ -17,11 +17,17 @@ import (
 func main() {
 	log.Println("Starting Command Center...")
 
+	// Parse CLI flags
+	flags := config.ParseFlags()
+
 	// Load configuration
-	cfg := config.Load()
+	cfg, err := config.Load(flags)
+	if err != nil {
+		log.Fatalf("Failed to load configuration: %v", err)
+	}
 
 	// Initialize database
-	if err := database.Init(cfg.DBPath); err != nil {
+	if err := database.Init(cfg.Database.Path); err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}
 	defer database.Close()
@@ -82,7 +88,7 @@ func main() {
 
 	// Create server
 	srv := &http.Server{
-		Addr:         ":" + cfg.Port,
+		Addr:         ":" + cfg.Server.Port,
 		Handler:      handler,
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 15 * time.Second,
@@ -91,8 +97,8 @@ func main() {
 
 	// Start server in a goroutine
 	go func() {
-		log.Printf("Server starting on :%s", cfg.Port)
-		log.Printf("Dashboard: http://localhost:%s", cfg.Port)
+		log.Printf("Server starting on :%s", cfg.Server.Port)
+		log.Printf("Dashboard: http://localhost:%s", cfg.Server.Port)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("Server failed to start: %v", err)
 		}

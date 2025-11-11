@@ -12,7 +12,7 @@
 **Duration**: 20-25 minutes
 
 ### Tasks:
-- [ ] Create config schema structure in `internal/config/config.go`:
+- [x] Create config schema structure in `internal/config/config.go`:
   ```go
   type Config struct {
       Server   ServerConfig   `json:"server"`
@@ -43,7 +43,7 @@
   }
   ```
 
-- [ ] Add CLI flag parsing:
+- [x] Add CLI flag parsing:
   - `--config` flag for custom config file path
   - `--db` flag for database path override
   - `--port` flag for port override
@@ -52,13 +52,13 @@
   - Default config path: `~/.config/cc/config.json`
   - Default database path: `~/.config/cc/data.db`
 
-- [ ] Implement config loading priority:
+- [x] Implement config loading priority:
   1. CLI flags (highest priority)
   2. JSON config file
   3. Environment variables (backward compatibility)
   4. Built-in defaults (lowest priority)
 
-- [ ] Add config file creation and update logic:
+- [x] Add config file creation and update logic:
   - Check if config directory exists (`~/.config/cc/`)
   - Create directory if missing
   - Generate default config if not found
@@ -68,7 +68,7 @@
     - Enable auth in config
     - Exit after updating (or continue to start server)
 
-- [ ] Create example config file `config.example.json`:
+- [x] Create example config file `config.example.json`:
   ```json
   {
     "server": {
@@ -91,12 +91,12 @@
   }
   ```
 
-- [ ] Update `cmd/server/main.go`:
+- [x] Update `cmd/server/main.go`:
   - Parse flags before loading config
   - Pass flags to config loader
   - Expand `~` in file paths to home directory
 
-- [ ] Add validation for config values:
+- [x] Add validation for config values:
   - Valid port number (1-65535)
   - Valid URL format for domain
   - Database path is writable

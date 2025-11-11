@@ -1,0 +1,19 @@
+{
+  "server": {
+    "port": "4698",
+    "domain": "https://cc.toolbomber.com",
+    "env": "production"
+  },
+  "database": {
+    "path": "~/.config/cc/data.db"
+  },
+  "auth": {
+    "enabled": true,
+    "username": "admin",
+    "password_hash": "$2a$12$EXAMPLE_HASH_REPLACE_WITH_REAL_HASH"
+  },
+  "ntfy": {
+    "topic": "your-topic-here",
+    "url": "https://ntfy.sh"
+  }
+}

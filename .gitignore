@@ -20,6 +20,9 @@ cc-server
 # Environment files
 .env
 
+# Config files (may contain sensitive data)
+config.json
+
 # Release artifacts
 *.tar.gz
 *.zip
