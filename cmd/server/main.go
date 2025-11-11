@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/jikku/command-center/internal/audit"
 	"github.com/jikku/command-center/internal/auth"
 	"github.com/jikku/command-center/internal/config"
 	"github.com/jikku/command-center/internal/database"
@@ -58,6 +59,11 @@ func main() {
 	}
 	defer database.Close()
 
+	// Initialize audit logging
+	if err := audit.Init(database.GetDB()); err != nil {
+		log.Fatalf("Failed to initialize audit logging: %v", err)
+	}
+
 	// Generate mock data in development mode
 	if cfg.IsDevelopment() {
 		log.Println("Development mode: Checking for existing data...")
@@ -78,11 +84,13 @@ func main() {
 	// Create router
 	mux := http.NewServeMux()
 
-	// Apply middleware (order: recovery -> cors -> auth -> logging)
+	// Apply middleware (order: logging -> security -> auth -> cors -> recovery -> mux)
 	handler := loggingMiddleware(
-		middleware.AuthMiddleware(sessionStore)(
-			corsMiddleware(
-				recoveryMiddleware(mux),
+		middleware.SecurityHeaders(
+			middleware.AuthMiddleware(sessionStore)(
+				corsMiddleware(
+					recoveryMiddleware(mux),
+				),
 			),
 		),
 	)

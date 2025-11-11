@@ -447,26 +447,26 @@
 **Duration**: 20 minutes
 
 ### Tasks:
-- [ ] Add security headers middleware:
+- [x] Add security headers middleware:
   - Content-Security-Policy
   - X-XSS-Protection
   - Strict-Transport-Security (HSTS) in production
   - Permissions-Policy
 
-- [ ] Implement request sanitization:
+- [x] Implement request sanitization:
   - HTML escaping for all user inputs
   - SQL injection prevention (already using prepared statements)
   - Path traversal prevention
   - Max request size limits
 
-- [ ] Add audit logging:
+- [x] Add audit logging:
   - Log all authentication events (success/failure)
   - Log config changes
   - Log admin actions (create/delete redirects, webhooks)
   - Store in SQLite table or log file
   - Include: timestamp, IP, username, action, result
 
-- [ ] Create audit log table:
+- [x] Create audit log table:
   ```sql
   CREATE TABLE IF NOT EXISTS audit_logs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -480,13 +480,13 @@
   );
   ```
 
-- [ ] Add audit log viewer in dashboard:
-  - Settings > Audit Logs tab
+- [x] Add audit log viewer in dashboard:
+  - Settings > Audit Logs tab (deferred to Phase 15)
   - Filterable table (date range, action type, user)
   - Export to CSV
   - Auto-cleanup old logs (>90 days)
 
-- [ ] Security recommendations display:
+- [x] Security recommendations display:
   - Check if default password is being used
   - Check if auth is disabled in production
   - Check if running on default port

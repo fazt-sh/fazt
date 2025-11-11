@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/jikku/command-center/internal/audit"
 	"github.com/jikku/command-center/internal/auth"
 	"github.com/jikku/command-center/internal/config"
 )
@@ -93,6 +94,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	// Verify credentials
 	if req.Username != cfg.Auth.Username {
 		rateLimiter.RecordAttempt(ip)
+		audit.LogFailure(req.Username, ip, "login", "/api/login", "invalid username")
 		log.Printf("Login failed: invalid username from %s", ip)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
@@ -104,6 +106,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 
 	if err := auth.VerifyPassword(req.Password, cfg.Auth.PasswordHash); err != nil {
 		rateLimiter.RecordAttempt(ip)
+		audit.LogFailure(req.Username, ip, "login", "/api/login", "invalid password")
 		log.Printf("Login failed: invalid password from %s", ip)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
@@ -136,6 +139,8 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	// Reset rate limit on successful login
 	rateLimiter.Reset(ip)
 
+	// Log successful login
+	audit.LogSuccess(req.Username, ip, "login", "/api/login")
 	log.Printf("Login successful: %s from %s", req.Username, ip)
 
 	// Return success
@@ -148,15 +153,25 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 
 // LogoutHandler handles logout requests
 func LogoutHandler(w http.ResponseWriter, r *http.Request) {
-	// Get session cookie
+	// Get session info for audit logging
+	var username string
 	sessionID, err := auth.GetSessionCookie(r)
 	if err == nil {
+		if session, err := sessionStore.GetSession(sessionID); err == nil {
+			username = session.Username
+		}
 		// Delete session
 		sessionStore.DeleteSession(sessionID)
 	}
 
 	// Clear session cookie
 	auth.ClearSessionCookie(w)
+
+	// Log logout
+	if username != "" {
+		ip := getClientIP(r)
+		audit.LogSuccess(username, ip, "logout", "/api/logout")
+	}
 
 	// Return success for API requests
 	if r.Header.Get("Accept") == "application/json" || strings.HasPrefix(r.URL.Path, "/api/") {
