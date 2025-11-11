@@ -337,33 +337,33 @@
 **Duration**: 15 minutes
 
 ### Tasks:
-- [ ] Update `cmd/server/main.go`:
+- [x] Update `cmd/server/main.go`:
   - Apply auth middleware to protected routes only
   - Keep tracking endpoints public
   - Add auth check before serving dashboard
 
-- [ ] Update `internal/handlers/api.go`:
+- [x] Update `internal/handlers/api.go`:
   - Add auth context to handlers (username from session)
   - Log authenticated actions
   - Return 401 Unauthorized for invalid sessions
 
-- [ ] Add logout button to dashboard:
+- [x] Add logout button to dashboard:
   - Top-right corner in header
   - Icon + "Logout" text
   - Confirm before logout (optional)
   - Redirect to login page after logout
 
-- [ ] Add session info to dashboard:
+- [x] Add session info to dashboard:
   - Show logged-in username
   - Show session expiry time
   - Auto-refresh on activity
 
-- [ ] Handle session expiry gracefully:
+- [x] Handle session expiry gracefully:
   - Show toast notification "Session expired"
   - Redirect to login page
   - Preserve return URL (redirect back after login)
 
-- [ ] Update settings page:
+- [x] Update settings page:
   - Add "Change Password" section
   - Require current password
   - Validate new password strength
