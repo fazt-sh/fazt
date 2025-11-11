@@ -159,14 +159,14 @@
 **Duration**: 25-30 minutes
 
 ### Tasks:
-- [ ] Create `internal/auth/session.go`:
+- [x] Create `internal/auth/session.go`:
   - Session store (in-memory with expiry)
   - Generate secure session IDs (crypto/rand)
   - Session validation
   - Session cleanup (expire after 24 hours of inactivity)
   - Concurrent access safety (mutex)
 
-- [ ] Implement session structure:
+- [x] Implement session structure:
   ```go
   type Session struct {
       ID        string
@@ -183,21 +183,21 @@
   }
   ```
 
-- [ ] Add session methods:
+- [x] Add session methods:
   - `CreateSession(username string) (sessionID string, error)`
   - `ValidateSession(sessionID string) (bool, error)`
   - `DeleteSession(sessionID string)`
   - `CleanupExpired()` - background goroutine
   - `RefreshSession(sessionID string)` - update LastSeen
 
-- [ ] Cookie handling:
+- [x] Cookie handling:
   - HTTPOnly cookies for security
   - Secure flag in production
   - SameSite=Strict
   - Path=/
   - MaxAge=86400 (24 hours)
 
-- [ ] Add session persistence option (future):
+- [x] Add session persistence option (future):
   - Store sessions in SQLite table
   - Survive server restarts
   - Configurable via config file
