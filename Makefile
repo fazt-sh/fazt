@@ -1,4 +1,4 @@
-.PHONY: build run test clean install-deps
+.PHONY: build run test clean install-deps setup-auth
 
 # Build the binary
 build:
@@ -12,6 +12,18 @@ build-local:
 run:
 	go run cmd/server/main.go
 
+# Run with custom config
+run-with-config:
+	go run cmd/server/main.go --config ~/.config/cc/config.json
+
+# Setup authentication (interactive)
+setup-auth:
+	@echo "Setting up authentication for Command Center v0.2.0"
+	@read -p "Enter username: " username; \
+	read -s -p "Enter password: " password; \
+	echo ""; \
+	go run cmd/server/main.go --username $$username --password $$password
+
 # Run tests
 test:
 	go test -v ./...
@@ -21,6 +33,7 @@ clean:
 	rm -f cc-server
 	rm -f cc.db cc.db-shm cc.db-wal
 	rm -f command-center-*.tar.gz
+	rm -rf ~/.config/cc/backups/
 
 # Install Go dependencies
 install-deps:
@@ -29,11 +42,11 @@ install-deps:
 
 # Create release package
 release: build
-	tar -czf command-center-v0.1.0.tar.gz \
+	tar -czf command-center-v0.2.0.tar.gz \
 		cc-server \
 		web/ \
 		migrations/ \
-		.env.example \
+		config.example.json \
 		README.md
 
 # Development - run with auto-reload (requires air)

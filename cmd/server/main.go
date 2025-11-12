@@ -36,6 +36,19 @@ func main() {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}
 
+	// Display startup information
+	fmt.Println()
+	fmt.Println("═══════════════════════════════════════════════════════════")
+	fmt.Println("           Command Center v0.2.0 - Starting Up")
+	fmt.Println("═══════════════════════════════════════════════════════════")
+	fmt.Println()
+	fmt.Printf("  Environment:  %s\n", cfg.Server.Env)
+	fmt.Printf("  Port:         %s\n", cfg.Server.Port)
+	fmt.Printf("  Domain:       %s\n", cfg.Server.Domain)
+	fmt.Printf("  Database:     %s\n", cfg.Database.Path)
+	fmt.Printf("  Config File:  %s\n", config.ExpandPath(flags.ConfigPath))
+	fmt.Println()
+
 	// Initialize session store
 	sessionStore := auth.NewSessionStore(auth.SessionTTL)
 	defer sessionStore.Stop()
@@ -46,12 +59,23 @@ func main() {
 	// Initialize auth handlers with session store and rate limiter
 	handlers.InitAuth(sessionStore, rateLimiter)
 
-	// Log auth status
+	// Display auth status with warnings
 	if cfg.Auth.Enabled {
-		log.Printf("Authentication: enabled (user: %s)", cfg.Auth.Username)
+		fmt.Printf("  Authentication: ✓ Enabled (user: %s)\n", cfg.Auth.Username)
 	} else {
-		log.Println("Authentication: disabled (warning: dashboard is publicly accessible)")
+		fmt.Println("  Authentication: ✗ Disabled")
+		if cfg.IsProduction() {
+			fmt.Println()
+			fmt.Println("  ⚠️  WARNING: Running in PRODUCTION without authentication!")
+			fmt.Println("  ⚠️  Your dashboard is publicly accessible.")
+			fmt.Println()
+			fmt.Println("  To enable authentication, run:")
+			fmt.Printf("    ./cc-server --username admin --password yourpassword\n")
+			fmt.Println()
+		}
 	}
+	fmt.Println("═══════════════════════════════════════════════════════════")
+	fmt.Println()
 
 	// Initialize database
 	if err := database.Init(cfg.Database.Path); err != nil {
