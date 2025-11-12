@@ -1,0 +1,19 @@
+{
+  "server": {
+    "port": "4698",
+    "domain": "http://localhost:4698",
+    "env": "development"
+  },
+  "database": {
+    "path": "./cc-dev.db"
+  },
+  "auth": {
+    "enabled": false,
+    "username": "",
+    "password_hash": ""
+  },
+  "ntfy": {
+    "topic": "",
+    "url": "https://ntfy.sh"
+  }
+}
