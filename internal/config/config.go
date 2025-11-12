@@ -54,6 +54,7 @@ type CLIFlags struct {
 	Port       string
 	Username   string
 	Password   string
+	Env        string
 }
 
 // ParseFlags parses command-line flags
@@ -73,12 +74,18 @@ func ParseFlags() *CLIFlags {
 	flag.StringVar(&flags.Port, "port", "", "Server port (overrides config)")
 	flag.StringVar(&flags.Username, "username", "", "Set/update username (updates config)")
 	flag.StringVar(&flags.Password, "password", "", "Set/update password (updates config)")
+	flag.StringVar(&flags.Env, "env", "", "Environment (development/production, loads config.<env>.json)")
 
 	flag.Parse()
 
 	// If no db path provided via flag, use default
 	if flags.DBPath == "" {
 		flags.DBPath = defaultDBPath
+	}
+
+	// If --env flag is provided, override config path
+	if flags.Env != "" {
+		flags.ConfigPath = fmt.Sprintf("./config.%s.json", flags.Env)
 	}
 
 	return flags
