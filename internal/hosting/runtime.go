@@ -114,6 +114,20 @@ func RunServerless(w http.ResponseWriter, r *http.Request, siteDir string, db *s
 		"env": envVars,
 	})
 
+	// Inject socket object for WebSocket broadcast
+	hub := GetHub(siteID)
+	vm.Set("socket", map[string]interface{}{
+		"broadcast": func(call goja.FunctionCall) goja.Value {
+			if len(call.Arguments) > 0 {
+				hub.Broadcast(call.Arguments[0].String())
+			}
+			return goja.Undefined()
+		},
+		"clients": func(call goja.FunctionCall) goja.Value {
+			return vm.ToValue(hub.ClientCount())
+		},
+	})
+
 	// Inject db object for KV store
 	vm.Set("db", map[string]interface{}{
 		"get": func(call goja.FunctionCall) goja.Value {

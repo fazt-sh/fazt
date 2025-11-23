@@ -537,10 +537,17 @@ func extractSubdomain(host, mainDomain string) string {
 // siteHandler handles requests for hosted sites
 // Serves static files from ~/.config/cc/sites/{subdomain}/
 // If main.js exists, executes serverless JavaScript instead
+// WebSocket connections at /ws are handled by the WebSocket hub
 func siteHandler(w http.ResponseWriter, r *http.Request, subdomain string) {
 	// Check if site exists
 	if !hosting.SiteExists(subdomain) {
 		serveSiteNotFound(w, subdomain)
+		return
+	}
+
+	// Handle WebSocket connections at /ws
+	if r.URL.Path == "/ws" {
+		hosting.HandleWebSocket(w, r, subdomain)
 		return
 	}
 
