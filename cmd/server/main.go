@@ -565,8 +565,8 @@ func siteHandler(w http.ResponseWriter, r *http.Request, subdomain string) {
 		}
 	}
 
-	// Create a file server for this site
-	fileServer := http.FileServer(http.Dir(siteDir))
+	// Create a secure file server for this site (prevents path traversal)
+	fileServer := hosting.NewSecureFileServer(siteDir)
 
 	// Serve the request
 	// Strip nothing since we're serving from root of site directory
