@@ -196,6 +196,12 @@ func main() {
 
 	// API routes - Hosting/Deploy
 	dashboardMux.HandleFunc("/api/deploy", handlers.DeployHandler)
+	dashboardMux.HandleFunc("/api/sites", handlers.SitesHandler)
+	dashboardMux.HandleFunc("/api/keys", handlers.APIKeysHandler)
+	dashboardMux.HandleFunc("/api/deployments", handlers.DeploymentsHandler)
+
+	// Hosting management page
+	dashboardMux.HandleFunc("/hosting", handlers.HostingPageHandler)
 
 	// Static files
 	fs := http.FileServer(http.Dir("./web/static"))
