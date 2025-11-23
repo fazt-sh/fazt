@@ -7,9 +7,11 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"runtime"
+	"strings"
 	"syscall"
 	"time"
 
@@ -140,50 +142,39 @@ func main() {
 		}
 	}
 
-	// Create router
-	mux := http.NewServeMux()
-
-	// Apply middleware (order: logging -> security -> auth -> cors -> recovery -> mux)
-	handler := loggingMiddleware(
-		middleware.SecurityHeaders(
-			middleware.AuthMiddleware(sessionStore)(
-				corsMiddleware(
-					recoveryMiddleware(mux),
-				),
-			),
-		),
-	)
+	// Create dashboard router (existing dashboard functionality)
+	dashboardMux := http.NewServeMux()
 
 	// Authentication routes
-	mux.HandleFunc("/login", handlers.LoginPageHandler)
-	mux.HandleFunc("/api/login", handlers.LoginHandler)
-	mux.HandleFunc("/api/logout", handlers.LogoutHandler)
-	mux.HandleFunc("/api/auth/status", handlers.AuthStatusHandler)
+	dashboardMux.HandleFunc("/login", handlers.LoginPageHandler)
+	dashboardMux.HandleFunc("/api/login", handlers.LoginHandler)
+	dashboardMux.HandleFunc("/api/logout", handlers.LogoutHandler)
+	dashboardMux.HandleFunc("/api/auth/status", handlers.AuthStatusHandler)
 
 	// API routes - Tracking
-	mux.HandleFunc("/track", handlers.TrackHandler)
-	mux.HandleFunc("/pixel.gif", handlers.PixelHandler)
-	mux.HandleFunc("/r/", handlers.RedirectHandler)
-	mux.HandleFunc("/webhook/", handlers.WebhookHandler)
+	dashboardMux.HandleFunc("/track", handlers.TrackHandler)
+	dashboardMux.HandleFunc("/pixel.gif", handlers.PixelHandler)
+	dashboardMux.HandleFunc("/r/", handlers.RedirectHandler)
+	dashboardMux.HandleFunc("/webhook/", handlers.WebhookHandler)
 
 	// API routes - Dashboard
-	mux.HandleFunc("/api/stats", handlers.StatsHandler)
-	mux.HandleFunc("/api/events", handlers.EventsHandler)
-	mux.HandleFunc("/api/redirects", handlers.RedirectsHandler)
-	mux.HandleFunc("/api/domains", handlers.DomainsHandler)
-	mux.HandleFunc("/api/tags", handlers.TagsHandler)
-	mux.HandleFunc("/api/webhooks", handlers.WebhooksHandler)
-	mux.HandleFunc("/api/config", handlers.ConfigHandler)
+	dashboardMux.HandleFunc("/api/stats", handlers.StatsHandler)
+	dashboardMux.HandleFunc("/api/events", handlers.EventsHandler)
+	dashboardMux.HandleFunc("/api/redirects", handlers.RedirectsHandler)
+	dashboardMux.HandleFunc("/api/domains", handlers.DomainsHandler)
+	dashboardMux.HandleFunc("/api/tags", handlers.TagsHandler)
+	dashboardMux.HandleFunc("/api/webhooks", handlers.WebhooksHandler)
+	dashboardMux.HandleFunc("/api/config", handlers.ConfigHandler)
 
 	// Static files
 	fs := http.FileServer(http.Dir("./web/static"))
-	mux.Handle("/static/", http.StripPrefix("/static/", fs))
+	dashboardMux.Handle("/static/", http.StripPrefix("/static/", fs))
 
 	// Dashboard (root)
-	mux.HandleFunc("/", handlers.DashboardHandler)
+	dashboardMux.HandleFunc("/", handlers.DashboardHandler)
 
-	// Health check
-	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+	// Health check (available on both dashboard and sites)
+	dashboardMux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		if err := database.HealthCheck(); err != nil {
 			http.Error(w, "Database unhealthy", http.StatusServiceUnavailable)
 			return
@@ -191,6 +182,18 @@ func main() {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("OK"))
 	})
+
+	// Create the root handler with host-based routing
+	rootHandler := createRootHandler(cfg, dashboardMux, sessionStore)
+
+	// Apply middleware (order: logging -> security -> auth -> cors -> recovery -> root)
+	handler := loggingMiddleware(
+		middleware.SecurityHeaders(
+			corsMiddleware(
+				recoveryMiddleware(rootHandler),
+			),
+		),
+	)
 
 	// Create server
 	srv := &http.Server{
@@ -394,4 +397,130 @@ func printHelp() {
 	fmt.Println("  cc-server --port 8080")
 	fmt.Println()
 	fmt.Println("For more information, visit: https://github.com/jikkuatwork/command-center")
+}
+
+// createRootHandler creates a handler that routes based on the Host header
+// - Requests to the main domain (or localhost) go to the dashboard
+// - Requests to subdomains (*.domain.com or *.localhost) go to the site handler
+func createRootHandler(cfg *config.Config, dashboardMux *http.ServeMux, sessionStore *auth.SessionStore) http.Handler {
+	// Parse the main domain from config
+	mainDomain := extractDomain(cfg.Server.Domain)
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		host := r.Host
+
+		// Remove port from host if present
+		if colonIdx := strings.LastIndex(host, ":"); colonIdx != -1 {
+			// Check if this is IPv6 (has brackets)
+			if !strings.Contains(host, "]") || strings.LastIndex(host, "]") < colonIdx {
+				host = host[:colonIdx]
+			}
+		}
+
+		// Check if this is the main domain or localhost (no subdomain)
+		if isDashboardHost(host, mainDomain, cfg.Server.Port) {
+			// Apply auth middleware only to dashboard routes
+			middleware.AuthMiddleware(sessionStore)(dashboardMux).ServeHTTP(w, r)
+			return
+		}
+
+		// Extract subdomain and serve the site
+		subdomain := extractSubdomain(host, mainDomain)
+		if subdomain != "" {
+			siteHandler(w, r, subdomain)
+			return
+		}
+
+		// Fallback to dashboard
+		middleware.AuthMiddleware(sessionStore)(dashboardMux).ServeHTTP(w, r)
+	})
+}
+
+// extractDomain extracts the domain from a URL (removes protocol and path)
+func extractDomain(rawURL string) string {
+	// Handle URLs with protocol
+	if strings.Contains(rawURL, "://") {
+		if parsed, err := url.Parse(rawURL); err == nil {
+			return parsed.Hostname()
+		}
+	}
+	// Handle bare domains
+	if colonIdx := strings.Index(rawURL, ":"); colonIdx != -1 {
+		return rawURL[:colonIdx]
+	}
+	return rawURL
+}
+
+// isDashboardHost checks if the host should be routed to the dashboard
+func isDashboardHost(host, mainDomain, port string) bool {
+	// Exact match with main domain
+	if host == mainDomain {
+		return true
+	}
+
+	// localhost without subdomain
+	if host == "localhost" || host == "127.0.0.1" {
+		return true
+	}
+
+	return false
+}
+
+// extractSubdomain extracts the subdomain from a host
+// e.g., "blog.example.com" with mainDomain "example.com" returns "blog"
+// e.g., "blog.localhost" returns "blog"
+func extractSubdomain(host, mainDomain string) string {
+	host = strings.ToLower(host)
+	mainDomain = strings.ToLower(mainDomain)
+
+	// Handle *.localhost pattern
+	if strings.HasSuffix(host, ".localhost") {
+		return strings.TrimSuffix(host, ".localhost")
+	}
+
+	// Handle *.127.0.0.1 pattern (rare but possible)
+	if strings.HasSuffix(host, ".127.0.0.1") {
+		return strings.TrimSuffix(host, ".127.0.0.1")
+	}
+
+	// Handle *.mainDomain pattern
+	suffix := "." + mainDomain
+	if strings.HasSuffix(host, suffix) {
+		subdomain := strings.TrimSuffix(host, suffix)
+		// Don't return empty subdomain or subdomain with dots (nested subdomains)
+		if subdomain != "" && !strings.Contains(subdomain, ".") {
+			return subdomain
+		}
+	}
+
+	return ""
+}
+
+// siteHandler handles requests for hosted sites
+// Currently returns 404 - will be implemented in Phase 3
+func siteHandler(w http.ResponseWriter, r *http.Request, subdomain string) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(http.StatusNotFound)
+	fmt.Fprintf(w, `<!DOCTYPE html>
+<html>
+<head>
+    <title>Site Not Found</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+               display: flex; justify-content: center; align-items: center;
+               height: 100vh; margin: 0; background: #f5f5f5; }
+        .container { text-align: center; padding: 40px; background: white;
+                     border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #333; margin-bottom: 10px; }
+        p { color: #666; }
+        .subdomain { font-family: monospace; background: #f0f0f0; padding: 2px 8px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>404 - Site Not Found</h1>
+        <p>The site <span class="subdomain">%s</span> does not exist.</p>
+    </div>
+</body>
+</html>`, subdomain)
 }
