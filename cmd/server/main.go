@@ -30,7 +30,7 @@ import (
 	"github.com/jikku/command-center/internal/security"
 )
 
-const Version = "v0.2.0"
+const Version = "v0.3.0"
 
 var (
 	showVersion = flag.Bool("version", false, "Show version and exit")
@@ -97,7 +97,7 @@ func main() {
 	// Display startup information
 	fmt.Println()
 	fmt.Println("═══════════════════════════════════════════════════════════")
-	fmt.Println("           Command Center v0.2.0 - Starting Up")
+	fmt.Println("           Command Center v0.3.0 - Starting Up")
 	fmt.Println("═══════════════════════════════════════════════════════════")
 	fmt.Println()
 	fmt.Printf("  Environment:  %s\n", cfg.Server.Env)
@@ -401,7 +401,7 @@ func printVersion() {
 
 // printHelp displays usage information
 func printHelp() {
-	fmt.Println("Command Center v0.2.0 - Universal Tracking & Analytics Server")
+	fmt.Println("Command Center v0.3.0 - Analytics & Personal Cloud")
 	fmt.Println()
 	fmt.Println("USAGE:")
 	fmt.Println("  cc-server [flags]")
