@@ -1,47 +1,31 @@
-# CLAUDE.md - Fazt.sh Development Guide
+# Fazt.sh - Single Binary PaaS
 
-## Project Overview
-**Fazt.sh** is a self-hosted Platform-as-a-Service (PaaS) and Analytics platform.
-- **Architecture**: "Cartridge" Model (Single Binary + Single SQLite DB).
-- **Core Philosophy**: Zero dependencies, database-as-filesystem (VFS).
-- **Language**: Go 1.20+
-- **Database**: SQLite (with WAL mode).
-- **HTTPS**: Native automatic HTTPS via CertMagic (Let's Encrypt).
+**Core Goal:** A zero-dependency "Cartridge" application (One Binary + One SQLite DB).
 
-## Key Commands
+## 🚀 Key Commands
+*   **Build (Linux)**: `CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o fazt ./cmd/server`
+*   **Build (Mac)**: `CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -o fazt ./cmd/server`
+*   **Dev Run**: `go run ./cmd/server server start --port 8080 --domain localhost`
+*   **Test**: `go test ./...`
 
-### Build & Run
-- **Build**: `go build -o fazt ./cmd/server`
-- **Test (All)**: `go test ./...`
-- **Test (E2E)**: `./test_e2e_hosting.sh` (Requires built binary)
-- **Run (Dev)**: `go run ./cmd/server server start`
+## 🏗 Architecture (Must Read)
+1.  **Pure Go**: We use `modernc.org/sqlite`. **NO CGO**. This allows static cross-compilation.
+2.  **Embedded Assets**: `migrations/` and `web/` are embedded via `//go:embed`.
+    *   *Rule*: Never use `os.ReadFile` for core assets; use `assets.WebFS` or `database.migrationFS`.
+3.  **VFS**: User sites live in SQLite (`files` table). **NO DISK I/O** for user content.
+4.  **CLI Structure**:
+    *   `fazt server ...`: Runtime (start app, init config).
+    *   `fazt service ...`: System Ops (install systemd, logs).
+    *   `fazt client ...`: User tools (deploy site).
 
-### Code Quality
-- **Format**: `go fmt ./...`
-- **Lint**: `golangci-lint run` (if available)
-- **Vet**: `go vet ./...`
+## 📂 Project Map
+*   `cmd/server/`: Entry point & CLI parsing.
+*   `internal/provision/`: Systemd/User/Install logic.
+*   `internal/hosting/`: VFS & Deploy logic.
+*   `internal/assets/`: Embedded `web/` assets.
+*   `internal/database/`: SQLite conn & Embedded `migrations/`.
 
-## Project Structure
-- `cmd/server/`: Main entry point (CLI & Server).
-- `internal/`: Core logic.
-  - `hosting/`: VFS, Deploy, Runtime (JS), WebSocket.
-  - `database/`: DB connection, CertMagic storage, Migrations runner.
-  - `config/`: Configuration structs and loading.
-  - `handlers/`: HTTP API and Dashboard handlers.
-  - `auth/`: Authentication and Session management.
-- `migrations/`: SQL schema files (auto-applied on startup).
-- `web/`: Embedded static assets and templates.
-
-## Architecture Standards
-1.  **VFS First**: All site content MUST be stored in the `files` table. No disk I/O for user content.
-2.  **Single DB**: All state (files, certs, logs, users) must live in `data.db`.
-3.  **Config**: Prioritize `config.json` > CLI Flags > Env Vars.
-4.  **Security**: Auth is required by default. HTTPS is available via config.
-
-## Deployment Strategy
-1.  **Update**: Replace the `fazt` binary.
-2.  **Backup**: Copy `data.db`.
-3.  **Certificates**: Stored in `certificates` table (managed by CertMagic).
-
-## Pending Features
-- **Auto-Provisioning**: `fazt server install` command (See `koder/plans/08_auto_install.md`).
+## ⚠️ Critical Constraints
+*   **Do not re-introduce CGO**: Keep `CGO_ENABLED=0` capability.
+*   **Do not write to disk**: Except `data.db` and `config.json`.
+*   **Maintain Install Flow**: `service install` must remain idempotent and single-command.
