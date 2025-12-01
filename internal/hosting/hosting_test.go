@@ -11,14 +11,14 @@ import (
 	"strings"
 	"testing"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 )
 
 // setupTestDB creates a temporary in-memory database for testing
 func setupTestDB(t *testing.T) *sql.DB {
-	db, err := sql.Open("sqlite3", ":memory:")
+	db, err := sql.Open("sqlite", ":memory:")
 	if err != nil {
-		t.Fatalf("Failed to open db: %v", err)
+		t.Fatalf("Failed to open DB: %v", err)
 	}
 
 	// Enable WAL (though not strictly needed for :memory:)

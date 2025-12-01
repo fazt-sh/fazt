@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jikku/command-center/internal/assets"
 	"github.com/jikku/command-center/internal/database"
 	"github.com/jikku/command-center/internal/models"
 )
@@ -467,7 +468,16 @@ func WebhooksHandler(w http.ResponseWriter, r *http.Request) {
 
 // DashboardHandler serves the main dashboard page
 func DashboardHandler(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "./web/templates/index.html")
+	// Read from embedded FS
+	content, err := assets.WebFS.ReadFile("web/templates/index.html")
+	if err != nil {
+		log.Printf("Error loading dashboard template: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Write(content)
 }
 
 // parseInt parses string to int with default value

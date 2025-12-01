@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/jikku/command-center/internal/assets"
 	"github.com/jikku/command-center/internal/audit"
 	"github.com/jikku/command-center/internal/auth"
 	"github.com/jikku/command-center/internal/config"
@@ -34,7 +35,7 @@ func LoginPageHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Render login page
-	tmpl, err := template.ParseFiles("web/templates/login.html")
+	tmpl, err := template.ParseFS(assets.WebFS, "web/templates/login.html")
 	if err != nil {
 		log.Printf("Error loading login template: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)

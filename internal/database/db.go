@@ -2,6 +2,7 @@ package database
 
 import (
 	"database/sql"
+	"embed"
 	"fmt"
 	"io"
 	"log"
@@ -9,8 +10,11 @@ import (
 	"path/filepath"
 	"time"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 )
+
+//go:embed migrations/*.sql
+var migrationFS embed.FS
 
 var db *sql.DB
 
@@ -25,7 +29,8 @@ func Init(dbPath string) error {
 	}
 
 	// Open database connection
-	db, err = sql.Open("sqlite3", dbPath)
+	// Use "sqlite" driver (modernc.org/sqlite) instead of "sqlite3" (mattn/go-sqlite3)
+	db, err = sql.Open("sqlite", dbPath)
 	if err != nil {
 		return fmt.Errorf("failed to open database: %w", err)
 	}
@@ -74,10 +79,10 @@ func runMigrations() error {
 		name    string
 		file    string
 	}{
-		{1, "initial_schema", "./migrations/001_initial.sql"},
-		{2, "paas_tables", "./migrations/002_paas.sql"},
-		{3, "env_vars", "./migrations/003_env_vars.sql"},
-		{4, "vfs_schema", "./migrations/004_vfs.sql"},
+		{1, "initial_schema", "migrations/001_initial.sql"},
+		{2, "paas_tables", "migrations/002_paas.sql"},
+		{3, "env_vars", "migrations/003_env_vars.sql"},
+		{4, "vfs_schema", "migrations/004_vfs.sql"},
 	}
 
 	// Run each migration if not already applied
@@ -94,8 +99,8 @@ func runMigrations() error {
 			continue
 		}
 
-		// Read migration file
-		migrationSQL, err := os.ReadFile(migration.file)
+		// Read migration file from embedded FS
+		migrationSQL, err := migrationFS.ReadFile(migration.file)
 		if err != nil {
 			return fmt.Errorf("failed to read migration file %s: %w", migration.file, err)
 		}

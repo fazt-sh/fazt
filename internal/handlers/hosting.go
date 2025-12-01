@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/jikku/command-center/internal/assets"
 	"github.com/jikku/command-center/internal/database"
 	"github.com/jikku/command-center/internal/hosting"
 )
@@ -51,7 +52,15 @@ func (e *validationError) Error() string {
 
 // HostingPageHandler serves the hosting management page
 func HostingPageHandler(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "./web/templates/hosting.html")
+	// Read from embedded FS
+	content, err := assets.WebFS.ReadFile("web/templates/hosting.html")
+	if err != nil {
+		jsonError(w, "Error loading hosting template", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Write(content)
 }
 
 // SitesHandler returns the list of hosted sites

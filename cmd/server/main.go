@@ -29,9 +29,10 @@ import (
 	"github.com/jikku/command-center/internal/handlers"
 	"github.com/jikku/command-center/internal/hosting"
 	"github.com/jikku/command-center/internal/middleware"
+	"github.com/jikku/command-center/internal/provision"
 	"github.com/jikku/command-center/internal/security"
 	"golang.org/x/crypto/bcrypt"
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 	"github.com/caddyserver/certmagic"
 )
 
@@ -66,6 +67,8 @@ func main() {
 	switch command {
 	case "server":
 		handleServerCommand(os.Args[2:])
+	case "service":
+		handleServiceCommand(os.Args[2:])
 	case "client":
 		handleClientCommand(os.Args[2:])
 	case "deploy":
@@ -269,6 +272,7 @@ func statusCommand(configPath, configDir string) (string, error) {
 	}
 
 	// Check PID file for server status
+	// FIX: Use correct path ~/.config/fazt/cc-server.pid
 	pidFile := filepath.Join(configDir, "cc-server.pid")
 	if pidData, err := os.ReadFile(pidFile); err == nil {
 		pidStr := strings.TrimSpace(string(pidData))
@@ -301,13 +305,55 @@ func handleServerCommand(args []string) {
 		handleStatusCommand()
 	case "start":
 		handleStartCommand()
-	case "stop":
-		handleStopCommand()
 	case "--help", "-h", "help":
 		printServerHelp()
 	default:
 		fmt.Printf("Unknown server command: %s\n\n", subcommand)
 		printServerHelp()
+		os.Exit(1)
+	}
+}
+
+// handleServiceCommand handles service-related subcommands
+func handleServiceCommand(args []string) {
+	if len(args) < 1 {
+		fmt.Println("Error: service command requires a subcommand")
+		printServiceHelp()
+		os.Exit(1)
+	}
+
+	subcommand := args[0]
+
+	switch subcommand {
+	case "install":
+		handleInstallCommand() // Reuse the install logic but moved here
+	case "start":
+		if err := provision.Systemctl("start", "fazt"); err != nil {
+			fmt.Printf("Error starting service: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Println("Service started.")
+	case "stop":
+		if err := provision.Systemctl("stop", "fazt"); err != nil {
+			fmt.Printf("Error stopping service: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Println("Service stopped.")
+	case "status":
+		if err := provision.Systemctl("status", "fazt"); err != nil {
+			// Systemctl status returns non-zero if service is not running, which is fine to show
+			// os.Exit(1) 
+		}
+	case "logs":
+		if err := provision.ServiceLogs("fazt"); err != nil {
+			fmt.Printf("Error reading logs: %v\n", err)
+			os.Exit(1)
+		}
+	case "--help", "-h", "help":
+		printServiceHelp()
+	default:
+		fmt.Printf("Unknown service command: %s\n\n", subcommand)
+		printServiceHelp()
 		os.Exit(1)
 	}
 }
@@ -1390,72 +1436,65 @@ func handleStartCommand() {
 	log.Println("Server stopped")
 }
 
-// handleStopCommand handles the stop subcommand
-func handleStopCommand() {
-	flags := flag.NewFlagSet("stop", flag.ExitOnError)
+// handleInstallCommand handles the install subcommand
+func handleInstallCommand() {
+	flags := flag.NewFlagSet("install", flag.ExitOnError)
+	domain := flags.String("domain", "", "Domain for the server (required)")
+	email := flags.String("email", "", "Email for Let's Encrypt (required for HTTPS)")
+	user := flags.String("user", "fazt", "System user to run as")
+	https := flags.Bool("https", false, "Enable automatic HTTPS")
+	adminUser := flags.String("username", "admin", "Admin username")
+	adminPass := flags.String("password", "", "Admin password (will generate if empty)")
 
 	flags.Usage = func() {
-		fmt.Println("Usage: fazt server stop")
+		fmt.Println("Usage: fazt server install [flags]")
 		fmt.Println()
-		fmt.Println("Stops a running fazt.sh server.")
+		fmt.Println("Auto-installs fazt as a systemd service.")
+		fmt.Println("Must be run with sudo.")
 		fmt.Println()
-		fmt.Println("Looks for a PID file in ~/.config/fazt/ to gracefully shutdown the server.")
+		flags.PrintDefaults()
+		fmt.Println()
+		fmt.Println("Examples:")
+		fmt.Println("  sudo fazt server install --domain example.com --email admin@example.com --https")
 	}
 
 	if err := flags.Parse(os.Args[3:]); err != nil {
 		os.Exit(1)
 	}
 
-	// Get default config directory to find PID file
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		homeDir = "."
-	}
-	pidFile := filepath.Join(homeDir, ".config", "cc", "cc-server.pid")
-
-	// Read PID file
-	pidData, err := os.ReadFile(pidFile)
-	if err != nil {
-		if os.IsNotExist(err) {
-			fmt.Println("No running server found (no PID file)")
-			os.Exit(1)
-		}
-		log.Fatalf("Failed to read PID file: %v", err)
+	if *domain == "" {
+		fmt.Println("Error: --domain is required")
+		flags.Usage()
+		os.Exit(1)
 	}
 
-	var pid int
-	_, err = fmt.Sscanf(string(pidData), "%d", &pid)
-	if err != nil {
-		log.Fatalf("Invalid PID file format: %v", err)
+	if *https && *email == "" {
+		fmt.Println("Error: --email is required when --https is enabled")
+		flags.Usage()
+		os.Exit(1)
 	}
 
-	// Check if process is running
-	process, err := os.FindProcess(pid)
-	if err != nil {
-		log.Fatalf("Failed to find process: %v", err)
+	// Generate password if empty
+	if *adminPass == "" {
+		// Simple random string generation
+		*adminPass = "fazt-" + strconv.FormatInt(time.Now().UnixNano(), 36)
+		fmt.Printf("Generated Admin Password: %s\n", *adminPass)
+		fmt.Println("(Please save this password!)")
 	}
 
-	// Send SIGTERM for graceful shutdown
-	err = process.Signal(syscall.SIGTERM)
-	if err != nil {
-		fmt.Printf("Warning: Could not send signal to process %d: %v\n", pid, err)
-		fmt.Println("The process may have already stopped")
-	} else {
-		fmt.Printf("Sent shutdown signal to process %d\n", pid)
-		fmt.Println("Waiting for graceful shutdown...")
-
-		// Wait a bit and check if process is still running
-		time.Sleep(2 * time.Second)
-		err = process.Signal(syscall.Signal(0))
-		if err == nil {
-			fmt.Println("Process is still running, sending forceful shutdown...")
-			process.Kill()
-		}
+	opts := provision.InstallOptions{
+		User:          *user,
+		Domain:        *domain,
+		Email:         *email,
+		AdminUser:     *adminUser,
+		AdminPassword: *adminPass,
+		HTTPS:         *https,
 	}
 
-	// Clean up PID file
-	os.Remove(pidFile)
-	fmt.Println("Server stopped successfully")
+	if err := provision.RunInstall(opts); err != nil {
+		fmt.Printf("Installation failed: %v\n", err)
+		os.Exit(1)
+	}
 }
 
 // printUsage displays the usage information
@@ -1466,26 +1505,51 @@ func printUsage() {
 	fmt.Println("  fazt <command> [options]")
 	fmt.Println()
 	fmt.Println("MAIN COMMANDS:")
-	fmt.Println("  server           Server management (init, start, status, etc.)")
+	fmt.Println("  service          System service management (install, start, logs)")
+	fmt.Println("  server           Manual server management (init, start, config)")
 	fmt.Println("  client           Client/deployment commands")
 	fmt.Println("  deploy           Deploy a site (shortcut for 'client deploy')")
 	fmt.Println("  --help, -h       Show this help")
 	fmt.Println("  --version        Show version and exit")
 	fmt.Println()
 	fmt.Println("For detailed help:")
+	fmt.Println("  fazt service --help    # Service commands")
 	fmt.Println("  fazt server --help     # Server commands")
 	fmt.Println("  fazt client --help     # Client commands")
 	fmt.Println()
-	fmt.Println("Quick start:")
-	fmt.Println("  1. Initialize:")
-	fmt.Println("     fazt server init --username admin --password secret --domain https://example.com")
-	fmt.Println("  2. Start server:")
-	fmt.Println("     fazt server start")
-	fmt.Println("  3. Deploy site:")
-	fmt.Println("     fazt deploy --path ./site --domain myapp")
+	fmt.Println("Quick start (Production):")
+	fmt.Println("  sudo fazt service install --domain example.com --email admin@example.com --https")
+	fmt.Println()
+	fmt.Println("Quick start (Dev):")
+	fmt.Println("  1. fazt server init --username admin --password secret --domain localhost")
+	fmt.Println("  2. fazt server start")
 	fmt.Println()
 	fmt.Println("Architecture: Single Binary + SQLite (Cartridge Model)")
 	fmt.Println("HTTPS:        Native (CertMagic) - No Nginx required")
+}
+
+// printServiceHelp displays service-specific help
+func printServiceHelp() {
+	fmt.Println("fazt.sh v0.5.0 - Service Commands")
+	fmt.Println()
+	fmt.Println("USAGE:")
+	fmt.Println("  fazt service <command> [options]")
+	fmt.Println()
+	fmt.Println("SERVICE COMMANDS:")
+	fmt.Println("  install          Auto-install as systemd service (requires sudo)")
+	fmt.Println("  start            Start the system service")
+	fmt.Println("  stop             Stop the system service")
+	fmt.Println("  status           Check status of system service")
+	fmt.Println("  logs             Follow service logs")
+	fmt.Println("  --help, -h       Show this help")
+	fmt.Println()
+	fmt.Println("EXAMPLES:")
+	fmt.Println("  # Install as production service")
+	fmt.Println("  sudo fazt service install --domain example.com --email admin@example.com --https")
+	fmt.Println()
+	fmt.Println("  # Check status")
+	fmt.Println("  fazt service status")
+	fmt.Println()
 }
 
 // printServerHelp displays server-specific help
@@ -1498,20 +1562,16 @@ func printServerHelp() {
 	fmt.Println("SERVER COMMANDS:")
 	fmt.Println("  init             Initialize server (creates config & db)")
 	fmt.Println("  status           Show configuration and server status")
-	fmt.Println("  start            Start the server (HTTP or HTTPS)")
-	fmt.Println("  stop             Stop the running server")
+	fmt.Println("  start            Start the server manually (HTTP or HTTPS)")
 	fmt.Println("  set-credentials  Update admin credentials")
 	fmt.Println("  set-config       Update settings (domain, port, env)")
 	fmt.Println("  --help, -h       Show this help")
 	fmt.Println()
 	fmt.Println("EXAMPLES:")
-	fmt.Println("  # Initialize (required first step)")
+	fmt.Println("  # Initialize (required first step for manual run)")
 	fmt.Println("  fazt server init --username admin --password secret --domain https://fazt.example.com")
 	fmt.Println()
-	fmt.Println("  # Enable HTTPS (Let's Encrypt)")
-	fmt.Println("  # Edit ~/.config/fazt/config.json and set https.enabled=true")
-	fmt.Println()
-	fmt.Println("  # Start server")
+	fmt.Println("  # Start server manually (debugging)")
 	fmt.Println("  fazt server start")
 	fmt.Println()
 }

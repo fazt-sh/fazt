@@ -2,81 +2,86 @@
 
 A unified analytics, monitoring, tracking platform, and **Personal Cloud** with static hosting and serverless JavaScript functions.
 
-**Now a completely self-contained "Cartridge" Application.**
+**A completely self-contained "Cartridge" Application.**
 
 ## Features
 
 ### Personal Cloud (PaaS)
 - **Single Binary & Single DB** - The entire platform runs from `fazt` executable and `data.db`.
 - **Zero Dependencies** - No Nginx required. Native automatic HTTPS via Let's Encrypt (CertMagic).
-- **Virtual Filesystem (VFS)** - Sites are stored in the SQLite database, not on disk.
+- **Virtual Filesystem (VFS)** - Sites and assets are stored in the SQLite database.
 - **Static Site Hosting** - Deploy static websites via CLI.
-- **Serverless JavaScript** - Run JavaScript functions with `main.js` (loaded from DB).
-- **Key-Value Store** - Persistent data storage for serverless apps.
+- **Serverless JavaScript** - Run JavaScript functions with `main.js`.
 - **WebSocket Support** - Real-time communication.
 
 ### Analytics & Tracking
 - **Universal Tracking Endpoint** - Auto-detects domains and tracks pageviews/events.
 - **Real-time Dashboard** - Interactive charts and live updates.
 
-## Quick Start
+## Quick Start (Production)
 
-### Prerequisites
-- Go 1.20+ (for building)
-- Linux/macOS/Windows
+Deploying `fazt` to a Linux server (Ubuntu/Debian) is a single command.
 
-### Installation
+### 1. Build
+```bash
+# Build a static binary (works on any Linux distro)
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o fazt ./cmd/server
+```
+
+### 2. Install
+Upload the binary to your server and run the installer. This will:
+*   Create a system user.
+*   Setup a systemd service.
+*   Provision automatic HTTPS.
 
 ```bash
-# Build the server
-go build -o fazt ./cmd/server
-
-# Initialize configuration
-./fazt server init \
-  --username admin \
-  --password secret123 \
+# On your server (as root or sudo)
+./fazt service install \
   --domain https://your-domain.com \
-  --env production
-
-# Start the server (HTTPS is disabled by default)
-./fazt server start
+  --email admin@your-example.com \
+  --https
 ```
 
-### Enabling HTTPS (Production)
-
-To enable automatic HTTPS (Let's Encrypt), update your `config.json` (usually in `~/.config/fazt/`):
-
-```json
-{
-  "https": {
-    "enabled": true,
-    "email": "you@example.com",
-    "staging": false
-  }
-}
-```
-
-Then restart the server. It will bind to ports 80 and 443 automatically.
-
-## CLI Commands
+### 3. Deploy
+From your local machine:
 
 ```bash
-# Server Management
-./fazt server init ...       # First time setup
-./fazt server start          # Start server
-./fazt server status         # Check status
-./fazt server set-config     # Update settings
+# 1. Login to your new dashboard to get an API Token.
 
-# Deployment
-./fazt client set-auth-token --token <TOKEN>
-./fazt client deploy --path ./my-site --domain my-app
+# 2. Configure local client
+./fazt client set-auth-token --token <YOUR_TOKEN>
+
+# 3. Deploy a site
+./fazt deploy --path ./my-website --domain blog --server https://your-domain.com
 ```
+
+Your site is now live at `https://blog.your-domain.com`!
+
+## CLI Reference
+
+### Service Management (Production)
+Commands for managing the background daemon.
+*   `fazt service install`: Install systemd service & user.
+*   `fazt service start`: Start the daemon.
+*   `fazt service stop`: Stop the daemon.
+*   `fazt service status`: Check daemon health.
+*   `fazt service logs`: Tail system logs.
+
+### Server Management (Manual/Dev)
+Commands for running the process directly.
+*   `fazt server start`: Run in foreground.
+*   `fazt server init`: Generate config file.
+*   `fazt server status`: Check app internal state.
+
+### Client
+*   `fazt deploy`: Deploy a directory.
+*   `fazt client set-auth-token`: Save API credentials.
 
 ## "Cartridge" Architecture
 
 **fazt** follows a "Cartridge" architecture:
 - **State**: All state (Users, Analytics, Sites, Files, SSL Certs) lives in a single SQLite file (`data.db`).
-- **Stateless Binary**: The `fazt` binary contains all logic. Updating is as simple as replacing the binary.
+- **Stateless Binary**: The `fazt` binary contains all logic, migrations, and UI templates. Updating is as simple as replacing the binary.
 - **Backup/Restore**: Just copy `data.db`.
 
 ## License

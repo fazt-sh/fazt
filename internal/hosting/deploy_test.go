@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 )
 
 func createTestZip(files map[string]string) (*zip.Reader, error) {
@@ -153,10 +153,10 @@ func TestDeploySiteInvalidSubdomain(t *testing.T) {
 }
 
 func TestAPIKeyOperations(t *testing.T) {
-	// Create in-memory database
-	db, err := sql.Open("sqlite3", ":memory:")
+	// Create in-memory DB
+	db, err := sql.Open("sqlite", ":memory:")
 	if err != nil {
-		t.Fatalf("Failed to open database: %v", err)
+		t.Fatalf("Failed to open DB: %v", err)
 	}
 	defer db.Close()
 

@@ -1,131 +1,117 @@
-# Hosting on DigitalOcean ($5 Droplet) 🚀
+# Hosting Fazt on DigitalOcean 🚀
 
-This guide assumes you have a **Domain Name** (e.g., `example.com`) and a **DigitalOcean Account**.
+This guide details setting up a **Fazt** instance on DigitalOcean.
+It targets the **Basic Droplet** tier, which offers ample performance
+for personal PaaS usage.
 
-## 1. Create Droplet 💧
-*   **Region**: Closest to you (e.g., NYC1, BLR1).
-*   **Image**: Ubuntu 24.04 LTS (or latest).
-*   **Size**: Basic, Regular, $5/mo (512MB RAM, 1 vCPU).
-*   **Auth**: SSH Key (Recommended).
-*   **Hostname**: `fazt-server` (or whatever you like).
+## 1. Droplet Configuration 💧
 
-## 2. DNS Setup (Namecheap) 🌐
-Point your domain to your Droplet's IP.
+*   **Image**: **Ubuntu 24.04 (LTS) x64** (Recommended for long-term stability).
+*   **Plan**: **Basic (Shared CPU)**.
+*   **Size**: **$6/mo** (1GB RAM / 1 CPU / 25GB SSD).
+    *   *Note*: The $4/mo (512MB) plan is possible but risks OOM kills during
+        heavy compilation or traffic spikes. 1GB is the safe baseline.
+*   **Region**: Select a datacenter geographically close to you or your users.
+*   **Networking**: Enable **IPv6** (Free & Future-proof).
+*   **Authentication**: Add your SSH public key.
 
-*   **A Record**: `@` -> `YOUR_DROPLET_IP`
-*   **A Record**: `*` -> `YOUR_DROPLET_IP` (Wildcard for subdomains)
+## 2. DNS Configuration 🌐
 
-*Wait a few minutes for propagation.*
+Configure your domain registrar (e.g., Namecheap, Cloudflare) to point to your
+new Droplet IP.
 
-## 3. Server Setup (SSH in) 💻
+*   **A Record**: `@` → `YOUR_DROPLET_IP`
+*   **A Record**: `*` → `YOUR_DROPLET_IP` (Required for wildcard subdomains).
+*   *(Optional)* **AAAA Record**: `@` → `YOUR_DROPLET_IPV6`
+
+*Allow propagation time before proceeding.*
+
+## 3. Deployment 🚀
+
+**Fazt** is a single-binary application. Deployment involves building the binary
+locally and shipping it to the server.
+
+### 3.1 Build Locally
+Compile the binary for Linux AMD64:
+```bash
+GOOS=linux GOARCH=amd64 go build -o fazt ./cmd/server
+```
+
+### 3.2 Upload
+Transfer the binary to your server via SCP:
+```bash
+scp fazt root@YOUR_DROPLET_IP:/root/
+```
+
+### 3.3 Install Service
+SSH into your server and run the auto-provisioning command. This handles:
+1.  Creating a dedicated `fazt` system user.
+2.  Setting capabilities (bind ports 80/443 without root).
+3.  Generating a systemd unit file.
+4.  Initializing the database and configuration.
 
 ```bash
 ssh root@YOUR_DROPLET_IP
-```
 
-### Prepare Directory
-```bash
-# Create user (optional but safer)
-# useradd -m -s /bin/bash fazt
-# su - fazt
-
-mkdir -p ~/fazt
-cd ~/fazt
-```
-
-### Upload Binary
-From your local machine:
-```bash
-# Build for Linux
-GOOS=linux GOARCH=amd64 go build -o fazt ./cmd/server
-
-# Upload
-scp fazt root@YOUR_DROPLET_IP:~/fazt/
-```
-
-## 4. Initialize & Configure ⚙️
-
-```bash
-# Initialize (Generates config.json & data.db)
-./fazt server init \
-  --username admin \
-  --password SUPER_SECURE_PASS \
+# Run the installer (Interactive)
+./fazt service install \
   --domain https://example.com \
-  --env production
-
-# Enable HTTPS (Let's Encrypt)
-# Edit config to enable HTTPS
-nano ~/.config/fazt/config.json
+  --email admin@example.com \
+  --https
 ```
 
-Change `"https"` section:
-```json
-"https": {
-  "enabled": true,
-  "email": "you@example.com",
-  "staging": false
-}
-```
+*   **Flags**:
+    *   `--domain`: Your main domain (e.g., `https://paas.net`).
+    *   `--email`: Required for Let's Encrypt notifications.
+    *   `--https`: Enables automatic SSL provisioning.
 
-## 5. Systemd Service (Auto-Start) 🔄
+## 4. Firewall Hardening (UFW) 🛡️
 
-Create service file:
-`nano /etc/systemd/system/fazt.service`
+Secure your server by restricting incoming traffic to essential ports.
 
-```ini
-[Unit]
-Description=Fazt PaaS
-After=network.target
-
-[Service]
-Type=simple
-User=root
-# Or 'fazt' if you created a user.
-# NOTE: Port 80/443 requires root or `setcap`.
-# To run as non-root on low ports:
-# sudo setcap CAP_NET_BIND_SERVICE=+eip ~/fazt/fazt
-
-WorkingDirectory=/root/fazt
-ExecStart=/root/fazt/fazt server start
-Restart=always
-RestartSec=5
-
-# Environment variables if needed
-# Environment=FAZT_DOMAIN=https://example.com
-
-[Install]
-WantedBy=multi-user.target
-```
-
-Enable and start:
 ```bash
-systemctl daemon-reload
-systemctl enable fazt
-systemctl start fazt
-systemctl status fazt
-```
-
-## 6. Verify ✅
-
-1.  Visit `https://example.com` -> Should load Dashboard (Login).
-2.  Login with your credentials.
-3.  Deploy a site locally:
-    ```bash
-    fazt client deploy --path ./mysite --domain blog --server https://example.com
-    ```
-4.  Visit `https://blog.example.com` -> Should load your site (with SSL!).
-
-## 7. Firewall (UFW) 🛡️
-
-Secure your server:
-```bash
-ufw allow OpenSSH
-ufw allow 80
-ufw allow 443
+ufw default deny incoming
+ufw default allow outgoing
+ufw allow ssh
+ufw allow http
+ufw allow https
 ufw enable
 ```
 
----
-**Enjoy your Personal Cloud!** ☁️
+## 5. Verification ✅
 
+1.  **Dashboard**: Visit `https://example.com`. You should see the login screen.
+    *   Default User: `admin`
+    *   Password: *Printed during the install step.*
+2.  **Service Status**: Check the daemon on the server:
+    ```bash
+    fazt service status
+    # or
+    systemctl status fazt
+    ```
+3.  **Logs**: Monitor real-time logs:
+    ```bash
+    fazt service logs
+    ```
+
+## 6. Maintenance 🔧
+
+### Updating
+To update Fazt, simply upload the new binary and restart the service:
+
+```bash
+# Local
+GOOS=linux GOARCH=amd64 go build -o fazt ./cmd/server
+scp fazt root@YOUR_DROPLET_IP:/usr/local/bin/fazt
+
+# Remote
+ssh root@YOUR_DROPLET_IP "systemctl restart fazt"
+```
+
+### Backups
+All state is contained in a single SQLite file. Backup is trivial:
+
+```bash
+# Download a snapshot of the database
+scp root@YOUR_DROPLET_IP:/home/fazt/.config/fazt/data.db ./backup.db
 ```
