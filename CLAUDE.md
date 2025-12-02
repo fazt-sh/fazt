@@ -15,9 +15,9 @@
 ## 📦 Release Workflow
 1.  **Code**: Implement feature/fix.
 2.  **Test**: `go test ./...` (MUST PASS).
-3.  **Bump**: Update version in `cmd/server/main.go` & `CHANGELOG.md`.
+3.  **Changelog**: Update `CHANGELOG.md`.
 4.  **Tag**: `git tag vX.Y.Z && git push origin master --tags`.
-5.  **Build**: GitHub Action auto-builds release.
+5.  **Build**: GitHub Action auto-builds release (Version injected via ldflags).
 
 ## 📂 Structure
 *   `cmd/server/`: Main entry point.
