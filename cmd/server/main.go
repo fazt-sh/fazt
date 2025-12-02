@@ -36,7 +36,7 @@ import (
 	"github.com/caddyserver/certmagic"
 )
 
-const Version = "v0.4.0"
+const Version = "v0.5.4"
 
 var (
 	showVersion = flag.Bool("version", false, "Show version and exit")
@@ -1750,7 +1750,7 @@ func handleInstallCommand() {
 
 // printUsage displays the usage information
 func printUsage() {
-	fmt.Println("fazt.sh v0.5.0 - Personal Cloud Platform")
+	fmt.Printf("fazt.sh %s - Personal Cloud Platform\n", Version)
 	fmt.Println()
 	fmt.Println("USAGE:")
 	fmt.Println("  fazt <command> [options]")
@@ -1781,7 +1781,7 @@ func printUsage() {
 
 // printServiceHelp displays service-specific help
 func printServiceHelp() {
-	fmt.Println("fazt.sh v0.5.0 - Service Commands")
+	fmt.Printf("fazt.sh %s - Service Commands\n", Version)
 	fmt.Println()
 	fmt.Println("USAGE:")
 	fmt.Println("  fazt service <command> [options]")
@@ -1805,7 +1805,7 @@ func printServiceHelp() {
 
 // printServerHelp displays server-specific help
 func printServerHelp() {
-	fmt.Println("fazt.sh v0.5.0 - Server Commands")
+	fmt.Printf("fazt.sh %s - Server Commands\n", Version)
 	fmt.Println()
 	fmt.Println("USAGE:")
 	fmt.Println("  fazt server <command> [options]")
@@ -1829,7 +1829,7 @@ func printServerHelp() {
 
 // printClientHelp displays client-specific help
 func printClientHelp() {
-	fmt.Println("fazt.sh v0.5.0 - Client Commands")
+	fmt.Printf("fazt.sh %s - Client Commands\n", Version)
 	fmt.Println()
 	fmt.Println("USAGE:")
 	fmt.Println("  fazt client <command> [options]")

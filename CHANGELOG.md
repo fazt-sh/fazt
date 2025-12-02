@@ -2,7 +2,25 @@
 
 All notable changes to fazt.sh will be documented in this file.
 
-## [0.4.0] - 2025-11-24
+## [0.5.4] - 2025-12-02
+
+### Fixed
+- **Migrations**: Fix duplicate `site_logs` table creation in migration 005 (accidental duplicate of 004).
+
+## [0.5.3] - 2025-11-28
+
+### Fixed
+- **Embeds**: Fix migration file embedding path to ensure migrations run correctly in production binary.
+
+## [0.5.2] - 2025-11-27
+
+### Added
+- **Build**: Added `linux/arm64` build target for Raspberry Pi / ARM servers.
+
+### Fixed
+- **Install**: Fixed install script URL construction.
+
+## [0.5.0] - 2025-11-24
 
 ### Added
 
