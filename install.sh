@@ -2,8 +2,8 @@
 set -e
 
 # Colors
-RED='\033[0;31m'
 GREEN='\033[0;32m'
+RED='\033[0;31m'
 NC='\033[0m' # No Color
 
 # Detect OS and Arch
@@ -24,18 +24,59 @@ case "$ARCH" in
 esac
 
 BINARY_NAME="fazt"
-RELEASE_TAG="latest"
 
 echo -e "${GREEN}Detected $OS/$ARCH...${NC}"
 
-# Fetch latest release URL
-# We cheat a bit and use the GitHub releases structure
-DOWNLOAD_URL="https://github.com/fazt-sh/fazt/releases/latest/download/fazt-${OS}-${ARCH}.tar.gz"
+# 1. Get the latest release tag URL
+LATEST_URL=$(curl -sL -I -o /dev/null -w '%{url_effective}' https://github.com/fazt-sh/fazt/releases/latest)
 
-echo -e "${GREEN}Downloading from $DOWNLOAD_URL...${NC}"
+# 2. Extract tag from URL (e.g., https://.../tag/v0.5.2 -> v0.5.2)
+TAG=$(basename "$LATEST_URL")
 
-# Download and extract
-curl -sL "$DOWNLOAD_URL" | tar xz
+if [ -z "$TAG" ]; then
+    echo -e "${RED}Failed to find latest release tag.${NC}"
+    exit 1
+fi
+
+echo -e "Latest version: ${GREEN}$TAG${NC}"
+
+# 3. Construct download URL
+# Format: fazt-<TAG>-<OS>-<ARCH>.tar.gz
+FILE_NAME="fazt-${TAG}-${OS}-${ARCH}.tar.gz"
+DOWNLOAD_URL="https://github.com/fazt-sh/fazt/releases/download/${TAG}/${FILE_NAME}"
+
+echo -e "${GREEN}Downloading $DOWNLOAD_URL...${NC}"
+
+# 4. Download and extract
+# We use a temporary directory to handle extraction cleanly
+TMP_DIR=$(mktemp -d)
+trap 'rm -rf "$TMP_DIR"' EXIT
+
+if curl -sL --fail "$DOWNLOAD_URL" -o "$TMP_DIR/$FILE_NAME"; then
+    tar -xzf "$TMP_DIR/$FILE_NAME" -C "$TMP_DIR"
+    
+    # Move binary to current directory
+    # The tarball might contain the binary directly or inside a folder
+    # We look for the binary named 'fazt' or 'fazt-linux-amd64' etc
+    if [ -f "$TMP_DIR/$BINARY_NAME" ]; then
+        mv "$TMP_DIR/$BINARY_NAME" .
+    elif [ -f "$TMP_DIR/fazt-${OS}-${ARCH}" ]; then
+        mv "$TMP_DIR/fazt-${OS}-${ARCH}" ./$BINARY_NAME
+    else
+        # Fallback: find any executable file
+        FOUND=$(find "$TMP_DIR" -type f -perm -u+x | head -n 1)
+        if [ -n "$FOUND" ]; then
+            mv "$FOUND" ./$BINARY_NAME
+        else
+            echo -e "${RED}Could not find binary in archive.${NC}"
+            exit 1
+        fi
+    fi
+else
+    echo -e "${RED}Download failed! (404 Not Found or other error)${NC}"
+    echo "This usually means the release asset for $OS/$ARCH is missing."
+    exit 1
+fi
 
 # Make executable
 chmod +x "$BINARY_NAME"
