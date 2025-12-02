@@ -2,6 +2,11 @@
 
 All notable changes to fazt.sh will be documented in this file.
 
+## [0.5.13] - 2025-12-02
+
+### Fixed
+- **Build**: Fixed release artifact naming. Binaries inside tarballs are now consistently named `fazt` (instead of `fazt-linux-amd64`, etc.) to ensure the install script finds them correctly.
+
 ## [0.5.12] - 2025-12-02
 
 ### Added
