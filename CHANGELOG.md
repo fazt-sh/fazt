@@ -2,6 +2,21 @@
 
 All notable changes to fazt.sh will be documented in this file.
 
+## [0.5.12] - 2025-12-02
+
+### Added
+- **Performance**: In-memory VFS cache to reduce SQLite reads for frequently accessed files.
+- **Routing**: Implemented reserved domains:
+    - `admin.<domain>`: Routes to Dashboard.
+    - `root.<domain>`: Routes to the "root" site (Welcome Page).
+    - `404.<domain>`: Routes to the "404" site (Universal 404).
+- **Content**: Embedded "Welcome" and "Universal 404" sites that are automatically seeded on startup.
+- **Docs**: Added `docs/index.html` (Landing Page) and `docs/install.sh` (One-line installer).
+
+### Changed
+- **Build**: Refactored versioning to use linker flags (`-ldflags`). `cmd/server/main.go` no longer contains the hardcoded version.
+- **Architecture**: `localhost` now serves the Dashboard by default, but allows subdomain routing for testing.
+
 ## [0.5.11] - 2025-12-02
 
 ### Added
