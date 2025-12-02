@@ -18,27 +18,22 @@ A unified analytics, monitoring, tracking platform, and **Personal Cloud** with 
 - **Universal Tracking Endpoint** - Auto-detects domains and tracks pageviews/events.
 - **Real-time Dashboard** - Interactive charts and live updates.
 
-## Quick Start (Production)
+## Quick Start
 
-Deploying `fazt` to a Linux server (Ubuntu/Debian) is a single command.
+### 1. Install
+Install `fazt` on your Linux server or Mac in one line:
 
-### 1. Build
 ```bash
-# Build a static binary (works on any Linux distro)
-CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o fazt ./cmd/server
+curl -sL https://raw.githubusercontent.com/fazt-sh/fazt/master/install.sh | bash
 ```
 
-### 2. Install
-Upload the binary to your server and run the installer. This will:
-*   Create a system user.
-*   Setup a systemd service.
-*   Provision automatic HTTPS.
+### 2. Setup (Production)
+Turn it into a production service with automatic HTTPS:
 
 ```bash
-# On your server (as root or sudo)
-./fazt service install \
+sudo fazt service install \
   --domain https://your-domain.com \
-  --email admin@your-example.com \
+  --email admin@example.com \
   --https
 ```
 
@@ -49,10 +44,10 @@ From your local machine:
 # 1. Login to your new dashboard to get an API Token.
 
 # 2. Configure local client
-./fazt client set-auth-token --token <YOUR_TOKEN>
+fazt client set-auth-token --token <YOUR_TOKEN>
 
 # 3. Deploy a site
-./fazt deploy --path ./my-website --domain blog --server https://your-domain.com
+fazt deploy --path ./my-website --domain blog --server https://your-domain.com
 ```
 
 Your site is now live at `https://blog.your-domain.com`!
