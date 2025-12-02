@@ -14,7 +14,7 @@ mkdir -p $HOME/.config/fazt
 ./fazt server init --domain fazt.test --username admin --password secret
 
 # Start Server
-./fazt server start --port 9091 > server.log 2>&1 &
+./fazt server start --port 9091 > "$TEMP_HOME/server.log" 2>&1 &
 SERVER_PID=$!
 echo "Server started with PID $SERVER_PID"
 
@@ -29,19 +29,19 @@ trap cleanup EXIT
 sleep 3
 
 # Check Logs for Seeding
-if grep -q "Seeded system site: root" server.log; then
+if grep -q "Seeded system site: root" "$TEMP_HOME/server.log"; then
   echo "✓ Log confirms root site seeded"
 else
   echo "✗ Log missing seeding confirmation"
-  cat server.log
+  cat "$TEMP_HOME/server.log"
   exit 1
 fi
 
-if grep -q "Seeded system site: 404" server.log; then
+if grep -q "Seeded system site: 404" "$TEMP_HOME/server.log"; then
   echo "✓ Log confirms 404 site seeded"
 else
   echo "✗ Log missing 404 seeding confirmation"
-  cat server.log
+  cat "$TEMP_HOME/server.log"
   exit 1
 fi
 

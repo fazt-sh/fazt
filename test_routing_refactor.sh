@@ -5,9 +5,9 @@ set -e
 go build -o fazt ./cmd/server
 
 # Clean env
-TEMP_HOME=$(mktemp -d)
-export HOME="$TEMP_HOME"
-echo "Using HOME=$HOME"
+TMP_DIR=$(mktemp -d)
+export HOME="$TMP_DIR"
+echo "Using Temp Dir: $TMP_DIR"
 
 mkdir -p $HOME/.config/fazt
 
@@ -16,14 +16,14 @@ mkdir -p $HOME/.config/fazt
 
 # Start Server
 # Port 9090
-./fazt server start --port 9090 > server.log 2>&1 &
+./fazt server start --port 9090 > "$TMP_DIR/server.log" 2>&1 &
 SERVER_PID=$!
 echo "Server started with PID $SERVER_PID"
 
 cleanup() {
   kill $SERVER_PID
   wait $SERVER_PID 2>/dev/null || true
-  rm -rf "$TEMP_HOME"
+  rm -rf "$TMP_DIR"
 }
 trap cleanup EXIT
 
@@ -31,18 +31,18 @@ trap cleanup EXIT
 sleep 3
 
 # Authenticate (Session Cookie)
-curl -s -c cookies.txt -d '{"username":"admin","password":"secret"}' -H "Content-Type: application/json" http://localhost:9090/api/login
+curl -s -c "$TMP_DIR/cookies.txt" -d '{"username":"admin","password":"secret"}' -H "Content-Type: application/json" http://localhost:9090/api/login
 
 # Generate API Key
-# Request: POST /api/keys, Body: {"name":"test-key","scopes":"[]"} (Guessing structure)
-RAW_KEY_RESP=$(curl -s -b cookies.txt -X POST -d '{"name":"test-key"}' -H "Content-Type: application/json" http://localhost:9090/api/keys)
-echo "Raw Key Response: $RAW_KEY_RESP"
+# Request: POST /api/keys
+RAW_KEY_RESP=$(curl -s -b "$TMP_DIR/cookies.txt" -X POST -d '{"name":"test-key"}' -H "Content-Type: application/json" http://localhost:9090/api/keys)
+# echo "Raw Key Response: $RAW_KEY_RESP"
 
 TOKEN=$(echo "$RAW_KEY_RESP" | grep -o '"token":"[^"]*"' | cut -d'"' -f4)
 
 if [ -z "$TOKEN" ]; then
   echo "Failed to get token"
-  cat server.log
+  cat "$TMP_DIR/server.log"
   exit 1
 fi
 
@@ -51,16 +51,16 @@ echo "Got Token: ${TOKEN:0:10}..."
 # Set token for CLI
 ./fazt client set-auth-token --token "$TOKEN"
 
-# Create dummy sites
-mkdir -p site_root site_404 site_test
-echo "I AM ROOT" > site_root/index.html
-echo "I AM 404" > site_404/index.html
-echo "I AM TEST" > site_test/index.html
+# Create dummy sites in temp dir
+mkdir -p "$TMP_DIR/site_root" "$TMP_DIR/site_404" "$TMP_DIR/site_test"
+echo "I AM ROOT" > "$TMP_DIR/site_root/index.html"
+echo "I AM 404" > "$TMP_DIR/site_404/index.html"
+echo "I AM TEST" > "$TMP_DIR/site_test/index.html"
 
 # Deploy sites
-./fazt client deploy --path site_root --domain root --server http://localhost:9090
-./fazt client deploy --path site_404 --domain 404 --server http://localhost:9090
-./fazt client deploy --path site_test --domain test --server http://localhost:9090
+./fazt client deploy --path "$TMP_DIR/site_root" --domain root --server http://localhost:9090
+./fazt client deploy --path "$TMP_DIR/site_404" --domain 404 --server http://localhost:9090
+./fazt client deploy --path "$TMP_DIR/site_test" --domain test --server http://localhost:9090
 
 echo "Sites deployed. Testing routing..."
 
