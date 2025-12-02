@@ -12,18 +12,18 @@
   - Retain `setcap` permissions (port 80/443)
   - Restart systemd service post-update
 
-- [ ] 03 `core-cache`
+- [x] 03 `core-cache`
   - In-memory LRU cache for VFS
   - Store frequently accessed files (css/js)
   - Invalidate cache on new deployment
   - Improve latency and reduce DB IO
 
-- [ ] 04 `core-config-db`
+- [ ] 04 `core-config-db` <next-to-implement>
   - Migrate `config.json` to SQLite table
   - Remove dependency on filesystem config
   - Achieve true "One Binary + One DB" state
 
-- [ ] 05 `ops-install`
+- [x] 05 `ops-install`
   - One-line installer: `curl | bash`
   - Automate user creation & systemd setup
   - Host `install.sh` at `fazt.sh/install`
@@ -60,17 +60,19 @@
   - Store messages in `inbox` SQL table
   - Send via relay (Postmark/SES/etc)
 
-- [ ] 12 `route-reserved`
-  - Special handling for `dashboard.*`
-  - Global `404.*` for missing sites
-  - Root domain content strategy
+- [x] 12 `route-reserved`
+  - Dashboard shouldn't be in root, but in admin.<DOMAIN>
+  - Global `404.*` for missing sites (so we can just change 404 site to provide
+    universal 404)
+  - Root domain content strategy, it should point to root.<domain> ; which
+    should be a "Welcome to Fazt" site, make it fun
 
 - [ ] 13 `meta-locations`
   - Update official URLs and docs
   - Lander: `fazt.sh`
   - Social: `x.com/fazt_sh`
 
-- [ ] 14 `gh-pages`
+- [x] 14 `gh-pages`
   - do a simple landing page
   - have the install script from there
   - ideally: https://fazt.github.io/ or if only this is possible:
@@ -141,3 +143,8 @@
   - use case: a user can use the fazt server locally in his computer & have a
     remote instance, if files sync in the background; the person gets a live
     system where ever he goes transparently; while having a great local version
+
+- [ ] 25 `qr-code-setup` <to-discuss>
+  - is it possible to show a QR code option post install to collect the user input?
+  - something like <IP>/5-char-random-string/ will be QRcode; it will collect:
+    domain, username, password & email & finish the setup?
