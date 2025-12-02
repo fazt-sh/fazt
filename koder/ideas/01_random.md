@@ -148,3 +148,6 @@
   - is it possible to show a QR code option post install to collect the user input?
   - something like <IP>/5-char-random-string/ will be QRcode; it will collect:
     domain, username, password & email & finish the setup?
+
+- [ ] 26 `cloudflare cdn` <to-discuss>
+  - is it better to have cloudflare cdn as a front for the site
