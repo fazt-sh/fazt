@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fazt.sh - The Cartridge PaaS</title>
+    <style>
+        :root { --bg: #111; --text: #eee; --accent: #f4a261; }
+        body { font-family: monospace; background: var(--bg); color: var(--text); padding: 2rem; max-width: 800px; margin: 0 auto; line-height: 1.6; }
+        h1 { color: var(--accent); }
+        code { background: #222; padding: 0.2rem 0.5rem; border-radius: 4px; }
+        .hero { border: 1px solid #333; padding: 2rem; border-radius: 8px; margin: 2rem 0; text-align: center; }
+        .cmd { background: #000; padding: 1rem; border-radius: 8px; border: 1px solid #444; color: #4af626; display: block; margin: 1rem 0; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>⚡ Fazt.sh</h1>
+        <p>The "One Binary" Personal Cloud PaaS.</p>
+    </header>
+
+    <div class="hero">
+        <p>Turn any $5 VPS into a Serverless Platform.</p>
+        <code class="cmd">curl -s https://fazt.sh/install.sh | sudo bash</code>
+        <p><small>(Works on Ubuntu/Debian/Arch)</small></p>
+    </div>
+
+    <section>
+        <h2>Why?</h2>
+        <ul>
+            <li><strong>Zero Dependencies:</strong> Just one binary + SQLite.</li>
+            <li><strong>Cartridge Architecture:</strong> Files live in the DB. Instant rollbacks.</li>
+            <li><strong>Serverless Runtime:</strong> JS support built-in.</li>
+            <li><strong>Automatic HTTPS:</strong> Native Let's Encrypt support.</li>
+        </ul>
+    </section>
+
+    <footer>
+        <hr>
+        <p>
+            <a href="https://github.com/fazt-sh/fazt" style="color: var(--accent);">GitHub</a> | 
+            <a href="https://x.com/fazt_sh" style="color: var(--accent);">X.com</a>
+        </p>
+    </footer>
+</body>
+</html>
