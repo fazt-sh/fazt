@@ -2,6 +2,11 @@
 
 All notable changes to fazt.sh will be documented in this file.
 
+## [0.5.11] - 2025-12-02
+
+### Added
+- **Install**: Automatically configure UFW firewall (if present) to allow ports 80, 443, and SSH.
+
 ## [0.5.10] - 2025-12-02
 
 ### Fixed

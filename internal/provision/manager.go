@@ -131,11 +131,17 @@ func RunInstall(opts InstallOptions) error {
 	}
 
 	// Chown the config file
-	if err := os.Chown(configPath, uid, gid); err != nil {
-		return fmt.Errorf("failed to chown config file: %w", err)
+	if err := os.Chown(configDir, uid, gid); err != nil {
+		return fmt.Errorf("failed to chown config dir: %w", err)
 	}
 
-	// 5. Systemd Service
+	// 5. Firewall
+	if err := ConfigureFirewall(); err != nil {
+		// Don't fail install, just warn
+		term.Warn("Firewall config failed: %v", err)
+	}
+
+	// 6. Systemd Service
 	svcConfig := ServiceConfig{
 		User:       opts.User,
 		BinaryPath: targetBin,
