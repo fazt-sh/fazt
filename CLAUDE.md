@@ -1,5 +1,7 @@
 # Fazt.sh Assistant Guide
 
+> **🚀 Start Here**: Read `koder/start.md` for deep architecture & state context.
+
 ## 🧠 Core Philosophy
 *   **Cartridge Architecture**: One Binary (`fazt`) + One SQLite DB (`data.db`).
 *   **Zero Dependencies**: Pure Go + `modernc.org/sqlite`. NO CGO. No external runtimes.
