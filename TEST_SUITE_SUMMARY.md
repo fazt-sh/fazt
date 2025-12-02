@@ -183,7 +183,7 @@ $ go test ./cmd/server -v
 ./main_test.go:372:8: undefined: setCredentialsCommand
 ./main_test.go:530:8: undefined: setConfigCommand
 ./main_test.go:719:17: undefined: statusCommand
-FAIL    github.com/jikku/command-center/cmd/server [build failed]
+FAIL    github.com/fazt-sh/fazt/cmd/server [build failed]
 ```
 
 This is **expected and correct**. It means the tests are ready and waiting for implementation.
@@ -198,7 +198,7 @@ $ go test ./cmd/server -v
 --- PASS: TestInitCommand_ConfigAlreadyExists (0.00s)
 ... (38 more tests)
 PASS
-ok      github.com/jikku/command-center/cmd/server    0.523s
+ok      github.com/fazt-sh/fazt/cmd/server    0.523s
 ```
 
 ---

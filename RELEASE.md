@@ -43,15 +43,17 @@ Command Center v0.2.0 is a major upgrade adding authentication, security feature
 
 ```bash
 # Download and extract
-wget https://github.com/jikkuatwork/command-center/releases/download/v0.2.0/command-center-v0.2.0-linux-amd64.tar.gz
-tar -xzf command-center-v0.2.0-linux-amd64.tar.gz
-cd command-center-v0.2.0
+wget https://github.com/fazt-sh/fazt/releases/download/v0.2.0/fazt-v0.2.0-linux-amd64.tar.gz
+tar -xzf fazt-v0.2.0-linux-amd64.tar.gz
+# Binary is now named 'fazt-linux-amd64' inside the tar, usually renamed to 'fazt'
+mv fazt-linux-amd64 fazt
+chmod +x fazt
 
 # Setup authentication
-./cc-server --username admin --password your-secure-password
+./fazt server init --username admin --password your-secure-password --domain https://example.com
 
 # Start server
-./cc-server
+./fazt server start
 ```
 
 ### Upgrading from v0.1.0
@@ -61,14 +63,11 @@ cd command-center-v0.2.0
 cp cc.db cc.db.backup
 
 # Download v0.2.0
-wget https://github.com/jikkuatwork/command-center/releases/download/v0.2.0/command-center-v0.2.0-linux-amd64.tar.gz
-tar -xzf command-center-v0.2.0-linux-amd64.tar.gz
-
-# Setup authentication
-./cc-server --username admin --password your-password
+wget https://github.com/fazt-sh/fazt/releases/download/v0.2.0/fazt-v0.2.0-linux-amd64.tar.gz
+tar -xzf fazt-v0.2.0-linux-amd64.tar.gz
 
 # Start server
-./cc-server
+./fazt server start
 ```
 
 See [UPGRADE.md](UPGRADE.md) for detailed migration guide.
@@ -77,7 +76,7 @@ See [UPGRADE.md](UPGRADE.md) for detailed migration guide.
 
 | Platform | Architecture | Download |
 |----------|--------------|----------|
-| Linux | x64 | [command-center-v0.2.0-linux-amd64.tar.gz](https://github.com/jikkuatwork/command-center/releases/download/v0.2.0/command-center-v0.2.0-linux-amd64.tar.gz) |
+| Linux | x64 | [fazt-v0.2.0-linux-amd64.tar.gz](https://github.com/fazt-sh/fazt/releases/download/v0.2.0/fazt-v0.2.0-linux-amd64.tar.gz) |
 
 ### Checksums
 
@@ -88,8 +87,8 @@ See [UPGRADE.md](UPGRADE.md) for detailed migration guide.
 ## Breaking Changes
 
 ⚠️ **Configuration Method**
-- New default config location: `~/.config/cc/config.json`
-- New default database location: `~/.config/cc/data.db`
+- New default config location: `~/.config/fazt/config.json`
+- New default database location: `~/.config/fazt/data.db`
 - Environment variables still work but are deprecated
 
 ⚠️ **Dashboard Access**
@@ -116,12 +115,12 @@ See [UPGRADE.md](UPGRADE.md) for details.
 
 ## Support
 
-- Issues: https://github.com/jikkuatwork/command-center/issues
-- Documentation: https://github.com/jikkuatwork/command-center
+- Issues: https://github.com/fazt-sh/fazt/issues
+- Documentation: https://github.com/fazt-sh/fazt
 
 ## Contributors
 
-Built by [jikkuatwork](https://github.com/jikkuatwork) with autonomous AI assistance.
+Built by [fazt-sh](https://github.com/fazt-sh) with autonomous AI assistance.
 
 ## License
 
@@ -129,4 +128,4 @@ See [LICENSE](LICENSE) for details.
 
 ---
 
-**Full Changelog**: https://github.com/jikkuatwork/command-center/compare/v0.1.0...v0.2.0
+**Full Changelog**: https://github.com/fazt-sh/fazt/compare/v0.1.0...v0.2.0

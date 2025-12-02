@@ -83,6 +83,7 @@ func runMigrations() error {
 		{2, "paas_tables", "migrations/002_paas.sql"},
 		{3, "env_vars", "migrations/003_env_vars.sql"},
 		{4, "vfs_schema", "migrations/004_vfs.sql"},
+		{5, "site_logs", "migrations/005_site_logs.sql"},
 	}
 
 	// Run each migration if not already applied

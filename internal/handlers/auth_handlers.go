@@ -7,10 +7,10 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/jikku/command-center/internal/assets"
-	"github.com/jikku/command-center/internal/audit"
-	"github.com/jikku/command-center/internal/auth"
-	"github.com/jikku/command-center/internal/config"
+	"github.com/fazt-sh/fazt/internal/assets"
+	"github.com/fazt-sh/fazt/internal/audit"
+	"github.com/fazt-sh/fazt/internal/auth"
+	"github.com/fazt-sh/fazt/internal/config"
 )
 
 var (

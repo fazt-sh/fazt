@@ -11,7 +11,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/jikku/command-center/internal/database"
+	"github.com/fazt-sh/fazt/internal/database"
 )
 
 // WebhookHandler handles incoming webhooks

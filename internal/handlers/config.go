@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/jikku/command-center/internal/config"
+	"github.com/fazt-sh/fazt/internal/config"
 )
 
 // ConfigHandler returns the current configuration (sanitized)

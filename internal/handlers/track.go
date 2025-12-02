@@ -8,8 +8,8 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/jikku/command-center/internal/database"
-	"github.com/jikku/command-center/internal/models"
+	"github.com/fazt-sh/fazt/internal/database"
+	"github.com/fazt-sh/fazt/internal/models"
 )
 
 const maxBodySize = 10 * 1024 // 10KB

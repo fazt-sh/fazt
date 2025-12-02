@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
-	"time"
 )
 
 var (
@@ -95,7 +94,7 @@ func ListSites() ([]SiteInfo, error) {
 	var sites []SiteInfo
 	for rows.Next() {
 		var site SiteInfo
-		var lastMod time.Time
+		var lastMod interface{}
 		if err := rows.Scan(&site.Name, &site.FileCount, &site.SizeBytes, &lastMod); err != nil {
 			continue
 		}

@@ -9,9 +9,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/jikku/command-center/internal/auth"
-	"github.com/jikku/command-center/internal/database"
-	"github.com/jikku/command-center/internal/hosting"
+	"github.com/fazt-sh/fazt/internal/auth"
+	"github.com/fazt-sh/fazt/internal/database"
+	"github.com/fazt-sh/fazt/internal/hosting"
 )
 
 // DeployHandler handles site deployments via ZIP upload

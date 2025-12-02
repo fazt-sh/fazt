@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/jikku/command-center/internal/database"
+	"github.com/fazt-sh/fazt/internal/database"
 )
 
 // 1x1 transparent GIF pixel (base64 encoded)

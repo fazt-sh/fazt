@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jikku/command-center/internal/assets"
-	"github.com/jikku/command-center/internal/database"
-	"github.com/jikku/command-center/internal/models"
+	"github.com/fazt-sh/fazt/internal/assets"
+	"github.com/fazt-sh/fazt/internal/database"
+	"github.com/fazt-sh/fazt/internal/models"
 )
 
 // StatsHandler returns dashboard statistics

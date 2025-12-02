@@ -5,7 +5,7 @@ import (
 	"encoding/hex"
 	"net/http"
 
-	"github.com/jikku/command-center/internal/config"
+	"github.com/fazt-sh/fazt/internal/config"
 )
 
 // MaxBodySize is the default maximum request body size (1MB)

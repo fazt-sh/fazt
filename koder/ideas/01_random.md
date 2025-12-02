@@ -49,3 +49,24 @@ This document serves as the backlog for future features. Ideally, implement one 
     *   Add `fetch()` support (HTTP requests from JS).
     *   Add `db.get/set` (KV Store access).
     *   Add CRON jobs (`fazt.json` schedule).
+
+## 5. For every new site launched, get the fazt dashboard these subdomains:
+- dashboard: fazt.example.com
+- lander example.com (we will use root.example.com file in homepage if uploading
+  to homepage domain is hard for client?)
+- 404 in 404.example.com // the same page will be shown in any unavailable
+  sites; if this does not exist, we will show generic fazt 404
+
+## 6. fazt locations
+
+url: fazt.sh
+github: github.com/fazt-sh
+twitter: x.com/fazt_sh
+
+Can we build a single install command soemthing like? curl -s fazt.sh/install.sh
+| sh
+
+## 7. Can't we avoid creating config directory and store that too to the db?
+
+## 8. can we do a simple in memory cache for the sqlite file? Specifically the
+sites that were just used?

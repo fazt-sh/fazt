@@ -7,9 +7,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/jikku/command-center/internal/assets"
-	"github.com/jikku/command-center/internal/database"
-	"github.com/jikku/command-center/internal/hosting"
+	"github.com/fazt-sh/fazt/internal/assets"
+	"github.com/fazt-sh/fazt/internal/database"
+	"github.com/fazt-sh/fazt/internal/hosting"
 )
 
 // validEnvVarName validates environment variable names
@@ -65,22 +65,42 @@ func HostingPageHandler(w http.ResponseWriter, r *http.Request) {
 
 // SitesHandler returns the list of hosted sites
 func SitesHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	if r.Method == http.MethodGet {
+		sites, err := hosting.ListSites()
+		if err != nil {
+			jsonError(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"sites":   sites,
+		})
 		return
 	}
 
-	sites, err := hosting.ListSites()
-	if err != nil {
-		jsonError(w, err.Error(), http.StatusInternalServerError)
+	if r.Method == http.MethodDelete {
+		siteID := r.URL.Query().Get("site_id")
+		if siteID == "" {
+			jsonError(w, "site_id required", http.StatusBadRequest)
+			return
+		}
+
+		if err := hosting.DeleteSite(siteID); err != nil {
+			jsonError(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"message": "Site deleted",
+		})
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"success": true,
-		"sites":   sites,
-	})
+	http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 }
 
 // APIKeysHandler handles API key CRUD operations

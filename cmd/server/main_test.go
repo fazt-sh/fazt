@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jikku/command-center/internal/config"
+	"github.com/fazt-sh/fazt/internal/config"
 	"golang.org/x/crypto/bcrypt"
 )
 

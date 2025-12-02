@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/jikku/command-center/internal/config"
-	"github.com/jikku/command-center/internal/database"
+	"github.com/fazt-sh/fazt/internal/config"
+	"github.com/fazt-sh/fazt/internal/database"
 )
 
 // Notification types
@@ -41,7 +41,7 @@ func Send(title, message, notificationType string) error {
 		"topic":   cfg.Ntfy.Topic,
 		"title":   title,
 		"message": message,
-		"tags":    []string{"command-center", notificationType},
+		"tags":    []string{"fazt", notificationType},
 	}
 
 	// Add priority based on type

@@ -96,8 +96,37 @@ func RunServerless(w http.ResponseWriter, r *http.Request, siteID string, db *sq
 			for i, arg := range call.Arguments {
 				args[i] = arg.String()
 			}
-			fmt.Printf("[JS:%s] %s\n", siteID, strings.Join(args, " "))
-			// TODO: Log to site_logs table
+			msg := strings.Join(args, " ")
+			fmt.Printf("[JS:%s] %s\n", siteID, msg)
+
+			// Log to site_logs table
+			if db != nil {
+				go func(sid, message string) {
+					_, err := db.Exec("INSERT INTO site_logs (site_id, level, message) VALUES (?, 'info', ?)", sid, message)
+					if err != nil {
+						fmt.Printf("Failed to write site log: %v\n", err)
+					}
+				}(siteID, msg)
+			}
+			return goja.Undefined()
+		},
+		"error": func(call goja.FunctionCall) goja.Value {
+			args := make([]string, len(call.Arguments))
+			for i, arg := range call.Arguments {
+				args[i] = arg.String()
+			}
+			msg := strings.Join(args, " ")
+			fmt.Printf("[JS:%s] ERROR: %s\n", siteID, msg)
+
+			// Log to site_logs table
+			if db != nil {
+				go func(sid, message string) {
+					_, err := db.Exec("INSERT INTO site_logs (site_id, level, message) VALUES (?, 'error', ?)", sid, message)
+					if err != nil {
+						fmt.Printf("Failed to write site log: %v\n", err)
+					}
+				}(siteID, msg)
+			}
 			return goja.Undefined()
 		},
 	})

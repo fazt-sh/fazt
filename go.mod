@@ -1,4 +1,4 @@
-module github.com/jikku/command-center
+module github.com/fazt-sh/fazt
 
 go 1.24.7
 

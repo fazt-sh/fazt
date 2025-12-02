@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/jikku/command-center/internal/database"
+	"github.com/fazt-sh/fazt/internal/database"
 )
 
 // RedirectHandler handles redirect tracking

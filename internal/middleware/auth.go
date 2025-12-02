@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/jikku/command-center/internal/auth"
+	"github.com/fazt-sh/fazt/internal/auth"
 )
 
 // AuthMiddleware checks if a user is authenticated before allowing access to protected routes

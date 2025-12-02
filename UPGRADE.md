@@ -33,8 +33,8 @@ Command Center v0.2.0 introduces authentication and JSON-based configuration. Th
 
 ⚠️ **Configuration Method**
 - Environment variables still work but deprecated
-- New default config location: `~/.config/cc/config.json`
-- New default database location: `~/.config/cc/data.db`
+- New default config location: `~/.config/fazt/config.json`
+- New default database location: `~/.config/fazt/data.db`
 
 ⚠️ **Dashboard Access**
 - Dashboard now protected by authentication (when enabled)
@@ -48,20 +48,20 @@ If you're running v0.1.0 with default settings:
 
 ```bash
 # 1. Stop the server
-systemctl stop command-center  # or kill the process
+systemctl stop fazt  # or kill the process
 
 # 2. Backup your database
 cp cc.db cc.db.backup
 
 # 3. Download v0.2.0
-wget https://github.com/jikkuatwork/command-center/releases/download/v0.2.0/command-center-v0.2.0-linux-amd64.tar.gz
-tar -xzf command-center-v0.2.0-linux-amd64.tar.gz
+wget https://github.com/fazt-sh/fazt/releases/download/v0.2.0/fazt-v0.2.0-linux-amd64.tar.gz
+tar -xzf fazt-v0.2.0-linux-amd64.tar.gz
 
 # 4. Set up authentication (optional but recommended)
-./cc-server --username admin --password your-secure-password
+./fazt --username admin --password your-secure-password
 
 # 5. Start the server
-./cc-server
+./fazt
 ```
 
 ### For Production Deployments
@@ -87,29 +87,20 @@ env | grep -E '(PORT|DB_PATH|NTFY)' > env_backup.txt
 
 ```bash
 # If using systemd
-sudo systemctl stop command-center
+sudo systemctl stop fazt
 
 # Or find and kill the process
-pkill -f cc-server
+pkill -f fazt
 
 # Verify it's stopped
-ps aux | grep cc-server
+ps aux | grep fazt
 ```
 
-### Step 3: Download v0.2.0
+### 2. Download New Binary
 
 ```bash
-# Download release
-wget https://github.com/jikkuatwork/command-center/releases/download/v0.2.0/command-center-v0.2.0-linux-amd64.tar.gz
-
-# Extract
-tar -xzf command-center-v0.2.0-linux-amd64.tar.gz
-
-# Make executable
-chmod +x cc-server
-
-# Verify version
-./cc-server --version
+wget https://github.com/fazt-sh/fazt/releases/download/v0.2.0/fazt-v0.2.0-linux-amd64.tar.gz
+tar -xzf fazt-v0.2.0-linux-amd64.tar.gz
 ```
 
 ### Step 4: Migrate Configuration
@@ -120,7 +111,7 @@ Your existing `.env` file or environment variables will still work:
 
 ```bash
 # Just start the server - it will use existing env vars
-./cc-server
+./fazt
 ```
 
 **Note**: While this works, we recommend migrating to JSON config for better management.
@@ -131,14 +122,14 @@ Create a config file based on your current environment variables:
 
 ```bash
 # Create config directory
-mkdir -p ~/.config/cc
+mkdir -p ~/.config/fazt
 
 # Option 1: Let the server create it with auth
-./cc-server --username admin --password your-password
+./fazt --username admin --password your-password
 
 # Option 2: Create manually from example
-cp config.example.json ~/.config/cc/config.json
-# Then edit ~/.config/cc/config.json
+cp config.example.json ~/.config/fazt/config.json
+# Then edit ~/.config/fazt/config.json
 ```
 
 **Migrate Your Settings**:
@@ -176,14 +167,14 @@ Your `config.json` should be:
 
 ### Step 5: Move Database (Optional)
 
-The new default location is `~/.config/cc/data.db`. To use the new location:
+The new default location is `~/.config/fazt/data.db`. To use the new location:
 
 ```bash
 # Create directory
-mkdir -p ~/.config/cc
+mkdir -p ~/.config/fazt
 
 # Copy database
-cp cc.db ~/.config/cc/data.db
+cp cc.db ~/.config/fazt/data.db
 
 # Update config to use new path
 # (or use --db flag)
@@ -203,7 +194,7 @@ cp cc.db ~/.config/cc/data.db
 #### Enable Authentication (Recommended for Production)
 
 ```bash
-./cc-server --username admin --password your-secure-password
+./fazt --username admin --password your-secure-password
 ```
 
 This creates/updates the config with:
@@ -249,14 +240,14 @@ WantedBy=multi-user.target
 **New (v0.2.0)**:
 ```ini
 [Unit]
-Description=Command Center v0.2.0
+Description=Fazt v0.2.0
 After=network.target
 
 [Service]
 Type=simple
 User=www-data
-WorkingDirectory=/opt/command-center
-ExecStart=/opt/command-center/cc-server --config /home/www-data/.config/cc/config.json
+WorkingDirectory=/opt/fazt
+ExecStart=/opt/fazt/fazt --config /home/www-data/.config/fazt/config.json
 Restart=on-failure
 
 # Optional: Set resource limits
@@ -269,15 +260,15 @@ WantedBy=multi-user.target
 Reload and restart:
 ```bash
 sudo systemctl daemon-reload
-sudo systemctl start command-center
-sudo systemctl status command-center
+sudo systemctl start fazt
+sudo systemctl status fazt
 ```
 
 ### Step 8: Verify Migration
 
 ```bash
 # Check server starts
-./cc-server
+./fazt
 
 # Test health endpoint
 curl http://localhost:4698/health
@@ -319,7 +310,7 @@ If you need to rollback to v0.1.0:
 
 ```bash
 # 1. Stop v0.2.0
-./cc-server stop  # or kill process
+./fazt stop  # or kill process
 
 # 2. Restore old binary
 mv cc-server cc-server-v0.2.0
@@ -332,7 +323,7 @@ cp cc.db.backup cc.db
 # Load from .env or env_backup.txt
 
 # 5. Start v0.1.0
-./cc-server
+./fazt
 ```
 
 ## Migration Checklist
@@ -361,7 +352,7 @@ Use this checklist to ensure smooth migration:
 
 **Check logs**:
 ```bash
-./cc-server --verbose
+./fazt --verbose
 ```
 
 **Common issues**:

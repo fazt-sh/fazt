@@ -22,15 +22,15 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/jikku/command-center/internal/audit"
-	"github.com/jikku/command-center/internal/auth"
-	"github.com/jikku/command-center/internal/config"
-	"github.com/jikku/command-center/internal/database"
-	"github.com/jikku/command-center/internal/handlers"
-	"github.com/jikku/command-center/internal/hosting"
-	"github.com/jikku/command-center/internal/middleware"
-	"github.com/jikku/command-center/internal/provision"
-	"github.com/jikku/command-center/internal/security"
+	"github.com/fazt-sh/fazt/internal/audit"
+	"github.com/fazt-sh/fazt/internal/auth"
+	"github.com/fazt-sh/fazt/internal/config"
+	"github.com/fazt-sh/fazt/internal/database"
+	"github.com/fazt-sh/fazt/internal/handlers"
+	"github.com/fazt-sh/fazt/internal/hosting"
+	"github.com/fazt-sh/fazt/internal/middleware"
+	"github.com/fazt-sh/fazt/internal/provision"
+	"github.com/fazt-sh/fazt/internal/security"
 	"golang.org/x/crypto/bcrypt"
 	_ "modernc.org/sqlite"
 	"github.com/caddyserver/certmagic"
@@ -73,6 +73,8 @@ func main() {
 		handleClientCommand(os.Args[2:])
 	case "deploy":
 		handleDeployCommand() // Alias for client deploy
+	case "upgrade":
+		handleUpgradeCommand()
 	default:
 		fmt.Printf("Unknown command: %s\n\n", command)
 		printUsage()
@@ -373,6 +375,12 @@ func handleClientCommand(args []string) {
 		handleSetAuthToken()
 	case "deploy":
 		handleDeployCommand()
+	case "logs":
+		handleLogsCommand()
+	case "sites":
+		handleSitesCommand()
+	case "delete":
+		handleDeleteCommand()
 	case "--help", "-h", "help":
 		printClientHelp()
 	default:
@@ -1145,6 +1153,248 @@ func handleDeployCommand() {
 	fmt.Printf("✓ Deployment completed! (Status: %s)\n", resp.Status)
 }
 
+// handleLogsCommand handles the logs subcommand
+func handleLogsCommand() {
+	flags := flag.NewFlagSet("logs", flag.ExitOnError)
+	site := flags.String("site", "", "Site name (subdomain) (required)")
+	limit := flags.Int("limit", 50, "Number of logs to fetch")
+	server := flags.String("server", "http://localhost:4698", "fazt.sh server URL")
+
+	flags.Usage = func() {
+		fmt.Println("Usage: fazt client logs --site <SITE> [options]")
+		fmt.Println()
+		fmt.Println("Fetch logs for a specific site.")
+		fmt.Println()
+		flags.PrintDefaults()
+	}
+
+	if err := flags.Parse(os.Args[3:]); err != nil {
+		os.Exit(1)
+	}
+
+	if *site == "" {
+		fmt.Println("Error: --site is required")
+		flags.Usage()
+		os.Exit(1)
+	}
+
+	// Load config to get API key
+	flagsConfig := config.ParseFlags()
+	cfg, err := config.Load(flagsConfig)
+	if err != nil {
+		fmt.Printf("Error loading config: %v\n", err)
+		os.Exit(1)
+	}
+
+	token := cfg.GetAPIKey()
+	if token == "" {
+		fmt.Println("Error: No API key found in config")
+		os.Exit(1)
+	}
+
+	url := fmt.Sprintf("%s/api/logs?site_id=%s&limit=%d", *server, *site, *limit)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		fmt.Printf("Error creating request: %v\n", err)
+		os.Exit(1)
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Printf("Error fetching logs: %v\n", err)
+		os.Exit(1)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		fmt.Printf("Error: %s\n", string(body))
+		os.Exit(1)
+	}
+
+	var result struct {
+		Success bool `json:"success"`
+		Logs    []struct {
+			Level     string `json:"level"`
+			Message   string `json:"message"`
+			CreatedAt string `json:"created_at"`
+		} `json:"logs"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		fmt.Printf("Error parsing response: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("Logs for %s (last %d):\n", *site, *limit)
+	for _, log := range result.Logs {
+		fmt.Printf("[%s] [%s] %s\n", log.CreatedAt, log.Level, log.Message)
+	}
+}
+
+// handleSitesCommand handles the sites list subcommand
+func handleSitesCommand() {
+	flags := flag.NewFlagSet("sites", flag.ExitOnError)
+	server := flags.String("server", "http://localhost:4698", "fazt.sh server URL")
+
+	flags.Usage = func() {
+		fmt.Println("Usage: fazt client sites [options]")
+		fmt.Println()
+		fmt.Println("List all deployed sites.")
+		fmt.Println()
+		flags.PrintDefaults()
+	}
+
+	if err := flags.Parse(os.Args[3:]); err != nil {
+		os.Exit(1)
+	}
+
+	// Load config to get API key
+	flagsConfig := config.ParseFlags()
+	cfg, err := config.Load(flagsConfig)
+	if err != nil {
+		fmt.Printf("Error loading config: %v\n", err)
+		os.Exit(1)
+	}
+
+	token := cfg.GetAPIKey()
+	if token == "" {
+		fmt.Println("Error: No API key found in config")
+		os.Exit(1)
+	}
+
+	req, err := http.NewRequest("GET", *server+"/api/sites", nil)
+	if err != nil {
+		fmt.Printf("Error creating request: %v\n", err)
+		os.Exit(1)
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Printf("Error fetching sites: %v\n", err)
+		os.Exit(1)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		fmt.Printf("Error: %s\n", string(body))
+		os.Exit(1)
+	}
+
+	var result struct {
+		Success bool `json:"success"`
+		Sites   []struct {
+			Name      string      `json:"Name"`
+			FileCount int         `json:"FileCount"`
+			SizeBytes int64       `json:"SizeBytes"`
+			ModTime   interface{} `json:"ModTime"`
+		} `json:"sites"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		fmt.Printf("Error parsing response: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("%-20s %-10s %-10s\n", "SITE", "FILES", "SIZE")
+	fmt.Println("──────────────────────────────────────────")
+	for _, site := range result.Sites {
+		fmt.Printf("%-20s %-10d %-10d\n", site.Name, site.FileCount, site.SizeBytes)
+	}
+}
+
+// handleDeleteCommand handles the delete site subcommand
+func handleDeleteCommand() {
+	flags := flag.NewFlagSet("delete", flag.ExitOnError)
+	site := flags.String("site", "", "Site name (subdomain) (required)")
+	server := flags.String("server", "http://localhost:4698", "fazt.sh server URL")
+	confirm := flags.Bool("yes", false, "Skip confirmation")
+
+	flags.Usage = func() {
+		fmt.Println("Usage: fazt client delete --site <SITE> [options]")
+		fmt.Println()
+		fmt.Println("Delete a deployed site.")
+		fmt.Println()
+		flags.PrintDefaults()
+	}
+
+	if err := flags.Parse(os.Args[3:]); err != nil {
+		os.Exit(1)
+	}
+
+	if *site == "" {
+		fmt.Println("Error: --site is required")
+		flags.Usage()
+		os.Exit(1)
+	}
+
+	if !*confirm {
+		fmt.Printf("Are you sure you want to delete site '%s'? [y/N] ", *site)
+		var response string
+		fmt.Scanln(&response)
+		if response != "y" && response != "Y" {
+			fmt.Println("Operation cancelled.")
+			os.Exit(0)
+		}
+	}
+
+	// Load config to get API key
+	flagsConfig := config.ParseFlags()
+	cfg, err := config.Load(flagsConfig)
+	if err != nil {
+		fmt.Printf("Error loading config: %v\n", err)
+		os.Exit(1)
+	}
+
+	token := cfg.GetAPIKey()
+	if token == "" {
+		fmt.Println("Error: No API key found in config")
+		os.Exit(1)
+	}
+
+	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/api/sites?site_id=%s", *server, *site), nil)
+	if err != nil {
+		fmt.Printf("Error creating request: %v\n", err)
+		os.Exit(1)
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Printf("Error deleting site: %v\n", err)
+		os.Exit(1)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		fmt.Printf("Error: %s\n", string(body))
+		os.Exit(1)
+	}
+
+	fmt.Printf("✓ Site '%s' deleted successfully.\n", *site)
+}
+
+// handleUpgradeCommand handles the self-upgrade
+func handleUpgradeCommand() {
+	if os.Geteuid() != 0 {
+		fmt.Println("Warning: upgrading typically requires root privileges (sudo).")
+		fmt.Println("If this fails, try: sudo fazt upgrade")
+		fmt.Println()
+	}
+
+	if err := provision.Upgrade(Version); err != nil {
+		fmt.Printf("Error upgrading: %v\n", err)
+		os.Exit(1)
+	}
+}
+
 // handleStartCommand handles the start subcommand
 func handleStartCommand() {
 	flags := flag.NewFlagSet("start", flag.ExitOnError)
@@ -1301,6 +1551,7 @@ func handleStartCommand() {
 	dashboardMux.HandleFunc("/api/keys", handlers.APIKeysHandler)
 	dashboardMux.HandleFunc("/api/deployments", handlers.DeploymentsHandler)
 	dashboardMux.HandleFunc("/api/envvars", handlers.EnvVarsHandler)
+	dashboardMux.HandleFunc("/api/logs", handlers.LogsHandler)
 
 	// Hosting management page
 	dashboardMux.HandleFunc("/hosting", handlers.HostingPageHandler)
