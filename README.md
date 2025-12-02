@@ -1,6 +1,4 @@
-# Fazt ⚡
-
-[View on GitHub](https://github.com/fazt-sh/fazt)
+# [Fazt ⚡](https://fazt-sh.github.io/fazt/)
 
 **The "Cartridge" Personal Cloud Platform.**
 One Binary. One Database. Zero Dependencies.
