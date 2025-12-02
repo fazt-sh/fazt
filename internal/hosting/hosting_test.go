@@ -331,8 +331,19 @@ func TestSiteOperations(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListSites() failed: %v", err)
 	}
-	if len(sites) != 1 || sites[0].Name != siteName {
-		t.Errorf("ListSites() = %v, want [%s]", sites, siteName)
+	
+	// We expect "testsite" to be in the list.
+	// Note: System sites (root, 404) are also seeded by Init(), so we can't assert len(sites) == 1.
+	found := false
+	for _, s := range sites {
+		if s.Name == siteName {
+			found = true
+			break
+		}
+	}
+	
+	if !found {
+		t.Errorf("ListSites() = %v, want it to contain %s", sites, siteName)
 	}
 
 	if err := DeleteSite(siteName); err != nil {
