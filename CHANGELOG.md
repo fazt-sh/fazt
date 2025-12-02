@@ -2,6 +2,11 @@
 
 All notable changes to fazt.sh will be documented in this file.
 
+## [0.5.8] - 2025-12-02
+
+### Fixed
+- **Build**: Fixed compilation error due to unused import in provision manager.
+
 ## [0.5.7] - 2025-12-02
 
 ### Added

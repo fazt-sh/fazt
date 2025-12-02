@@ -7,7 +7,6 @@ import (
 	"os/user"
 	"path/filepath"
 	"strconv"
-	"time"
 
 	"github.com/fazt-sh/fazt/internal/config"
 	"github.com/fazt-sh/fazt/internal/term"
