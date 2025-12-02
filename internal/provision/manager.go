@@ -2,10 +2,12 @@ package provision
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"os/user"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	"github.com/fazt-sh/fazt/internal/config"
 	"github.com/fazt-sh/fazt/internal/term"
@@ -31,7 +33,19 @@ func RunInstall(opts InstallOptions) error {
 	term.Section("fazt.sh System Installer")
 	term.Info("Installing for domain: %s", opts.Domain)
 
-	// 1. Ensure User
+	// 1. Check Ports
+	if opts.HTTPS {
+		if err := checkPortsAvailable([]string{"80", "443"}); err != nil {
+			return err
+		}
+	} else {
+		// Even if not HTTPS, we install on port 80 by default in production
+		if err := checkPortsAvailable([]string{"80"}); err != nil {
+			return err
+		}
+	}
+
+	// 2. Ensure User
 	if err := EnsureUser(opts.User); err != nil {
 		return err
 	}
@@ -143,5 +157,22 @@ func RunInstall(opts InstallOptions) error {
 	term.Print(term.Dim + "Login at: " + term.Reset + "https://" + opts.Domain + "/login")
 	fmt.Println()
 	
+	return nil
+}
+
+// checkPortsAvailable checks if the required ports are free
+func checkPortsAvailable(ports []string) error {
+	term.Step("Checking port availability...")
+	for _, port := range ports {
+		ln, err := net.Listen("tcp", ":"+port)
+		if err != nil {
+			term.Error("Port %s is already in use!", port)
+			term.Warn("Common culprits: nginx, apache2, caddy")
+			term.Warn("Try stopping them: systemctl stop nginx")
+			return fmt.Errorf("port %s unavailable: %w", port, err)
+		}
+		ln.Close()
+	}
+	term.Success("Ports %v are available", ports)
 	return nil
 }

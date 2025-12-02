@@ -2,6 +2,11 @@
 
 All notable changes to fazt.sh will be documented in this file.
 
+## [0.5.7] - 2025-12-02
+
+### Added
+- **Install**: Added pre-flight check for ports 80 and 443 to detect conflicts with existing web servers (like Nginx/Apache) before installation.
+
 ## [0.5.6] - 2025-12-02
 
 ### Changed
