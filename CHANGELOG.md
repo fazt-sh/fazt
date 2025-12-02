@@ -2,6 +2,11 @@
 
 All notable changes to fazt.sh will be documented in this file.
 
+## [0.5.5] - 2025-12-02
+
+### Fixed
+- **Systemd**: Added `AmbientCapabilities` to systemd service definition to ensure the `fazt` process can bind to ports 80/443 even if file capabilities are lost or ignored.
+
 ## [0.5.4] - 2025-12-02
 
 ### Fixed

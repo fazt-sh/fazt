@@ -15,6 +15,8 @@ After=network.target
 [Service]
 Type=simple
 User={{.User}}
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
 ExecStart={{.BinaryPath}} server start
 Restart=always
 LimitNOFILE=4096
