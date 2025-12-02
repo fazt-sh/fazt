@@ -27,3 +27,7 @@
 *   `internal/hosting/`: VFS, Deploy, CertMagic.
 *   `internal/database/`: Migrations, Query logic.
 *   `install.sh`: The "curl | bash" installer.
+
+## 🛠️ Environment
+*   **Git**: Container has credentials. Can commit & push to `origin/master`.
+*   **Note**: `GEMINI.md` is symlinked to this file.
