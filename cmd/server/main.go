@@ -463,40 +463,115 @@ func printVersion() {
 }
 
 // createRootHandler creates a handler that routes based on the Host header
-// - Requests to the main domain (or localhost) go to the dashboard
-// - Requests to subdomains (*.domain.com or *.localhost) go to the site handler
+
+// - Requests to admin.domain go to the dashboard
+
+// - Requests to root.domain or domain go to the "root" site
+
+// - Requests to subdomains go to the site handler
+
 func createRootHandler(cfg *config.Config, dashboardMux *http.ServeMux, sessionStore *auth.SessionStore) http.Handler {
+
 	// Parse the main domain from config
+
 	mainDomain := extractDomain(cfg.Server.Domain)
 
+
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
 		host := r.Host
 
+
+
 		// Remove port from host if present
+
 		if colonIdx := strings.LastIndex(host, ":"); colonIdx != -1 {
+
 			// Check if this is IPv6 (has brackets)
+
 			if !strings.Contains(host, "]") || strings.LastIndex(host, "]") < colonIdx {
+
 				host = host[:colonIdx]
+
 			}
+
 		}
 
-		// Check if this is the main domain or localhost (no subdomain)
-		if isDashboardHost(host, mainDomain, cfg.Server.Port) {
-			// Apply auth middleware only to dashboard routes
+
+
+		// Special case: localhost serves Dashboard (for CLI/Dev simplicity)
+
+		// Users can still test sites via Host headers:
+
+		// curl -H "Host: root.localhost" ...
+
+		if host == "localhost" {
+
 			middleware.AuthMiddleware(sessionStore)(dashboardMux).ServeHTTP(w, r)
+
 			return
+
 		}
 
-		// Extract subdomain and serve the site
+
+
+		// 1. Dashboard Routing (admin.<domain>)
+
+		if host == "admin."+mainDomain {
+
+			middleware.AuthMiddleware(sessionStore)(dashboardMux).ServeHTTP(w, r)
+
+			return
+
+		}
+
+
+
+		// 2. Root Domain Routing (root.<domain> or <domain>)
+
+		if host == "root."+mainDomain || host == mainDomain {
+
+			siteHandler(w, r, "root")
+
+			return
+
+		}
+
+
+
+		// 3. 404 Domain Routing
+
+		if host == "404."+mainDomain {
+
+			siteHandler(w, r, "404")
+
+			return
+
+		}
+
+
+
+		// 4. Subdomain Routing
+
 		subdomain := extractSubdomain(host, mainDomain)
+
 		if subdomain != "" {
+
 			siteHandler(w, r, subdomain)
+
 			return
+
 		}
 
-		// Fallback to dashboard
-		middleware.AuthMiddleware(sessionStore)(dashboardMux).ServeHTTP(w, r)
+
+
+		// Fallback -> 404
+
+		serveSiteNotFound(w, r, host)
+
 	})
+
 }
 
 // extractDomain extracts the domain from a URL (removes protocol and path)
@@ -515,19 +590,6 @@ func extractDomain(rawURL string) string {
 }
 
 // isDashboardHost checks if the host should be routed to the dashboard
-func isDashboardHost(host, mainDomain, port string) bool {
-	// Exact match with main domain
-	if host == mainDomain {
-		return true
-	}
-
-	// localhost without subdomain
-	if host == "localhost" || host == "127.0.0.1" {
-		return true
-	}
-
-	return false
-}
 
 // extractSubdomain extracts the subdomain from a host
 // e.g., "blog.example.com" with mainDomain "example.com" returns "blog"
@@ -566,10 +628,9 @@ func extractSubdomain(host, mainDomain string) string {
 func siteHandler(w http.ResponseWriter, r *http.Request, subdomain string) {
 	// Check if site exists
 	if !hosting.SiteExists(subdomain) {
-		serveSiteNotFound(w, subdomain)
+		serveSiteNotFound(w, r, subdomain)
 		return
 	}
-
 	// Handle WebSocket connections at /ws
 	if r.URL.Path == "/ws" {
 		hosting.HandleWebSocket(w, r, subdomain)
@@ -621,11 +682,19 @@ func logSiteVisit(r *http.Request, subdomain string) {
 }
 
 // serveSiteNotFound renders the 404 page for non-existent sites
-func serveSiteNotFound(w http.ResponseWriter, subdomain string) {
+func serveSiteNotFound(w http.ResponseWriter, r *http.Request, subdomain string) {
+	// Try to serve universal 404 site if it exists
+	if hosting.SiteExists("404") {
+		// Use the 404 site content
+		// We pass "404" as the site ID
+		w.WriteHeader(http.StatusNotFound) // Ensure we still send 404 status
+		hosting.ServeVFS(w, r, "404")
+		return
+	}
+
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(http.StatusNotFound)
-	fmt.Fprintf(w, `<!DOCTYPE html>
-<html>
+	fmt.Fprintf(w, `<!DOCTYPE html><html>
 <head>
     <title>Site Not Found</title>
     <style>
