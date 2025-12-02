@@ -10,7 +10,7 @@ SSH into your fresh droplet and run:
 
 ```bash
 # 1. Download & Install
-curl -sL https://raw.githubusercontent.com/fazt-sh/fazt/master/install.sh | bash
+curl -s https://fazt-sh.github.io/fazt/install.sh | sudo bash
 
 # 2. Setup Service (Auto-configures Systemd, HTTPS & Firewall)
 sudo ./fazt service install --domain your-domain.com --email admin@example.com --https
