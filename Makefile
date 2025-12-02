@@ -23,7 +23,7 @@ run-with-config:
 
 # Setup authentication (interactive)
 setup-auth:
-	@echo "Setting up authentication for fazt.sh v0.3.0"
+	@echo "Setting up authentication for fazt.sh $(VERSION)"
 	@read -p "Enter username: " username; \
 	read -s -p "Enter password: " password; \
 	echo ""; \
@@ -55,7 +55,7 @@ install-deps:
 
 # Create release package
 release: build
-	tar -czf fazt-v0.3.0.tar.gz \
+	tar -czf fazt-$(VERSION).tar.gz \
 		fazt \
 		web/ \
 		migrations/ \
@@ -78,7 +78,7 @@ lint:
 
 # Show help
 help:
-	@echo "fazt.sh v0.3.0 - Makefile Targets"
+	@echo "fazt.sh $(VERSION) - Makefile Targets"
 	@echo ""
 	@echo "  make build       - Build release binary (linux/amd64)"
 	@echo "  make build-local - Build for current OS"

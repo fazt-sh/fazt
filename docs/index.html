@@ -21,9 +21,19 @@
 
     <div class="hero">
         <p>Turn any $5 VPS into a Serverless Platform.</p>
+        <p style="color: #666; font-size: 0.9rem;">Latest Release: <span id="version" style="color: var(--accent);">v0.5.12</span></p>
         <code class="cmd">curl -s https://fazt.sh/install.sh | sudo bash</code>
         <p><small>(Works on Ubuntu/Debian/Arch)</small></p>
     </div>
+
+    <script>
+        fetch('https://api.github.com/repos/fazt-sh/fazt/releases/latest')
+            .then(r => r.json())
+            .then(data => {
+                if(data.tag_name) document.getElementById('version').innerText = data.tag_name;
+            })
+            .catch(e => console.log('Failed to fetch version'));
+    </script>
 
     <section>
         <h2>Why?</h2>
