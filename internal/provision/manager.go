@@ -77,6 +77,14 @@ func RunInstall(opts InstallOptions) error {
 	if err := os.MkdirAll(configDir, 0700); err != nil {
 		return fmt.Errorf("failed to create config dir: %w", err)
 	}
+
+	// Fix permissions for the entire path: ~/.config/fazt
+	// We need to make sure ~/.config is owned by user too if we created it
+	dotConfig := filepath.Join(targetUser.HomeDir, ".config")
+	if err := os.Chown(dotConfig, uid, gid); err != nil {
+		// Log warning but continue, as it might already exist and belong to someone else (unlikely for new user)
+		term.Warn("Could not chown %s: %v", dotConfig, err)
+	}
 	if err := os.Chown(configDir, uid, gid); err != nil {
 		return fmt.Errorf("failed to chown config dir: %w", err)
 	}

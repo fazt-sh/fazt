@@ -2,6 +2,11 @@
 
 All notable changes to fazt.sh will be documented in this file.
 
+## [0.5.10] - 2025-12-02
+
+### Fixed
+- **Install**: Fixed "permission denied" error by ensuring the parent `.config` directory is owned by the `fazt` user when created.
+
 ## [0.5.9] - 2025-12-02
 
 ### Fixed
