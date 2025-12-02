@@ -2,6 +2,11 @@
 
 All notable changes to fazt.sh will be documented in this file.
 
+## [0.5.9] - 2025-12-02
+
+### Fixed
+- **Systemd**: Explicitly set `--config` path in systemd service file to prevent "config not found" errors when `$HOME` is not set correctly by the service runner.
+
 ## [0.5.8] - 2025-12-02
 
 ### Fixed

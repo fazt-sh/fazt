@@ -19,7 +19,7 @@ Type=simple
 User={{.User}}
 AmbientCapabilities=CAP_NET_BIND_SERVICE
 CapabilityBoundingSet=CAP_NET_BIND_SERVICE
-ExecStart={{.BinaryPath}} server start
+ExecStart={{.BinaryPath}} server start --config /home/{{.User}}/.config/fazt/config.json
 Restart=always
 LimitNOFILE=4096
 Environment=FAZT_ENV=production
