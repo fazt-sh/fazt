@@ -3,8 +3,12 @@ package hosting
 import (
 	"database/sql"
 	"fmt"
+	"mime"
+	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/fazt-sh/fazt/internal/assets"
 )
 
 var (
@@ -25,6 +29,61 @@ func Init(db *sql.DB) error {
 	// Initialize VFS
 	fs = NewSQLFileSystem(db)
 
+	// Seed system sites (root, 404)
+	if err := EnsureSystemSites(); err != nil {
+		return fmt.Errorf("failed to seed system sites: %w", err)
+	}
+
+	return nil
+}
+
+// EnsureSystemSites checks and seeds reserved sites from embedded assets
+func EnsureSystemSites() error {
+	sites := map[string]string{
+		"root": "system/root",
+		"404":  "system/404",
+	}
+
+	for siteID, assetDir := range sites {
+		// Check if site exists (simple check for index.html)
+		// We use fs.Exists directly to avoid overhead/ambiguity of SiteExists
+		exists, _ := fs.Exists(siteID, "index.html")
+		if !exists {
+			// Seed from assets
+			entries, err := assets.SystemFS.ReadDir(assetDir)
+			if err != nil {
+				return fmt.Errorf("failed to read asset dir %s: %w", assetDir, err)
+			}
+
+			for _, entry := range entries {
+				if entry.IsDir() {
+					continue
+				}
+
+				path := assetDir + "/" + entry.Name()
+				content, err := assets.SystemFS.Open(path)
+				if err != nil {
+					return fmt.Errorf("failed to open asset %s: %w", path, err)
+				}
+
+				info, _ := entry.Info()
+				mimeType := mime.TypeByExtension(filepath.Ext(entry.Name()))
+				if mimeType == "" {
+					mimeType = "application/octet-stream"
+				}
+
+				// Write to VFS
+				// Use entry.Name() as path (flat structure for now)
+				if err := fs.WriteFile(siteID, entry.Name(), content, info.Size(), mimeType); err != nil {
+					content.Close()
+					return fmt.Errorf("failed to write asset %s to VFS: %w", entry.Name(), err)
+				}
+				content.Close()
+			}
+			// Log to stdout so user knows
+			fmt.Printf("✓ Seeded system site: %s\n", siteID)
+		}
+	}
 	return nil
 }
 

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Welcome to Fazt</title>
+    <style>
+        :root { --accent: #2ed573; --bg: #1e272e; --card: #2f3542; }
+        body { margin: 0; background: var(--bg); color: #f1f2f6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+        .hero { height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px; }
+        h1 { font-size: 4rem; margin-bottom: 0.5rem; background: linear-gradient(45deg, #2ed573, #1e90ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        p { font-size: 1.5rem; color: #a4b0be; max-width: 600px; line-height: 1.6; }
+        .btn { margin-top: 2rem; padding: 1rem 2rem; background: var(--accent); color: #fff; text-decoration: none; border-radius: 50px; font-weight: bold; transition: transform 0.2s; }
+        .btn:hover { transform: scale(1.05); }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem; max-width: 1000px; width: 100%; margin: 4rem auto; padding: 0 2rem; }
+        .card { background: var(--card); padding: 2rem; border-radius: 15px; text-align: left; border: 1px solid rgba(255,255,255,0.05); }
+        .card h3 { color: var(--accent); margin-top: 0; }
+    </style>
+</head>
+<body>
+    <div class="hero">
+        <h1>Fazt.sh</h1>
+        <p>Your Personal Cloud Platform is running.</p>
+        <a href="http://admin.localhost:9090" class="btn">Go to Dashboard</a>
+        
+        <div class="grid">
+            <div class="card">
+                <h3>🚀 Deployed</h3>
+                <p>One binary. One database. Zero headaches. You are running the Cartridge Architecture.</p>
+            </div>
+            <div class="card">
+                <h3>⚡ Serverless</h3>
+                <p>Deploy static sites or serverless JS functions instantly using the CLI.</p>
+            </div>
+            <div class="card">
+                <h3>🔒 Secure</h3>
+                <p>Automatic HTTPS and isolated runtime environments for all your apps.</p>
+            </div>
+        </div>
+    </div>
+    <script>
+        // Update dashboard link if not on localhost
+        const link = document.querySelector('.btn');
+        if (window.location.hostname !== 'localhost') {
+            link.href = window.location.protocol + '//admin.' + window.location.hostname;
+        } else {
+             // If localhost, try to guess port if not 9090
+             if (window.location.port && window.location.port !== "9090") {
+                 link.href = "http://admin.localhost:" + window.location.port;
+             }
+        }
+    </script>
+</body>
+</html>
