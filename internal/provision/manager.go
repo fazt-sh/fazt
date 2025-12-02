@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	"github.com/fazt-sh/fazt/internal/config"
+	"github.com/fazt-sh/fazt/internal/term"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -27,7 +28,8 @@ func RunInstall(opts InstallOptions) error {
 		return fmt.Errorf("this command must be run as root (use sudo)")
 	}
 
-	fmt.Println("Starting installation...")
+	term.Section("fazt.sh System Installer")
+	term.Info("Installing for domain: %s", opts.Domain)
 
 	// 1. Ensure User
 	if err := EnsureUser(opts.User); err != nil {
@@ -56,7 +58,7 @@ func RunInstall(opts InstallOptions) error {
 	configDir := filepath.Join(targetUser.HomeDir, ".config", "fazt")
 	configPath := filepath.Join(configDir, "config.json")
 	
-	fmt.Printf("Creating configuration at %s...\n", configPath)
+	term.Step("Configuring environment...")
 
 	// Create directory with correct permissions
 	if err := os.MkdirAll(configDir, 0700); err != nil {
@@ -95,13 +97,7 @@ func RunInstall(opts InstallOptions) error {
 		},
 	}
 
-	// If HTTPS is disabled, use default port 4698?
-	// The plan says "Bind to ports 80 and 443 automatically".
-	// If HTTPS is false, maybe we still want port 80?
-	// Or maybe the user wants to run behind a proxy.
-	// But "install" usually implies "take over the machine".
-	// Let's stick to 80 if HTTPS is false, or maybe just respect the passed config.
-	// For now, let's hardcode 80/443 logic:
+	// Port logic
 	if opts.HTTPS {
 		cfg.Server.Port = "443" // CertMagic handles 80 too
 	} else {
@@ -132,7 +128,20 @@ func RunInstall(opts InstallOptions) error {
 		return err
 	}
 
-	fmt.Println("Installation complete!")
-	fmt.Printf("Server running at %s\n", opts.Domain)
+	term.Section("Installation Complete")
+	term.Success("Fazt is now running at https://%s", opts.Domain)
+	fmt.Println()
+	
+	// Display Credentials Box
+	fmt.Println(term.Yellow + "╔══════════════════════════════════════════════════════════╗" + term.Reset)
+	fmt.Printf(term.Yellow+"║ %-56s ║"+term.Reset+"\n", "ADMIN CREDENTIALS (SAVE THESE!)")
+	fmt.Println(term.Yellow + "╠══════════════════════════════════════════════════════════╣" + term.Reset)
+	fmt.Printf(term.Yellow+"║ %-10s %-45s ║"+term.Reset+"\n", "Username:", opts.AdminUser)
+	fmt.Printf(term.Yellow+"║ %-10s %-45s ║"+term.Reset+"\n", "Password:", opts.AdminPassword)
+	fmt.Println(term.Yellow + "╚══════════════════════════════════════════════════════════╝" + term.Reset)
+	fmt.Println()
+	term.Print(term.Dim + "Login at: " + term.Reset + "https://" + opts.Domain + "/login")
+	fmt.Println()
+	
 	return nil
 }

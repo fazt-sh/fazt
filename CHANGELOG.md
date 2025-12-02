@@ -2,6 +2,12 @@
 
 All notable changes to fazt.sh will be documented in this file.
 
+## [0.5.6] - 2025-12-02
+
+### Changed
+- **UX**: Completely redesigned the installation experience with beautiful colors, banners, and clearer instructions.
+- **CLI**: Improved output formatting for `fazt service install` with a highlighted credentials box.
+
 ## [0.5.5] - 2025-12-02
 
 ### Fixed

@@ -6,6 +6,8 @@ import (
 	"os"
 	"os/exec"
 	"text/template"
+
+	"github.com/fazt-sh/fazt/internal/term"
 )
 
 const serviceTemplate = `[Unit]
@@ -52,7 +54,7 @@ func InstallSystemdService(serviceName string, config ServiceConfig) error {
 	}
 
 	servicePath := fmt.Sprintf("/etc/systemd/system/%s.service", serviceName)
-	fmt.Printf("Writing service file to %s...\n", servicePath)
+	term.Info("Writing service file to %s...", servicePath)
 
 	if err := os.WriteFile(servicePath, buf.Bytes(), 0644); err != nil {
 		return fmt.Errorf("failed to write service file: %w", err)
@@ -69,8 +71,9 @@ func EnableAndStartService(serviceName string) error {
 		{"systemctl", "start", serviceName},
 	}
 
+	term.Step("Starting system service...")
+
 	for _, args := range commands {
-		fmt.Printf("Running: %s %s...\n", args[0], args[1])
 		cmd := exec.Command(args[0], args[1:]...)
 		output, err := cmd.CombinedOutput()
 		if err != nil {
