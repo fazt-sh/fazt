@@ -4,6 +4,7 @@
 *   **Cartridge Architecture**: One Binary (`fazt`) + One SQLite DB (`data.db`).
 *   **Zero Dependencies**: Pure Go + `modernc.org/sqlite`. NO CGO. No external runtimes.
 *   **VFS**: User sites/assets live in the DB. No disk I/O for hosting.
+*   **System Sites**: Reserved sites (`root`, `404`) MUST be seeded from `go:embed` assets on startup if missing. They live in VFS but originate from the binary.
 *   **Safety**: `CGO_ENABLED=0` always.
 
 ## 🔨 Build & Test
