@@ -48,6 +48,7 @@ To fully understand the current state, perform these actions:
    - `read_file koder/ideas/01_random.md` (Roadmap & Backlog)
 
 3. **Verify State**:
+   - `read_file ~/.info.json` (Container environment & ports)
    - `run_shell_command "make test"` (Ensure stability)
 
 ## 5. Session Goal 🎯
