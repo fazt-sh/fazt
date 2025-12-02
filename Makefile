@@ -1,12 +1,17 @@
 .PHONY: build run test clean install-deps setup-auth help
 
+# Version injection
+VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
+LDFLAGS := -w -s -X main.Version=$(VERSION)
+
 # Build the binary (release)
+# Enforce CGO_ENABLED=0 as per GEMINI.md
 build:
-	GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-w -s" -o fazt ./cmd/server
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="$(LDFLAGS)" -o fazt ./cmd/server
 
 # Build for current OS (development)
 build-local:
-	go build -o fazt ./cmd/server
+	CGO_ENABLED=0 go build -ldflags="-X main.Version=$(VERSION)" -o fazt ./cmd/server
 
 # Run the server locally
 run: build-local

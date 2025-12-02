@@ -36,7 +36,7 @@ import (
 	"github.com/caddyserver/certmagic"
 )
 
-const Version = "v0.5.11"
+var Version = "dev"
 
 var (
 	showVersion = flag.Bool("version", false, "Show version and exit")
