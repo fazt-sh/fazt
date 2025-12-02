@@ -1,31 +1,26 @@
-# Fazt.sh - Single Binary PaaS
+# Fazt.sh Assistant Guide
 
-**Core Goal:** A zero-dependency "Cartridge" application (One Binary + One SQLite DB).
+## 🧠 Core Philosophy
+*   **Cartridge Architecture**: One Binary (`fazt`) + One SQLite DB (`data.db`).
+*   **Zero Dependencies**: Pure Go + `modernc.org/sqlite`. NO CGO. No external runtimes.
+*   **VFS**: User sites/assets live in the DB. No disk I/O for hosting.
+*   **Safety**: `CGO_ENABLED=0` always.
 
-## 🚀 Key Commands
-*   **Build (Linux)**: `CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o fazt ./cmd/server`
-*   **Build (Mac)**: `CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -o fazt ./cmd/server`
-*   **Dev Run**: `go run ./cmd/server server start --port 8080 --domain localhost`
-*   **Test**: `go test ./...`
+## 🔨 Build & Test
+*   **Build (Local)**: `go build -o fazt ./cmd/server`
+*   **Test (All)**: `go test ./...`
+*   **Run (Dev)**: `go run ./cmd/server server start --domain localhost --port 8080`
 
-## 🏗 Architecture (Must Read)
-1.  **Pure Go**: We use `modernc.org/sqlite`. **NO CGO**. This allows static cross-compilation.
-2.  **Embedded Assets**: `migrations/` and `web/` are embedded via `//go:embed`.
-    *   *Rule*: Never use `os.ReadFile` for core assets; use `assets.WebFS` or `database.migrationFS`.
-3.  **VFS**: User sites live in SQLite (`files` table). **NO DISK I/O** for user content.
-4.  **CLI Structure**:
-    *   `fazt server ...`: Runtime (start app, init config).
-    *   `fazt service ...`: System Ops (install systemd, logs).
-    *   `fazt client ...`: User tools (deploy site).
+## 📦 Release Workflow
+1.  **Code**: Implement feature/fix.
+2.  **Test**: `go test ./...` (MUST PASS).
+3.  **Bump**: Update version in `cmd/server/main.go` & `CHANGELOG.md`.
+4.  **Tag**: `git tag vX.Y.Z && git push origin master --tags`.
+5.  **Build**: GitHub Action auto-builds release.
 
-## 📂 Project Map
-*   `cmd/server/`: Entry point & CLI parsing.
-*   `internal/provision/`: Systemd/User/Install logic.
-*   `internal/hosting/`: VFS & Deploy logic.
-*   `internal/assets/`: Embedded `web/` assets.
-*   `internal/database/`: SQLite conn & Embedded `migrations/`.
-
-## ⚠️ Critical Constraints
-*   **Do not re-introduce CGO**: Keep `CGO_ENABLED=0` capability.
-*   **Do not write to disk**: Except `data.db` and `config.json`.
-*   **Maintain Install Flow**: `service install` must remain idempotent and single-command.
+## 📂 Structure
+*   `cmd/server/`: Main entry point.
+*   `internal/provision/`: Systemd, Install, User management.
+*   `internal/hosting/`: VFS, Deploy, CertMagic.
+*   `internal/database/`: Migrations, Query logic.
+*   `install.sh`: The "curl | bash" installer.
