@@ -2,7 +2,7 @@
 set -e
 
 # Fazt.sh Installer
-# Usage: curl -s https://fazt.sh/install.sh | sudo bash
+# Usage: curl -s https://fazt-sh.github.io/fazt/install.sh | sudo bash
 
 # Colors
 GREEN='\033[1;32m'
