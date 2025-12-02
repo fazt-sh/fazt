@@ -1,83 +1,65 @@
-# fazt.sh
+# Fazt ⚡
 
-A unified analytics, monitoring, tracking platform, and **Personal Cloud** with static hosting and serverless JavaScript functions.
+[View on GitHub](https://github.com/fazt-sh/fazt)
 
-**A completely self-contained "Cartridge" Application.**
+**The "Cartridge" Personal Cloud Platform.**
+One Binary. One Database. Zero Dependencies.
 
-## Features
+## 🚀 Install
 
-### Personal Cloud (PaaS)
-- **Single Binary & Single DB** - The entire platform runs from `fazt` executable and `data.db`.
-- **Zero Dependencies** - No Nginx required. Native automatic HTTPS via Let's Encrypt (CertMagic).
-- **Virtual Filesystem (VFS)** - Sites and assets are stored in the SQLite database.
-- **Static Site Hosting** - Deploy static websites via CLI.
-- **Serverless JavaScript** - Run JavaScript functions with `main.js`.
-- **WebSocket Support** - Real-time communication.
-
-### Analytics & Tracking
-- **Universal Tracking Endpoint** - Auto-detects domains and tracks pageviews/events.
-- **Real-time Dashboard** - Interactive charts and live updates.
-
-## Quick Start
-
-### 1. Install
-Install `fazt` on your Linux server or Mac in one line:
+Run this on your VPS (Ubuntu/Debian/Arch):
 
 ```bash
-curl -s https://fazt-sh.github.io/fazt/install.sh | sudo bash
+curl -s https://fazt-sh.github.io/fazt/install.sh |
+  sudo bash
 ```
 
-### 2. Setup (Production)
-Turn it into a production service with automatic HTTPS:
+**Production Setup (Auto HTTPS):**
 
 ```bash
 sudo fazt service install \
-  --domain https://your-domain.com \
-  --email admin@example.com \
+  --domain example.com \
+  --email you@mail.com \
   --https
 ```
 
-### 3. Deploy
-From your local machine:
+## 🧠 Philosophy
 
-```bash
-# 1. Login to your new dashboard to get an API Token.
+Fazt follows the **Cartridge Architecture**:
 
-# 2. Configure local client
-fazt client set-auth-token --token <YOUR_TOKEN>
+- **State is Precious**:
+  All data lives in one SQLite file (`data.db`).
+  - Sites, Analytics, Users, SSL Certs.
+  - Backup one file = Backup everything.
 
-# 3. Deploy a site
-fazt deploy --path ./my-website --domain blog --server https://your-domain.com
-```
+- **Binary is Disposable**:
+  The `fazt` executable is stateless.
+  - Contains runtime, migrations, UI.
+  - Upgrade? Just replace the binary.
 
-Your site is now live at `https://blog.your-domain.com`!
+- **Zero Dependencies**:
+  No Nginx. No Docker. No Node.js.
+  - Native Let's Encrypt (HTTPS).
+  - Built-in JS Serverless Runtime.
+  - Virtual Filesystem (VFS).
 
-## CLI Reference
+## ✨ Features
 
-### Service Management (Production)
-Commands for managing the background daemon.
-*   `fazt service install`: Install systemd service & user.
-*   `fazt service start`: Start the daemon.
-*   `fazt service stop`: Stop the daemon.
-*   `fazt service status`: Check daemon health.
-*   `fazt service logs`: Tail system logs.
+- **PaaS**: Deploy static sites & JS functions.
+- **Analytics**: Built-in privacy-first tracking.
+- **Routing**: Auto subdomains (`blog.domain.com`).
+- **Dashboard**: Real-time metrics & management.
 
-### Server Management (Manual/Dev)
-Commands for running the process directly.
-*   `fazt server start`: Run in foreground.
-*   `fazt server init`: Generate config file.
-*   `fazt server status`: Check app internal state.
+## 🛠️ CLI
 
-### Client
-*   `fazt deploy`: Deploy a directory.
-*   `fazt client set-auth-token`: Save API credentials.
+- `fazt deploy`
+  Push your local site to the cloud.
 
-## "Cartridge" Architecture
+- `fazt client set-auth-token`
+  Authenticate your local machine.
 
-**fazt** follows a "Cartridge" architecture:
-- **State**: All state (Users, Analytics, Sites, Files, SSL Certs) lives in a single SQLite file (`data.db`).
-- **Stateless Binary**: The `fazt` binary contains all logic, migrations, and UI templates. Updating is as simple as replacing the binary.
-- **Backup/Restore**: Just copy `data.db`.
+- `fazt service logs`
+  Tail system logs.
 
 ## License
-MIT License
+MIT
