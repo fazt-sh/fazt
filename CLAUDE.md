@@ -1,6 +1,6 @@
 # Fazt.sh Assistant Guide
 
-> **🚀 Start Here**: Read `koder/start.md` for deep architecture & state context.
+**Reference**: `koder/start.md` contains the detailed architectural map.
 
 ## 🧠 Core Philosophy
 *   **Cartridge Architecture**: One Binary (`fazt`) + One SQLite DB (`data.db`).
