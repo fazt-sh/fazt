@@ -24,7 +24,7 @@ A unified analytics, monitoring, tracking platform, and **Personal Cloud** with 
 Install `fazt` on your Linux server or Mac in one line:
 
 ```bash
-curl -sL https://raw.githubusercontent.com/fazt-sh/fazt/master/install.sh | bash
+curl -s https://fazt-sh.github.io/fazt/install.sh | sudo bash
 ```
 
 ### 2. Setup (Production)
