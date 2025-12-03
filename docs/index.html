@@ -5,65 +5,101 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fazt - The Cartridge PaaS</title>
     <meta name="description" content="Single Binary Personal Cloud Platform. Zero Dependencies. One Database.">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://fazt.sh/">
+    <meta property="og:title" content="Fazt - The Cartridge PaaS">
+    <meta property="og:description" content="Single Binary Personal Cloud Platform. Zero Dependencies. One Database.">
+    <meta property="og:image" content="https://fazt.sh/assets/social_preview.png">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://fazt.sh/">
+    <meta property="twitter:title" content="Fazt - The Cartridge PaaS">
+    <meta property="twitter:description" content="Single Binary Personal Cloud Platform. Zero Dependencies. One Database.">
+    <meta property="twitter:image" content="https://fazt.sh/assets/social_preview.png">
     <link rel="stylesheet" href="assets/css/style.css">
-    <link rel="icon" href="assets/favicon.svg">
+    <link rel="icon" href="assets/favicon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 </head>
-<body>
+<body style="padding-top: 80px;">
 
-    <header class="container">
-        <div class="logo">⚡ Fazt</div>
-        <nav>
-            <a href="https://github.com/fazt-sh/fazt" class="nav-link">GitHub <span id="stars-count" style="font-size: 0.8em; opacity: 0.7;"></span></a>
-            <a href="#philosophy" class="nav-link">Philosophy</a>
-            <a href="ideas.html" class="nav-link">Ideas</a>
-            <a href="#features" class="nav-link">Features</a>
-        </nav>
+    <header class="navbar">
+        <div class="container navbar-content">
+                            <div class="logo">
+                                <img src="assets/logo.png" alt="Fazt Logo" width="32" height="32" style="vertical-align: middle; border-radius: 6px; margin-right: 8px;">
+                                Fazt
+                                <div class="version-wrapper">
+                                    <span id="version-tag" class="version-tag">v0.6.0</span>
+                                    <div id="changelog-popup" class="changelog-popup"></div>
+                                </div>
+                            </div>            <nav>
+                <a href="docs.html" class="nav-link">Docs</a>
+                <a href="#philosophy" class="nav-link">Philosophy</a>
+                <a href="ideas.html" class="nav-link">Ideas</a>
+                <a href="#features" class="nav-link">Features</a>
+                <a href="https://github.com/fazt-sh/fazt" class="nav-btn">
+                    <svg height="20" viewBox="0 0 16 16" width="20" style="fill: currentColor; margin-right: 6px;"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg>
+                    GitHub <span id="stars-count" style="margin-left: 6px; opacity: 0.7; font-size: 0.9em;"></span>
+                </a>
+            </nav>
+        </div>
     </header>
 
     <main class="container">
         
         <section class="hero">
-            <div class="ascii-logo">
-________            _____
-___  __/_____ ________  /_
-__  /_ _  __ `/__  /_  __/
-_  __/ / /_/ /__  /_/ /_
-/_/    \__,_/ _____/\__/
-            </div>
+            <a href="." class="hero-logo-container" aria-label="Fazt Home">
+                <svg class="hero-logo" width="400" height="163" viewBox="0 0 800 326" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="magma" x1="0" y1="0" x2="100%" y2="0" gradientUnits="userSpaceOnUse">
+                            <stop offset="0" stop-color="#FE442C">
+                                <animate attributeName="stop-color" values="#FE442C; #FFCA04; #FE442C" dur="10s" repeatCount="indefinite" />
+                            </stop>
+                            <stop offset="1" stop-color="#FFCA04">
+                                <animate attributeName="stop-color" values="#FFCA04; #FE442C; #FFCA04" dur="10s" repeatCount="indefinite" />
+                            </stop>
+                        </linearGradient>
+                        <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                            <feGaussianBlur stdDeviation="5" result="coloredBlur"/>
+                            <feMerge>
+                                <feMergeNode in="coloredBlur"/>
+                                <feMergeNode in="SourceGraphic"/>
+                            </feMerge>
+                        </filter>
+                    </defs>
+                    <g filter="url(#glow)">
+                        <path d="M285.866 302.324C285.666 303.662 285.361 305.094 284.951 306.619C284.552 308.144 284.135 309.581 283.701 310.93C283.267 312.279 282.91 313.354 282.629 314.152H279.46C279.612 313.401 279.814 312.408 280.06 311.176C280.307 309.945 280.552 308.567 280.798 307.043C281.056 305.529 281.267 303.981 281.431 302.397L281.641 300.425H286.148L285.866 302.324Z" fill="url(#magma)"/>
+                        <path d="M392.119 142.527H388.458L382.971 134.361H387.825L392.119 142.527Z" fill="url(#magma)"/>
+                        <path fill-rule="evenodd" clip-rule="evenodd" d="M10.3729 317.741L40.4112 257.648L69.744 193.861L102.77 127.792L133.052 61.7222H261.217L232.32 119.533H168.821V123.662L165.128 121.815L132.102 187.885L135.795 189.732V193.861H195.166L166.269 251.672H102.77V255.801L99.0768 253.954L67.1921 317.741H10.3729Z" fill="url(#magma)"/>
+                        <path fill-rule="evenodd" clip-rule="evenodd" d="M205.539 191.578L173.437 255.801L204.398 317.741H267.898H300.923H331.397L360.294 259.93L426.345 127.792H400H366.974H237.424L205.539 191.578ZM284.951 306.619C285.361 305.094 285.666 303.662 285.866 302.324L286.148 300.425H281.641L281.431 302.397C281.267 303.981 281.056 305.529 280.798 307.043C280.552 308.567 280.307 309.945 280.06 311.176C279.814 312.408 279.612 313.401 279.46 314.152H282.629C282.91 313.354 283.267 312.279 283.701 310.93C284.135 309.581 284.552 308.144 284.951 306.619ZM337.642 191.578L333.949 189.732V185.602H267.898V189.732L264.205 187.885L231.179 253.954L234.872 255.801V259.93H300.923V255.801L304.616 257.648L337.642 191.578ZM388.458 142.527H392.119L387.825 134.361H382.971L388.458 142.527Z" fill="url(#magma)"/>
+                        <path d="M398.424 317.741L369.526 259.93L340.629 317.741H398.424Z" fill="url(#magma)"/>
+                        <path d="M369.526 259.93H360.294L331.397 317.741H340.629L369.526 259.93Z" fill="url(#magma)"/>
+                        <path fill-rule="evenodd" clip-rule="evenodd" d="M165.128 257.648L166.269 259.93H168.821V255.801L165.128 257.648Z" fill="url(#magma)"/>
+                        <path fill-rule="evenodd" clip-rule="evenodd" d="M241.5 119.533H241.552L237.424 127.792H237.372L241.5 119.533Z" fill="url(#magma)"/>
+                        <path d="M562.576 317.741L591.474 259.93H532.102V255.801L528.41 253.954L591.474 127.792H435.578L406.68 185.602H499.077V193.861H507.333L445.41 317.741H562.576Z" fill="url(#magma)"/>
+                        <path d="M664.205 119.533V127.792H600.706L571.808 185.602H631.179V189.732L634.872 191.578L602.77 255.801L633.731 317.741H694.679L723.576 259.93H664.205V255.801L660.512 253.954L693.538 187.885L697.23 189.732V185.602H760.73L789.627 127.792H730.256V123.662L726.563 121.815L756.602 61.7222H693.102L664.205 119.533Z" fill="url(#magma)"/>
+                    </g>
+                </svg>
+            </a>
             
-            <h1>The "One Binary" Personal Cloud.</h1>
+            <h1 class="visually-hidden">Fazt</h1>
             <p class="subtitle">Turn any $5 VPS into a Serverless Platform.<br>Zero Dependencies. All state in one SQLite file.</p>
 
             <div class="install-bar">
                 <span class="cmd-prefix">$</span>
                 <span class="cmd-text" id="install-cmd">curl -s https://fazt-sh.github.io/fazt/install.sh | bash</span>
                 <button class="copy-btn" id="copy-btn" aria-label="Copy to clipboard">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-copy-icon lucide-copy"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
                 </button>
             </div>
-            <p style="margin-top: 1rem; color: #666; font-size: 0.8rem;">Latest: <span id="version-tag" style="color: var(--accent-mid);">v0.6.0</span></p>
         </section>
 
-        <div class="terminal-wrapper">
-            <div class="terminal-tabs">
-                <button class="tab-btn active" data-flow="deploy">Deploy Site</button>
-                <button class="tab-btn" data-flow="install">Install Server</button>
-            </div>
-            <div class="terminal">
-                <div class="terminal-header">
-                    <div class="dot red"></div>
-                    <div class="dot yellow"></div>
-                    <div class="dot green"></div>
-                    <div class="terminal-title" id="terminal-title">bash</div>
-                </div>
-                <div class="terminal-body" id="terminal-content">
-                    <!-- Typing animation here -->
-                </div>
-            </div>
-        </div>
+        <!-- New Terminal Component Mount Point -->
+        <div id="terminal-component" class="terminal-component"></div>
 
         <section class="philosophy" id="philosophy">
             <div class="section-header">
@@ -71,51 +107,65 @@ _  __/ / /_/ /__  /_/ /_
                 <p>Simplicity is the ultimate sophistication.</p>
             </div>
             <div class="philosophy-grid">
-                <div class="philo-item">
+                <div class="philo-card">
+                    <div class="philo-num"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-binary-icon lucide-binary"><rect x="14" y="14" width="4" height="6" rx="2"/><rect x="6" y="4" width="4" height="6" rx="2"/><path d="M6 20h4"/><path d="M14 10h4"/><path d="M6 14h2v6"/><path d="M14 4h2v6"/></svg></div>
                     <h3>One Binary</h3>
-                    <p>No apt-get, no Docker images to pull. Just a single executable `fazt` that contains everything: web server, database engine, runtime, and assets.</p>
+                    <p>No apt-get. No Docker. No NPM. Just a single static executable that contains the web server, database engine, JS runtime, and assets.</p>
                 </div>
-                <div class="philo-item">
+                <div class="philo-card highlight">
+                    <div class="philo-num"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-database-zap-icon lucide-database-zap"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 15 21.84"/><path d="M21 5V8"/><path d="M21 12L18 17H22L19 22"/><path d="M3 12A9 3 0 0 0 14.59 14.87"/></svg></div>
                     <h3>One Database</h3>
-                    <p>The filesystem is dead. User sites, configurations, logs, and SSL certificates all live in `data.db`. Backup this one file, and you've backed up your entire world.</p>
+                    <p>The filesystem is dead. User sites, configurations, logs, and SSL certificates all live in `data.db`. Backup one file to backup the world.</p>
                 </div>
-                <div class="philo-item">
-                    <h3>Zero External Deps</h3>
-                    <p>We believe in self-containment. Fazt doesn't need systemd, nginx, or certbot. It manages its own processes, certificates, and traffic.</p>
+                <div class="philo-card">
+                    <div class="philo-num"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-archive-x-icon lucide-archive-x"><rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="m9.5 17 5-5"/><path d="m9.5 12 5 5"/></svg></div>
+                    <h3>Zero Deps</h3>
+                    <p>Self-contained. Fazt manages its own processes, certificates, and traffic. It runs on any Linux server with a single command.</p>
+                </div>
+                <div class="philo-card">
+                    <div class="philo-num"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-square-terminal-icon lucide-square-terminal"><path d="m7 11 2-2-2-2"/><path d="M11 13h4"/><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/></svg></div>
+                    <h3>One Command</h3>
+                    <p>curl | bash. No wizards, no configuration files, no manual setup. From zero to production in seconds.</p>
                 </div>
             </div>
         </section>
 
         <section class="features" id="features">
-            <div class="card">
-                <div class="icon">💎</div>
-                <h3>Cartridge Architecture</h3>
-                <p>Treat your server like a GameBoy cartridge. State is isolated. Upgrades are atomic. Portability is absolute.</p>
+            <div class="section-header">
+                <h2>Features</h2>
+                <p>Everything you need to ship.</p>
             </div>
-            <div class="card">
-                <div class="icon">🚀</div>
-                <h3>Zero Friction</h3>
-                <p>Go from empty Ubuntu server to HTTPS-secured PaaS in 10 seconds. No configuration editing required.</p>
-            </div>
-            <div class="card">
-                <div class="icon">⚡</div>
-                <h3>Serverless Runtime</h3>
-                <p>Deploy standard JS (`main.js`) alongside static files. Fazt executes them in a secure, embedded V8-like environment.</p>
-            </div>
-            <div class="card">
-                <div class="icon">🔒</div>
-                <h3>Secure by Default</h3>
-                <p>Automatic HTTPS via Let's Encrypt. Built-in Authentication, Rate Limiting, and Audit Logs.</p>
-            </div>
-            <div class="card">
-                <div class="icon">📂</div>
-                <h3>Virtual Filesystem</h3>
-                <p>Sites live in the database. Instant atomic deployments and rollbacks. High performance caching.</p>
-            </div>
-            <div class="card">
-                <div class="icon">📊</div>
-                <h3>Analytics included</h3>
-                <p>Privacy-friendly web analytics built right into the platform. No external trackers needed.</p>
+            <div class="bento-grid">
+                <div class="bento-item wide">
+                    <div class="icon">💎</div>
+                    <h3>Cartridge Architecture</h3>
+                    <p>Treat your server like a GameBoy cartridge. State is isolated. Upgrades are atomic. Portability is absolute.</p>
+                </div>
+                <div class="bento-item">
+                    <div class="icon">⚡</div>
+                    <h3>Serverless V8</h3>
+                    <p>Deploy JS functions alongside static files. Embedded runtime.</p>
+                </div>
+                <div class="bento-item">
+                    <div class="icon">🔒</div>
+                    <h3>Auto HTTPS</h3>
+                    <p>Automatic Let's Encrypt certificates. Zero config.</p>
+                </div>
+                <div class="bento-item tall">
+                    <div class="icon">📂</div>
+                    <h3>Virtual Filesystem</h3>
+                    <p>Sites live in the database. Instant atomic deployments and rollbacks. High performance caching. No disk I/O.</p>
+                </div>
+                <div class="bento-item">
+                    <div class="icon">🚀</div>
+                    <h3>Zero Friction</h3>
+                    <p>From empty VPS to PaaS in 10 seconds.</p>
+                </div>
+                <div class="bento-item">
+                    <div class="icon">📊</div>
+                    <h3>Analytics</h3>
+                    <p>Privacy-friendly web analytics included.</p>
+                </div>
             </div>
         </section>
 

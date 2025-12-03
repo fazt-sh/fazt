@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fazt - Documentation</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/docs.css">
+    <link rel="icon" href="assets/favicon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body style="padding-top: 80px;">
+
+    <header class="navbar">
+        <div class="container navbar-content">
+            <div class="logo">
+                <a href="index.html" style="text-decoration:none; color:inherit; display: flex; align-items: center;">
+                    <img src="assets/logo.png" alt="Fazt Logo" width="32" height="32" style="vertical-align: middle; border-radius: 6px; margin-right: 8px;">
+                    Fazt
+                    <div class="version-wrapper">
+                        <span id="version-tag" class="version-tag">v0.6.0</span>
+                        <div id="changelog-popup" class="changelog-popup"></div>
+                    </div>
+                </a>
+            </div>
+            <nav>
+                <a href="docs.html" class="nav-link active">Docs</a>
+                <a href="ideas.html" class="nav-link">Ideas</a>
+                <a href="https://github.com/fazt-sh/fazt" class="nav-btn">GitHub</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container docs-layout">
+        
+        <aside class="docs-sidebar">
+            <h3>Getting Started</h3>
+            <ul>
+                <li><a href="#installation">Installation</a></li>
+                <li><a href="#quick-start">Quick Start</a></li>
+            </ul>
+            
+            <h3>Usage</h3>
+            <ul>
+                <li><a href="#deploying">Deploying Sites</a></li>
+                <li><a href="#serverless">Serverless Functions</a></li>
+                <li><a href="#configuration">Configuration</a></li>
+            </ul>
+
+            <h3>Reference</h3>
+            <ul>
+                <li><a href="#cli">CLI Commands</a></li>
+                <li><a href="#faq">FAQ</a></li>
+            </ul>
+        </aside>
+
+        <article class="docs-content">
+            
+            <section id="installation" class="docs-section">
+                <h2>Installation</h2>
+                <p>Fazt is designed to be installed on a fresh Linux server (Ubuntu 20.04+ recommended) or used locally on macOS/Linux.</p>
+                
+                <div class="code-window">
+                    <div class="code-header">
+                        <div class="code-dots">
+                            <div class="dot red"></div>
+                            <div class="dot yellow"></div>
+                            <div class="dot green"></div>
+                        </div>
+                        <div class="code-title">bash</div>
+                    </div>
+                    <div class="code-content">
+<span class="cmd">curl -s https://fazt-sh.github.io/fazt/install.sh | bash</span>
+</div>
+                </div>
+
+                <p>This script will:</p>
+                <ul>
+                    <li>Download the correct binary for your architecture.</li>
+                    <li>Install it to <code>/usr/local/bin/fazt</code>.</li>
+                    <li>(Optional) Set up a systemd service and firewall rules.</li>
+                </ul>
+            </section>
+
+            <section id="quick-start" class="docs-section">
+                <h2>Quick Start</h2>
+                <p>Once installed, you can start the server in development mode to test it out.</p>
+
+                <div class="code-window">
+                    <div class="code-header">
+                        <div class="code-dots"><div class="dot red"></div><div class="dot yellow"></div><div class="dot green"></div></div>
+                        <div class="code-title">terminal</div>
+                    </div>
+                    <div class="code-content">
+<span class="comment"># Initialize configuration</span>
+<span class="cmd">fazt server init --domain localhost</span>
+
+<span class="comment"># Start the server</span>
+<span class="cmd">fazt server start</span>
+</div>
+                </div>
+            </section>
+
+            <section id="deploying" class="docs-section">
+                <h2>Deploying Sites</h2>
+                <p>Fazt treats every folder as a potential site. To deploy, use the client command.</p>
+
+                <div class="code-window">
+                    <div class="code-header">
+                        <div class="code-dots"><div class="dot red"></div><div class="dot yellow"></div><div class="dot green"></div></div>
+                        <div class="code-title">terminal</div>
+                    </div>
+                    <div class="code-content">
+<span class="cmd">cd my-website</span>
+<span class="cmd">fazt client deploy --domain my-site</span>
+</div>
+                </div>
+                
+                <p>Your site will be instantly available at <code>https://my-site.your-domain.com</code>.</p>
+            </section>
+
+            <section id="serverless" class="docs-section">
+                <h2>Serverless Functions</h2>
+                <p>Add a <code>main.js</code> file to your site directory to handle dynamic requests. Fazt uses an embedded JS runtime.</p>
+
+                <div class="code-window">
+                    <div class="code-header">
+                        <div class="code-dots"><div class="dot red"></div><div class="dot yellow"></div><div class="dot green"></div></div>
+                        <div class="code-title">main.js</div>
+                    </div>
+                    <div class="code-content">
+<span class="highlight">export default</span> <span class="highlight">function</span>(req) {
+    return {
+        status: 200,
+        body: "Hello from Fazt Serverless!"
+    };
+}
+</div>
+                </div>
+            </section>
+
+            <section id="configuration" class="docs-section">
+                <h2>Configuration</h2>
+                <p>Fazt stores most configuration in the database, but some bootstrap settings can be defined in environment variables or flags.</p>
+                <ul>
+                    <li><strong>FAZT_DB_PATH</strong>: Path to the SQLite database file.</li>
+                    <li><strong>FAZT_DOMAIN</strong>: The root domain for the server.</li>
+                    <li><strong>FAZT_PORT</strong>: The port to listen on (default: 8080 or 80/443).</li>
+                </ul>
+            </section>
+
+            <section id="cli" class="docs-section">
+                <h2>CLI Reference</h2>
+                <p>The <code>fazt</code> binary provides several subcommands:</p>
+                <ul>
+                    <li><code>fazt server start</code>: Start the hosting server.</li>
+                    <li><code>fazt server install</code>: Install as a systemd service.</li>
+                    <li><code>fazt client deploy</code>: Deploy a local directory.</li>
+                    <li><code>fazt client logs</code>: View live logs for a site.</li>
+                </ul>
+            </section>
+
+            <section id="faq" class="docs-section">
+                <h2>FAQ</h2>
+                <h3>Where is the data stored?</h3>
+                <p>Everything is stored in a single SQLite file (<code>data.db</code>). Back this up, and you backup everything.</p>
+                
+                <h3>Can I use custom domains?</h3>
+                <p>Yes! Point your domain's A record to the server IP and add the domain in the dashboard.</p>
+            </section>
+
+        </article>
+
+    </main>
+
+    <footer>
+        <p>&copy; 2025 Fazt.sh. Released under MIT License.</p>
+    </footer>
+
+    <script src="assets/js/main.js"></script>
+    <script>
+        // Simple sidebar active state
+        const links = document.querySelectorAll('.docs-sidebar a');
+        window.addEventListener('scroll', () => {
+            let fromTop = window.scrollY + 150;
+            links.forEach(link => {
+                let section = document.querySelector(link.hash);
+                if (section && section.offsetTop <= fromTop && section.offsetTop + section.offsetHeight > fromTop) {
+                    link.classList.add('active');
+                } else {
+                    link.classList.remove('active');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

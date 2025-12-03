@@ -1,0 +1,32 @@
+[
+    {
+        "version": "v0.6.0",
+        "title": "Cartridge Architecture",
+        "description": "Fully implemented One Binary + One DB philosophy. Config-less.",
+        "created_at": "2025-12-03"
+    },
+    {
+        "version": "v0.5.12",
+        "title": "Reserved Routing",
+        "description": "Implemented admin.*, root.*, and 404.* internal routing logic.",
+        "created_at": "2025-12-02"
+    },
+    {
+        "version": "v0.5.11",
+        "title": "Auto Firewall",
+        "description": "Installer now automatically configures UFW for ports 80/443.",
+        "created_at": "2025-12-02"
+    },
+    {
+        "version": "v0.5.6",
+        "title": "Visual Installer",
+        "description": "Redesigned installation experience with beautiful CLI banners.",
+        "created_at": "2025-12-02"
+    },
+    {
+        "version": "v0.5.0",
+        "title": "Security First",
+        "description": "Auth always required. Secure by default permissions enforced.",
+        "created_at": "2025-11-24"
+    }
+]

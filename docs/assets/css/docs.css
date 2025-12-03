@@ -1,0 +1,128 @@
+/* Docs Layout */
+.docs-layout {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    gap: 40px;
+    padding: 4rem 0;
+    align-items: start;
+}
+
+.docs-sidebar {
+    position: sticky;
+    top: 100px;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 20px;
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
+}
+
+.docs-sidebar h3 {
+    font-size: 0.9rem;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.docs-sidebar ul {
+    list-style: none;
+}
+
+.docs-sidebar li {
+    margin-bottom: 5px;
+}
+
+.docs-sidebar a {
+    color: #ccc;
+    text-decoration: none;
+    font-size: 0.9rem;
+    display: block;
+    padding: 6px 10px;
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.docs-sidebar a:hover, .docs-sidebar a.active {
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+}
+
+.docs-content {
+    min-width: 0; /* Prevent overflow */
+}
+
+.docs-section {
+    margin-bottom: 60px;
+    scroll-margin-top: 100px; /* Offset for sticky header */
+}
+
+.docs-section h2 {
+    font-size: 2rem;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--card-border);
+    padding-bottom: 10px;
+}
+
+.docs-section h3 {
+    font-size: 1.4rem;
+    margin: 30px 0 15px;
+    color: #eee;
+}
+
+.docs-section p {
+    color: #ccc;
+    margin-bottom: 15px;
+    line-height: 1.7;
+}
+
+.docs-section ul {
+    margin-bottom: 20px;
+    padding-left: 20px;
+    color: #ccc;
+}
+
+.docs-section li {
+    margin-bottom: 8px;
+}
+
+/* Code Window (Static) */
+.code-window {
+    background: #0d0d0d;
+    border: 1px solid #333;
+    border-radius: 12px;
+    margin: 20px 0;
+    overflow: hidden;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+}
+
+.code-header {
+    background: #1a1a1a;
+    padding: 10px 15px;
+    border-bottom: 1px solid #333;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.code-dots { display: flex; gap: 6px; }
+.code-title { color: #666; font-size: 0.8rem; }
+
+.code-content {
+    padding: 20px;
+    color: #eee;
+    overflow-x: auto;
+    white-space: pre;
+    line-height: 1.5;
+}
+
+.code-content .cmd { color: #fff; }
+.code-content .comment { color: #666; }
+.code-content .highlight { color: var(--accent-mid); }
+
+@media (max-width: 768px) {
+    .docs-layout { grid-template-columns: 1fr; }
+    .docs-sidebar { display: none; /* Mobile menu needed later */ }
+}

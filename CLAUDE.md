@@ -19,9 +19,11 @@
     and build tests likewise
 
 ## 📦 Release Workflow
+**Detailed Guide**: `koder/workflows/ON_NEW_VERSION.md`
+
 1.  **Code**: Implement feature/fix.
 2.  **Test**: `go test ./...` (MUST PASS).
-3.  **Changelog**: Update `CHANGELOG.md`.
+3.  **Changelog**: Update `CHANGELOG.md` AND `docs/changelog.json`.
 4.  **Tag**: `git tag vX.Y.Z && git push origin master --tags`.
 5.  **Build**: GitHub Action auto-builds release (Version injected via ldflags).
 
@@ -40,3 +42,7 @@
 *   **Deplayment Target**: We are deploying to Digital Ocean Droplet, x86/Ubuntu
     24.04, LTS, $6 base instance
 *   **Note**: `GEMINI.md` is symlinked to this file.
+
+## Important
+
+- fazt.sh is just a proposed url; its NOT LIVE, don't use it anywhere
