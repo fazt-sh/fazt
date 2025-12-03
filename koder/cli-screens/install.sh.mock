@@ -1,0 +1,57 @@
+#!/bin/bash
+set -e
+
+# ... (Colors & Banner & Download Logic same as before) ...
+
+chmod +x "$BINARY_NAME"
+
+echo -e "${GREEN}✓ Downloaded ./fazt${NC}"
+echo ""
+
+# Interactive Setup
+read -p "Install as System Service (recommended for servers)? [y/N] " CONFIRM
+if [[ "$CONFIRM" =~ ^[Yy]$ ]]; then
+    echo ""
+    read -p "Domain (e.g. fazt.sh): " DOMAIN
+    if [ -z "$DOMAIN" ]; then
+        echo -e "${RED}Error: Domain is required.${NC}"
+        exit 1
+    fi
+
+    read -p "Email (for HTTPS): " EMAIL
+    if [ -z "$EMAIL" ]; then
+        echo -e "${RED}Error: Email is required for automatic HTTPS.${NC}"
+        exit 1
+    fi
+
+    echo ""
+    echo -e "${BLUE}ℹ${NC} Installing system service..."
+    
+    # Construct command
+    CMD="./$BINARY_NAME service install --domain $DOMAIN --email $EMAIL --https"
+    
+    # Prepend sudo if not root
+    if [ "$EUID" -ne 0 ]; then
+        if command -v sudo >/dev/null 2>&1; then
+            CMD="sudo $CMD"
+        else
+            echo -e "${RED}Error: Root privileges required (sudo not found).${NC}"
+            echo "Run manually: $CMD"
+            exit 1
+        fi
+    fi
+
+    # Execute
+    $CMD
+
+else
+    # Client Mode / Manual Mode
+    echo ""
+    echo -e "${BOLD}Client Tool Setup:${NC}"
+    echo -e "   Move binary to path for global access:"
+    echo -e "   ${GREEN}sudo mv $BINARY_NAME /usr/local/bin/${NC}"
+    echo ""
+    echo -e "   Then authenticate:"
+    echo -e "   ${DIM}fazt client set-auth-token --token <TOKEN>${NC}"
+    echo ""
+fi

@@ -102,20 +102,36 @@ func Load(flags *CLIFlags) (*Config, error) {
 		return appConfig, nil
 	}
 
-	// Expand home directory in paths
+	// 1. Resolve Database Path First (Critical for "Config in DB")
+	// Priority: Flag > Env > Default
+	dbPath := "./data.db"
+	if envPath := os.Getenv("FAZT_DB_PATH"); envPath != "" {
+		dbPath = envPath
+	}
+	if flags.DBPath != "" {
+		dbPath = ExpandPath(flags.DBPath)
+	}
+	// Expand home dir if needed
+	dbPath = ExpandPath(dbPath)
+
+	// Expand home directory in config path
 	configPath := ExpandPath(flags.ConfigPath)
 
-	// Try to load from JSON file
+	// Try to load from JSON file (Legacy/Transition)
 	cfg, err := LoadFromFile(configPath)
 	if err != nil {
 		// If file doesn't exist, create default config
 		if os.IsNotExist(err) {
-			log.Printf("Config file not found at %s, creating default config...", configPath)
+			// Don't create default config file automatically anymore if we are moving to DB
+			// But for now, we keep the behavior but point to new defaults
 			cfg = CreateDefaultConfig()
 		} else {
 			return nil, fmt.Errorf("failed to load config: %w", err)
 		}
 	}
+
+	// FORCE the resolved DB path
+	cfg.Database.Path = dbPath
 
 	// Apply environment variables (backward compatibility)
 	applyEnvVars(cfg)
@@ -129,8 +145,8 @@ func Load(flags *CLIFlags) (*Config, error) {
 	}
 
 	appConfig = cfg
-	log.Printf("Configuration loaded: Environment=%s, Port=%s, Auth=required",
-		cfg.Server.Env, cfg.Server.Port)
+	log.Printf("Configuration loaded: Environment=%s, Port=%s, DB=%s",
+		cfg.Server.Env, cfg.Server.Port, cfg.Database.Path)
 
 	return appConfig, nil
 }
@@ -175,8 +191,8 @@ func SaveToFile(cfg *Config, path string) error {
 
 // CreateDefaultConfig creates a default configuration (exported for use in main.go)
 func CreateDefaultConfig() *Config {
-	homeDir, _ := os.UserHomeDir()
-	defaultDBPath := filepath.Join(homeDir, ".config", "fazt", "data.db")
+	// Default to local directory for "Cartridge" experience
+	defaultDBPath := "./data.db"
 
 	return &Config{
 		Server: ServerConfig{

@@ -1,0 +1,23 @@
+fazt.sh dev - Server Commands
+
+USAGE:
+  fazt server <command> [options]
+
+SERVER COMMANDS:
+  init             Initialize server (creates config & db)
+  start            Start the server manually (HTTP or HTTPS)
+  status           Show configuration and server status
+  set-credentials  Update admin credentials (password reset)
+  set-config       Update settings (domain, port, env)
+  --help, -h       Show this help
+
+EXAMPLES:
+  # Initialize (required first step for manual run)
+  fazt server init --username admin --password secret --domain https://fazt.example.com
+
+  # Start server manually (debugging)
+  fazt server start
+
+  # Reset Admin Password
+  fazt server set-credentials --username admin --password newsecret
+

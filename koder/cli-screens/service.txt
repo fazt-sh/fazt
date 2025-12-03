@@ -1,0 +1,20 @@
+fazt.sh dev - Service Commands
+
+USAGE:
+  fazt service <command> [options]
+
+SERVICE COMMANDS:
+  install          Auto-install as systemd service (requires sudo)
+  start            Start the system service
+  stop             Stop the system service
+  status           Check status of system service
+  logs             Follow service logs
+  --help, -h       Show this help
+
+EXAMPLES:
+  # Install as production service
+  sudo fazt service install --domain example.com --email admin@example.com --https
+
+  # Check status
+  fazt service status
+

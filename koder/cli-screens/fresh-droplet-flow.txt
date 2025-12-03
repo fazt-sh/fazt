@@ -1,0 +1,84 @@
+--------------------------------------------------------------------------------
+1. SSH & Login
+--------------------------------------------------------------------------------
+Last login: Wed Dec  3 10:00:00 2025 from 1.2.3.4
+root@droplet:~# _
+
+--------------------------------------------------------------------------------
+2. Install (The "Simplified Choice")
+--------------------------------------------------------------------------------
+root@droplet:~# curl -s https://fazt-sh.github.io/fazt/install.sh | bash
+
+  __           _       _     
+ / _| __ _ ___| |_ ___| |__  
+| |_ / _` |_  / __/ __| '_ \ 
+|  _| (_| |/ /| |_\__ \ | | |
+|_|  \__,_/___|\__|___/_| |_|
+  
+  Single Binary PaaS & Analytics
+
+ℹ Downloading dev for linux/amd64...
+✓ Downloaded ./fazt
+
+Select Installation Type:
+1. Headless Server (Daemon)
+   Best for VPS. Installs Systemd Service. Starts on boot.
+
+2. Command Line Tool (Portable)
+   Best for Laptops. Just installs the binary.
+
+> Select [1/2]: 1
+
+> Domain or IP (e.g. my-paas.com): my-paas.com
+> Email (for HTTPS): admin@my-paas.com
+
+ℹ Installing to /usr/local/bin/fazt...
+ℹ Installing system service...
+
+fazt.sh System Installer
+ℹ Installing for domain: my-paas.com
+
+✓ Ports [80, 443] are available
+✓ Created user 'fazt'
+✓ Configured environment
+✓ Systemd service 'fazt' installed and started
+
+Installation Complete
+✓ Fazt is now running at https://my-paas.com
+
+╔══════════════════════════════════════════════════════════╗
+║ ADMIN CREDENTIALS (SAVE THESE!)                          ║
+╠══════════════════════════════════════════════════════════╣
+║ Username:  admin                                         ║
+║ Password:  fazt-8x9y2z1a                                 ║
+╚══════════════════════════════════════════════════════════╝
+
+Login at: https://admin.my-paas.com
+
+--------------------------------------------------------------------------------
+3. The Laptop Path (Selection: 2)
+--------------------------------------------------------------------------------
+> Select [1/2]: 2
+
+ℹ Installed to /usr/local/bin/fazt
+
+> Do you want to connect to a remote server? [y/N] y
+
+> Server URL (e.g. https://my-paas.com): https://my-paas.com
+> API Token: xxxxxxxxxxxxxxxx
+
+✓ Configuration saved!
+
+You can now deploy:
+  fazt deploy --domain my-site
+
+--------------------------------------------------------------------------------
+4. The Local Dev Path (Selection: 2 -> N)
+--------------------------------------------------------------------------------
+> Do you want to connect to a remote server? [y/N] n
+
+✓ Setup Complete.
+
+To run a local server:
+  fazt server init
+  fazt server start

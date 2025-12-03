@@ -1,0 +1,25 @@
+Fazt.sh dev - Personal Cloud Platform
+
+USAGE:
+  fazt <command> [options]
+
+MAIN COMMANDS:
+  service          System service management (install, start, logs)
+  server           Manual server management (init, start, config)
+  client           Client/deployment commands
+  deploy           Deploy a site (shortcut for 'client deploy')
+  --help, -h       Show this help
+  --version        Show version and exit
+
+QUICK START:
+  # Production (Auto-HTTPS, Systemd)
+  sudo fazt service install --domain example.com --email admin@example.com --https
+
+  # Development (Manual)
+  fazt server init --username admin --password secret --domain localhost
+  fazt server start
+
+ARCHITECTURE:
+  Single Binary + SQLite (Cartridge Model)
+  Native HTTPS (CertMagic) - No Nginx required
+

@@ -31,6 +31,7 @@ import (
 	"github.com/fazt-sh/fazt/internal/middleware"
 	"github.com/fazt-sh/fazt/internal/provision"
 	"github.com/fazt-sh/fazt/internal/security"
+	"github.com/fazt-sh/fazt/internal/term"
 	"golang.org/x/crypto/bcrypt"
 	_ "modernc.org/sqlite"
 	"github.com/caddyserver/certmagic"
@@ -54,7 +55,7 @@ func main() {
 	command := os.Args[1]
 
 	// Handle help/version flags first
-	if command == "--version" || command == "-version" {
+	if command == "--version" || command == "-version" || command == "-v" || command == "version" {
 		printVersion()
 		return
 	}
@@ -87,10 +88,10 @@ func main() {
 // ===================================================================================
 
 // initCommand initializes server configuration for first-time setup
-func initCommand(username, password, domain, port, env, configPath string) error {
-	// Check if config already exists
-	if _, err := os.Stat(configPath); err == nil {
-		return fmt.Errorf("Error: Server already initialized\nConfig exists at: %s", configPath)
+func initCommand(username, password, domain, port, env, dbPath string) error {
+	// Check if DB already exists
+	if _, err := os.Stat(dbPath); err == nil {
+		return fmt.Errorf("Error: Server already initialized\nDatabase exists at: %s", dbPath)
 	}
 
 	// Validate required fields
@@ -99,9 +100,11 @@ func initCommand(username, password, domain, port, env, configPath string) error
 	}
 
 	// Validate port
-	portNum, err := strconv.Atoi(port)
-	if err != nil || portNum < 1 || portNum > 65535 {
-		return fmt.Errorf("Error: invalid port '%s' (must be 1-65535)", port)
+	if port != "" {
+		portNum, err := strconv.Atoi(port)
+		if err != nil || portNum < 1 || portNum > 65535 {
+			return fmt.Errorf("Error: invalid port '%s' (must be 1-65535)", port)
+		}
 	}
 
 	// Validate environment
@@ -115,91 +118,81 @@ func initCommand(username, password, domain, port, env, configPath string) error
 		return fmt.Errorf("Error: failed to hash password: %v", err)
 	}
 
-	// Create config directory with secure permissions
-	configDir := filepath.Dir(configPath)
-	if err := os.MkdirAll(configDir, 0700); err != nil {
-		return fmt.Errorf("Error: failed to create config directory: %v", err)
+	// Initialize DB
+	if err := database.Init(dbPath); err != nil {
+		return fmt.Errorf("failed to init database: %w", err)
+	}
+	defer database.Close()
+
+	store := config.NewDBConfigStore(database.GetDB())
+
+	// Set configs
+	configs := map[string]string{
+		"server.port":        port,
+		"server.domain":      domain,
+		"server.env":         env,
+		"auth.username":      username,
+		"auth.password_hash": string(passwordHash),
+		"ntfy.url":           "https://ntfy.sh",
 	}
 
-	// Create config
-	cfg := &config.Config{
-		Server: config.ServerConfig{
-			Port:   port,
-			Domain: domain,
-			Env:    env,
-		},
-		Database: config.DatabaseConfig{
-			Path: filepath.Join(configDir, "data.db"),
-		},
-		Auth: config.AuthConfig{
-			Username:     username,
-			PasswordHash: string(passwordHash),
-		},
-		Ntfy: config.NtfyConfig{
-			Topic: "",
-			URL:   "https://ntfy.sh",
-		},
-	}
-
-	// Save config with secure permissions
-	if err := config.SaveToFile(cfg, configPath); err != nil {
-		return fmt.Errorf("Error: failed to save config: %v", err)
+	for k, v := range configs {
+		if err := store.Set(k, v); err != nil {
+			return fmt.Errorf("failed to set config %s: %w", k, err)
+		}
 	}
 
 	return nil
 }
 
 // setCredentialsCommand updates username and/or password in existing config
-func setCredentialsCommand(username, password, configPath string) error {
+func setCredentialsCommand(username, password, dbPath string) error {
 	// Validate at least one field is provided
 	if username == "" && password == "" {
 		return errors.New("Error: at least one of --username or --password is required")
 	}
 
-	// Load existing config
-	cfg, err := config.LoadFromFile(configPath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return fmt.Errorf("Error: Config not found at %s\nRun 'fazt server init' first", configPath)
-		}
-		return fmt.Errorf("Error: Failed to load config: %v", err)
+	// Initialize DB
+	if err := database.Init(dbPath); err != nil {
+		return fmt.Errorf("failed to init database: %w", err)
 	}
+	defer database.Close()
+	
+	store := config.NewDBConfigStore(database.GetDB())
 
 	// Update provided fields
 	if username != "" {
-		cfg.Auth.Username = username
+		if err := store.Set("auth.username", username); err != nil {
+			return fmt.Errorf("failed to set username: %w", err)
+		}
 	}
 	if password != "" {
 		passwordHash, err := bcrypt.GenerateFromPassword([]byte(password), 12)
 		if err != nil {
 			return fmt.Errorf("Error: Failed to hash password: %v", err)
 		}
-		cfg.Auth.PasswordHash = string(passwordHash)
-	}
-
-	// Save config
-	if err := config.SaveToFile(cfg, configPath); err != nil {
-		return fmt.Errorf("Error: Failed to save config: %v", err)
+		if err := store.Set("auth.password_hash", string(passwordHash)); err != nil {
+			return fmt.Errorf("failed to set password: %w", err)
+		}
 	}
 
 	return nil
 }
 
 // setConfigCommand updates server configuration settings
-func setConfigCommand(domain, port, env, configPath string) error {
+func setConfigCommand(domain, port, env, dbPath string) error {
 	// Validate at least one field is provided
 	if domain == "" && port == "" && env == "" {
 		return errors.New("Error: at least one of --domain, --port, or --env is required")
 	}
 
-	// Load existing config
-	cfg, err := config.LoadFromFile(configPath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return fmt.Errorf("Error: Config not found at %s\nRun 'fazt server init' first", configPath)
-		}
-		return fmt.Errorf("Error: Failed to load config: %v", err)
+	// Initialize DB
+	if err := database.Init(dbPath); err != nil {
+		return fmt.Errorf("failed to init database: %w", err)
 	}
+	defer database.Close()
+	
+	store := config.NewDBConfigStore(database.GetDB())
 
 	// Validate and update port if provided
 	if port != "" {
@@ -207,7 +200,9 @@ func setConfigCommand(domain, port, env, configPath string) error {
 		if err != nil || portNum < 1 || portNum > 65535 {
 			return fmt.Errorf("Error: invalid port '%s' (must be 1-65535)", port)
 		}
-		cfg.Server.Port = port
+		if err := store.Set("server.port", port); err != nil {
+			return fmt.Errorf("failed to set port: %w", err)
+		}
 	}
 
 	// Validate and update environment if provided
@@ -215,67 +210,63 @@ func setConfigCommand(domain, port, env, configPath string) error {
 		if env != "development" && env != "production" {
 			return fmt.Errorf("Error: invalid environment '%s' (must be 'development' or 'production')", env)
 		}
-		cfg.Server.Env = env
+		if err := store.Set("server.env", env); err != nil {
+			return fmt.Errorf("failed to set env: %w", err)
+		}
 	}
 
 	// Update domain if provided
 	if domain != "" {
-		cfg.Server.Domain = domain
-	}
-
-	// Validate the updated config
-	if err := cfg.Validate(); err != nil {
-		return fmt.Errorf("Error: Invalid configuration: %v", err)
-	}
-
-	// Save config
-	if err := config.SaveToFile(cfg, configPath); err != nil {
-		return fmt.Errorf("Error: Failed to save config: %v", err)
+		if err := store.Set("server.domain", domain); err != nil {
+			return fmt.Errorf("failed to set domain: %w", err)
+		}
 	}
 
 	return nil
 }
 
 // statusCommand displays current configuration and server status
-func statusCommand(configPath, configDir string) (string, error) {
-	// Load config
-	cfg, err := config.LoadFromFile(configPath)
-	if err != nil {
-		return "", fmt.Errorf("Error: Config not found at %s\nRun 'fazt server init' first", configPath)
+func statusCommand(dbPath string) (string, error) {
+	// Initialize DB
+	if err := database.Init(dbPath); err != nil {
+		return "", fmt.Errorf("failed to init database at %s: %w", dbPath, err)
+	}
+	defer database.Close()
+
+	// Manually use the Store to read values for display
+	store := config.NewDBConfigStore(database.GetDB())
+	dbMap, _ := store.Load()
+	
+	// Helper to get value or default
+	get := func(key, def string) string {
+		if v, ok := dbMap[key]; ok {
+			return v
+		}
+		return def
 	}
 
 	var output strings.Builder
 	output.WriteString("Server Status\n")
 	output.WriteString("═══════════════════════════════════════════════════════════\n")
-	output.WriteString(fmt.Sprintf("Config:       %s\n", configPath))
-	output.WriteString(fmt.Sprintf("Domain:       %s\n", cfg.Server.Domain))
-	output.WriteString(fmt.Sprintf("Port:         %s\n", cfg.Server.Port))
-	output.WriteString(fmt.Sprintf("Environment:  %s\n", cfg.Server.Env))
-	output.WriteString(fmt.Sprintf("Username:     %s\n", cfg.Auth.Username))
+	output.WriteString(fmt.Sprintf("Database:     %s\n", dbPath))
+	output.WriteString(fmt.Sprintf("Domain:       %s\n", get("server.domain", "https://fazt.sh")))
+	output.WriteString(fmt.Sprintf("Port:         %s\n", get("server.port", "4698")))
+	output.WriteString(fmt.Sprintf("Environment:  %s\n", get("server.env", "development")))
+	output.WriteString(fmt.Sprintf("Username:     %s\n", get("auth.username", "(not set)")))
 
-	// Check database file
-	if stat, err := os.Stat(cfg.Database.Path); err == nil {
+	// Check database size
+	if stat, err := os.Stat(dbPath); err == nil {
 		size := float64(stat.Size()) / (1024 * 1024) // Convert to MB
-		output.WriteString(fmt.Sprintf("Database:     %s (%.1f MB)\n", cfg.Database.Path, size))
-	} else {
-		output.WriteString(fmt.Sprintf("Database:     %s (not found)\n", cfg.Database.Path))
+		output.WriteString(fmt.Sprintf("DB Size:      %.1f MB\n", size))
 	}
 
-	// Check sites directory
-	sitesDir := filepath.Join(configDir, "sites")
-	if stat, err := os.Stat(sitesDir); err == nil && stat.IsDir() {
-		if entries, err := os.ReadDir(sitesDir); err == nil {
-			output.WriteString(fmt.Sprintf("Sites:        %s/ (%d sites)\n", sitesDir, len(entries)))
-		} else {
-			output.WriteString(fmt.Sprintf("Sites:        %s/ (error reading)\n", sitesDir))
-		}
-	} else {
-		output.WriteString(fmt.Sprintf("Sites:        %s/ (not found)\n", sitesDir))
-	}
+	// Check VFS Site Count
+	var siteCount int
+	database.GetDB().QueryRow("SELECT COUNT(DISTINCT site_id) FROM files").Scan(&siteCount)
+	output.WriteString(fmt.Sprintf("Sites (VFS):  %d\n", siteCount))
 
 	// Check PID file for server status
-	// FIX: Use correct path ~/.config/fazt/cc-server.pid
-	pidFile := filepath.Join(configDir, "cc-server.pid")
+	pidFile := filepath.Join(filepath.Dir(dbPath), "cc-server.pid")
 	if pidData, err := os.ReadFile(pidFile); err == nil {
 		pidStr := strings.TrimSpace(string(pidData))
 		output.WriteString(fmt.Sprintf("\nServer:       ● Running (PID: %s)\n", pidStr))
@@ -806,7 +797,7 @@ func handleSetCredentials() {
 	flags := flag.NewFlagSet("set-credentials", flag.ExitOnError)
 	username := flags.String("username", "", "Username for authentication")
 	password := flags.String("password", "", "Password for authentication")
-	configPath := flags.String("config", "", "Config file path")
+	db := flags.String("db", "", "Database file path")
 
 	flags.Usage = func() {
 		fmt.Println("Usage: fazt server set-credentials [flags]")
@@ -820,21 +811,24 @@ func handleSetCredentials() {
 		fmt.Println("  fazt server set-credentials --username newuser")
 		fmt.Println("  fazt server set-credentials --password newpass")
 		fmt.Println("  fazt server set-credentials --username admin --password secret123")
-		fmt.Println("  fazt server set-credentials --username admin --config /path/to/config.json")
+		fmt.Println("  fazt server set-credentials --db /path/to/data.db")
 	}
 
 	if err := flags.Parse(os.Args[3:]); err != nil {
 		os.Exit(1)
 	}
 
-	// Get config path
-	if *configPath == "" {
-		homeDir, _ := os.UserHomeDir()
-		*configPath = filepath.Join(homeDir, ".config", "fazt", "config.json")
+	// Resolve DB Path
+	dbPath := "./data.db"
+	if envPath := os.Getenv("FAZT_DB_PATH"); envPath != "" {
+		dbPath = envPath
+	}
+	if *db != "" {
+		dbPath = config.ExpandPath(*db)
 	}
 
 	// Call command function
-	if err := setCredentialsCommand(*username, *password, *configPath); err != nil {
+	if err := setCredentialsCommand(*username, *password, dbPath); err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)
 	}
@@ -852,12 +846,12 @@ func handleSetCredentials() {
 // handleInitCommand handles the init subcommand
 func handleInitCommand() {
 	flags := flag.NewFlagSet("init", flag.ExitOnError)
-	username := flags.String("username", "", "Admin username (required)")
-	password := flags.String("password", "", "Admin password (required)")
-	domain := flags.String("domain", "", "Server domain (required)")
+	username := flags.String("username", "", "Admin username (interactive if empty)")
+	password := flags.String("password", "", "Admin password (interactive if empty)")
+	domain := flags.String("domain", "", "Server domain (interactive if empty)")
 	port := flags.String("port", "4698", "Server port")
 	env := flags.String("env", "development", "Environment (development|production)")
-	configPath := flags.String("config", "", "Config file path")
+	db := flags.String("db", "", "Database file path")
 
 	flags.Usage = func() {
 		fmt.Println("Usage: fazt server init [flags]")
@@ -867,29 +861,48 @@ func handleInitCommand() {
 		flags.PrintDefaults()
 		fmt.Println()
 		fmt.Println("Examples:")
-		fmt.Println("  fazt server init --username admin --password secret123 --domain https://mydomain.com")
-		fmt.Println("  fazt server init --username admin --password secret123 --domain https://mydomain.com --port 8080 --env production")
-		fmt.Println("  fazt server init --username admin --password secret123 --domain https://mydomain.com --config /path/to/config.json")
+		fmt.Println("  fazt server init")
+		fmt.Println("  fazt server init --username admin --password secret --domain localhost")
 	}
 
 	if err := flags.Parse(os.Args[3:]); err != nil {
 		os.Exit(1)
 	}
 
-	// Get config path
-	if *configPath == "" {
-		homeDir, _ := os.UserHomeDir()
-		*configPath = filepath.Join(homeDir, ".config", "fazt", "config.json")
+	// Interactive Prompts
+	if *username == "" {
+		fmt.Print("Admin Username: ")
+		fmt.Scanln(username)
+	}
+	if *password == "" {
+		fmt.Print("Admin Password: ")
+		fmt.Scanln(password)
+	}
+	if *domain == "" {
+		fmt.Print("Server Domain (default: localhost): ")
+		var input string
+		fmt.Scanln(&input)
+		if input != "" {
+			*domain = input
+		} else {
+			*domain = "localhost"
+		}
+	}
+
+	// Get DB path
+	dbPath := "./data.db"
+	if *db != "" {
+		dbPath = config.ExpandPath(*db)
 	}
 
 	// Call command function
-	if err := initCommand(*username, *password, *domain, *port, *env, *configPath); err != nil {
+	if err := initCommand(*username, *password, *domain, *port, *env, dbPath); err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)
 	}
 
 	fmt.Println("✓ Server initialized successfully")
-	fmt.Printf("  Config saved to: %s\n", *configPath)
+	fmt.Printf("  Database: %s\n", dbPath)
 	fmt.Println()
 	fmt.Println("To start the server:")
 	fmt.Println("  fazt server start")
@@ -902,7 +915,7 @@ func handleSetConfigCommand() {
 	domain := flags.String("domain", "", "Server domain")
 	port := flags.String("port", "", "Server port")
 	env := flags.String("env", "", "Environment (development|production)")
-	configPath := flags.String("config", "", "Config file path")
+	db := flags.String("db", "", "Database file path")
 
 	flags.Usage = func() {
 		fmt.Println("Usage: fazt server set-config [flags]")
@@ -916,21 +929,24 @@ func handleSetConfigCommand() {
 		fmt.Println("  fazt server set-config --port 8080")
 		fmt.Println("  fazt server set-config --env production")
 		fmt.Println("  fazt server set-config --domain https://prod.com --port 443 --env production")
-		fmt.Println("  fazt server set-config --domain https://prod.com --config /path/to/config.json")
+		fmt.Println("  fazt server set-config --domain https://prod.com --db /path/to/data.db")
 	}
 
 	if err := flags.Parse(os.Args[3:]); err != nil {
 		os.Exit(1)
 	}
 
-	// Get config path
-	if *configPath == "" {
-		homeDir, _ := os.UserHomeDir()
-		*configPath = filepath.Join(homeDir, ".config", "fazt", "config.json")
+	// Resolve DB Path
+	dbPath := "./data.db"
+	if envPath := os.Getenv("FAZT_DB_PATH"); envPath != "" {
+		dbPath = envPath
+	}
+	if *db != "" {
+		dbPath = config.ExpandPath(*db)
 	}
 
 	// Call command function
-	if err := setConfigCommand(*domain, *port, *env, *configPath); err != nil {
+	if err := setConfigCommand(*domain, *port, *env, dbPath); err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)
 	}
@@ -951,7 +967,7 @@ func handleSetConfigCommand() {
 // handleStatusCommand handles the status subcommand
 func handleStatusCommand() {
 	flags := flag.NewFlagSet("status", flag.ExitOnError)
-	configPath := flags.String("config", "", "Config file path")
+	db := flags.String("db", "", "Database file path")
 
 	flags.Usage = func() {
 		fmt.Println("Usage: fazt server status [flags]")
@@ -961,31 +977,32 @@ func handleStatusCommand() {
 		flags.PrintDefaults()
 		fmt.Println()
 		fmt.Println("Shows:")
-		fmt.Println("  Configuration file location")
 		fmt.Println("  Server settings (domain, port, environment)")
 		fmt.Println("  Authentication status")
 		fmt.Println("  Database information")
-		fmt.Println("  Site deployment directory")
+		fmt.Println("  VFS Status")
 		fmt.Println("  Server running status")
 		fmt.Println()
 		fmt.Println("Examples:")
 		fmt.Println("  fazt server status")
-		fmt.Println("  fazt server status --config /path/to/config.json")
+		fmt.Println("  fazt server status --db /path/to/data.db")
 	}
 
 	if err := flags.Parse(os.Args[3:]); err != nil {
 		os.Exit(1)
 	}
 
-	// Get config path and directory
-	if *configPath == "" {
-		homeDir, _ := os.UserHomeDir()
-		*configPath = filepath.Join(homeDir, ".config", "fazt", "config.json")
+	// Resolve DB Path
+	dbPath := "./data.db"
+	if envPath := os.Getenv("FAZT_DB_PATH"); envPath != "" {
+		dbPath = envPath
 	}
-	configDir := filepath.Dir(*configPath)
+	if *db != "" {
+		dbPath = config.ExpandPath(*db)
+	}
 
 	// Call command function
-	output, err := statusCommand(*configPath, configDir)
+	output, err := statusCommand(dbPath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)
@@ -998,18 +1015,19 @@ func handleStatusCommand() {
 func handleSetAuthToken() {
 	flags := flag.NewFlagSet("set-auth-token", flag.ExitOnError)
 	token := flags.String("token", "", "Authentication token (required)")
+	server := flags.String("server", "", "Server URL (optional, defaults to http://localhost:4698)")
+	db := flags.String("db", "", "Database file path")
 
 	flags.Usage = func() {
-		fmt.Println("Usage: fazt client set-auth-token --token <TOKEN>")
+		fmt.Println("Usage: fazt client set-auth-token --token <TOKEN> [options]")
 		fmt.Println()
-		fmt.Println("Sets the authentication token for site deployments.")
-		fmt.Println("Generate a token in the web interface at /hosting,")
-		fmt.Println("then configure it with this command.")
-		fmt.Println()
-		fmt.Println("Examples:")
-		fmt.Println("  cc-server set-auth-token --token abc123def456789")
+		fmt.Println("Sets the authentication token and optional server URL.")
 		fmt.Println()
 		flags.PrintDefaults()
+		fmt.Println()
+		fmt.Println("Examples:")
+		fmt.Println("  fazt client set-auth-token --token abc... --server https://fazt.example.com")
+		fmt.Println()
 	}
 
 	if err := flags.Parse(os.Args[3:]); err != nil {
@@ -1022,48 +1040,47 @@ func handleSetAuthToken() {
 		os.Exit(1)
 	}
 
-	// Load or create config
-	flagsConfig := config.ParseFlags()
-	configPath := config.ExpandPath(flagsConfig.ConfigPath)
-	cfg, err := config.LoadFromFile(configPath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			fmt.Printf("Config file not found, creating new config at %s\n", configPath)
-			cfg = config.CreateDefaultConfig()
-		} else {
-			log.Fatalf("Failed to load config: %v", err)
+	// Resolve DB Path
+	dbPath := "./data.db"
+	if envPath := os.Getenv("FAZT_DB_PATH"); envPath != "" {
+		dbPath = envPath
+	}
+	if *db != "" {
+		dbPath = config.ExpandPath(*db)
+	}
+
+	// Initialize DB
+	if err := database.Init(dbPath); err != nil {
+		log.Fatalf("Failed to init database: %v", err)
+	}
+	defer database.Close()
+	
+	store := config.NewDBConfigStore(database.GetDB())
+
+	// Set token
+	if err := store.Set("api_key.token", *token); err != nil {
+		log.Fatalf("Failed to save token: %v", err)
+	}
+	store.Set("api_key.name", "deployment-token")
+
+	// Set server URL if provided
+	if *server != "" {
+		if err := store.Set("client.server_url", *server); err != nil {
+			log.Fatalf("Failed to save server url: %v", err)
 		}
 	}
 
-	// Validate token format (basic validation)
-	if len(*token) < 10 {
-		fmt.Println("Warning: Token seems too short (minimum 10 characters recommended)")
+	fmt.Println("✓ Configuration saved!")
+	if *server != "" {
+		fmt.Printf("  Server: %s\n", *server)
 	}
-
-	// Set token in config (simplified - no name needed)
-	cfg.SetAPIKey(*token, "deployment-token")
-
-	// Save config
-	if err := config.SaveToFile(cfg, configPath); err != nil {
-		log.Fatalf("Failed to save config: %v", err)
-	}
-
-	// Success message
-	fmt.Println()
-	fmt.Println("✓ Authentication token configured successfully!")
-	fmt.Println()
-	fmt.Printf("Token:  %s...%s (truncated)\n", (*token)[:4], (*token)[len(*token)-4:])
-	fmt.Println("Config: ~/.config/fazt/config.json")
-	fmt.Println()
-	fmt.Println("You can now deploy sites:")
-	fmt.Println("  fazt client deploy --path . --domain my-site")
-	fmt.Println()
+	fmt.Printf("  Token:  %s...\n", (*token)[:4])
 }
 func handleDeployCommand() {
 	flags := flag.NewFlagSet("deploy", flag.ExitOnError)
 	path := flags.String("path", "", "Directory to deploy (required)")
 	domain := flags.String("domain", "", "Domain/subdomain for the site (required)")
-	server := flags.String("server", "http://localhost:4698", "fazt.sh server URL")
+	server := flags.String("server", "", "fazt.sh server URL (default: http://localhost:4698 or from config)")
 
 	flags.Usage = func() {
 		fmt.Println("Usage: fazt client deploy --path <PATH> --domain <SUBDOMAIN>")
@@ -1073,9 +1090,9 @@ func handleDeployCommand() {
 		flags.PrintDefaults()
 		fmt.Println()
 		fmt.Println("Examples:")
-		fmt.Println("  cc-server deploy --path . --domain my-site")
-		fmt.Println("  cc-server deploy --path ~/Desktop/site --domain example --server https://cc.example.com")
-		fmt.Println("  cc-server deploy --domain my-site --path .")
+		fmt.Println("  fazt client deploy --path . --domain my-site")
+		fmt.Println("  fazt client deploy --path ~/Desktop/site --domain example --server https://fazt.example.com")
+		fmt.Println("  fazt client deploy --domain my-site --path .")
 	}
 
 	// Determine args offset based on whether this is "deploy" or "client deploy"
@@ -1107,23 +1124,41 @@ func handleDeployCommand() {
 		os.Exit(1)
 	}
 
-	// Load config to get API key
-	flagsConfig := config.ParseFlags()
-	cfg, err := config.Load(flagsConfig)
-	if err != nil {
-		fmt.Printf("Error loading config: %v\n", err)
-		os.Exit(1)
+	// Resolve DB Path
+	dbPath := "./data.db"
+	if envPath := os.Getenv("FAZT_DB_PATH"); envPath != "" {
+		dbPath = envPath
 	}
 
-	// Get API key from config
-	token := cfg.GetAPIKey()
+	// Initialize DB to get token
+	if err := database.Init(dbPath); err != nil {
+		fmt.Printf("Error: Failed to init database at %s: %v\n", dbPath, err)
+		fmt.Println("Run 'fazt client set-auth-token' to configure your client.")
+		os.Exit(1)
+	}
+	defer database.Close()
+
+	store := config.NewDBConfigStore(database.GetDB())
+	dbMap, _ := store.Load()
+	token := dbMap["api_key.token"]
+
 	if token == "" {
-		fmt.Println("Error: No API key found in config")
-		fmt.Println("Please ensure you have an API key configured in ~/.config/fazt/config.json")
+		fmt.Println("Error: No API key found in configuration")
+		fmt.Printf("Database: %s\n", dbPath)
+		fmt.Println("Please run: fazt client set-auth-token --token <YOUR_TOKEN>")
 		os.Exit(1)
 	}
 
-	fmt.Printf("Deploying %s to %s as '%s'...\n", deployPath, *server, *domain)
+	// Resolve Server URL
+	serverURL := "http://localhost:4698"
+	if dbURL, ok := dbMap["client.server_url"]; ok && dbURL != "" {
+		serverURL = dbURL
+	}
+	if *server != "" {
+		serverURL = *server
+	}
+
+	fmt.Printf("Deploying %s to %s as '%s'...\n", deployPath, serverURL, *domain)
 
 	// Change to the deploy directory
 	originalDir, _ := os.Getwd()
@@ -1165,14 +1200,13 @@ func handleDeployCommand() {
 	writer.Close()
 
 	// Make request
-	req, err := http.NewRequest("POST", *server+"/api/deploy", &body)
+	req, err := http.NewRequest("POST", serverURL+"/api/deploy", &body)
 	if err != nil {
 		fmt.Printf("Error creating request: %v\n", err)
 		os.Exit(1)
 	}
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 	req.Header.Set("Authorization", "Bearer "+token)
-
 	// Send request
 	client := &http.Client{Timeout: 30 * time.Second}
 	resp, err := client.Do(req)
@@ -1525,21 +1559,30 @@ func handleStartCommand() {
 		cfg.Server.Domain = *domain
 	}
 
+	// Initialize database EARLY to load config
+	if err := database.Init(cfg.Database.Path); err != nil {
+		log.Fatalf("Failed to initialize database: %v", err)
+	}
+	defer database.Close()
+
+	// Overlay configuration from database
+	if err := config.OverlayDB(database.GetDB(), cliFlags); err != nil {
+		// Log warning but don't fail
+		log.Printf("Warning: Failed to load config from DB: %v", err)
+	}
+
 	// Ensure secure file permissions
 	security.EnsureSecurePermissions(config.ExpandPath(cliFlags.ConfigPath), cfg.Database.Path)
 
 	// Display startup information
-	fmt.Println()
-	fmt.Println("═══════════════════════════════════════════════════════════")
-	fmt.Println("             fazt.sh v0.4.0 - Starting Up")
-	fmt.Println("═══════════════════════════════════════════════════════════")
-	fmt.Println()
+	term.Banner()
+	term.Section(fmt.Sprintf("fazt.sh %s - Starting Up", Version))
+
 	fmt.Printf("  Environment:  %s\n", cfg.Server.Env)
 	fmt.Printf("  Port:         %s\n", cfg.Server.Port)
 	fmt.Printf("  Domain:       %s\n", cfg.Server.Domain)
 	fmt.Printf("  Database:     %s\n", cfg.Database.Path)
-	fmt.Printf("  Config File:  %s\n", config.ExpandPath(cliFlags.ConfigPath))
-	fmt.Println()
+	// fmt.Printf("  Config File:  %s\n", config.ExpandPath(cliFlags.ConfigPath)) // Deprecated display
 
 	// Initialize session store
 	sessionStore := auth.NewSessionStore(auth.SessionTTL)
@@ -1553,14 +1596,7 @@ func handleStartCommand() {
 
 	// Display auth status (v0.4.0: auth always required)
 	fmt.Printf("  Authentication: ✓ Enabled (user: %s)\n", cfg.Auth.Username)
-	fmt.Println("═══════════════════════════════════════════════════════════")
 	fmt.Println()
-
-	// Initialize database
-	if err := database.Init(cfg.Database.Path); err != nil {
-		log.Fatalf("Failed to initialize database: %v", err)
-	}
-	defer database.Close()
 
 	// Initialize audit logging
 	if err := audit.Init(database.GetDB()); err != nil {
@@ -1819,33 +1855,29 @@ func handleInstallCommand() {
 
 // printUsage displays the usage information
 func printUsage() {
-	fmt.Printf("fazt.sh %s - Personal Cloud Platform\n", Version)
+	fmt.Printf("Fazt.sh %s - Personal Cloud Platform\n", Version)
 	fmt.Println()
 	fmt.Println("USAGE:")
-	fmt.Println("  fazt <command> [options]")
+	fmt.Println("  fazt <command> [flags]")
 	fmt.Println()
-	fmt.Println("MAIN COMMANDS:")
-	fmt.Println("  service          System service management (install, start, logs)")
-	fmt.Println("  server           Manual server management (init, start, config)")
-	fmt.Println("  client           Client/deployment commands")
-	fmt.Println("  deploy           Deploy a site (shortcut for 'client deploy')")
-	fmt.Println("  --help, -h       Show this help")
-	fmt.Println("  --version        Show version and exit")
+	fmt.Println("MODES:")
+	fmt.Println("  service    System Service (install, start, logs)")
+	fmt.Println("  client     Client Tool (deploy, logs, tokens)")
+	fmt.Println("  server     Manual Control (config, reset-password)")
 	fmt.Println()
-	fmt.Println("For detailed help:")
-	fmt.Println("  fazt service --help    # Service commands")
-	fmt.Println("  fazt server --help     # Server commands")
-	fmt.Println("  fazt client --help     # Client commands")
+	fmt.Println("COMMANDS:")
+	fmt.Println("  deploy     Deploy current directory")
+	fmt.Println("  version    Show version info")
+	fmt.Println("  help       Show this message")
 	fmt.Println()
-	fmt.Println("Quick start (Production):")
-	fmt.Println("  sudo fazt service install --domain example.com --email admin@example.com --https")
+	fmt.Println("QUICK START:")
+	fmt.Println("  1. System Service (Hosting)")
+	fmt.Println("     sudo fazt service install --domain example.com --email you@mail.com --https")
 	fmt.Println()
-	fmt.Println("Quick start (Dev):")
-	fmt.Println("  1. fazt server init --username admin --password secret --domain localhost")
-	fmt.Println("  2. fazt server start")
+	fmt.Println("  2. Client Tool (Deploying)")
+	fmt.Println("     fazt client set-auth-token --token <YOUR_TOKEN>")
+	fmt.Println("     fazt deploy --domain my-site")
 	fmt.Println()
-	fmt.Println("Architecture: Single Binary + SQLite (Cartridge Model)")
-	fmt.Println("HTTPS:        Native (CertMagic) - No Nginx required")
 }
 
 // printServiceHelp displays service-specific help
@@ -1881,9 +1913,9 @@ func printServerHelp() {
 	fmt.Println()
 	fmt.Println("SERVER COMMANDS:")
 	fmt.Println("  init             Initialize server (creates config & db)")
-	fmt.Println("  status           Show configuration and server status")
 	fmt.Println("  start            Start the server manually (HTTP or HTTPS)")
-	fmt.Println("  set-credentials  Update admin credentials")
+	fmt.Println("  status           Show configuration and server status")
+	fmt.Println("  set-credentials  Update admin credentials (password reset)")
 	fmt.Println("  set-config       Update settings (domain, port, env)")
 	fmt.Println("  --help, -h       Show this help")
 	fmt.Println()
@@ -1894,28 +1926,34 @@ func printServerHelp() {
 	fmt.Println("  # Start server manually (debugging)")
 	fmt.Println("  fazt server start")
 	fmt.Println()
+	fmt.Println("  # Reset Admin Password")
+	fmt.Println("  fazt server set-credentials --username admin --password newsecret")
+	fmt.Println()
 }
 
 // printClientHelp displays client-specific help
 func printClientHelp() {
-	fmt.Printf("fazt.sh %s - Client Commands\n", Version)
+	fmt.Printf("Fazt.sh %s - Client Commands\n", Version)
 	fmt.Println()
 	fmt.Println("USAGE:")
 	fmt.Println("  fazt client <command> [options]")
 	fmt.Println()
 	fmt.Println("CLIENT COMMANDS:")
-	fmt.Println("  set-auth-token   Set deployment token (from dashboard)")
+	fmt.Println("  set-auth-token   Set deployment token (generate at /hosting)")
 	fmt.Println("  deploy           Deploy a site/app to the server")
+	fmt.Println("  sites            List deployed sites")
+	fmt.Println("  logs             View site logs")
+	fmt.Println("  delete           Delete a site")
 	fmt.Println("  --help, -h       Show this help")
 	fmt.Println()
 	fmt.Println("EXAMPLES:")
-	fmt.Println("  # Configure client")
+	fmt.Println("  # Configure client (Get token from your dashboard)")
 	fmt.Println("  fazt client set-auth-token --token <TOKEN>")
 	fmt.Println()
 	fmt.Println("  # Deploy static site")
 	fmt.Println("  fazt client deploy --path . --domain my-site")
 	fmt.Println()
-	fmt.Println("  # Deploy serverless app (main.js)")
-	fmt.Println("  fazt client deploy --path ./api --domain my-api")
+	fmt.Println("  # View logs")
+	fmt.Println("  fazt client logs --site my-site")
 	fmt.Println()
 }

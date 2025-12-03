@@ -9,6 +9,7 @@ import (
 	"strconv"
 
 	"github.com/fazt-sh/fazt/internal/config"
+	"github.com/fazt-sh/fazt/internal/database"
 	"github.com/fazt-sh/fazt/internal/term"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -89,50 +90,62 @@ func RunInstall(opts InstallOptions) error {
 		return fmt.Errorf("failed to chown config dir: %w", err)
 	}
 
-	// Generate Config
+	// Generate Config (Store in DB)
 	// Hash password
 	passwordHash, err := bcrypt.GenerateFromPassword([]byte(opts.AdminPassword), 12)
 	if err != nil {
 		return fmt.Errorf("failed to hash password: %w", err)
 	}
 
-	cfg := &config.Config{
-		Server: config.ServerConfig{
-			Port:   "80", // Default for installed service
-			Domain: opts.Domain,
-			Env:    "production",
-		},
-		Database: config.DatabaseConfig{
-			Path: filepath.Join(configDir, "data.db"),
-		},
-		Auth: config.AuthConfig{
-			Username:     opts.AdminUser,
-			PasswordHash: string(passwordHash),
-		},
-		HTTPS: config.HTTPSConfig{
-			Enabled: opts.HTTPS,
-			Email:   opts.Email,
-		},
-		Ntfy: config.NtfyConfig{
-			URL: "https://ntfy.sh",
-		},
+	dbPath := filepath.Join(configDir, "data.db")
+	
+	// Initialize the database at the target location
+	if err := database.Init(dbPath); err != nil {
+		return fmt.Errorf("failed to init database: %w", err)
 	}
+	
+	// Get DB instance and setup config store
+	db := database.GetDB()
+	store := config.NewDBConfigStore(db)
 
-	// Port logic
+	// Set Configuration Values
+	port := "80"
 	if opts.HTTPS {
-		cfg.Server.Port = "443" // CertMagic handles 80 too
-	} else {
-		cfg.Server.Port = "80"
+		port = "443"
 	}
 
-	// Save Config
-	if err := config.SaveToFile(cfg, configPath); err != nil {
-		return fmt.Errorf("failed to save config: %w", err)
+	configs := map[string]string{
+		"server.port":        port,
+		"server.domain":      opts.Domain,
+		"server.env":         "production",
+		"auth.username":      opts.AdminUser,
+		"auth.password_hash": string(passwordHash),
+		"ntfy.url":           "https://ntfy.sh",
 	}
 
-	// Chown the config file
-	if err := os.Chown(configDir, uid, gid); err != nil {
-		return fmt.Errorf("failed to chown config dir: %w", err)
+	if opts.HTTPS {
+		configs["https.enabled"] = "true"
+		configs["https.email"] = opts.Email
+	}
+
+	for k, v := range configs {
+		if err := store.Set(k, v); err != nil {
+			database.Close()
+			return fmt.Errorf("failed to set config %s: %w", k, err)
+		}
+	}
+
+	// Close DB so we can chown it
+	database.Close()
+
+	// Chown the database file (CRITICAL)
+	if err := os.Chown(dbPath, uid, gid); err != nil {
+		return fmt.Errorf("failed to chown database: %w", err)
+	}
+	
+	// Also remove config.json if it exists from previous installs
+	if _, err := os.Stat(configPath); err == nil {
+		os.Remove(configPath)
 	}
 
 	// 5. Firewall
@@ -167,7 +180,12 @@ func RunInstall(opts InstallOptions) error {
 	fmt.Printf(term.Yellow+"║ %-10s %-45s ║"+term.Reset+"\n", "Password:", opts.AdminPassword)
 	fmt.Println(term.Yellow + "╚══════════════════════════════════════════════════════════╝" + term.Reset)
 	fmt.Println()
-	term.Print(term.Dim + "Login at: " + term.Reset + "https://" + opts.Domain + "/login")
+	
+	scheme := "http"
+	if opts.HTTPS {
+		scheme = "https"
+	}
+	term.Print(term.Dim + "Login at: " + term.Reset + scheme + "://admin." + opts.Domain)
 	fmt.Println()
 	
 	return nil

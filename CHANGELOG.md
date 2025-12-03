@@ -2,6 +2,23 @@
 
 All notable changes to fazt.sh will be documented in this file.
 
+## [0.6.0] - 2025-12-03
+
+### Added
+- **Architecture**: "Cartridge" Philosophy fully implemented.
+    - **One Binary + One DB**: Configuration is now stored in SQLite (`configurations` table).
+    - **Config-less**: `config.json` is removed.
+    - **Portable**: Run `fazt` anywhere, it uses `./data.db` by default.
+- **Install**: Interactive `install.sh` with "Headless Server" vs "Command Line Tool" modes.
+- **CLI**:
+    - Interactive `fazt server init`.
+    - Persistent Client Config (`client.server_url` stored in DB).
+    - `fazt deploy` supports full domains (e.g., `my-site.fazt.sh` -> `my-site`).
+- **UX**: New gradient ASCII banner.
+
+### Changed
+- **Breaking**: `config.json` is no longer supported. Use `fazt server set-config` or `init`.
+
 ## [0.5.13] - 2025-12-02
 
 ### Fixed

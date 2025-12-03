@@ -10,9 +10,13 @@
 *   **Safety**: `CGO_ENABLED=0` always.
 
 ## 🔨 Build & Test
+*   **Test First Methadology**: When build a feature, implement all tests first
+    and build to pass the tests
 *   **Build (Local)**: `go build -o fazt ./cmd/server`
 *   **Test (All)**: `go test ./...`
 *   **Run (Dev)**: `go run ./cmd/server server start --domain localhost --port 8080`
+*   **Env Differences**: Recognise what can be tested in the coding environment
+    and build tests likewise
 
 ## 📦 Release Workflow
 1.  **Code**: Implement feature/fix.
@@ -30,4 +34,9 @@
 
 ## 🛠️ Environment
 *   **Git**: Container has credentials. Can commit & push to `origin/master`.
+*   **Container Setup**: You are running inside a podman container, with no
+    systemd;
+*   **Host**: Host machine is a mac m4
+*   **Deplayment Target**: We are deploying to Digital Ocean Droplet, x86/Ubuntu
+    24.04, LTS, $6 base instance
 *   **Note**: `GEMINI.md` is symlinked to this file.

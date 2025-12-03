@@ -84,6 +84,7 @@ func runMigrations() error {
 		{3, "env_vars", "migrations/003_env_vars.sql"},
 		{4, "vfs_schema", "migrations/004_vfs.sql"},
 		{5, "site_logs", "migrations/005_site_logs.sql"},
+		{6, "config_table", "migrations/006_config_table.sql"},
 	}
 
 	// Run each migration if not already applied

@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/fazt-sh/fazt/internal/auth"
+	"github.com/fazt-sh/fazt/internal/config"
 	"github.com/fazt-sh/fazt/internal/database"
 	"github.com/fazt-sh/fazt/internal/hosting"
 )
@@ -66,6 +67,20 @@ func DeployHandler(w http.ResponseWriter, r *http.Request) {
 	if siteName == "" {
 		jsonError(w, "Missing site_name field", http.StatusBadRequest)
 		return
+	}
+
+	// Smart Domain Handling: Strip root domain if present
+	// Allows "my-site.fazt.sh" -> "my-site"
+	cfg := config.Get()
+	rootDomain := cfg.Server.Domain
+	// Strip scheme if present
+	if idx := strings.Index(rootDomain, "://"); idx != -1 {
+		rootDomain = rootDomain[idx+3:]
+	}
+	// Strip suffix
+	suffix := "." + rootDomain
+	if strings.HasSuffix(strings.ToLower(siteName), suffix) {
+		siteName = siteName[:len(siteName)-len(suffix)]
 	}
 
 	// Validate site name

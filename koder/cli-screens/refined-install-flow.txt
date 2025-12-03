@@ -1,0 +1,66 @@
+--------------------------------------------------------------------------------
+1. The Download & Move
+--------------------------------------------------------------------------------
+root@laptop:~# curl -s https://fazt.sh/install.sh | bash
+
+ℹ Downloading dev...
+✓ Downloaded ./fazt
+
+> We need to move 'fazt' to your global path (/usr/local/bin).
+> This requires sudo.
+[sudo] password for user: 
+✓ Moved fazt to /usr/local/bin/fazt
+
+--------------------------------------------------------------------------------
+2. The Fork
+--------------------------------------------------------------------------------
+How do you want to use Fazt on this machine?
+
+1. Client (Connect to a Remote Server)
+   Deploy sites to a VPS or Cloud instance.
+
+2. Server (Host Locally)
+   Run Fazt right here (for development or self-hosting).
+
+> Select mode [1/2]: 
+
+--------------------------------------------------------------------------------
+3a. Client Mode (Selection: 1)
+--------------------------------------------------------------------------------
+> Select mode [1/2]: 1
+
+> Enter Server URL (e.g. https://fazt.example.com): https://my-vps.com
+> Enter API Token (from /hosting dashboard): abc12345...
+
+✓ Authenticated with https://my-vps.com
+✓ Saved to ~/.config/fazt/data.db
+
+You are ready! Try:
+  fazt deploy --domain my-site
+
+--------------------------------------------------------------------------------
+3b. Server Mode (Selection: 2)
+--------------------------------------------------------------------------------
+> Select mode [1/2]: 2
+
+> Initialize Local Server? [Y/n] y
+> Admin Username [admin]: me
+> Admin Password: [hidden]
+
+✓ Initialized ~/.config/fazt/data.db
+
+How do you want to run it?
+
+A. Manual (Foreground)
+   Run 'fazt server start' in a terminal. Good for testing.
+
+B. Background Service (Systemd User)
+   Runs automatically in background.
+
+> Select [A/B]: A
+
+Setup Complete!
+To start your server:
+  fazt server start
+
+Then visit: http://localhost:4698

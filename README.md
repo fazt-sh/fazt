@@ -56,6 +56,9 @@ Fazt follows the **Cartridge Architecture**:
 - `fazt client set-auth-token`
   Authenticate your local machine.
 
+- `fazt server set-credentials`
+  Update admin password (useful if forgotten).
+
 - `fazt service logs`
   Tail system logs.
 

@@ -17,9 +17,10 @@ After=network.target
 [Service]
 Type=simple
 User={{.User}}
+WorkingDirectory=/home/{{.User}}/.config/fazt
 AmbientCapabilities=CAP_NET_BIND_SERVICE
 CapabilityBoundingSet=CAP_NET_BIND_SERVICE
-ExecStart={{.BinaryPath}} server start --config /home/{{.User}}/.config/fazt/config.json
+ExecStart={{.BinaryPath}} server start
 Restart=always
 LimitNOFILE=4096
 Environment=FAZT_ENV=production

@@ -1,0 +1,23 @@
+Fazt.sh dev - Client Commands
+
+USAGE:
+  fazt client <command> [options]
+
+CLIENT COMMANDS:
+  set-auth-token   Set deployment token (generate at /hosting)
+  deploy           Deploy a site/app to the server
+  sites            List deployed sites
+  logs             View site logs
+  delete           Delete a site
+  --help, -h       Show this help
+
+EXAMPLES:
+  # Configure client (Get token from your dashboard)
+  fazt client set-auth-token --token <TOKEN>
+
+  # Deploy static site
+  fazt client deploy --path . --domain my-site
+
+  # View logs
+  fazt client logs --site my-site
+
