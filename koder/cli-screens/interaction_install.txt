@@ -1,25 +1,23 @@
-$ sudo fazt service install --domain my-paas.com --email admin@my-paas.com --https
-fazt.sh System Installer
-------------------------
-ℹ Installing for domain: my-paas.com
-✓ Ports [80 443] are available
-✓ User 'fazt' exists
-✓ Binary installed to /usr/local/bin/fazt
-✓ Capabilities set
-✓ Configuring environment...
-✓ Firewall configured (UFW)
-✓ Systemd service installed
-✓ Service started
+$ curl -s https://fazt-sh.github.io/fazt/install.sh | bash
+________            _____
+___  __/_____ ________  /_
+__  /_ _  __ `/__  /_  __/
+_  __/ / /_/ /__  /_/ /_
+/_/    \__,_/ _____/\__/
+  Single Binary PaaS & Analytics
 
-Installation Complete
----------------------
-✓ Fazt is now running at https://my-paas.com
+ℹ Downloading v0.6.0...
+✓ Downloaded ./fazt
 
-╔══════════════════════════════════════════════════════════╗
-║ ADMIN CREDENTIALS (SAVE THESE!)                          ║
-╠══════════════════════════════════════════════════════════╣
-║ Username:  admin                                         ║
-║ Password:  fazt-82h9d29dh92d                             ║
-╚══════════════════════════════════════════════════════════╝
+Select Installation Type:
+1. Headless Server (Daemon)
+2. Command Line Tool (Portable)
 
-Login at: https://admin.my-paas.com
+> Select [1/2]: 1
+
+Domain or IP: my-paas.com
+Email (for HTTPS): admin@my-paas.com
+
+✓ Fazt installed & running!
+  https://my-paas.com
+  Login: https://admin.my-paas.com
