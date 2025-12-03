@@ -6,14 +6,19 @@
     <title>Fazt - The Cartridge PaaS</title>
     <meta name="description" content="Single Binary Personal Cloud Platform. Zero Dependencies. One Database.">
     <link rel="stylesheet" href="assets/css/style.css">
-    <link rel="icon" href="https://fazt.sh/favicon.ico">
+    <link rel="icon" href="assets/favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
 
     <header class="container">
         <div class="logo">⚡ Fazt</div>
         <nav>
-            <a href="https://github.com/fazt-sh/fazt" class="nav-link">GitHub ★ <span id="stars-count">...</span></a>
+            <a href="https://github.com/fazt-sh/fazt" class="nav-link">GitHub <span id="stars-count" style="font-size: 0.8em; opacity: 0.7;"></span></a>
+            <a href="#philosophy" class="nav-link">Philosophy</a>
+            <a href="ideas.html" class="nav-link">Ideas</a>
             <a href="#features" class="nav-link">Features</a>
         </nav>
     </header>
@@ -43,11 +48,16 @@ _  __/ / /_/ /__  /_/ /_
         </section>
 
         <div class="terminal-wrapper">
+            <div class="terminal-tabs">
+                <button class="tab-btn active" data-flow="deploy">Deploy Site</button>
+                <button class="tab-btn" data-flow="install">Install Server</button>
+            </div>
             <div class="terminal">
                 <div class="terminal-header">
                     <div class="dot red"></div>
                     <div class="dot yellow"></div>
                     <div class="dot green"></div>
+                    <div class="terminal-title" id="terminal-title">bash</div>
                 </div>
                 <div class="terminal-body" id="terminal-content">
                     <!-- Typing animation here -->
@@ -55,21 +65,42 @@ _  __/ / /_/ /__  /_/ /_
             </div>
         </div>
 
+        <section class="philosophy" id="philosophy">
+            <div class="section-header">
+                <h2>The Philosophy</h2>
+                <p>Simplicity is the ultimate sophistication.</p>
+            </div>
+            <div class="philosophy-grid">
+                <div class="philo-item">
+                    <h3>One Binary</h3>
+                    <p>No apt-get, no Docker images to pull. Just a single executable `fazt` that contains everything: web server, database engine, runtime, and assets.</p>
+                </div>
+                <div class="philo-item">
+                    <h3>One Database</h3>
+                    <p>The filesystem is dead. User sites, configurations, logs, and SSL certificates all live in `data.db`. Backup this one file, and you've backed up your entire world.</p>
+                </div>
+                <div class="philo-item">
+                    <h3>Zero External Deps</h3>
+                    <p>We believe in self-containment. Fazt doesn't need systemd, nginx, or certbot. It manages its own processes, certificates, and traffic.</p>
+                </div>
+            </div>
+        </section>
+
         <section class="features" id="features">
             <div class="card">
                 <div class="icon">💎</div>
                 <h3>Cartridge Architecture</h3>
-                <p>One executable + One Database file (`data.db`). Backup the file, backup the world. Zero file-system clutter.</p>
+                <p>Treat your server like a GameBoy cartridge. State is isolated. Upgrades are atomic. Portability is absolute.</p>
             </div>
             <div class="card">
                 <div class="icon">🚀</div>
-                <h3>Zero Dependencies</h3>
-                <p>No Docker. No Nginx. No Node.js installed. Just a pure Go binary that runs anywhere (Linux, Mac, ARM).</p>
+                <h3>Zero Friction</h3>
+                <p>Go from empty Ubuntu server to HTTPS-secured PaaS in 10 seconds. No configuration editing required.</p>
             </div>
             <div class="card">
                 <div class="icon">⚡</div>
-                <h3>Built-in Serverless</h3>
-                <p>Deploy JavaScript functions (`main.js`) alongside static assets. Powered by an embedded JS runtime.</p>
+                <h3>Serverless Runtime</h3>
+                <p>Deploy standard JS (`main.js`) alongside static files. Fazt executes them in a secure, embedded V8-like environment.</p>
             </div>
             <div class="card">
                 <div class="icon">🔒</div>

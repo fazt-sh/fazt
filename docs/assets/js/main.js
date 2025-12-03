@@ -1,29 +1,74 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Typing Animation Data
-    const lines = [
-        { type: 'input', text: 'fazt server init --domain my-paas.com' },
-        { type: 'output', text: '✓ Server initialized successfully', color: '#27c93f' },
-        { type: 'output', text: '  Database: ~/.config/fazt/data.db' },
-        { type: 'pause', duration: 800 },
-        { type: 'input', text: 'fazt deploy --domain blog' },
-        { type: 'output', text: 'Deploying to blog.my-paas.com...' },
-        { type: 'output', text: '✓ Deployment successful! (24 files, 1.2MB)', color: '#27c93f' },
-        { type: 'pause', duration: 2000 }
-    ];
+    
+    // Scenarios Data
+    const scenarios = {
+        deploy: [
+            { type: 'input', text: 'fazt client deploy --path ./my-app --domain awesome' },
+            { type: 'output', text: "Deploying ./my-app to http://localhost:4698 as 'awesome'..." },
+            { type: 'output', text: "Zipped 12 files (15420 bytes)" },
+            { type: 'pause', duration: 500 },
+            { type: 'output', text: "✓ Deployment successful!", color: '#27c93f' },
+            { type: 'output', text: "  Site: http://awesome.fazt.sh" },
+            { type: 'output', text: "  Files: 12" },
+            { type: 'output', text: "  Size: 15420 bytes" },
+            { type: 'pause', duration: 3000 }
+        ],
+        install: [
+            { type: 'input', text: 'sudo fazt service install --domain my-paas.com --email admin@my-paas.com --https' },
+            { type: 'output', text: "fazt.sh System Installer" },
+            { type: 'output', text: "------------------------" },
+            { type: 'output', text: "ℹ Installing for domain: my-paas.com" },
+            { type: 'output', text: "✓ Ports [80 443] are available", color: '#27c93f' },
+            { type: 'output', text: "✓ User 'fazt' exists", color: '#27c93f' },
+            { type: 'output', text: "✓ Binary installed to /usr/local/bin/fazt", color: '#27c93f' },
+            { type: 'pause', duration: 300 },
+            { type: 'output', text: "✓ Capabilities set", color: '#27c93f' },
+            { type: 'output', text: "✓ Configuring environment...", color: '#27c93f' },
+            { type: 'output', text: "✓ Firewall configured (UFW)", color: '#27c93f' },
+            { type: 'output', text: "✓ Systemd service installed", color: '#27c93f' },
+            { type: 'output', text: "✓ Service started", color: '#27c93f' },
+            { type: 'pause', duration: 500 },
+            { type: 'output', text: " " },
+            { type: 'output', text: "Installation Complete" },
+            { type: 'output', text: "---------------------" },
+            { type: 'output', text: "✓ Fazt is now running at https://my-paas.com", color: '#27c93f' },
+            { type: 'output', text: " " },
+            { type: 'output', text: "╔══════════════════════════════════════════════════════════╗", color: '#ffbd2e' },
+            { type: 'output', text: "║ ADMIN CREDENTIALS (SAVE THESE!)                          ║", color: '#ffbd2e' },
+            { type: 'output', text: "╠══════════════════════════════════════════════════════════╣", color: '#ffbd2e' },
+            { type: 'output', text: "║ Username:  admin                                         ║", color: '#ffbd2e' },
+            { type: 'output', text: "║ Password:  fazt-82h9d29dh92d                             ║", color: '#ffbd2e' },
+            { type: 'output', text: "╚══════════════════════════════════════════════════════════╝", color: '#ffbd2e' },
+            { type: 'output', text: " " },
+            { type: 'output', text: "Login at: https://admin.my-paas.com" },
+            { type: 'pause', duration: 5000 }
+        ]
+    };
 
     const terminalBody = document.getElementById('terminal-content');
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    
+    let currentScenario = 'deploy'; // Default
     let lineIndex = 0;
     let charIndex = 0;
+    let timeouts = []; // To clear pending timeouts on switch
+
+    function clearTimeouts() {
+        timeouts.forEach(t => clearTimeout(t));
+        timeouts = [];
+    }
 
     function typeLine() {
         if (!terminalBody) return;
+        const lines = scenarios[currentScenario];
 
         if (lineIndex >= lines.length) {
-            setTimeout(() => {
+            // Loop scenario
+            timeouts.push(setTimeout(() => {
                 terminalBody.innerHTML = '';
                 lineIndex = 0;
                 typeLine();
-            }, 3000);
+            }, 3000));
             return;
         }
 
@@ -31,7 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (line.type === 'pause') {
             lineIndex++;
-            setTimeout(typeLine, line.duration);
+            timeouts.push(setTimeout(typeLine, line.duration));
             return;
         }
 
@@ -49,11 +94,11 @@ document.addEventListener('DOMContentLoaded', () => {
             charIndex++;
 
             if (charIndex < line.text.length) {
-                setTimeout(typeLine, Math.random() * 30 + 30); // Typing speed
+                timeouts.push(setTimeout(typeLine, Math.random() * 30 + 30)); // Typing speed
             } else {
                 charIndex = 0;
                 lineIndex++;
-                setTimeout(typeLine, 400); // Pause after typing
+                timeouts.push(setTimeout(typeLine, 400)); // Pause after typing
             }
         } else {
             // Output appears instantly
@@ -63,14 +108,36 @@ document.addEventListener('DOMContentLoaded', () => {
             div.textContent = line.text;
             terminalBody.appendChild(div);
             lineIndex++;
-            setTimeout(typeLine, 100);
+            timeouts.push(setTimeout(typeLine, 50));
         }
         
         // Auto scroll
         terminalBody.scrollTop = terminalBody.scrollHeight;
     }
 
-    // Start typing
+    // Tab Switching Logic
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const flow = btn.getAttribute('data-flow');
+            if (flow === currentScenario) return;
+
+            // UI Update
+            tabBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            // Reset Animation
+            clearTimeouts();
+            currentScenario = flow;
+            lineIndex = 0;
+            charIndex = 0;
+            terminalBody.innerHTML = '';
+            
+            // Start new flow
+            typeLine();
+        });
+    });
+
+    // Start initial animation
     typeLine();
 
     // Copy Functionality

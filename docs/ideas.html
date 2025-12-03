@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fazt - Ideas & Roadmap</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="icon" href="assets/favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        .roadmap-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+        .roadmap-item {
+            background: var(--card-bg);
+            border: 1px solid #222;
+            padding: 1.5rem;
+            border-radius: 12px;
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-top: 6px;
+            flex-shrink: 0;
+        }
+        .status-done { background: #27c93f; box-shadow: 0 0 10px rgba(39, 201, 63, 0.4); }
+        .status-pending { background: #444; border: 1px solid #666; }
+        .item-content h3 { font-size: 1.1rem; margin-bottom: 0.5rem; color: #fff; }
+        .item-content p { color: var(--text-dim); font-size: 0.9rem; }
+        .tag { 
+            font-size: 0.7rem; 
+            padding: 2px 8px; 
+            border-radius: 4px; 
+            background: #222; 
+            color: #aaa; 
+            font-family: var(--font-mono);
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <header class="container">
+        <div class="logo"><a href="index.html" style="text-decoration:none; color:inherit;">⚡ Fazt</a></div>
+        <nav>
+            <a href="https://github.com/fazt-sh/fazt" class="nav-link">GitHub</a>
+            <a href="index.html#philosophy" class="nav-link">Philosophy</a>
+            <a href="ideas.html" class="nav-link" style="color:#fff;">Ideas</a>
+        </nav>
+    </header>
+
+    <main class="container">
+        
+        <section class="hero" style="padding: 4rem 0 2rem;">
+            <h1>Roadmap & Ideas</h1>
+            <p class="subtitle">The future of the "One Binary" platform.</p>
+        </section>
+
+        <div class="roadmap-list">
+            
+            <div class="roadmap-item">
+                <div class="status-dot status-done"></div>
+                <div class="item-content">
+                    <h3>One-line Installer <span class="tag">ops-install</span></h3>
+                    <p>Automate user creation, systemd setup, and firewall config via `curl | bash`.</p>
+                </div>
+            </div>
+
+            <div class="roadmap-item">
+                <div class="status-dot status-done"></div>
+                <div class="item-content">
+                    <h3>VFS Caching <span class="tag">core-cache</span></h3>
+                    <p>In-memory LRU cache to reduce SQLite read pressure for frequently accessed assets.</p>
+                </div>
+            </div>
+            
+            <div class="roadmap-item">
+                <div class="status-dot status-done"></div>
+                <div class="item-content">
+                    <h3>Reserved Routes <span class="tag">route-reserved</span></h3>
+                    <p>Dashboard logic moved to `admin.domain.com`. Root domain strategy.</p>
+                </div>
+            </div>
+
+            <div class="roadmap-item">
+                <div class="status-dot status-pending"></div>
+                <div class="item-content">
+                    <h3>Config in Database <span class="tag">core-config-db</span></h3>
+                    <p>Migrate `config.json` to SQLite table. Achieve true "One Binary + One DB" portability.</p>
+                </div>
+            </div>
+
+            <div class="roadmap-item">
+                <div class="status-dot status-pending"></div>
+                <div class="item-content">
+                    <h3>Self-Update <span class="tag">core-upgrade</span></h3>
+                    <p>`fazt upgrade` command to download the latest binary from GitHub and restart the service.</p>
+                </div>
+            </div>
+
+            <div class="roadmap-item">
+                <div class="status-dot status-pending"></div>
+                <div class="item-content">
+                    <h3>Scheduled Functions <span class="tag">js-cron</span></h3>
+                    <p>Define CRON triggers in site config to run serverless functions at intervals.</p>
+                </div>
+            </div>
+
+            <div class="roadmap-item">
+                <div class="status-dot status-pending"></div>
+                <div class="item-content">
+                    <h3>Backup & Restore <span class="tag">core-backup</span></h3>
+                    <p>CLI commands to snapshot the `data.db` safely while the server is running (WAL friendly).</p>
+                </div>
+            </div>
+
+            <div class="roadmap-item">
+                <div class="status-dot status-pending"></div>
+                <div class="item-content">
+                    <h3>App Drop <span class="tag">app-drop</span></h3>
+                    <p>Ephemeral file sharing application built-in. "Snapdrop" clone.</p>
+                </div>
+            </div>
+
+             <div class="roadmap-item">
+                <div class="status-dot status-pending"></div>
+                <div class="item-content">
+                    <h3>Collaborative Pad <span class="tag">app-pad</span></h3>
+                    <p>Real-time collaborative scratchpad using WebSockets.</p>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <footer>
+        <p>&copy; 2025 Fazt.sh. Released under MIT License.</p>
+    </footer>
+
+</body>
+</html>

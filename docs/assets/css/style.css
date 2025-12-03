@@ -133,9 +133,43 @@ h1 {
 
 /* Terminal Demo */
 .terminal-wrapper {
-    margin: 5rem auto;
+    margin: 4rem auto;
     max-width: 800px;
     perspective: 1000px;
+}
+
+.terminal-tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: -1px;
+    padding-left: 20px;
+}
+
+.tab-btn {
+    background: #111;
+    border: 1px solid #222;
+    border-bottom: none;
+    color: var(--text-dim);
+    padding: 8px 16px;
+    border-radius: 8px 8px 0 0;
+    cursor: pointer;
+    font-family: var(--font-main);
+    font-size: 0.9rem;
+    transition: all 0.2s;
+}
+
+.tab-btn:hover {
+    color: #fff;
+    background: #1a1a1a;
+}
+
+.tab-btn.active {
+    background: #0d0d0d;
+    color: var(--accent-mid);
+    border-color: #222;
+    padding-bottom: 10px;
+    margin-bottom: -1px;
+    z-index: 10;
 }
 
 .terminal {
@@ -147,15 +181,25 @@ h1 {
     font-size: 0.9rem;
     box-shadow: 0 20px 50px rgba(0,0,0,0.5);
     text-align: left;
-    min-height: 300px;
+    min-height: 400px;
     position: relative;
     overflow: hidden;
+    z-index: 5;
 }
 
 .terminal-header {
     display: flex;
+    align-items: center;
     gap: 8px;
     margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #222;
+}
+
+.terminal-title {
+    margin-left: auto;
+    color: #444;
+    font-size: 0.8rem;
 }
 
 .dot { width: 12px; height: 12px; border-radius: 50%; }
@@ -166,20 +210,50 @@ h1 {
 .terminal-body {
     color: #ccc;
     line-height: 1.6;
+    height: 350px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #333 #0d0d0d;
+}
+
+.terminal-body::-webkit-scrollbar {
+    width: 8px;
+}
+.terminal-body::-webkit-scrollbar-thumb {
+    background: #333;
+    border-radius: 4px;
 }
 
 .line { display: block; min-height: 1.6em; }
 .prompt { color: var(--accent-start); margin-right: 8px; }
-.cursor {
-    display: inline-block;
-    width: 8px;
-    height: 1.2em;
-    background: var(--text-dim);
-    animation: blink 1s infinite;
-    vertical-align: middle;
+
+/* Philosophy Section */
+.philosophy {
+    padding: 4rem 0;
+    text-align: center;
 }
 
-@keyframes blink { 50% { opacity: 0; } }
+.section-header h2 {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+}
+.section-header p {
+    color: var(--text-dim);
+    margin-bottom: 3rem;
+}
+
+.philosophy-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 3rem;
+    text-align: left;
+}
+
+.philo-item h3 {
+    color: var(--accent-mid);
+    margin-bottom: 1rem;
+    font-size: 1.5rem;
+}
 
 /* Features Grid */
 .features {

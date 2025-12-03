@@ -1,0 +1,7 @@
+$ fazt client deploy --path ./my-app --domain awesome
+Deploying ./my-app to http://localhost:4698 as 'awesome'...
+Zipped 12 files (15420 bytes)
+✓ Deployment successful!
+  Site: http://awesome.fazt.sh
+  Files: 12
+  Size: 15420 bytes
