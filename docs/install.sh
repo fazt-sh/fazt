@@ -106,12 +106,12 @@ echo ""
 echo "2. Command Line Tool (Portable)"
 echo "   Best for Laptops. Just installs the binary."
 echo ""
-read -p "> Select [1/2]: " MODE
+read -p "> Select [1/2]: " MODE < /dev/tty
 
 if [ "$MODE" = "1" ]; then
     echo ""
-    read -p "Domain or IP (e.g. my-paas.com): " DOMAIN
-    read -p "Email (Enter to skip for HTTP): " EMAIL
+    read -p "Domain or IP (e.g. my-paas.com): " DOMAIN < /dev/tty
+    read -p "Email (Enter to skip for HTTP): " EMAIL < /dev/tty
     echo ""
     
     # Check sudo for service install
@@ -128,12 +128,12 @@ if [ "$MODE" = "1" ]; then
 
 elif [ "$MODE" = "2" ]; then
     echo ""
-    read -p "Do you want to connect to a remote server? [y/N] " CONFIRM
+    read -p "Do you want to connect to a remote server? [y/N] " CONFIRM < /dev/tty
     
     if [[ "$CONFIRM" =~ ^[Yy]$ ]]; then
         echo ""
-        read -p "Server URL (e.g. https://my-paas.com): " URL
-        read -p "API Token: " TOKEN
+        read -p "Server URL (e.g. https://my-paas.com): " URL < /dev/tty
+        read -p "API Token: " TOKEN < /dev/tty
         echo ""
         $BINARY_PATH client set-auth-token --token "$TOKEN" --server "$URL"
         echo ""

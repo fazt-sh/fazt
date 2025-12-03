@@ -1,6 +1,6 @@
 # Binaries
 fazt
-server
+/server
 fazt-*
 cc-server
 cc-server-*
