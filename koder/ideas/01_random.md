@@ -18,7 +18,7 @@
   - Invalidate cache on new deployment
   - Improve latency and reduce DB IO
 
-- [ ] 04 `core-config-db` <next-to-implement>
+- [x] 04 `core-config-db` <next-to-implement>
   - Migrate `config.json` to SQLite table
   - Remove dependency on filesystem config
   - Achieve true "One Binary + One DB" state
@@ -67,7 +67,7 @@
   - Root domain content strategy, it should point to root.<domain> ; which
     should be a "Welcome to Fazt" site, make it fun
 
-- [ ] 13 `meta-locations`
+- [x] 13 `meta-locations`
   - Update official URLs and docs
   - Lander: `fazt.sh`
   - Social: `x.com/fazt_sh`

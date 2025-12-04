@@ -32,7 +32,7 @@ Read carefully.
 - `internal/database/`: SQLite Init, Migrations (`001_...sql`).
 - `internal/config/`  : JSON/Env config loader.
 - `internal/assets/`  : Embedded static files (Dashboard + System Sites).
-- `docs/`             : Public documentation (Lander, Install Script).
+- `docs/`             : Public website (Landing, Docs, Ideas, Install).
 - `koder/`            : Meta-docs for AI (Plans, Ideas, Analysis).
 
 ## 4. Initialization Protocol 🚀
