@@ -155,3 +155,7 @@
 - [ ] 27 `simplify-client-auth-token` <to-discuss>
   - shall we encode domain & authtoken to a long string, say base64 so that it
     can be simply pasted to get autheticated without having to specify the site?
+
+- [ ] 28 `telegram-bot-server` <to-discuss>
+  - what about a telegram bot server so that it is easy to set up a telegram bot
+    easily
