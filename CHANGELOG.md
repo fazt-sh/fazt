@@ -2,6 +2,11 @@
 
 All notable changes to fazt.sh will be documented in this file.
 
+## [0.6.1] - 2025-12-07
+
+### Fixed
+- **Install**: Fixed "text file busy" error during installation/upgrade on Linux. The installer now detects if the source and target binaries are the same file and skips the copy operation, preventing self-overwrite failures.
+
 ## [0.6.0] - 2025-12-03
 
 ### Added

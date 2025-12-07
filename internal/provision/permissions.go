@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 )
 
 // InstallBinary copies the current executable to the target path
@@ -12,6 +13,21 @@ func InstallBinary(targetPath string) error {
 	currentExe, err := os.Executable()
 	if err != nil {
 		return fmt.Errorf("failed to get current executable path: %w", err)
+	}
+
+	// Check if we are already running from the target location
+	currentAbs, err := filepath.Abs(currentExe)
+	if err != nil {
+		return fmt.Errorf("failed to get absolute path: %w", err)
+	}
+	targetAbs, err := filepath.Abs(targetPath)
+	if err != nil {
+		return fmt.Errorf("failed to get target absolute path: %w", err)
+	}
+
+	if currentAbs == targetAbs {
+		fmt.Printf("Binary already at target location: %s\n", targetPath)
+		return nil
 	}
 
 	fmt.Printf("Installing binary from %s to %s...\n", currentExe, targetPath)
