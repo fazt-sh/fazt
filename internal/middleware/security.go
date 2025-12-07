@@ -66,13 +66,12 @@ func SecurityHeaders(next http.Handler) http.Handler {
 		w.Header().Set("X-XSS-Protection", "1; mode=block")
 
 		// Content Security Policy
-		csp := "default-src 'self'; " +
-			"script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; " +
-			"style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; " +
-			"img-src 'self' data: https:; " +
-			"font-src 'self' data: https://cdn.jsdelivr.net; " +
-			"connect-src 'self'"
-
+		        csp := "default-src 'self'; " +
+		            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; " +
+		            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; " +
+		            "img-src 'self' data: https:; " +
+		            "font-src 'self' data: https://cdn.jsdelivr.net; " +
+		            "connect-src 'self' https://cdn.jsdelivr.net"
 		w.Header().Set("Content-Security-Policy", csp)
 
 		// HSTS in production

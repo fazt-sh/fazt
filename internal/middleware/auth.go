@@ -57,7 +57,7 @@ func requiresAuth(path string) bool {
 		"/r/",
 		"/webhook/",
 		"/static/",
-		"/login",
+		"/login.html",
 		"/api/login",
 		"/api/deploy",
 		"/health",
@@ -85,5 +85,5 @@ func redirectToLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// For HTML requests, redirect to login page
-	http.Redirect(w, r, "/login", http.StatusSeeOther)
+	http.Redirect(w, r, "/login.html", http.StatusSeeOther)
 }

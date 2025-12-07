@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/fazt-sh/fazt/internal/assets"
 	"github.com/fazt-sh/fazt/internal/database"
 	"github.com/fazt-sh/fazt/internal/hosting"
 )
@@ -48,19 +47,6 @@ type validationError struct {
 
 func (e *validationError) Error() string {
 	return e.msg
-}
-
-// HostingPageHandler serves the hosting management page
-func HostingPageHandler(w http.ResponseWriter, r *http.Request) {
-	// Read from embedded FS
-	content, err := assets.WebFS.ReadFile("web/templates/hosting.html")
-	if err != nil {
-		jsonError(w, "Error loading hosting template", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Write(content)
 }
 
 // SitesHandler returns the list of hosted sites

@@ -22,7 +22,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/fazt-sh/fazt/internal/assets"
 	"github.com/fazt-sh/fazt/internal/audit"
 	"github.com/fazt-sh/fazt/internal/auth"
 	"github.com/fazt-sh/fazt/internal/config"
@@ -36,7 +35,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	_ "modernc.org/sqlite"
 	"github.com/caddyserver/certmagic"
-	"io/fs"
 )
 
 var Version = "dev"
@@ -300,6 +298,8 @@ func handleServerCommand(args []string) {
 		handleStatusCommand()
 	case "start":
 		handleStartCommand()
+	case "reset-admin":
+		handleResetAdminCommand()
 	case "--help", "-h", "help":
 		printServerHelp()
 	default:
@@ -1599,7 +1599,7 @@ func handleStartCommand() {
 	rateLimiter := auth.NewRateLimiter()
 
 	// Initialize auth handlers with session store and rate limiter
-	handlers.InitAuth(sessionStore, rateLimiter)
+	handlers.InitAuth(sessionStore, rateLimiter, Version)
 
 	// Display auth status (v0.4.0: auth always required)
 	fmt.Printf("  Authentication: ✓ Enabled (user: %s)\n", cfg.Auth.Username)
@@ -1637,10 +1637,10 @@ func handleStartCommand() {
 	dashboardMux := http.NewServeMux()
 
 	// Authentication routes
-	dashboardMux.HandleFunc("/login", handlers.LoginPageHandler)
 	dashboardMux.HandleFunc("/api/login", handlers.LoginHandler)
 	dashboardMux.HandleFunc("/api/logout", handlers.LogoutHandler)
 	dashboardMux.HandleFunc("/api/auth/status", handlers.AuthStatusHandler)
+	dashboardMux.HandleFunc("/api/user/me", handlers.UserMeHandler)
 
 	// API routes - Tracking
 	dashboardMux.HandleFunc("/track", handlers.TrackHandler)
@@ -1665,27 +1665,10 @@ func handleStartCommand() {
 	dashboardMux.HandleFunc("/api/envvars", handlers.EnvVarsHandler)
 	dashboardMux.HandleFunc("/api/logs", handlers.LogsHandler)
 
-	// Hosting management page
-	dashboardMux.HandleFunc("/hosting", handlers.HostingPageHandler)
-
-	// Static files
-	var staticFS http.FileSystem
-	if cfg.IsDevelopment() {
-		// In development, serve directly from disk for hot-reload
-		staticFS = http.Dir("./web/static")
-	} else {
-		// In production, serve from embedded assets
-		sub, err := fs.Sub(assets.WebFS, "web/static")
-		if err != nil {
-			log.Fatalf("Failed to load embedded static assets: %v", err)
-		}
-		staticFS = http.FS(sub)
-	}
-	fs := http.FileServer(staticFS)
-	dashboardMux.Handle("/static/", http.StripPrefix("/static/", fs))
-
-	// Dashboard (root)
-	dashboardMux.HandleFunc("/", handlers.DashboardHandler)
+	// Dashboard (Admin VFS Site)
+	dashboardMux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		siteHandler(w, r, "admin")
+	})
 
 	// Health check (available on both dashboard and sites)
 	dashboardMux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
@@ -1975,4 +1958,53 @@ func printClientHelp() {
 	fmt.Println("  # View logs")
 	fmt.Println("  fazt client logs --site my-site")
 	fmt.Println()
+}
+
+// handleResetAdminCommand handles the reset-admin subcommand
+func handleResetAdminCommand() {
+	flags := flag.NewFlagSet("reset-admin", flag.ExitOnError)
+	db := flags.String("db", "", "Database file path")
+
+	flags.Usage = func() {
+		fmt.Println("Usage: fazt server reset-admin [flags]")
+		fmt.Println()
+		fmt.Println("Reset the admin dashboard (VFS) to the version embedded in this binary.")
+		fmt.Println("This is useful after upgrading fazt or if the dashboard is corrupted.")
+		fmt.Println()
+		flags.PrintDefaults()
+	}
+
+	if err := flags.Parse(os.Args[3:]); err != nil {
+		os.Exit(1)
+	}
+
+	// Resolve DB Path
+	dbPath := "./data.db"
+	if envPath := os.Getenv("FAZT_DB_PATH"); envPath != "" {
+		dbPath = envPath
+	}
+	if *db != "" {
+		dbPath = config.ExpandPath(*db)
+	}
+
+	// Initialize DB
+	if err := database.Init(dbPath); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to init database: %v\n", err)
+		os.Exit(1)
+	}
+	defer database.Close()
+
+	// Initialize Hosting (VFS)
+	if err := hosting.Init(database.GetDB()); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to init hosting: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Reset Admin Site
+	if err := hosting.ResetAdminSite(); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to reset admin site: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Println("✓ Admin dashboard reset successfully.")
 }

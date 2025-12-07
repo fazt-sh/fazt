@@ -167,14 +167,16 @@
         });
 
         // Show error from URL parameter if present
-        {{if .Error}}
-        document.addEventListener('DOMContentLoaded', () => {
-            const errorMessage = document.getElementById('error-message');
-            const errorText = document.getElementById('error-text');
-            errorText.textContent = '{{.Error}}';
-            errorMessage.classList.remove('d-none');
-        });
-        {{end}}
+        const urlParams = new URLSearchParams(window.location.search);
+        const errorParam = urlParams.get('error');
+        if (errorParam) {
+            document.addEventListener('DOMContentLoaded', () => {
+                const errorMessage = document.getElementById('error-message');
+                const errorText = document.getElementById('error-text');
+                errorText.textContent = errorParam;
+                errorMessage.classList.remove('d-none');
+            });
+        }
     </script>
 </body>
 </html>

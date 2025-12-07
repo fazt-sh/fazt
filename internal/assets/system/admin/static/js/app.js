@@ -606,6 +606,7 @@ async function createWebhook() {
 // Load Settings page
 async function loadSettings() {
   const content = document.getElementById('app-content');
+  const user = await api.get('user/me');
 
   content.innerHTML = `
     <div class="row row-cards">
@@ -662,9 +663,9 @@ async function loadSettings() {
             <h3 class="card-title">About</h3>
           </div>
           <div class="card-body">
-            <p><strong>Command Center</strong> v0.1.0</p>
+            <p><strong>Fazt.sh</strong> ${user.version}</p>
+            <p class="text-muted">Logged in as: <strong>${user.username}</strong></p>
             <p class="text-muted">Analytics & Monitoring Dashboard</p>
-            <p class="text-muted">Port: 4698</p>
           </div>
         </div>
       </div>
@@ -744,6 +745,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('theme-toggle')?.addEventListener('click', toggleTheme);
   document.getElementById('refresh-btn')?.addEventListener('click', refreshData);
+
+  // Load user info for footer
+  api.get('user/me').then(user => {
+    const el = document.getElementById('app-version');
+    if (el) el.textContent = user.version;
+  }).catch(console.error);
 
   // Load initial page
   navigate('dashboard');

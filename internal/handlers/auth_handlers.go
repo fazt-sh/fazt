@@ -2,12 +2,10 @@ package handlers
 
 import (
 	"encoding/json"
-	"html/template"
 	"log"
 	"net/http"
 	"strings"
 
-	"github.com/fazt-sh/fazt/internal/assets"
 	"github.com/fazt-sh/fazt/internal/audit"
 	"github.com/fazt-sh/fazt/internal/auth"
 	"github.com/fazt-sh/fazt/internal/config"
@@ -16,44 +14,40 @@ import (
 var (
 	sessionStore *auth.SessionStore
 	rateLimiter  *auth.RateLimiter
+	serverVersion string
 )
 
-// InitAuth initializes the auth handlers with session store and rate limiter
-func InitAuth(store *auth.SessionStore, limiter *auth.RateLimiter) {
+// InitAuth initializes the auth handlers with the session store and rate limiter
+func InitAuth(store *auth.SessionStore, limiter *auth.RateLimiter, version string) {
 	sessionStore = store
 	rateLimiter = limiter
+	serverVersion = version
 }
 
-// LoginPageHandler serves the login page
-func LoginPageHandler(w http.ResponseWriter, r *http.Request) {
-	// If already logged in, redirect to dashboard
-	if sessionID, err := auth.GetSessionCookie(r); err == nil {
-		if valid, _ := sessionStore.ValidateSession(sessionID); valid {
-			http.Redirect(w, r, "/", http.StatusSeeOther)
-			return
-		}
-	}
-
-	// Render login page
-	tmpl, err := template.ParseFS(assets.WebFS, "web/templates/login.html")
+// UserMeHandler returns the current authenticated user info
+func UserMeHandler(w http.ResponseWriter, r *http.Request) {
+	sessionID, err := auth.GetSessionCookie(r)
 	if err != nil {
-		log.Printf("Error loading login template: %v", err)
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	data := map[string]interface{}{
-		"Error": r.URL.Query().Get("error"),
+	session, err := sessionStore.GetSession(sessionID)
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
 	}
 
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if err := tmpl.Execute(w, data); err != nil {
-		log.Printf("Error rendering login template: %v", err)
-	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"username": session.Username,
+		"version":  serverVersion,
+	})
 }
 
-// LoginHandler handles login requests
+// LoginHandler handles the API login request
 func LoginHandler(w http.ResponseWriter, r *http.Request) {
+
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return

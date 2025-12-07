@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/fazt-sh/fazt/internal/assets"
 	"github.com/fazt-sh/fazt/internal/database"
 	"github.com/fazt-sh/fazt/internal/models"
 )
@@ -464,20 +463,6 @@ func WebhooksHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
-}
-
-// DashboardHandler serves the main dashboard page
-func DashboardHandler(w http.ResponseWriter, r *http.Request) {
-	// Read from embedded FS
-	content, err := assets.WebFS.ReadFile("web/templates/index.html")
-	if err != nil {
-		log.Printf("Error loading dashboard template: %v", err)
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Write(content)
 }
 
 // parseInt parses string to int with default value

@@ -40,8 +40,9 @@ func Init(db *sql.DB) error {
 // EnsureSystemSites checks and seeds reserved sites from embedded assets
 func EnsureSystemSites() error {
 	sites := map[string]string{
-		"root": "system/root",
-		"404":  "system/404",
+		"root":  "system/root",
+		"404":   "system/404",
+		"admin": "system/admin",
 	}
 
 	for siteID, assetDir := range sites {
@@ -85,6 +86,18 @@ func EnsureSystemSites() error {
 		}
 	}
 	return nil
+}
+
+// ResetAdminSite force-resets the admin site from embedded assets
+func ResetAdminSite() error {
+	if err := fs.DeleteSite("admin"); err != nil {
+		return fmt.Errorf("failed to delete old admin site: %w", err)
+	}
+	fmt.Println("✓ Deleted existing admin site from VFS")
+	
+	// Re-seed (EnsureSystemSites logic handles this)
+	// We call EnsureSystemSites directly which will see "admin" is missing and seed it
+	return EnsureSystemSites()
 }
 
 // GetFileSystem returns the active file system

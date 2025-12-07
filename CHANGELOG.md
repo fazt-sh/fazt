@@ -2,6 +2,19 @@
 
 All notable changes to fazt.sh will be documented in this file.
 
+## [0.7.0] - 2025-12-07
+
+### Added
+- **Admin VFS**: The Admin Dashboard is now a standard "Cartridge" site hosted in the VFS (`system/admin`). This unifies the architecture—everything is served from the database.
+- **CLI**: Added `fazt server reset-admin` command to force-update the dashboard assets from the binary to the VFS (useful for upgrades).
+- **Frontend**: Dashboard is now a Single Page Application (SPA). All data is fetched via JSON APIs.
+- **API**: Added `/api/user/me` endpoint for session info.
+
+### Fixed
+- **Install**: Improved upgrade reliability by stopping the service before checking port availability.
+- **CSP**: Content Security Policy now allows loading source maps from `cdn.jsdelivr.net`.
+- **Assets**: Fixed 404s for static assets by moving them into the VFS structure.
+
 ## [0.6.5] - 2025-12-07
 
 ### Fixed

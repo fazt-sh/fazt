@@ -142,7 +142,7 @@
             <td><strong>${site.Name}</strong></td>
             <td>${site.FileCount}</td>
             <td>${size}</td>
-            <td><a href="http://${site.Name}.localhost:4698" target="_blank">${site.Name}.localhost</a></td>
+            <td><a href="${getSiteUrl(site.Name)}" target="_blank">${site.Name}</a></td>
           </tr>`;
         });
         html += '</tbody></table></div>';
@@ -150,6 +150,19 @@
       } catch(e) {
         document.getElementById('sites-list').innerHTML = '<p class="text-danger">Error loading sites</p>';
       }
+    }
+
+    function getSiteUrl(subdomain) {
+        const host = window.location.host;
+        // Check if we are on a subdomain (admin.example.com)
+        // We want to replace 'admin' with the site subdomain
+        const parts = host.split('.');
+        if (parts.length > 1 && parts[0] === 'admin') {
+            parts[0] = subdomain;
+            return window.location.protocol + '//' + parts.join('.');
+        }
+        // Fallback for localhost or other setups
+        return window.location.protocol + '//' + subdomain + '.' + host;
     }
 
     async function loadKeys() {
