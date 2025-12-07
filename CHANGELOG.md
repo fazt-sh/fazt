@@ -2,6 +2,11 @@
 
 All notable changes to fazt.sh will be documented in this file.
 
+## [0.6.5] - 2025-12-07
+
+### Fixed
+- **Assets**: Fixed missing CSS/JS/Image files in production builds. The server now correctly serves static assets from the embedded binary when running in production mode, instead of looking for a non-existent local directory.
+
 ## [0.6.4] - 2025-12-07
 
 ### Fixed

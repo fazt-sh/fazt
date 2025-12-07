@@ -22,6 +22,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/fazt-sh/fazt/internal/assets"
 	"github.com/fazt-sh/fazt/internal/audit"
 	"github.com/fazt-sh/fazt/internal/auth"
 	"github.com/fazt-sh/fazt/internal/config"
@@ -35,6 +36,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	_ "modernc.org/sqlite"
 	"github.com/caddyserver/certmagic"
+	"io/fs"
 )
 
 var Version = "dev"
@@ -1667,7 +1669,19 @@ func handleStartCommand() {
 	dashboardMux.HandleFunc("/hosting", handlers.HostingPageHandler)
 
 	// Static files
-	fs := http.FileServer(http.Dir("./web/static"))
+	var staticFS http.FileSystem
+	if cfg.IsDevelopment() {
+		// In development, serve directly from disk for hot-reload
+		staticFS = http.Dir("./web/static")
+	} else {
+		// In production, serve from embedded assets
+		sub, err := fs.Sub(assets.WebFS, "web/static")
+		if err != nil {
+			log.Fatalf("Failed to load embedded static assets: %v", err)
+		}
+		staticFS = http.FS(sub)
+	}
+	fs := http.FileServer(staticFS)
 	dashboardMux.Handle("/static/", http.StripPrefix("/static/", fs))
 
 	// Dashboard (root)
