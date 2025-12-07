@@ -2,6 +2,11 @@
 
 All notable changes to fazt.sh will be documented in this file.
 
+## [0.6.3] - 2025-12-07
+
+### Fixed
+- **Startup**: Fixed crash when running as systemd service. Configuration validation is now deferred until after credentials are loaded from the database, preventing "auth username is required" errors on startup.
+
 ## [0.6.2] - 2025-12-07
 
 ### Fixed

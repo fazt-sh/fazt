@@ -1571,6 +1571,11 @@ func handleStartCommand() {
 		log.Printf("Warning: Failed to load config from DB: %v", err)
 	}
 
+	// Validate configuration now that we have loaded everything
+	if err := cfg.Validate(); err != nil {
+		log.Fatalf("Invalid configuration: %v", err)
+	}
+
 	// Ensure secure file permissions
 	security.EnsureSecurePermissions(config.ExpandPath(cliFlags.ConfigPath), cfg.Database.Path)
 

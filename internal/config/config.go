@@ -139,11 +139,6 @@ func Load(flags *CLIFlags) (*Config, error) {
 	// Apply CLI flags (highest priority)
 	applyCLIFlags(cfg, flags)
 
-	// Validate configuration
-	if err := cfg.Validate(); err != nil {
-		return nil, fmt.Errorf("invalid configuration: %w", err)
-	}
-
 	appConfig = cfg
 	log.Printf("Configuration loaded: Environment=%s, Port=%s, DB=%s",
 		cfg.Server.Env, cfg.Server.Port, cfg.Database.Path)
