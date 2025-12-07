@@ -2,6 +2,11 @@
 
 All notable changes to fazt.sh will be documented in this file.
 
+## [0.7.1] - 2025-12-07
+
+### Fixed
+- **Seeding**: Fixed `EnsureSystemSites` to recursively seed directories. This ensures that assets in subdirectories (like `static/css`, `static/js`) are correctly copied to the VFS during startup, fixing 404 errors on the Admin Dashboard.
+
 ## [0.7.0] - 2025-12-07
 
 ### Added

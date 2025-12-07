@@ -3,6 +3,7 @@ package hosting
 import (
 	"database/sql"
 	"fmt"
+	iofs "io/fs"
 	"mime"
 	"path/filepath"
 	"regexp"
@@ -47,41 +48,52 @@ func EnsureSystemSites() error {
 
 	for siteID, assetDir := range sites {
 		// Check if site exists (simple check for index.html)
-		// We use fs.Exists directly to avoid overhead/ambiguity of SiteExists
 		exists, _ := fs.Exists(siteID, "index.html")
 		if !exists {
-			// Seed from assets
-			entries, err := assets.SystemFS.ReadDir(assetDir)
-			if err != nil {
-				return fmt.Errorf("failed to read asset dir %s: %w", assetDir, err)
-			}
-
-			for _, entry := range entries {
-				if entry.IsDir() {
-					continue
+			fmt.Printf("Seeding system site: %s\n", siteID)
+			
+			err := iofs.WalkDir(assets.SystemFS, assetDir, func(path string, d iofs.DirEntry, err error) error {
+				if err != nil {
+					return err
+				}
+				if d.IsDir() {
+					return nil
 				}
 
-				path := assetDir + "/" + entry.Name()
+				// Calculate relative path for VFS
+				// assetDir: system/admin
+				// path: system/admin/static/css/custom.css
+				// rel: static/css/custom.css
+				relPath, err := filepath.Rel(assetDir, path)
+				if err != nil {
+					return err
+				}
+				// Ensure forward slashes for VFS
+				relPath = filepath.ToSlash(relPath)
+
 				content, err := assets.SystemFS.Open(path)
 				if err != nil {
 					return fmt.Errorf("failed to open asset %s: %w", path, err)
 				}
+				defer content.Close()
 
-				info, _ := entry.Info()
-				mimeType := mime.TypeByExtension(filepath.Ext(entry.Name()))
+				info, _ := d.Info()
+				mimeType := mime.TypeByExtension(filepath.Ext(path))
 				if mimeType == "" {
 					mimeType = "application/octet-stream"
 				}
 
-				// Write to VFS
-				// Use entry.Name() as path (flat structure for now)
-				if err := fs.WriteFile(siteID, entry.Name(), content, info.Size(), mimeType); err != nil {
-					content.Close()
-					return fmt.Errorf("failed to write asset %s to VFS: %w", entry.Name(), err)
+				if err := fs.WriteFile(siteID, relPath, content, info.Size(), mimeType); err != nil {
+					return fmt.Errorf("failed to write asset %s to VFS: %w", relPath, err)
 				}
-				content.Close()
+				
+				return nil
+			})
+
+			if err != nil {
+				return fmt.Errorf("failed to seed site %s: %w", siteID, err)
 			}
-			// Log to stdout so user knows
+			
 			fmt.Printf("✓ Seeded system site: %s\n", siteID)
 		}
 	}
