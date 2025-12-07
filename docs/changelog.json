@@ -1,5 +1,11 @@
 [
     {
+        "version": "v0.6.4",
+        "title": "Production SSL",
+        "description": "Installer now correctly requests production SSL certificates.",
+        "created_at": "2025-12-07"
+    },
+    {
         "version": "v0.6.3",
         "title": "Service Startup Fix",
         "description": "Fixed 'auth username required' crash when running as systemd service.",

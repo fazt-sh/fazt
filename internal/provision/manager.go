@@ -126,6 +126,7 @@ func RunInstall(opts InstallOptions) error {
 	if opts.HTTPS {
 		configs["https.enabled"] = "true"
 		configs["https.email"] = opts.Email
+		configs["https.staging"] = "false"
 	}
 
 	for k, v := range configs {

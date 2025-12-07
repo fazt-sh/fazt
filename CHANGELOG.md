@@ -2,6 +2,11 @@
 
 All notable changes to fazt.sh will be documented in this file.
 
+## [0.6.4] - 2025-12-07
+
+### Fixed
+- **Install**: Fixed HTTPS configuration to use production Let's Encrypt certificates by default. Previously, it defaulted to Staging certificates (untrusted by browsers) due to a missing configuration override.
+
 ## [0.6.3] - 2025-12-07
 
 ### Fixed
