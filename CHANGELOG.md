@@ -2,6 +2,11 @@
 
 All notable changes to fazt.sh will be documented in this file.
 
+## [0.6.2] - 2025-12-07
+
+### Fixed
+- **Install**: Fixed `ufw` syntax error by passing arguments correctly to `exec.Command`. This ensures the firewall configuration step works as intended on fresh installs.
+
 ## [0.6.1] - 2025-12-07
 
 ### Fixed

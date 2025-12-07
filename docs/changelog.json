@@ -1,5 +1,11 @@
 [
     {
+        "version": "v0.6.2",
+        "title": "Firewall Config Fix",
+        "description": "Fixed syntax error in UFW command execution during installation.",
+        "created_at": "2025-12-07"
+    },
+    {
         "version": "v0.6.1",
         "title": "Install Stability",
         "description": "Fixed 'text file busy' error during installation on Linux systems.",

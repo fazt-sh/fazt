@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/fazt-sh/fazt/internal/term"
 )
@@ -29,7 +30,8 @@ func ConfigureFirewall() error {
 	}
 
 	for _, rule := range rules {
-		cmd := exec.Command(path, rule)
+		args := strings.Fields(rule)
+		cmd := exec.Command(path, args...)
 		// UFW output can be noisy, so we might want to capture it or silence it
 		// But let's show it for transparency
 		cmd.Stdout = os.Stdout
