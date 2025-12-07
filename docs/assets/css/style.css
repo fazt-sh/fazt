@@ -78,6 +78,8 @@ nav {
     margin-left: 10px;
     -webkit-text-fill-color: initial;
     background: none;
+    display: flex;
+    align-items: center;
 }
 
 .version-tag {
