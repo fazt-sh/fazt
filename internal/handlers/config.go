@@ -1,16 +1,16 @@
 package handlers
 
 import (
-	"encoding/json"
 	"net/http"
 
+	"github.com/fazt-sh/fazt/internal/api"
 	"github.com/fazt-sh/fazt/internal/config"
 )
 
 // ConfigHandler returns the current configuration (sanitized)
 func ConfigHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		api.BadRequest(w, "Method not allowed")
 		return
 	}
 
@@ -37,6 +37,5 @@ func ConfigHandler(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(sanitized)
+	api.Success(w, http.StatusOK, sanitized)
 }
