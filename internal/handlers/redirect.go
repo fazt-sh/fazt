@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/fazt-sh/fazt/internal/analytics"
+	"github.com/fazt-sh/fazt/internal/api"
 	"github.com/fazt-sh/fazt/internal/database"
 )
 
@@ -17,7 +18,7 @@ func RedirectHandler(w http.ResponseWriter, r *http.Request) {
 	slug := strings.TrimSpace(path)
 
 	if slug == "" {
-		http.Error(w, "Invalid redirect slug", http.StatusBadRequest)
+		api.BadRequest(w, "Invalid redirect slug")
 		return
 	}
 
@@ -32,11 +33,11 @@ func RedirectHandler(w http.ResponseWriter, r *http.Request) {
 	`, slug).Scan(&id, &destination, &tags)
 
 	if err == sql.ErrNoRows {
-		http.Error(w, "Redirect not found", http.StatusNotFound)
+		api.NotFound(w, "REDIRECT_NOT_FOUND", "Redirect not found")
 		return
 	} else if err != nil {
 		log.Printf("Error looking up redirect: %v", err)
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		api.InternalError(w, err)
 		return
 	}
 
