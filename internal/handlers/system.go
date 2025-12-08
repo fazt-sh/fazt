@@ -54,25 +54,25 @@ func SystemHealthHandler(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
-	api.JSON(w, http.StatusOK, response, nil)
+	api.Success(w, http.StatusOK, response)
 }
 
 // SystemLimitsHandler returns the resource limits
 func SystemLimitsHandler(w http.ResponseWriter, r *http.Request) {
 	limits := system.GetLimits()
-	api.JSON(w, http.StatusOK, limits, nil)
+	api.Success(w, http.StatusOK, limits)
 }
 
 // SystemCacheHandler returns VFS cache statistics
 func SystemCacheHandler(w http.ResponseWriter, r *http.Request) {
 	stats := hosting.GetStats()
-	api.JSON(w, http.StatusOK, stats, nil)
+	api.Success(w, http.StatusOK, stats)
 }
 
 // SystemDBHandler returns database statistics
 func SystemDBHandler(w http.ResponseWriter, r *http.Request) {
 	stats := database.GetDBStats()
-	api.JSON(w, http.StatusOK, stats, nil)
+	api.Success(w, http.StatusOK, stats)
 }
 
 // SystemConfigHandler returns the server configuration (sanitized)
@@ -86,5 +86,5 @@ func SystemConfigHandler(w http.ResponseWriter, r *http.Request) {
 		"https":   cfg.HTTPS.Enabled,
 		"ntfy":    cfg.Ntfy.URL != "",
 	}
-	api.JSON(w, http.StatusOK, safeCfg, nil)
+	api.Success(w, http.StatusOK, safeCfg)
 }
