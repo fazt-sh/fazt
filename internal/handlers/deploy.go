@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/fazt-sh/fazt/internal/api"
 	"github.com/fazt-sh/fazt/internal/auth"
 	"github.com/fazt-sh/fazt/internal/config"
 	"github.com/fazt-sh/fazt/internal/database"
@@ -21,7 +22,7 @@ import (
 // - Authorization: Bearer <token> header required
 func DeployHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		api.BadRequest(w, "Method not allowed")
 		return
 	}
 
@@ -32,40 +33,40 @@ func DeployHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	limiter := auth.GetDeployLimiter()
 	if !limiter.AllowDeploy(clientIP) {
-		jsonError(w, "Rate limit exceeded: max 5 deploys per minute", http.StatusTooManyRequests)
+		api.RateLimitExceeded(w, "Rate limit exceeded: max 5 deploys per minute")
 		return
 	}
 
 	// Validate API key
 	authHeader := r.Header.Get("Authorization")
 	if authHeader == "" {
-		jsonError(w, "Missing Authorization header", http.StatusUnauthorized)
+		api.Unauthorized(w, "Missing Authorization header")
 		return
 	}
 
 	token := strings.TrimPrefix(authHeader, "Bearer ")
 	if token == authHeader {
-		jsonError(w, "Invalid Authorization format, use: Bearer <token>", http.StatusUnauthorized)
+		api.Unauthorized(w, "Invalid Authorization format, use: Bearer <token>")
 		return
 	}
 
 	db := database.GetDB()
 	keyID, keyName, err := hosting.ValidateAPIKey(db, token)
 	if err != nil {
-		jsonError(w, "Invalid API key", http.StatusUnauthorized)
+		api.InvalidAPIKey(w)
 		return
 	}
 
 	// Parse multipart form (max 100MB)
 	if err := r.ParseMultipartForm(100 << 20); err != nil {
-		jsonError(w, "Failed to parse form: "+err.Error(), http.StatusBadRequest)
+		api.BadRequest(w, "Failed to parse form: "+err.Error())
 		return
 	}
 
 	// Get site name
 	siteName := r.FormValue("site_name")
 	if siteName == "" {
-		jsonError(w, "Missing site_name field", http.StatusBadRequest)
+		api.BadRequest(w, "Missing site_name field")
 		return
 	}
 
@@ -85,21 +86,21 @@ func DeployHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Validate site name
 	if err := hosting.ValidateSubdomain(siteName); err != nil {
-		jsonError(w, "Invalid site_name: "+err.Error(), http.StatusBadRequest)
+		api.BadRequest(w, "Invalid site_name: "+err.Error())
 		return
 	}
 
 	// Get uploaded file
 	file, header, err := r.FormFile("file")
 	if err != nil {
-		jsonError(w, "Missing or invalid file", http.StatusBadRequest)
+		api.BadRequest(w, "Missing or invalid file")
 		return
 	}
 	defer file.Close()
 
 	// Verify it's a ZIP file
 	if !strings.HasSuffix(strings.ToLower(header.Filename), ".zip") {
-		jsonError(w, "File must be a ZIP archive", http.StatusBadRequest)
+		api.BadRequest(w, "File must be a ZIP archive")
 		return
 	}
 
@@ -107,21 +108,21 @@ func DeployHandler(w http.ResponseWriter, r *http.Request) {
 	var buf bytes.Buffer
 	size, err := io.Copy(&buf, file)
 	if err != nil {
-		jsonError(w, "Failed to read file: "+err.Error(), http.StatusInternalServerError)
+		api.InternalError(w, err)
 		return
 	}
 
 	// Create zip reader
 	zipReader, err := zip.NewReader(bytes.NewReader(buf.Bytes()), size)
 	if err != nil {
-		jsonError(w, "Invalid ZIP file: "+err.Error(), http.StatusBadRequest)
+		api.BadRequest(w, "Invalid ZIP file: "+err.Error())
 		return
 	}
 
 	// Deploy the site
 	result, err := hosting.DeploySite(zipReader, siteName)
 	if err != nil {
-		jsonError(w, "Deployment failed: "+err.Error(), http.StatusInternalServerError)
+		api.InternalError(w, err)
 		return
 	}
 
@@ -138,9 +139,7 @@ func DeployHandler(w http.ResponseWriter, r *http.Request) {
 		siteName, keyName, keyID, result.FileCount, result.SizeBytes)
 
 	// Return success response
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"success":    true,
+	api.Success(w, http.StatusOK, map[string]interface{}{
 		"site":       siteName,
 		"file_count": result.FileCount,
 		"size_bytes": result.SizeBytes,
@@ -149,6 +148,8 @@ func DeployHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // jsonError sends a JSON error response
+// Note: This is kept for backward compatibility with other handlers that still use it
+// New code should use api.* helpers instead
 func jsonError(w http.ResponseWriter, message string, status int) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
