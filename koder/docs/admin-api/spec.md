@@ -1,14 +1,23 @@
-# Admin API Specification (v0.7.1 Target)
+# Admin API Specification
 
 **Date**: December 8, 2025
-**Version**: v0.7.1
-**Status**: Approved Target Design
+**Version**: v0.7.2
+**Status**: Current Implementation
 
-This document outlines the RESTful API endpoints for the Fazt Admin Dashboard. 
+This document outlines the RESTful API endpoints for the Fazt Admin Dashboard.
 **Design Goal**: Consistency, Completeness, Observability.
 
 ## Response Standard
-All JSON responses follow this envelope:
+Most JSON responses follow a simple structure:
+```json
+{
+  "success": true,
+  "data": { ... },
+  "message": "optional message"
+}
+```
+
+New endpoints using the standardized API helper follow:
 ```json
 {
   "data": [ ... ] or { ... },
@@ -20,85 +29,104 @@ All JSON responses follow this envelope:
 ## 1. Authentication
 *Session-based for Dashboard, Bearer Token for CLI.*
 
-| Method | Endpoint | Purpose |
-|:---|:---|:---|
-| `POST` | `/api/auth/login` | Login (Returns Session Cookie) |
-| `POST` | `/api/auth/logout` | Destroy Session |
-| `GET` | `/api/auth/me` | Current User Profile |
-| `GET` | `/api/auth/limits` | Rate limits & Lockout status |
+| Method | Endpoint | Purpose | Notes |
+|:---|:---|:---|:---|
+| `POST` | `/api/login` | Login (Returns Session Cookie) | Body: `{username, password, remember_me}` |
+| `POST` | `/api/logout` | Destroy Session | Clears session cookie |
+| `GET` | `/api/auth/status` | Current auth status | Returns `{authenticated, username, expiresAt}` |
+| `GET` | `/api/user/me` | Current User Profile | Returns `{username, version}` |
 
 ## 2. Hosting & Sites
 *Primary Resource: Sites (Subdomains)*
 
-| Method | Endpoint | Purpose |
-|:---|:---|:---|
-| `GET` | `/api/sites` | List all sites (Summary) |
-| `POST` | `/api/sites` | Create/Deploy Site |
-| `GET` | `/api/sites/{id}` | Single Site Details |
-| `DELETE` | `/api/sites/{id}` | Delete Site |
-| **Files** | | |
-| `GET` | `/api/sites/{id}/files` | List Files (Tree) |
-| `GET` | `/api/sites/{id}/files/{path}` | Download File |
-| `PUT` | `/api/sites/{id}/files/{path}` | Upload/Edit File |
-| `DELETE` | `/api/sites/{id}/files/{path}` | Delete File |
-| **Config** | | |
-| `GET` | `/api/sites/{id}/envvars` | List Env Vars |
-| `POST` | `/api/sites/{id}/envvars` | Set Env Var |
-| `DELETE` | `/api/sites/{id}/envvars/{key}`| Remove Env Var |
-| **Ops** | | |
-| `GET` | `/api/sites/{id}/logs` | Runtime Logs |
-| `GET` | `/api/sites/{id}/deployments` | History |
-| `POST` | `/api/sites/{id}/rollback` | Revert Deployment |
+| Method | Endpoint | Purpose | Notes |
+|:---|:---|:---|:---|
+| `GET` | `/api/sites` | List all sites | Returns array of `{Name, FileCount, SizeBytes, ModTime}` |
+| `POST` | `/api/deploy` | Deploy Site via ZIP | Requires Bearer token, multipart with `site_name` and `file` |
+| `GET` | `/api/sites/{id}` | Single Site Details | Returns site info |
+| `DELETE` | `/api/sites?site_id={id}` | Delete Site | Query param: `site_id` |
+| **Files** | | | |
+| `GET` | `/api/sites/{id}/files` | List Files (Tree) | Returns VFS file listing for site |
+| `GET` | `/api/sites/{id}/files/{path...}` | Download File | Wildcard path parameter captures full file path |
+| **Config** | | | |
+| `GET` | `/api/envvars?site_id={id}` | List Env Vars | Query param: `site_id`, returns `{id, name}` (values hidden) |
+| `POST` | `/api/envvars` | Set Env Var | Body: `{site_id, name, value}`. Upserts env var |
+| `DELETE` | `/api/envvars?id={id}` | Remove Env Var | Query param: `id` |
+| **Ops** | | | |
+| `GET` | `/api/logs?site_id={id}&limit={n}` | Site Runtime Logs | Query params: `site_id` (required), `limit` (default 50, max 1000) |
+| `GET` | `/api/deployments` | Deployment History | Returns last 50 deployments across all sites |
 
 ## 3. Analytics & Events
 
-| Method | Endpoint | Purpose |
-|:---|:---|:---|
-| `GET` | `/api/stats` | Global Overview Stats |
-| `GET` | `/api/events` | Raw Event Log |
-| `GET` | `/api/events/export` | CSV/JSON Export |
-| `GET` | `/api/domains` | Active Custom Domains |
+| Method | Endpoint | Purpose | Notes |
+|:---|:---|:---|:---|
+| `GET` | `/api/stats` | Global Overview Stats | Returns events counts, top domains, top tags, timeline |
+| `GET` | `/api/events` | Raw Event Log | Query params: `domain`, `tags`, `source_type`, `limit` (default 50), `offset` (default 0) |
+| `GET` | `/api/domains` | Active Custom Domains | Returns list of domains with event counts |
+| `GET` | `/api/tags` | Tags with usage counts | Returns aggregated tag statistics |
+
+### Tracking Endpoints (Public)
+| Method | Endpoint | Purpose | Notes |
+|:---|:---|:---|:---|
+| `POST` | `/track` | Track analytics event | Body: `{domain?, hostname?, event_type?, path?, referrer?, tags[]}` |
+| `GET` | `/pixel.gif` | Pixel tracking | Query params for event data |
+| `GET` | `/r/{slug}` | Redirect tracking | Redirects to destination, tracks click |
+| `POST` | `/webhook/{endpoint}` | Webhook receiver | Requires webhook to be configured, validates HMAC signature |
 
 ## 4. Traffic Configuration
 
-| Method | Endpoint | Purpose |
-|:---|:---|:---|
-| `GET` | `/api/redirects` | List Redirects |
-| `POST` | `/api/redirects` | Create Redirect |
-| `DELETE` | `/api/redirects/{id}` | Delete Redirect |
-| `GET` | `/api/webhooks` | List Webhooks |
-| `POST` | `/api/webhooks` | Create Webhook |
-| `PUT` | `/api/webhooks/{id}` | Update Webhook |
-| `DELETE` | `/api/webhooks/{id}` | Delete Webhook |
+| Method | Endpoint | Purpose | Notes |
+|:---|:---|:---|:---|
+| `GET` | `/api/redirects` | List Redirects | Returns `{id, slug, destination, tags[], click_count, created_at}` |
+| `POST` | `/api/redirects` | Create Redirect | Body: `{slug, destination, tags[]}` |
+| `DELETE` | `/api/redirects/{id}` | Delete Redirect | Path param: `id` |
+| `GET` | `/api/webhooks` | List Webhooks | Returns `{id, name, endpoint, has_secret, is_active, created_at}` |
+| `POST` | `/api/webhooks` | Create Webhook | Body: `{name, endpoint, secret?}` |
+| `PUT` | `/api/webhooks/{id}` | Update Webhook | Body: `{name?, endpoint?, secret?, is_active?}`, partial update |
+| `DELETE` | `/api/webhooks/{id}` | Delete Webhook | Path param: `id` |
 
 ## 5. System & Observability
-*Critical for Safeguards*
 
-| Method | Endpoint | Purpose |
-|:---|:---|:---|
-| `GET` | `/api/system/health` | Status, Uptime, Version |
-| `GET` | `/api/system/limits` | Resource Thresholds |
-| `GET` | `/api/system/cache` | VFS Cache Stats (Hits/Size) |
-| `GET` | `/api/system/db` | SQLite Stats (Size/WAL) |
-| `GET` | `/api/system/config` | Server Config (Read-Only) |
-| `POST` | `/api/system/maintenance` | Toggle Maintenance Mode |
-| `POST` | `/api/system/vacuum` | Trigger DB Vacuum |
-| `POST` | `/api/system/backup` | Trigger Snapshot |
+| Method | Endpoint | Purpose | Notes |
+|:---|:---|:---|:---|
+| `GET` | `/api/system/health` | System health & metrics | Returns `{status, uptime_seconds, version, mode, memory, database, runtime}` |
+| `GET` | `/api/system/limits` | Resource Thresholds | Returns system resource limits |
+| `GET` | `/api/system/cache` | VFS Cache Stats | Returns VFS cache statistics |
+| `GET` | `/api/system/db` | SQLite Stats | Returns database connection stats |
+| `GET` | `/api/system/config` | Server Config (Sanitized) | Returns `{version, domain, env, https, ntfy}` |
+| `GET` | `/api/config` | Alias for system/config | Same as above |
+| `GET` | `/health` | Simple health check | Returns "OK" if database is healthy |
 
 ## 6. Access Control (API Keys)
 
-| Method | Endpoint | Purpose |
-|:---|:---|:---|
-| `GET` | `/api/keys` | List Deployment Keys |
-| `POST` | `/api/keys` | Generate New Key |
-| `DELETE` | `/api/keys/{id}` | Revoke Key |
-| `POST` | `/api/keys/{id}/rotate` | Rotate Key Secret |
+| Method | Endpoint | Purpose | Notes |
+|:---|:---|:---|:---|
+| `GET` | `/api/keys` | List Deployment Keys | Returns list of API keys (tokens hidden) |
+| `POST` | `/api/keys` | Generate New Key | Body: `{name, scopes?}`. Returns token (shown once only!) |
+| `DELETE` | `/api/keys?id={id}` | Revoke Key | Query param: `id` |
 
 ---
 
-## Migration Plan
+## Implementation Notes
 
-1.  **Phase 1 (Non-Breaking)**: Implement new `api/system/*` and `/api/sites/{id}` endpoints.
-2.  **Phase 2 (Frontend)**: Rebuild Admin SPA to use new endpoints.
-3.  **Phase 3 (Legacy)**: Maintain support for CLI-used endpoints (`/api/deploy`, `/api/logs?site_id=...`).
-4.  **Phase 4 (Cleanup)**: Remove deprecated endpoints in v0.9.0.
+### Authentication
+- Session-based authentication for Dashboard (cookie: `session_id`)
+- Bearer token authentication for CLI/API clients (`Authorization: Bearer <token>`)
+- Rate limiting: 5 failed login attempts trigger 15-minute lockout per IP
+- Rate limiting: 5 deploys per minute per IP
+
+### Environment Variables
+- Must be uppercase letters, numbers, and underscores
+- Must start with a letter
+- Max 128 characters
+- Reserved system variables cannot be overridden: `PATH`, `HOME`, `USER`, `NODE_OPTIONS`, etc.
+
+### File Uploads
+- Deploy: Max 100MB ZIP file
+- Tracking: Max 10KB body size
+- Webhook: Max 10KB body size
+
+### Pagination
+- Events endpoint: Default `limit=50`, supports `offset` parameter
+- Logs endpoint: Default `limit=50`, max `limit=1000`
+- Deployments: Fixed at last 50 entries
