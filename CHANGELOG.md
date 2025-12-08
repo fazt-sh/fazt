@@ -2,6 +2,43 @@
 
 All notable changes to fazt.sh will be documented in this file.
 
+## [0.7.2] - 2025-12-08
+
+### Added
+- **Analytics Buffering**: RAM-based event buffering system to prevent database write storms (`internal/analytics/buffer.go`)
+- **System Observability API**: New endpoints for monitoring and resource awareness
+  - `GET /api/system/health` - Server status, uptime, version, memory, database stats
+  - `GET /api/system/limits` - Resource thresholds (RAM, VFS cache, upload limits)
+  - `GET /api/system/cache` - VFS cache statistics (hits, misses, size)
+  - `GET /api/system/db` - Database connection statistics
+  - `GET /api/system/config` - Server configuration (sanitized)
+- **Site Management API**: New endpoints for detailed site operations
+  - `GET /api/sites/{id}` - Get single site details
+  - `GET /api/sites/{id}/files` - List files in tree format
+  - `GET /api/sites/{id}/files/{path}` - Download/view specific file content
+- **Traffic Configuration API**: Complete CRUD operations
+  - `DELETE /api/redirects/{id}` - Delete a redirect
+  - `DELETE /api/webhooks/{id}` - Delete a webhook
+  - `PUT /api/webhooks/{id}` - Update webhook (name, endpoint, secret, active status)
+- **Response Standardization**: New `internal/api/response.go` package with standard envelope format `{data, meta, error}`
+- **Resource Awareness**: New `internal/system/probe.go` detects container/host RAM limits via cgroup v1/v2
+- **Test Coverage**: Comprehensive tests for analytics buffer and system probe (16 tests total)
+
+### Changed
+- **Authentication**: Fixed middleware to accept Bearer tokens for API access (was blocking CLI deployments)
+- **Handler Migration**: Updated 6 handlers to use new standardized response envelope:
+  - SitesHandler, SystemHealthHandler, SystemLimitsHandler, SystemCacheHandler, SystemDBHandler, SystemConfigHandler
+- **Event Tracking**: Updated PixelHandler, TrackHandler, RedirectHandler, WebhookHandler to use analytics buffer
+
+### Fixed
+- Bearer token authentication now works correctly for CLI/API clients
+- Analytics events no longer cause DB write contention under high load
+
+### Documentation
+- Added `koder/analysis/implementation-review.md` - Implementation status analysis
+- Updated `CLAUDE.md` with server stability testing guidance
+- Updated `.gitignore` for build artifacts (*.pid, cookies.txt)
+
 ## [0.7.1] - 2025-12-07
 
 ### Fixed
