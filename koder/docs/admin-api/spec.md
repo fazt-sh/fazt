@@ -1,5 +1,8 @@
 # Admin API Specification
 
+> **⚠️ IMPLEMENTATION NOTICE**
+> This spec describes the *intended* design. For the **actual, current behavior** of the API (including inconsistencies), refer to **[request-response.md](./request-response.md)** which contains real captured payloads. Use that file as the "Ground Truth" for client implementation until this spec and the code are reconciled.
+
 **Date**: December 8, 2025
 **Version**: v0.7.2
 **Status**: Current Implementation
