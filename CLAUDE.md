@@ -59,6 +59,7 @@ When testing if the server runs without crashing:
 *   `internal/hosting/`: VFS, Deploy, CertMagic.
 *   `internal/database/`: Migrations, Query logic.
 *   `install.sh`: The "curl | bash" installer.
+*   `koder/docs/admin-api/request-response.md`: **Ground Truth** API documentation (Real request/response examples).
 
 ## 🛠️ Environment
 *   **Git**: Container has credentials. Can commit & push to `origin/master`.

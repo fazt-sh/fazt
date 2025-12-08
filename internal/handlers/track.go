@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/fazt-sh/fazt/internal/analytics"
+	"github.com/fazt-sh/fazt/internal/api"
 	"github.com/fazt-sh/fazt/internal/models"
 )
 
@@ -16,7 +17,7 @@ const maxBodySize = 10 * 1024 // 10KB
 // TrackHandler handles tracking requests
 func TrackHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		api.BadRequest(w, "Method not allowed")
 		return
 	}
 
@@ -27,7 +28,7 @@ func TrackHandler(w http.ResponseWriter, r *http.Request) {
 	var req models.TrackRequest
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(&req); err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		api.InvalidJSON(w, "Invalid JSON")
 		return
 	}
 

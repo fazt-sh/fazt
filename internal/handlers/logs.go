@@ -1,23 +1,23 @@
 package handlers
 
 import (
-	"encoding/json"
 	"net/http"
 	"strconv"
 
+	"github.com/fazt-sh/fazt/internal/api"
 	"github.com/fazt-sh/fazt/internal/database"
 )
 
 // LogsHandler returns logs for a specific site
 func LogsHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		api.BadRequest(w, "Method not allowed")
 		return
 	}
 
 	siteID := r.URL.Query().Get("site_id")
 	if siteID == "" {
-		jsonError(w, "site_id required", http.StatusBadRequest)
+		api.BadRequest(w, "site_id required")
 		return
 	}
 
@@ -38,7 +38,7 @@ func LogsHandler(w http.ResponseWriter, r *http.Request) {
 		LIMIT ?
 	`, siteID, limit)
 	if err != nil {
-		jsonError(w, err.Error(), http.StatusInternalServerError)
+		api.InternalError(w, err)
 		return
 	}
 	defer rows.Close()
@@ -58,9 +58,7 @@ func LogsHandler(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"success": true,
-		"logs":    logs,
+	api.Success(w, http.StatusOK, map[string]interface{}{
+		"logs": logs,
 	})
 }

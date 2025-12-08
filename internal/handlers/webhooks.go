@@ -34,11 +34,11 @@ func DeleteWebhookHandler(w http.ResponseWriter, r *http.Request) {
 
 	rowsAffected, _ := result.RowsAffected()
 	if rowsAffected == 0 {
-		api.NotFound(w, "Webhook not found")
+		api.NotFound(w, "WEBHOOK_NOT_FOUND", "Webhook not found")
 		return
 	}
 
-	api.JSON(w, http.StatusOK, map[string]string{"message": "Webhook deleted"}, nil)
+	api.Success(w, http.StatusOK, map[string]string{"message": "Webhook deleted"})
 }
 
 // UpdateWebhookHandler handles PUT /api/webhooks/{id}
@@ -76,7 +76,7 @@ func UpdateWebhookHandler(w http.ResponseWriter, r *http.Request) {
 	var exists int
 	err = db.QueryRow("SELECT COUNT(*) FROM webhooks WHERE id = ?", id).Scan(&exists)
 	if err != nil || exists == 0 {
-		api.NotFound(w, "Webhook not found")
+		api.NotFound(w, "WEBHOOK_NOT_FOUND", "Webhook not found")
 		return
 	}
 
@@ -144,5 +144,5 @@ func UpdateWebhookHandler(w http.ResponseWriter, r *http.Request) {
 		"is_active":  isActive,
 	}
 
-	api.JSON(w, http.StatusOK, result, nil)
+	api.Success(w, http.StatusOK, result)
 }

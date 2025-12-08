@@ -35,11 +35,11 @@ func SiteDetailHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if site == nil {
-		api.NotFound(w, "Site not found")
+		api.NotFound(w, "SITE_NOT_FOUND", "Site not found")
 		return
 	}
 
-	api.JSON(w, http.StatusOK, site, nil)
+	api.Success(w, http.StatusOK, site)
 }
 
 // SiteFilesHandler returns the file tree for a site
@@ -51,7 +51,7 @@ func SiteFilesHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !hosting.SiteExists(siteID) {
-		api.NotFound(w, "Site not found")
+		api.NotFound(w, "SITE_NOT_FOUND", "Site not found")
 		return
 	}
 
@@ -62,7 +62,7 @@ func SiteFilesHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	api.JSON(w, http.StatusOK, files, nil)
+	api.Success(w, http.StatusOK, files)
 }
 
 // SiteFileContentHandler returns the content of a file
@@ -81,7 +81,7 @@ func SiteFileContentHandler(w http.ResponseWriter, r *http.Request) {
 	fs := hosting.GetFileSystem()
 	file, err := fs.ReadFile(siteID, filePath)
 	if err != nil {
-		api.NotFound(w, "File not found")
+		api.NotFound(w, "FILE_NOT_FOUND", "File not found")
 		return
 	}
 	defer file.Content.Close()

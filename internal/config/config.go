@@ -310,6 +310,11 @@ func Get() *Config {
 	return appConfig
 }
 
+// SetConfig sets the application configuration (primarily for testing)
+func SetConfig(cfg *Config) {
+	appConfig = cfg
+}
+
 // IsDevelopment returns true if running in development mode
 func (c *Config) IsDevelopment() bool {
 	return c.Server.Env == "development"

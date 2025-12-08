@@ -12,13 +12,14 @@ import (
 	"strings"
 
 	"github.com/fazt-sh/fazt/internal/analytics"
+	"github.com/fazt-sh/fazt/internal/api"
 	"github.com/fazt-sh/fazt/internal/database"
 )
 
 // WebhookHandler handles incoming webhooks
 func WebhookHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		api.BadRequest(w, "Method not allowed")
 		return
 	}
 
@@ -27,7 +28,7 @@ func WebhookHandler(w http.ResponseWriter, r *http.Request) {
 	endpoint := strings.TrimSpace(path)
 
 	if endpoint == "" {
-		http.Error(w, "Invalid webhook endpoint", http.StatusBadRequest)
+		api.BadRequest(w, "Invalid webhook endpoint")
 		return
 	}
 
@@ -43,24 +44,24 @@ func WebhookHandler(w http.ResponseWriter, r *http.Request) {
 	`, endpoint).Scan(&webhookID, &name, &secret, &isActive)
 
 	if err == sql.ErrNoRows {
-		http.Error(w, "Webhook endpoint not found", http.StatusNotFound)
+		api.NotFound(w, "WEBHOOK_NOT_FOUND", "Webhook endpoint not found")
 		return
 	} else if err != nil {
 		log.Printf("Error looking up webhook: %v", err)
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		api.InternalError(w, err)
 		return
 	}
 
 	// Check if webhook is active
 	if !isActive {
-		http.Error(w, "Webhook is disabled", http.StatusForbidden)
+		api.Unauthorized(w, "Webhook is disabled")
 		return
 	}
 
 	// Read body
 	body, err := io.ReadAll(io.LimitReader(r.Body, maxBodySize))
 	if err != nil {
-		http.Error(w, "Failed to read body", http.StatusBadRequest)
+		api.BadRequest(w, "Failed to read body")
 		return
 	}
 
@@ -68,12 +69,12 @@ func WebhookHandler(w http.ResponseWriter, r *http.Request) {
 	if secret != "" {
 		signature := r.Header.Get("X-Webhook-Signature")
 		if signature == "" {
-			http.Error(w, "Missing signature", http.StatusUnauthorized)
+			api.Unauthorized(w, "Missing signature")
 			return
 		}
 
 		if !verifySignature(body, secret, signature) {
-			http.Error(w, "Invalid signature", http.StatusUnauthorized)
+			api.Unauthorized(w, "Invalid signature")
 			return
 		}
 	}
@@ -115,10 +116,7 @@ func WebhookHandler(w http.ResponseWriter, r *http.Request) {
 	})
 
 	// Return success response
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"status":  "success",
+	api.Success(w, http.StatusOK, map[string]interface{}{
 		"message": "Webhook received",
 		"webhook": name,
 	})
