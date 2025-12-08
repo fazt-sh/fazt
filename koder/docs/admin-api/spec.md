@@ -1,244 +1,104 @@
-# Admin API Specification (v0.7.0)
+# Admin API Specification (v0.7.1 Target)
 
-**Date**: December 08, 2025
-**Version**: v0.7.0
-**Status**: Draft
+**Date**: December 8, 2025
+**Version**: v0.7.1
+**Status**: Approved Target Design
 
-This document outlines the API endpoints required for the Fazt Admin Dashboard (Single Page Application). The dashboard allows users to manage sites, view analytics, and configure the system.
+This document outlines the RESTful API endpoints for the Fazt Admin Dashboard. 
+**Design Goal**: Consistency, Completeness, Observability.
 
-## Authentication
-The Admin Dashboard uses **Session-based Authentication** via HTTP Cookies.
-- **Login**: `POST /api/login`
-- **Logout**: `POST /api/logout`
-- **Session Check**: `GET /api/auth/status` (or `GET /api/user/me`)
+## Response Standard
+All JSON responses follow this envelope:
+```json
+{
+  "data": [ ... ] or { ... },
+  "meta": { "total": 100, "limit": 50, "offset": 0 }, // Optional
+  "error": null // or { "code": "ERR", "message": "..." }
+}
+```
 
-*Note: Deployment tools (CLI) use Bearer Tokens, but the Admin SPA primarily uses Cookies.*
+## 1. Authentication
+*Session-based for Dashboard, Bearer Token for CLI.*
 
----
+| Method | Endpoint | Purpose |
+|:---|:---|:---|
+| `POST` | `/api/auth/login` | Login (Returns Session Cookie) |
+| `POST` | `/api/auth/logout` | Destroy Session |
+| `GET` | `/api/auth/me` | Current User Profile |
+| `GET` | `/api/auth/limits` | Rate limits & Lockout status |
 
-## 1. Authentication & User
+## 2. Hosting & Sites
+*Primary Resource: Sites (Subdomains)*
 
-### Login
-`POST /api/login`
-Authenticates the user and sets a session cookie.
-- **Request**:
-  ```json
-  {
-    "username": "admin",
-    "password": "secret_password"
-  }
-  ```
-- **Response** (200 OK):
-  ```json
-  {
-    "success": true,
-    "user": { "username": "admin", "role": "admin" }
-  }
-  ```
+| Method | Endpoint | Purpose |
+|:---|:---|:---|
+| `GET` | `/api/sites` | List all sites (Summary) |
+| `POST` | `/api/sites` | Create/Deploy Site |
+| `GET` | `/api/sites/{id}` | Single Site Details |
+| `DELETE` | `/api/sites/{id}` | Delete Site |
+| **Files** | | |
+| `GET` | `/api/sites/{id}/files` | List Files (Tree) |
+| `GET` | `/api/sites/{id}/files/{path}` | Download File |
+| `PUT` | `/api/sites/{id}/files/{path}` | Upload/Edit File |
+| `DELETE` | `/api/sites/{id}/files/{path}` | Delete File |
+| **Config** | | |
+| `GET` | `/api/sites/{id}/envvars` | List Env Vars |
+| `POST` | `/api/sites/{id}/envvars` | Set Env Var |
+| `DELETE` | `/api/sites/{id}/envvars/{key}`| Remove Env Var |
+| **Ops** | | |
+| `GET` | `/api/sites/{id}/logs` | Runtime Logs |
+| `GET` | `/api/sites/{id}/deployments` | History |
+| `POST` | `/api/sites/{id}/rollback` | Revert Deployment |
 
-### Logout
-`POST /api/logout`
-Destroys the current session.
-- **Response** (200 OK): `{"success": true}`
+## 3. Analytics & Events
 
-### Get Current User
-`GET /api/user/me`
-Returns the currently authenticated user's profile.
-- **Response** (200 OK):
-  ```json
-  {
-    "username": "admin",
-    "authenticated": true
-  }
-  ```
-- **Response** (401 Unauthorized): `{"authenticated": false}`
+| Method | Endpoint | Purpose |
+|:---|:---|:---|
+| `GET` | `/api/stats` | Global Overview Stats |
+| `GET` | `/api/events` | Raw Event Log |
+| `GET` | `/api/events/export` | CSV/JSON Export |
+| `GET` | `/api/domains` | Active Custom Domains |
 
----
+## 4. Traffic Configuration
 
-## 2. Dashboard Analytics (Home)
+| Method | Endpoint | Purpose |
+|:---|:---|:---|
+| `GET` | `/api/redirects` | List Redirects |
+| `POST` | `/api/redirects` | Create Redirect |
+| `DELETE` | `/api/redirects/{id}` | Delete Redirect |
+| `GET` | `/api/webhooks` | List Webhooks |
+| `POST` | `/api/webhooks` | Create Webhook |
+| `PUT` | `/api/webhooks/{id}` | Update Webhook |
+| `DELETE` | `/api/webhooks/{id}` | Delete Webhook |
 
-### Global Stats
-`GET /api/stats`
-Returns high-level metrics for the dashboard overview.
-- **Query Params**: `range` (24h, 7d, 30d)
-- **Response**:
-  ```json
-  {
-    "total_visits": 1250,
-    "unique_visitors": 800,
-    "active_sites": 5,
-    "total_events": 5000,
-    "recent_activity": [...]
-  }
-  ```
+## 5. System & Observability
+*Critical for Safeguards*
 
-### Events Log
-`GET /api/events`
-Returns raw event logs for the activity feed.
-- **Query Params**: `limit` (default 50), `offset`
-- **Response**:
-  ```json
-  {
-    "events": [
-      {
-        "id": 1,
-        "type": "pageview",
-        "domain": "blog",
-        "path": "/hello",
-        "timestamp": "2023-10-27T10:00:00Z"
-      }
-    ]
-  }
-  ```
+| Method | Endpoint | Purpose |
+|:---|:---|:---|
+| `GET` | `/api/system/health` | Status, Uptime, Version |
+| `GET` | `/api/system/limits` | Resource Thresholds |
+| `GET` | `/api/system/cache` | VFS Cache Stats (Hits/Size) |
+| `GET` | `/api/system/db` | SQLite Stats (Size/WAL) |
+| `GET` | `/api/system/config` | Server Config (Read-Only) |
+| `POST` | `/api/system/maintenance` | Toggle Maintenance Mode |
+| `POST` | `/api/system/vacuum` | Trigger DB Vacuum |
+| `POST` | `/api/system/backup` | Trigger Snapshot |
 
----
+## 6. Access Control (API Keys)
 
-## 3. Hosting & Sites
-
-### List Sites
-`GET /api/sites`
-Returns a summary of all deployed sites.
-- **Response**:
-  ```json
-  {
-    "success": true,
-    "sites": [
-      {
-        "Name": "blog",
-        "FileCount": 12,
-        "SizeBytes": 102400,
-        "ModTime": "2023-10-27T10:00:00Z",
-        "Url": "https://blog.fazt.sh"
-      }
-    ]
-  }
-  ```
-
-### Delete Site
-`DELETE /api/sites?site_id={subdomain}`
-Permanently deletes a site and its files.
-- **Response**: `{"success": true}`
-
-### Get Site Deployments
-`GET /api/deployments?site_id={subdomain}`
-Returns history of deployments for a specific site.
-- **Response**:
-  ```json
-  {
-    "deployments": [
-      {
-        "id": "dep_123",
-        "created_at": "...",
-        "file_count": 5
-      }
-    ]
-  }
-  ```
-
-### Get Site Logs
-`GET /api/logs?site_id={subdomain}`
-Returns console/runtime logs for a specific site.
-- **Query Params**: `limit` (default 100)
-- **Response**:
-  ```json
-  {
-    "success": true,
-    "logs": [
-      {
-        "level": "INFO",
-        "message": "Function executed",
-        "created_at": "..."
-      }
-    ]
-  }
-  ```
+| Method | Endpoint | Purpose |
+|:---|:---|:---|
+| `GET` | `/api/keys` | List Deployment Keys |
+| `POST` | `/api/keys` | Generate New Key |
+| `DELETE` | `/api/keys/{id}` | Revoke Key |
+| `POST` | `/api/keys/{id}/rotate` | Rotate Key Secret |
 
 ---
 
-## 4. Configuration & Secrets
+## Migration Plan
 
-### System Config (Read-Only)
-`GET /api/config`
-Returns sanitized server configuration (version, domain, environment).
-- **Response**:
-  ```json
-  {
-    "version": "v0.7.0",
-    "domain": "fazt.sh",
-    "environment": "production",
-    "features": { "https": true, "registration": false }
-  }
-  ```
-
-### API Keys (Deployment Tokens)
-`GET /api/keys`
-Lists active API keys.
-- **Response**:
-  ```json
-  {
-    "keys": [
-      { "name": "deployment-token", "prefix": "fz_...", "created_at": "..." }
-    ]
-  }
-  ```
-
-`POST /api/keys`
-Generates a new API key.
-- **Request**: `{"name": "CI Token"}`
-- **Response**: `{"token": "fz_full_token_string"}`
-
-`DELETE /api/keys?name={name}`
-Revokes an API key.
-
-### Environment Variables
-`GET /api/envvars?site_id={subdomain}`
-Lists environment variables for a site (values masked).
-
-`POST /api/envvars`
-Sets a variable for a site.
-- **Request**: `{"site_id": "blog", "key": "API_URL", "value": "..."}`
-
----
-
-## 5. Tracking & Webhooks
-
-### List Redirects
-`GET /api/redirects`
-Returns all configured shortlinks (`/r/xyz`).
-
-### List Webhooks
-`GET /api/webhooks`
-Returns configured inbound webhooks.
-
----
-
-## ⚠️ Missing / Gap Analysis
-
-The current API is sufficient for **Reading** state but lacks crucial **Management** features for a full Admin Panel:
-
-1.  **User Management**:
-    - `POST /api/users` (Create User) - *Missing*
-    - `PUT /api/users/{id}` (Update Password) - *Missing*
-    - *Impact*: Currently limited to single-user (admin) defined at init.
-
-2.  **File Manager**:
-    - `GET /api/files?site_id={id}&path={path}` - *Missing*
-    - `PUT /api/files` (Upload single file) - *Missing*
-    - `DELETE /api/files` - *Missing*
-    - *Impact*: Admin cannot edit/fix site files directly; must re-deploy via CLI.
-
-3.  **System Health**:
-    - `GET /api/system/health` (CPU/RAM usage) - *Existing /health is too basic*
-    - *Impact*: No visibility into resource usage (critical for v0.7.0 safeguards).
-
-4.  **Database Ops**:
-    - `POST /api/system/backup` - *Missing*
-    - `POST /api/system/vacuum` - *Missing*
-
-## Recommended Sidebar Structure
-
-1.  **Overview** (Stats, Recent Activity)
-2.  **Sites** (List, Details, Logs, Env Vars)
-3.  **Deployments** (History, API Keys)
-4.  **Tracking** (Redirects, Webhooks, Pixels)
-5.  **Settings** (User Profile, System Config)
+1.  **Phase 1 (Non-Breaking)**: Implement new `api/system/*` and `/api/sites/{id}` endpoints.
+2.  **Phase 2 (Frontend)**: Rebuild Admin SPA to use new endpoints.
+3.  **Phase 3 (Legacy)**: Maintain support for CLI-used endpoints (`/api/deploy`, `/api/logs?site_id=...`).
+4.  **Phase 4 (Cleanup)**: Remove deprecated endpoints in v0.9.0.

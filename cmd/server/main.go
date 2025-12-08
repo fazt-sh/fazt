@@ -22,6 +22,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/fazt-sh/fazt/internal/analytics"
 	"github.com/fazt-sh/fazt/internal/audit"
 	"github.com/fazt-sh/fazt/internal/auth"
 	"github.com/fazt-sh/fazt/internal/config"
@@ -36,8 +37,6 @@ import (
 	_ "modernc.org/sqlite"
 	"github.com/caddyserver/certmagic"
 )
-
-var Version = "dev"
 
 var (
 	showVersion = flag.Bool("version", false, "Show version and exit")
@@ -450,7 +449,7 @@ func (rw *responseWriter) WriteHeader(code int) {
 
 // printVersion displays version information
 func printVersion() {
-	fmt.Printf("fazt.sh %s\n", Version)
+	fmt.Printf("fazt.sh %s\n", config.Version)
 	fmt.Printf("Go version: %s\n", runtime.Version())
 	fmt.Printf("OS/Arch: %s/%s\n", runtime.GOOS, runtime.GOARCH)
 }
@@ -651,27 +650,16 @@ func siteHandler(w http.ResponseWriter, r *http.Request, subdomain string) {
 
 // logSiteVisit logs an analytics event for a site visit
 func logSiteVisit(r *http.Request, subdomain string) {
-	db := database.GetDB()
-	if db == nil {
-		return
-	}
-
-	// Insert event into database
-	_, err := db.Exec(`
-		INSERT INTO events (domain, source_type, event_type, path, referrer, user_agent, ip_address, query_params)
-		VALUES (?, 'hosting', 'pageview', ?, ?, ?, ?, ?)
-	`,
-		subdomain,
-		r.URL.Path,
-		r.Referer(),
-		r.UserAgent(),
-		r.RemoteAddr,
-		r.URL.RawQuery,
-	)
-
-	if err != nil {
-		log.Printf("Failed to log site visit: %v", err)
-	}
+	analytics.Add(analytics.Event{
+		Domain:      subdomain,
+		SourceType:  "hosting",
+		EventType:   "pageview",
+		Path:        r.URL.Path,
+		Referrer:    r.Referer(),
+		UserAgent:   r.UserAgent(),
+		IPAddress:   r.RemoteAddr,
+		QueryParams: r.URL.RawQuery,
+	})
 }
 
 // serveSiteNotFound renders the 404 page for non-existent sites
@@ -1283,21 +1271,38 @@ func handleLogsCommand() {
 		os.Exit(1)
 	}
 
-	// Load config to get API key
-	flagsConfig := config.ParseFlags()
-	cfg, err := config.Load(flagsConfig)
-	if err != nil {
-		fmt.Printf("Error loading config: %v\n", err)
-		os.Exit(1)
+	// Resolve DB Path
+	dbPath := "./data.db"
+	if envPath := os.Getenv("FAZT_DB_PATH"); envPath != "" {
+		dbPath = envPath
 	}
 
-	token := cfg.GetAPIKey()
+	// Initialize DB to get token
+	if err := database.Init(dbPath); err != nil {
+		fmt.Printf("Error: Failed to init database at %s: %v\n", dbPath, err)
+		os.Exit(1)
+	}
+	defer database.Close()
+
+	store := config.NewDBConfigStore(database.GetDB())
+	dbMap, _ := store.Load()
+	token := dbMap["api_key.token"]
+
 	if token == "" {
 		fmt.Println("Error: No API key found in config")
 		os.Exit(1)
 	}
 
-	url := fmt.Sprintf("%s/api/logs?site_id=%s&limit=%d", *server, *site, *limit)
+	// Resolve Server URL
+	serverURL := "http://localhost:4698"
+	if dbURL, ok := dbMap["client.server_url"]; ok && dbURL != "" {
+		serverURL = dbURL
+	}
+	if *server != "http://localhost:4698" {
+		serverURL = *server
+	}
+
+	url := fmt.Sprintf("%s/api/logs?site_id=%s&limit=%d", serverURL, *site, *limit)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		fmt.Printf("Error creating request: %v\n", err)
@@ -1356,21 +1361,41 @@ func handleSitesCommand() {
 		os.Exit(1)
 	}
 
-	// Load config to get API key
-	flagsConfig := config.ParseFlags()
-	cfg, err := config.Load(flagsConfig)
-	if err != nil {
-		fmt.Printf("Error loading config: %v\n", err)
-		os.Exit(1)
+	// Resolve DB Path
+	dbPath := "./data.db"
+	if envPath := os.Getenv("FAZT_DB_PATH"); envPath != "" {
+		dbPath = envPath
 	}
 
-	token := cfg.GetAPIKey()
+	// Initialize DB to get token
+	if err := database.Init(dbPath); err != nil {
+		fmt.Printf("Error: Failed to init database at %s: %v\n", dbPath, err)
+		fmt.Println("Run 'fazt client set-auth-token' to configure your client.")
+		os.Exit(1)
+	}
+	defer database.Close()
+
+	store := config.NewDBConfigStore(database.GetDB())
+	dbMap, _ := store.Load()
+	token := dbMap["api_key.token"]
+
 	if token == "" {
-		fmt.Println("Error: No API key found in config")
+		fmt.Println("Error: No API key found in configuration")
+		fmt.Printf("Database: %s\n", dbPath)
+		fmt.Println("Please run: fazt client set-auth-token --token <YOUR_TOKEN>")
 		os.Exit(1)
 	}
 
-	req, err := http.NewRequest("GET", *server+"/api/sites", nil)
+	// Resolve Server URL
+	serverURL := "http://localhost:4698"
+	if dbURL, ok := dbMap["client.server_url"]; ok && dbURL != "" {
+		serverURL = dbURL
+	}
+	if *server != "http://localhost:4698" {
+		serverURL = *server
+	}
+
+	req, err := http.NewRequest("GET", serverURL+"/api/sites", nil)
 	if err != nil {
 		fmt.Printf("Error creating request: %v\n", err)
 		os.Exit(1)
@@ -1392,13 +1417,13 @@ func handleSitesCommand() {
 	}
 
 	var result struct {
-		Success bool `json:"success"`
-		Sites   []struct {
+		Data []struct {
 			Name      string      `json:"Name"`
 			FileCount int         `json:"FileCount"`
 			SizeBytes int64       `json:"SizeBytes"`
 			ModTime   interface{} `json:"ModTime"`
-		} `json:"sites"`
+		} `json:"data"`
+		Error interface{} `json:"error"`
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
@@ -1406,9 +1431,14 @@ func handleSitesCommand() {
 		os.Exit(1)
 	}
 
+	if result.Error != nil {
+		fmt.Printf("API Error: %v\n", result.Error)
+		os.Exit(1)
+	}
+
 	fmt.Printf("%-20s %-10s %-10s\n", "SITE", "FILES", "SIZE")
 	fmt.Println("──────────────────────────────────────────")
-	for _, site := range result.Sites {
+	for _, site := range result.Data {
 		fmt.Printf("%-20s %-10d %-10d\n", site.Name, site.FileCount, site.SizeBytes)
 	}
 }
@@ -1448,21 +1478,38 @@ func handleDeleteCommand() {
 		}
 	}
 
-	// Load config to get API key
-	flagsConfig := config.ParseFlags()
-	cfg, err := config.Load(flagsConfig)
-	if err != nil {
-		fmt.Printf("Error loading config: %v\n", err)
-		os.Exit(1)
+	// Resolve DB Path
+	dbPath := "./data.db"
+	if envPath := os.Getenv("FAZT_DB_PATH"); envPath != "" {
+		dbPath = envPath
 	}
 
-	token := cfg.GetAPIKey()
+	// Initialize DB to get token
+	if err := database.Init(dbPath); err != nil {
+		fmt.Printf("Error: Failed to init database at %s: %v\n", dbPath, err)
+		os.Exit(1)
+	}
+	defer database.Close()
+
+	store := config.NewDBConfigStore(database.GetDB())
+	dbMap, _ := store.Load()
+	token := dbMap["api_key.token"]
+
 	if token == "" {
 		fmt.Println("Error: No API key found in config")
 		os.Exit(1)
 	}
 
-	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/api/sites?site_id=%s", *server, *site), nil)
+	// Resolve Server URL
+	serverURL := "http://localhost:4698"
+	if dbURL, ok := dbMap["client.server_url"]; ok && dbURL != "" {
+		serverURL = dbURL
+	}
+	if *server != "http://localhost:4698" {
+		serverURL = *server
+	}
+
+	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/api/sites?site_id=%s", serverURL, *site), nil)
 	if err != nil {
 		fmt.Printf("Error creating request: %v\n", err)
 		os.Exit(1)
@@ -1494,7 +1541,7 @@ func handleUpgradeCommand() {
 		fmt.Println()
 	}
 
-	if err := provision.Upgrade(Version); err != nil {
+	if err := provision.Upgrade(config.Version); err != nil {
 		fmt.Printf("Error upgrading: %v\n", err)
 		os.Exit(1)
 	}
@@ -1583,7 +1630,7 @@ func handleStartCommand() {
 
 	// Display startup information
 	term.Banner()
-	term.Section(fmt.Sprintf("fazt.sh %s - Starting Up", Version))
+	term.Section(fmt.Sprintf("fazt.sh %s - Starting Up", config.Version))
 
 	fmt.Printf("  Environment:  %s\n", cfg.Server.Env)
 	fmt.Printf("  Port:         %s\n", cfg.Server.Port)
@@ -1599,7 +1646,7 @@ func handleStartCommand() {
 	rateLimiter := auth.NewRateLimiter()
 
 	// Initialize auth handlers with session store and rate limiter
-	handlers.InitAuth(sessionStore, rateLimiter, Version)
+	handlers.InitAuth(sessionStore, rateLimiter, config.Version)
 
 	// Display auth status (v0.4.0: auth always required)
 	fmt.Printf("  Authentication: ✓ Enabled (user: %s)\n", cfg.Auth.Username)
@@ -1609,6 +1656,9 @@ func handleStartCommand() {
 	if err := audit.Init(database.GetDB()); err != nil {
 		log.Fatalf("Failed to initialize audit logging: %v", err)
 	}
+
+	// Initialize analytics buffer
+	analytics.Init()
 
 	// Initialize hosting system
 	if err := hosting.Init(database.GetDB()); err != nil {
@@ -1655,11 +1705,19 @@ func handleStartCommand() {
 	dashboardMux.HandleFunc("/api/domains", handlers.DomainsHandler)
 	dashboardMux.HandleFunc("/api/tags", handlers.TagsHandler)
 	dashboardMux.HandleFunc("/api/webhooks", handlers.WebhooksHandler)
-	dashboardMux.HandleFunc("/api/config", handlers.ConfigHandler)
+	dashboardMux.HandleFunc("GET /api/system/limits", handlers.SystemLimitsHandler)
+	dashboardMux.HandleFunc("GET /api/system/cache", handlers.SystemCacheHandler)
+	dashboardMux.HandleFunc("GET /api/system/db", handlers.SystemDBHandler)
+	dashboardMux.HandleFunc("GET /api/system/config", handlers.SystemConfigHandler)
+	dashboardMux.HandleFunc("/api/config", handlers.SystemConfigHandler) // Alias
+	dashboardMux.HandleFunc("GET /api/system/health", handlers.SystemHealthHandler)
 
 	// API routes - Hosting/Deploy
 	dashboardMux.HandleFunc("/api/deploy", handlers.DeployHandler)
 	dashboardMux.HandleFunc("/api/sites", handlers.SitesHandler)
+	dashboardMux.HandleFunc("GET /api/sites/{id}", handlers.SiteDetailHandler)
+	dashboardMux.HandleFunc("GET /api/sites/{id}/files", handlers.SiteFilesHandler)
+	dashboardMux.HandleFunc("GET /api/sites/{id}/files/{path...}", handlers.SiteFileContentHandler)
 	dashboardMux.HandleFunc("/api/keys", handlers.APIKeysHandler)
 	dashboardMux.HandleFunc("/api/deployments", handlers.DeploymentsHandler)
 	dashboardMux.HandleFunc("/api/envvars", handlers.EnvVarsHandler)
@@ -1783,6 +1841,9 @@ func handleStartCommand() {
 	// Clean up PID file
 	os.Remove(pidFile)
 
+	// Flush analytics buffer
+	analytics.Shutdown()
+
 	// Graceful shutdown with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -1857,7 +1918,7 @@ func handleInstallCommand() {
 
 // printUsage displays the usage information
 func printUsage() {
-	fmt.Printf("Fazt.sh %s - Personal Cloud Platform\n", Version)
+	fmt.Printf("Fazt.sh %s - Personal Cloud Platform\n", config.Version)
 	fmt.Println()
 	fmt.Println("USAGE:")
 	fmt.Println("  fazt <command> [flags]")
@@ -1884,7 +1945,7 @@ func printUsage() {
 
 // printServiceHelp displays service-specific help
 func printServiceHelp() {
-	fmt.Printf("fazt.sh %s - Service Commands\n", Version)
+	fmt.Printf("fazt.sh %s - Service Commands\n", config.Version)
 	fmt.Println()
 	fmt.Println("USAGE:")
 	fmt.Println("  fazt service <command> [options]")
@@ -1908,7 +1969,7 @@ func printServiceHelp() {
 
 // printServerHelp displays server-specific help
 func printServerHelp() {
-	fmt.Printf("fazt.sh %s - Server Commands\n", Version)
+	fmt.Printf("fazt.sh %s - Server Commands\n", config.Version)
 	fmt.Println()
 	fmt.Println("USAGE:")
 	fmt.Println("  fazt server <command> [options]")
@@ -1935,7 +1996,7 @@ func printServerHelp() {
 
 // printClientHelp displays client-specific help
 func printClientHelp() {
-	fmt.Printf("Fazt.sh %s - Client Commands\n", Version)
+	fmt.Printf("Fazt.sh %s - Client Commands\n", config.Version)
 	fmt.Println()
 	fmt.Println("USAGE:")
 	fmt.Println("  fazt client <command> [options]")

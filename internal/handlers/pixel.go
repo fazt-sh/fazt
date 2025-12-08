@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/fazt-sh/fazt/internal/database"
+	"github.com/fazt-sh/fazt/internal/analytics"
 )
 
 // 1x1 transparent GIF pixel (base64 encoded)
@@ -47,17 +47,16 @@ func PixelHandler(w http.ResponseWriter, r *http.Request) {
 		source = "pixel"
 	}
 
-	// Log event to database
-	db := database.GetDB()
-	_, err := db.Exec(`
-		INSERT INTO events (domain, tags, source_type, event_type, path, referrer, user_agent, ip_address)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-	`, domain, tagsStr, "pixel", source, "", referrer, userAgent, ipAddress)
-
-	if err != nil {
-		log.Printf("Error logging pixel event: %v", err)
-		// Don't fail - still return pixel
-	}
+	// Add to analytics buffer
+	analytics.Add(analytics.Event{
+		Domain:     domain,
+		Tags:       tagsStr,
+		SourceType: "pixel",
+		EventType:  source,
+		Referrer:   referrer,
+		UserAgent:  userAgent,
+		IPAddress:  ipAddress,
+	})
 
 	// Decode base64 GIF
 	gifBytes, err := base64.StdEncoding.DecodeString(transparentGIF)

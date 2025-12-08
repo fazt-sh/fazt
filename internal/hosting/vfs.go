@@ -17,6 +17,7 @@ type FileSystem interface {
 	ReadFile(siteID, path string) (*File, error)
 	DeleteSite(siteID string) error
 	Exists(siteID, path string) (bool, error)
+	ListFiles(siteID string) ([]FileEntry, error)
 }
 
 // File represents a file in the VFS
@@ -26,6 +27,13 @@ type File struct {
 	MimeType string
 	Hash     string
 	ModTime  time.Time
+}
+
+// FileEntry represents a file in a listing
+type FileEntry struct {
+	Path    string    `json:"path"`
+	Size    int64     `json:"size"`
+	ModTime time.Time `json:"mod_time"`
 }
 
 // CachedFile holds file data in memory
@@ -155,6 +163,28 @@ func (fs *SQLFileSystem) ReadFile(siteID, path string) (*File, error) {
 	}, nil
 }
 
+// VFSStats holds file system statistics
+type VFSStats struct {
+	CachedFiles    int
+	CacheSizeBytes int64
+}
+
+// GetStats returns VFS statistics
+func (fs *SQLFileSystem) GetStats() VFSStats {
+	fs.cacheMu.RLock()
+	defer fs.cacheMu.RUnlock()
+
+	var size int64
+	for _, f := range fs.cache {
+		size += f.Size
+	}
+
+	return VFSStats{
+		CachedFiles:    len(fs.cache),
+		CacheSizeBytes: size,
+	}
+}
+
 // DeleteSite deletes all files for a site
 func (fs *SQLFileSystem) DeleteSite(siteID string) error {
 	_, err := fs.db.Exec("DELETE FROM files WHERE site_id = ?", siteID)
@@ -191,6 +221,32 @@ func (fs *SQLFileSystem) Exists(siteID, path string) (bool, error) {
 		return false, err
 	}
 	return count > 0, nil
+}
+
+// ListFiles returns a list of files for a site
+func (fs *SQLFileSystem) ListFiles(siteID string) ([]FileEntry, error) {
+	query := `
+		SELECT path, size_bytes, updated_at
+		FROM files WHERE site_id = ?
+		ORDER BY path
+	`
+	
+	rows, err := fs.db.Query(query, siteID)
+	if err != nil {
+		return nil, fmt.Errorf("database error: %w", err)
+	}
+	defer rows.Close()
+
+	var files []FileEntry
+	for rows.Next() {
+		var f FileEntry
+		if err := rows.Scan(&f.Path, &f.Size, &f.ModTime); err != nil {
+			return nil, err
+		}
+		files = append(files, f)
+	}
+
+	return files, nil
 }
 
 // Helper for byte reader

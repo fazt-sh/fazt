@@ -18,6 +18,32 @@
 *   **Env Differences**: Recognise what can be tested in the coding environment
     and build tests likewise
 
+### ⚠️ Testing Server Stability
+When testing if the server runs without crashing:
+*   **DO NOT** use bash backgrounding (`&`) to test server stability
+    - Backgrounded processes appear to "work" but you cannot detect silent exits
+*   **PREFERRED METHODS**:
+    1. Use `timeout 10 go run ./cmd/server server start` to test for N seconds
+    2. Run in foreground and check logs for panics/errors
+    3. Use `ps aux | grep server` AFTER a delay to verify process persistence
+*   **CORRECT PATTERN**:
+    ```bash
+    # Start server
+    go run ./cmd/server server start --port 8080 &
+
+    # Wait for startup (3-5 seconds)
+    sleep 3
+
+    # Verify it's still running
+    ps aux | grep "server start" | grep -v grep
+
+    # Test endpoints
+    curl http://localhost:8080/health
+
+    # Clean up
+    pkill -f "server start"
+    ```
+
 ## 📦 Release Workflow
 **Detailed Guide**: `koder/workflows/ON_NEW_VERSION.md`
 

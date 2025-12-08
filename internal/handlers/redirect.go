@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/fazt-sh/fazt/internal/analytics"
 	"github.com/fazt-sh/fazt/internal/database"
 )
 
@@ -55,16 +56,17 @@ func RedirectHandler(w http.ResponseWriter, r *http.Request) {
 	userAgent := r.UserAgent()
 	referrer := r.Referer()
 
-	// Log the click event
-	_, err = db.Exec(`
-		INSERT INTO events (domain, tags, source_type, event_type, path, referrer, user_agent, ip_address)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-	`, slug, tags, "redirect", "click", "/r/"+slug, referrer, userAgent, ipAddress)
-
-	if err != nil {
-		log.Printf("Error logging redirect event: %v", err)
-		// Don't fail the redirect - continue
-	}
+	// Log the click event to analytics buffer
+	analytics.Add(analytics.Event{
+		Domain:     slug, // In redirects, domain is the slug
+		Tags:       tags,
+		SourceType: "redirect",
+		EventType:  "click",
+		Path:       "/r/" + slug,
+		Referrer:   referrer,
+		UserAgent:  userAgent,
+		IPAddress:  ipAddress,
+	})
 
 	// Increment click count
 	_, err = db.Exec(`

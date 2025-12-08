@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/fazt-sh/fazt/internal/analytics"
 	"github.com/fazt-sh/fazt/internal/database"
 )
 
@@ -101,17 +102,17 @@ func WebhookHandler(w http.ResponseWriter, r *http.Request) {
 	ipAddress := extractIPAddress(r)
 	userAgent := r.UserAgent()
 
-	// Log event to database
-	_, err = db.Exec(`
-		INSERT INTO events (domain, tags, source_type, event_type, path, referrer, user_agent, ip_address, query_params)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-	`, endpoint, "", "webhook", eventType, "/webhook/"+endpoint, "", userAgent, ipAddress, string(payloadJSON))
-
-	if err != nil {
-		log.Printf("Error logging webhook event: %v", err)
-		http.Error(w, "Failed to log event", http.StatusInternalServerError)
-		return
-	}
+	// Add to analytics buffer
+	analytics.Add(analytics.Event{
+		Domain:      endpoint,
+		Tags:        "",
+		SourceType:  "webhook",
+		EventType:   eventType,
+		Path:        "/webhook/" + endpoint,
+		UserAgent:   userAgent,
+		IPAddress:   ipAddress,
+		QueryParams: string(payloadJSON),
+	})
 
 	// Return success response
 	w.Header().Set("Content-Type", "application/json")

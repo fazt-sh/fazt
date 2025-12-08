@@ -2,13 +2,12 @@ package handlers
 
 import (
 	"encoding/json"
-	"log"
 	"net"
 	"net/http"
 	"net/url"
 	"strings"
 
-	"github.com/fazt-sh/fazt/internal/database"
+	"github.com/fazt-sh/fazt/internal/analytics"
 	"github.com/fazt-sh/fazt/internal/models"
 )
 
@@ -65,18 +64,18 @@ func TrackHandler(w http.ResponseWriter, r *http.Request) {
 	// Convert query params to JSON string
 	queryParamsJSON := req.ToQueryParamsJSON()
 
-	// Insert into database
-	db := database.GetDB()
-	_, err := db.Exec(`
-		INSERT INTO events (domain, tags, source_type, event_type, path, referrer, user_agent, ip_address, query_params)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-	`, domain, tagsStr, "web", req.EventType, req.Path, referrer, userAgent, ipAddress, queryParamsJSON)
-
-	if err != nil {
-		log.Printf("Error inserting event: %v", err)
-		http.Error(w, "Failed to track event", http.StatusInternalServerError)
-		return
-	}
+	// Add to analytics buffer
+	analytics.Add(analytics.Event{
+		Domain:      domain,
+		Tags:        tagsStr,
+		SourceType:  "web",
+		EventType:   req.EventType,
+		Path:        req.Path,
+		Referrer:    referrer,
+		UserAgent:   userAgent,
+		IPAddress:   ipAddress,
+		QueryParams: queryParamsJSON,
+	})
 
 	// Return 204 No Content on success
 	w.WriteHeader(http.StatusNoContent)

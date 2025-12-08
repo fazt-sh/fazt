@@ -117,6 +117,14 @@ func GetFileSystem() FileSystem {
 	return fs
 }
 
+// GetStats returns VFS statistics
+func GetStats() VFSStats {
+	if sqlFS, ok := fs.(*SQLFileSystem); ok {
+		return sqlFS.GetStats()
+	}
+	return VFSStats{}
+}
+
 // SiteExists checks if a site directory exists
 func SiteExists(subdomain string) bool {
 	// Check VFS first

@@ -2,7 +2,7 @@
 
 # Version injection
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
-LDFLAGS := -w -s -X main.Version=$(VERSION)
+LDFLAGS := -w -s -X github.com/fazt-sh/fazt/internal/config.Version=$(VERSION)
 
 # Build the binary (release)
 # Enforce CGO_ENABLED=0 as per GEMINI.md
@@ -11,7 +11,7 @@ build:
 
 # Build for current OS (development)
 build-local:
-	CGO_ENABLED=0 go build -ldflags="-X main.Version=$(VERSION)" -o fazt ./cmd/server
+	CGO_ENABLED=0 go build -ldflags="-X github.com/fazt-sh/fazt/internal/config.Version=$(VERSION)" -o fazt ./cmd/server
 
 # Run the server locally
 run: build-local

@@ -130,6 +130,26 @@ func GetDB() *sql.DB {
 	return db
 }
 
+// DBStats holds database statistics
+type DBStats struct {
+	OpenConnections int
+	InUse           int
+	Idle            int
+}
+
+// GetDBStats returns database connection pool statistics
+func GetDBStats() DBStats {
+	if db == nil {
+		return DBStats{}
+	}
+	stats := db.Stats()
+	return DBStats{
+		OpenConnections: stats.OpenConnections,
+		InUse:           stats.InUse,
+		Idle:            stats.Idle,
+	}
+}
+
 // Close closes the database connection
 func Close() error {
 	if db != nil {

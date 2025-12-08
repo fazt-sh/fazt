@@ -6,6 +6,8 @@ import (
 	"strings"
 
 	"github.com/fazt-sh/fazt/internal/auth"
+	"github.com/fazt-sh/fazt/internal/database"
+	"github.com/fazt-sh/fazt/internal/hosting"
 )
 
 // AuthMiddleware checks if a user is authenticated before allowing access to protected routes
@@ -19,7 +21,25 @@ func AuthMiddleware(sessionStore *auth.SessionStore) func(http.Handler) http.Han
 				return
 			}
 
-			// Get session cookie
+			// 1. Check for Bearer Token (API Access)
+			authHeader := r.Header.Get("Authorization")
+			if strings.HasPrefix(authHeader, "Bearer ") {
+				token := strings.TrimPrefix(authHeader, "Bearer ")
+				db := database.GetDB()
+				if db != nil {
+					_, _, err := hosting.ValidateAPIKey(db, token)
+					if err == nil {
+						// Token is valid
+						next.ServeHTTP(w, r)
+						return
+					}
+					log.Printf("Invalid API Token: %v", err)
+					redirectToLogin(w, r)
+					return
+				}
+			}
+
+			// 2. Get session cookie
 			sessionID, err := auth.GetSessionCookie(r)
 			if err != nil {
 				// No session cookie, redirect to login

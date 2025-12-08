@@ -12,6 +12,9 @@ import (
 	"strings"
 )
 
+// Version holds the current application version
+var Version = "dev"
+
 // Config holds all configuration for the application
 type Config struct {
 	Server ServerConfig   `json:"server"`

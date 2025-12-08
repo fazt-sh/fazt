@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/fazt-sh/fazt/internal/api"
 	"github.com/fazt-sh/fazt/internal/database"
 	"github.com/fazt-sh/fazt/internal/hosting"
 )
@@ -54,39 +55,31 @@ func SitesHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodGet {
 		sites, err := hosting.ListSites()
 		if err != nil {
-			jsonError(w, err.Error(), http.StatusInternalServerError)
+			api.ServerError(w, err)
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"success": true,
-			"sites":   sites,
-		})
+		api.JSON(w, http.StatusOK, sites, nil)
 		return
 	}
 
 	if r.Method == http.MethodDelete {
 		siteID := r.URL.Query().Get("site_id")
 		if siteID == "" {
-			jsonError(w, "site_id required", http.StatusBadRequest)
+			api.BadRequest(w, "site_id required")
 			return
 		}
 
 		if err := hosting.DeleteSite(siteID); err != nil {
-			jsonError(w, err.Error(), http.StatusInternalServerError)
+			api.ServerError(w, err)
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"success": true,
-			"message": "Site deleted",
-		})
+		api.JSON(w, http.StatusOK, map[string]string{"message": "Site deleted"}, nil)
 		return
 	}
 
-	http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	api.ErrorResponse(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Method not allowed", "")
 }
 
 // APIKeysHandler handles API key CRUD operations
