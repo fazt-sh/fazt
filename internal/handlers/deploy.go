@@ -3,7 +3,6 @@ package handlers
 import (
 	"archive/zip"
 	"bytes"
-	"encoding/json"
 	"io"
 	"log"
 	"net/http"
@@ -144,17 +143,5 @@ func DeployHandler(w http.ResponseWriter, r *http.Request) {
 		"file_count": result.FileCount,
 		"size_bytes": result.SizeBytes,
 		"message":    "Deployment successful",
-	})
-}
-
-// jsonError sends a JSON error response
-// Note: This is kept for backward compatibility with other handlers that still use it
-// New code should use api.* helpers instead
-func jsonError(w http.ResponseWriter, message string, status int) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"success": false,
-		"error":   message,
 	})
 }
