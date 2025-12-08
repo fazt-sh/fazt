@@ -49,7 +49,7 @@ if [ -f "$EXISTING_BINARY" ] || [ -f "$SERVICE_FILE" ]; then
 
     # Check current version
     if [ -f "$EXISTING_BINARY" ]; then
-        CURRENT_VERSION=$($EXISTING_BINARY --version 2>/dev/null | grep -oP '\d+\.\d+\.\d+' || echo "unknown")
+        CURRENT_VERSION=$($EXISTING_BINARY --version 2>/dev/null | head -1 | grep -oP '\d+\.\d+\.\d+' || echo "unknown")
         echo -e "${BLUE}ℹ${NC} Existing installation detected (v${CURRENT_VERSION})"
     fi
 
