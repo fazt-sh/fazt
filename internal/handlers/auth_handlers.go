@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/fazt-sh/fazt/internal/api"
 	"github.com/fazt-sh/fazt/internal/audit"
 	"github.com/fazt-sh/fazt/internal/auth"
 	"github.com/fazt-sh/fazt/internal/config"
@@ -28,18 +29,17 @@ func InitAuth(store *auth.SessionStore, limiter *auth.RateLimiter, version strin
 func UserMeHandler(w http.ResponseWriter, r *http.Request) {
 	sessionID, err := auth.GetSessionCookie(r)
 	if err != nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		api.Unauthorized(w, "Authentication required")
 		return
 	}
 
 	session, err := sessionStore.GetSession(sessionID)
 	if err != nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		api.SessionExpired(w)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{
+	api.Success(w, http.StatusOK, map[string]string{
 		"username": session.Username,
 		"version":  serverVersion,
 	})
@@ -49,7 +49,7 @@ func UserMeHandler(w http.ResponseWriter, r *http.Request) {
 func LoginHandler(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		api.BadRequest(w, "Method not allowed")
 		return
 	}
 
@@ -59,11 +59,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	// Check rate limit
 	if !rateLimiter.AllowLogin(ip) {
 		log.Printf("Rate limit exceeded for IP: %s", ip)
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusTooManyRequests)
-		json.NewEncoder(w).Encode(map[string]string{
-			"error": "Too many failed attempts. Please try again in 15 minutes.",
-		})
+		api.RateLimitExceeded(w, "Too many failed attempts. Please try again in 15 minutes.")
 		return
 	}
 
@@ -75,11 +71,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{
-			"error": "Invalid request",
-		})
+		api.InvalidJSON(w, "Invalid request body")
 		return
 	}
 
@@ -91,11 +83,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		rateLimiter.RecordAttempt(ip)
 		audit.LogFailure(req.Username, ip, "login", "/api/login", "invalid username")
 		log.Printf("Login failed: invalid username from %s", ip)
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(map[string]string{
-			"error": "Invalid username or password",
-		})
+		api.InvalidCredentials(w)
 		return
 	}
 
@@ -103,11 +91,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		rateLimiter.RecordAttempt(ip)
 		audit.LogFailure(req.Username, ip, "login", "/api/login", "invalid password")
 		log.Printf("Login failed: invalid password from %s", ip)
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(map[string]string{
-			"error": "Invalid username or password",
-		})
+		api.InvalidCredentials(w)
 		return
 	}
 
@@ -115,11 +99,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	sessionID, err := sessionStore.CreateSession(req.Username)
 	if err != nil {
 		log.Printf("Failed to create session: %v", err)
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{
-			"error": "Failed to create session",
-		})
+		api.InternalError(w, err)
 		return
 	}
 
@@ -139,9 +119,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Login successful: %s from %s", req.Username, ip)
 
 	// Return success
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"success": true,
+	api.Success(w, http.StatusOK, map[string]interface{}{
 		"message": "Login successful",
 	})
 }
@@ -170,9 +148,7 @@ func LogoutHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Return success for API requests
 	if r.Header.Get("Accept") == "application/json" || strings.HasPrefix(r.URL.Path, "/api/") {
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"success": true,
+		api.Success(w, http.StatusOK, map[string]interface{}{
 			"message": "Logged out successfully",
 		})
 		return
@@ -186,8 +162,7 @@ func LogoutHandler(w http.ResponseWriter, r *http.Request) {
 func AuthStatusHandler(w http.ResponseWriter, r *http.Request) {
 	sessionID, err := auth.GetSessionCookie(r)
 	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		api.Success(w, http.StatusOK, map[string]interface{}{
 			"authenticated": false,
 		})
 		return
@@ -195,15 +170,13 @@ func AuthStatusHandler(w http.ResponseWriter, r *http.Request) {
 
 	session, err := sessionStore.GetSession(sessionID)
 	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		api.Success(w, http.StatusOK, map[string]interface{}{
 			"authenticated": false,
 		})
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	api.Success(w, http.StatusOK, map[string]interface{}{
 		"authenticated": true,
 		"username":      session.Username,
 		"expiresAt":     session.ExpiresAt,
