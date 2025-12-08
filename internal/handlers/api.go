@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fazt-sh/fazt/internal/api"
 	"github.com/fazt-sh/fazt/internal/database"
 	"github.com/fazt-sh/fazt/internal/models"
 )
@@ -15,7 +16,7 @@ import (
 // StatsHandler returns dashboard statistics
 func StatsHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		api.BadRequest(w, "Method not allowed")
 		return
 	}
 
@@ -117,14 +118,13 @@ func StatsHandler(w http.ResponseWriter, r *http.Request) {
 	// Total redirect clicks
 	db.QueryRow(`SELECT COALESCE(SUM(click_count), 0) FROM redirects`).Scan(&stats.TotalRedirectClicks)
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(stats)
+	api.Success(w, http.StatusOK, stats)
 }
 
 // EventsHandler returns paginated events with filtering
 func EventsHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		api.BadRequest(w, "Method not allowed")
 		return
 	}
 
@@ -161,7 +161,7 @@ func EventsHandler(w http.ResponseWriter, r *http.Request) {
 	rows, err := db.Query(sql, args...)
 	if err != nil {
 		log.Printf("Error querying events: %v", err)
-		http.Error(w, "Failed to query events", http.StatusInternalServerError)
+		api.InternalError(w, err)
 		return
 	}
 	defer rows.Close()
@@ -188,14 +188,13 @@ func EventsHandler(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(events)
+	api.Success(w, http.StatusOK, events)
 }
 
 // DomainsHandler returns list of domains with event counts
 func DomainsHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		api.BadRequest(w, "Method not allowed")
 		return
 	}
 
@@ -209,7 +208,7 @@ func DomainsHandler(w http.ResponseWriter, r *http.Request) {
 	`)
 	if err != nil {
 		log.Printf("Error querying domains: %v", err)
-		http.Error(w, "Failed to query domains", http.StatusInternalServerError)
+		api.InternalError(w, err)
 		return
 	}
 	defer rows.Close()
@@ -221,14 +220,13 @@ func DomainsHandler(w http.ResponseWriter, r *http.Request) {
 		domains = append(domains, ds)
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(domains)
+	api.Success(w, http.StatusOK, domains)
 }
 
 // TagsHandler returns list of tags with usage counts
 func TagsHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		api.BadRequest(w, "Method not allowed")
 		return
 	}
 
@@ -242,7 +240,7 @@ func TagsHandler(w http.ResponseWriter, r *http.Request) {
 	`)
 	if err != nil {
 		log.Printf("Error querying tags: %v", err)
-		http.Error(w, "Failed to query tags", http.StatusInternalServerError)
+		api.InternalError(w, err)
 		return
 	}
 	defer rows.Close()
@@ -269,14 +267,11 @@ func TagsHandler(w http.ResponseWriter, r *http.Request) {
 		tags = append(tags, models.TagStat{Tag: tag, Count: count})
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(tags)
+	api.Success(w, http.StatusOK, tags)
 }
 
 // RedirectsHandler handles redirects CRUD
 func RedirectsHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
 	if r.Method == http.MethodGet {
 		// List all redirects
 		db := database.GetDB()
@@ -287,7 +282,7 @@ func RedirectsHandler(w http.ResponseWriter, r *http.Request) {
 		`)
 		if err != nil {
 			log.Printf("Error querying redirects: %v", err)
-			http.Error(w, "Failed to query redirects", http.StatusInternalServerError)
+			api.InternalError(w, err)
 			return
 		}
 		defer rows.Close()
@@ -310,7 +305,7 @@ func RedirectsHandler(w http.ResponseWriter, r *http.Request) {
 			})
 		}
 
-		json.NewEncoder(w).Encode(redirects)
+		api.Success(w, http.StatusOK, redirects)
 
 	} else if r.Method == http.MethodPost {
 		// Create new redirect
@@ -321,13 +316,13 @@ func RedirectsHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "Invalid JSON", http.StatusBadRequest)
+			api.InvalidJSON(w, "Invalid JSON")
 			return
 		}
 
 		// Validate
 		if req.Slug == "" || req.Destination == "" {
-			http.Error(w, "Slug and destination are required", http.StatusBadRequest)
+			api.BadRequest(w, "Slug and destination are required")
 			return
 		}
 
@@ -336,7 +331,7 @@ func RedirectsHandler(w http.ResponseWriter, r *http.Request) {
 		var exists int
 		db.QueryRow("SELECT COUNT(*) FROM redirects WHERE slug = ?", req.Slug).Scan(&exists)
 		if exists > 0 {
-			http.Error(w, "Slug already exists", http.StatusConflict)
+			api.BadRequest(w, "Slug already exists")
 			return
 		}
 
@@ -349,14 +344,13 @@ func RedirectsHandler(w http.ResponseWriter, r *http.Request) {
 
 		if err != nil {
 			log.Printf("Error creating redirect: %v", err)
-			http.Error(w, "Failed to create redirect", http.StatusInternalServerError)
+			api.InternalError(w, err)
 			return
 		}
 
 		id, _ := result.LastInsertId()
 
-		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		api.Success(w, http.StatusCreated, map[string]interface{}{
 			"id":          id,
 			"slug":        req.Slug,
 			"destination": req.Destination,
@@ -365,14 +359,12 @@ func RedirectsHandler(w http.ResponseWriter, r *http.Request) {
 		})
 
 	} else {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		api.BadRequest(w, "Method not allowed")
 	}
 }
 
 // WebhooksHandler handles webhooks CRUD
 func WebhooksHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
 	if r.Method == http.MethodGet {
 		// List all webhooks
 		db := database.GetDB()
@@ -383,7 +375,7 @@ func WebhooksHandler(w http.ResponseWriter, r *http.Request) {
 		`)
 		if err != nil {
 			log.Printf("Error querying webhooks: %v", err)
-			http.Error(w, "Failed to query webhooks", http.StatusInternalServerError)
+			api.InternalError(w, err)
 			return
 		}
 		defer rows.Close()
@@ -407,7 +399,7 @@ func WebhooksHandler(w http.ResponseWriter, r *http.Request) {
 			})
 		}
 
-		json.NewEncoder(w).Encode(webhooks)
+		api.Success(w, http.StatusOK, webhooks)
 
 	} else if r.Method == http.MethodPost {
 		// Create new webhook
@@ -418,13 +410,13 @@ func WebhooksHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "Invalid JSON", http.StatusBadRequest)
+			api.InvalidJSON(w, "Invalid JSON")
 			return
 		}
 
 		// Validate
 		if req.Name == "" || req.Endpoint == "" {
-			http.Error(w, "Name and endpoint are required", http.StatusBadRequest)
+			api.BadRequest(w, "Name and endpoint are required")
 			return
 		}
 
@@ -433,7 +425,7 @@ func WebhooksHandler(w http.ResponseWriter, r *http.Request) {
 		var exists int
 		db.QueryRow("SELECT COUNT(*) FROM webhooks WHERE endpoint = ?", req.Endpoint).Scan(&exists)
 		if exists > 0 {
-			http.Error(w, "Endpoint already exists", http.StatusConflict)
+			api.BadRequest(w, "Endpoint already exists")
 			return
 		}
 
@@ -445,14 +437,13 @@ func WebhooksHandler(w http.ResponseWriter, r *http.Request) {
 
 		if err != nil {
 			log.Printf("Error creating webhook: %v", err)
-			http.Error(w, "Failed to create webhook", http.StatusInternalServerError)
+			api.InternalError(w, err)
 			return
 		}
 
 		id, _ := result.LastInsertId()
 
-		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		api.Success(w, http.StatusCreated, map[string]interface{}{
 			"id":         id,
 			"name":       req.Name,
 			"endpoint":   req.Endpoint,
@@ -461,7 +452,7 @@ func WebhooksHandler(w http.ResponseWriter, r *http.Request) {
 		})
 
 	} else {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		api.BadRequest(w, "Method not allowed")
 	}
 }
 
