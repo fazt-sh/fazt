@@ -33,9 +33,9 @@ func DeleteRedirectHandler(w http.ResponseWriter, r *http.Request) {
 
 	rowsAffected, _ := result.RowsAffected()
 	if rowsAffected == 0 {
-		api.NotFound(w, "Redirect not found")
+		api.NotFound(w, "REDIRECT_NOT_FOUND", "Redirect not found")
 		return
 	}
 
-	api.JSON(w, http.StatusOK, map[string]string{"message": "Redirect deleted"}, nil)
+	api.Success(w, http.StatusOK, map[string]string{"message": "Redirect deleted"})
 }
