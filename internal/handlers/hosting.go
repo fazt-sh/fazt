@@ -91,14 +91,12 @@ func APIKeysHandler(w http.ResponseWriter, r *http.Request) {
 		// List API keys
 		keys, err := hosting.ListAPIKeys(db)
 		if err != nil {
-			jsonError(w, err.Error(), http.StatusInternalServerError)
+			api.InternalError(w, err)
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"success": true,
-			"keys":    keys,
+		api.Success(w, http.StatusOK, map[string]interface{}{
+			"keys": keys,
 		})
 
 	case http.MethodPost:
@@ -108,24 +106,22 @@ func APIKeysHandler(w http.ResponseWriter, r *http.Request) {
 			Scopes string `json:"scopes"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			jsonError(w, "Invalid request body", http.StatusBadRequest)
+			api.InvalidJSON(w, "Invalid request body")
 			return
 		}
 
 		if req.Name == "" {
-			jsonError(w, "Name is required", http.StatusBadRequest)
+			api.BadRequest(w, "Name is required")
 			return
 		}
 
 		token, err := hosting.CreateAPIKey(db, req.Name, req.Scopes)
 		if err != nil {
-			jsonError(w, err.Error(), http.StatusInternalServerError)
+			api.InternalError(w, err)
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"success": true,
+		api.Success(w, http.StatusOK, map[string]interface{}{
 			"token":   token,
 			"message": "API key created. Save this token - it won't be shown again!",
 		})
@@ -134,29 +130,27 @@ func APIKeysHandler(w http.ResponseWriter, r *http.Request) {
 		// Delete API key
 		idStr := r.URL.Query().Get("id")
 		if idStr == "" {
-			jsonError(w, "ID parameter required", http.StatusBadRequest)
+			api.BadRequest(w, "ID parameter required")
 			return
 		}
 
 		id, err := strconv.ParseInt(idStr, 10, 64)
 		if err != nil {
-			jsonError(w, "Invalid ID", http.StatusBadRequest)
+			api.BadRequest(w, "Invalid ID")
 			return
 		}
 
 		if err := hosting.DeleteAPIKey(db, id); err != nil {
-			jsonError(w, err.Error(), http.StatusInternalServerError)
+			api.InternalError(w, err)
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"success": true,
+		api.Success(w, http.StatusOK, map[string]interface{}{
 			"message": "API key revoked",
 		})
 
 	default:
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		api.BadRequest(w, "Method not allowed")
 	}
 }
 
@@ -168,12 +162,12 @@ func EnvVarsHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		if siteID == "" {
-			jsonError(w, "site_id required", http.StatusBadRequest)
+			api.BadRequest(w, "site_id required")
 			return
 		}
 		rows, err := db.Query("SELECT id, name FROM env_vars WHERE site_id = ?", siteID)
 		if err != nil {
-			jsonError(w, err.Error(), http.StatusInternalServerError)
+			api.InternalError(w, err)
 			return
 		}
 		defer rows.Close()
@@ -185,8 +179,7 @@ func EnvVarsHandler(w http.ResponseWriter, r *http.Request) {
 				vars = append(vars, map[string]interface{}{"id": id, "name": name})
 			}
 		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{"success": true, "vars": vars})
+		api.Success(w, http.StatusOK, map[string]interface{}{"vars": vars})
 
 	case http.MethodPost:
 		var req struct {
@@ -195,17 +188,17 @@ func EnvVarsHandler(w http.ResponseWriter, r *http.Request) {
 			Value  string `json:"value"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			jsonError(w, "Invalid request", http.StatusBadRequest)
+			api.InvalidJSON(w, "Invalid request")
 			return
 		}
 		// Validate site_id
 		if req.SiteID == "" {
-			jsonError(w, "site_id is required", http.StatusBadRequest)
+			api.BadRequest(w, "site_id is required")
 			return
 		}
 		// Validate environment variable name
 		if err := validateEnvVarName(req.Name); err != nil {
-			jsonError(w, err.Error(), http.StatusBadRequest)
+			api.BadRequest(w, err.Error())
 			return
 		}
 		_, err := db.Exec(`
@@ -213,32 +206,30 @@ func EnvVarsHandler(w http.ResponseWriter, r *http.Request) {
 			ON CONFLICT(site_id, name) DO UPDATE SET value = ?
 		`, req.SiteID, req.Name, req.Value, req.Value)
 		if err != nil {
-			jsonError(w, err.Error(), http.StatusInternalServerError)
+			api.InternalError(w, err)
 			return
 		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{"success": true})
+		api.Success(w, http.StatusOK, map[string]interface{}{})
 
 	case http.MethodDelete:
 		idStr := r.URL.Query().Get("id")
 		if idStr == "" {
-			jsonError(w, "id required", http.StatusBadRequest)
+			api.BadRequest(w, "id required")
 			return
 		}
 		id, _ := strconv.ParseInt(idStr, 10, 64)
 		db.Exec("DELETE FROM env_vars WHERE id = ?", id)
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{"success": true})
+		api.Success(w, http.StatusOK, map[string]interface{}{})
 
 	default:
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		api.BadRequest(w, "Method not allowed")
 	}
 }
 
 // DeploymentsHandler returns recent deployments
 func DeploymentsHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		api.BadRequest(w, "Method not allowed")
 		return
 	}
 
@@ -250,7 +241,7 @@ func DeploymentsHandler(w http.ResponseWriter, r *http.Request) {
 		LIMIT 50
 	`)
 	if err != nil {
-		jsonError(w, err.Error(), http.StatusInternalServerError)
+		api.InternalError(w, err)
 		return
 	}
 	defer rows.Close()
@@ -273,9 +264,7 @@ func DeploymentsHandler(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"success":     true,
+	api.Success(w, http.StatusOK, map[string]interface{}{
 		"deployments": deployments,
 	})
 }
