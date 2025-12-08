@@ -30,8 +30,8 @@ Read carefully.
 - `cmd/server/`       : Main entry point. Versioning, Routing logic.
 - `internal/hosting/` : VFS, Deployment (Zip->DB), Runtime, CertMagic.
 - `internal/database/`: SQLite Init, Migrations (`001_...sql`).
-- `internal/config/`  : JSON/Env config loader.
-- `internal/assets/`  : Embedded static files (Dashboard + System Sites).
+- `internal/config/`  : DB-based config loader.
+- `internal/assets/`  : Embedded system sites (Admin, Root, 404).
 - `docs/`             : Public website (Landing, Docs, Ideas, Install).
 - `koder/`            : Meta-docs for AI (Plans, Ideas, Analysis).
 

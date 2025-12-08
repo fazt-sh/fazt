@@ -18,7 +18,7 @@
   - Invalidate cache on new deployment
   - Improve latency and reduce DB IO
 
-- [x] 04 `core-config-db` <next-to-implement>
+- [x] 04 `core-config-db`
   - Migrate `config.json` to SQLite table
   - Remove dependency on filesystem config
   - Achieve true "One Binary + One DB" state
@@ -28,7 +28,7 @@
   - Automate user creation & systemd setup
   - Host `install.sh` at `fazt.sh/install`
 
-- [ ] 06 `js-cron`
+- [ ] 06 `js-cron` <next-to-implement>
   - Scheduled serverless functions
   - Define triggers in `fazt.json`
   - Support intervals (e.g., "every 1h")

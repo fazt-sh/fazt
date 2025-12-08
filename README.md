@@ -59,8 +59,20 @@ Fazt follows the **Cartridge Architecture**:
 - `fazt server set-credentials`
   Update admin password (useful if forgotten).
 
+- `fazt server reset-admin`
+  Reset Admin Dashboard UI (after upgrade).
+
 - `fazt service logs`
   Tail system logs.
+
+## 🏛️ Architecture Details
+
+*   **Virtual Filesystem (VFS)**: All hosted sites live in the `data.db`.
+*   **System Sites**: The Admin Dashboard (`admin.<domain>`), Landing Page (`root`), and 404 Page are standard sites in the VFS. They are seeded from the binary on startup.
+*   **Routing**:
+    *   `admin.*`: Admin Dashboard
+    *   `root.*` / `(domain)`: Landing Page
+    *   `*`: User Sites
 
 ## License
 MIT
