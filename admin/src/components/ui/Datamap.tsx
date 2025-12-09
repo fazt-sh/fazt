@@ -1,5 +1,21 @@
 import { useEffect, useRef, useState } from 'react';
-import { visitorData, CountryData, flagMap, mapStats } from '../../data/mapData';
+import { visitorData, flagMap, mapStats } from '../../data/mapData';
+
+interface CountryData {
+  active: {
+    value: string;
+    percent: string;
+    isGrown: boolean;
+  };
+  new: {
+    value: string;
+    percent: string;
+    isGrown: boolean;
+  };
+  fillKey: 'LOW' | 'MEDIUM' | 'HIGH' | 'MAJOR';
+  short: string;
+  customName?: string;
+}
 
 declare global {
   interface Window {
