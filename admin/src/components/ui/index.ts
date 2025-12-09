@@ -10,6 +10,8 @@ export { Dropdown, DropdownItem, DropdownDivider } from './Dropdown';
 export { Skeleton } from './Skeleton';
 export { Spinner } from './Spinner';
 export { Terminal, TerminalLine } from './Terminal';
+export { Chart, Sparkline } from './Chart';
+export { SystemInfo } from './SystemInfo';
 
 // Type exports
 export type { ButtonProps } from './Button';

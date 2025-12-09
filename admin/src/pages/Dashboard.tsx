@@ -1,8 +1,9 @@
 import { PageHeader } from '../components/layout/PageHeader';
-import { Button, Card, CardBody, Terminal, TerminalLine } from '../components/ui';
-import { Globe, TrendingUp, Zap, Database, Plus, ArrowUpRight } from 'lucide-react';
+import { Button, Card, CardBody, Terminal, TerminalLine, Chart, Sparkline, SystemInfo } from '../components/ui';
+import { Globe, TrendingUp, Zap, Database, Plus, ArrowUpRight, Users, Eye } from 'lucide-react';
 import { useMockMode } from '../context/MockContext';
 import { mockData } from '../lib/mockData';
+import { DashboardSkeleton } from '../components/skeletons';
 
 interface StatCardProps {
   icon: React.ComponentType<{ className?: string }>;
@@ -10,9 +11,10 @@ interface StatCardProps {
   value: string | number;
   change?: string;
   index: number;
+  sparkline?: number[];
 }
 
-function StatCard({ icon: Icon, label, value, change, index }: StatCardProps) {
+function StatCard({ icon: Icon, label, value, change, index, sparkline }: StatCardProps) {
   return (
     <Card variant="bordered" className="hover-lift radial-glow"
           style={{
@@ -23,12 +25,22 @@ function StatCard({ icon: Icon, label, value, change, index }: StatCardProps) {
           <div className="p-2 rounded-lg bg-[rgb(var(--bg-subtle))] hover:bg-[rgb(var(--accent-glow))] transition-colors duration-300">
             <Icon className="h-5 w-5 text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--accent-mid))] transition-colors duration-300" />
           </div>
-          {change && (
-            <span className="flex items-center gap-1 text-xs font-medium text-green-500">
-              <ArrowUpRight className="h-3 w-3" />
-              {change}
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            {sparkline && (
+              <Sparkline
+                data={sparkline}
+                width={60}
+                height={24}
+                color="rgb(var(--success))"
+              />
+            )}
+            {change && (
+              <span className="flex items-center gap-1 text-xs font-medium text-green-500">
+                <ArrowUpRight className="h-3 w-3" />
+                {change}
+              </span>
+            )}
+          </div>
         </div>
 
         <div className="space-y-1">
@@ -53,8 +65,12 @@ function formatBytes(bytes: number): string {
 }
 
 export function Dashboard() {
-  const { enabled: mockMode } = useMockMode();
+  const { enabled: mockMode, loading } = useMockMode();
   const stats = mockMode ? mockData.stats : null;
+
+  if (loading) {
+    return <DashboardSkeleton />;
+  }
 
   return (
     <div>
@@ -84,6 +100,7 @@ export function Dashboard() {
           value={(stats?.total_views || 0).toLocaleString()}
           change="+12.5%"
           index={1}
+          sparkline={mockMode ? mockData.visitorTraffic?.slice(-7) : []}
         />
         <StatCard
           icon={Zap}
@@ -101,38 +118,52 @@ export function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Quick Actions */}
-        <Card variant="bordered" className="p-6"
+        {/* Visitor Traffic Chart */}
+        <Card variant="bordered" className="p-6 hover-lift"
               style={{
                 animation: 'slideIn 0.4s ease-out 0.5s backwards',
               }}>
-          <h2 className="font-display text-lg text-[rgb(var(--text-primary))] mb-4">
-            Quick Actions
-          </h2>
-          <div className="flex flex-wrap gap-3">
-            <Button variant="secondary">Manage Sites</Button>
-            <Button variant="secondary">View Analytics</Button>
-            <Button variant="secondary">Create Redirect</Button>
-            <Button variant="secondary">Settings</Button>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="font-display text-lg text-[rgb(var(--text-primary))]">
+                Visitor Traffic
+              </h2>
+              <p className="text-sm text-[rgb(var(--text-secondary))] mt-1">
+                Last 30 days trend
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded-full bg-[rgb(var(--success))]"></div>
+                <span className="text-xs text-[rgb(var(--text-secondary))]">+417%</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <Chart
+              data={mockMode ? mockData.visitorTraffic || [] : []}
+              height={120}
+              color="rgb(var(--accent-mid))"
+            />
+
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-[rgb(var(--text-tertiary))]">30 days ago</span>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1">
+                  <Eye className="h-4 w-4 text-[rgb(var(--text-secondary))]" />
+                  <span className="text-[rgb(var(--text-primary))] font-medium">
+                    {mockMode ? (mockData.visitorTraffic?.[mockData.visitorTraffic.length - 1] || 0).toLocaleString() : '0'}
+                  </span>
+                </div>
+              </div>
+              <span className="text-[rgb(var(--text-tertiary))]">Today</span>
+            </div>
           </div>
         </Card>
 
-        {/* Recent Activity Terminal */}
-        <Card variant="bordered" className="p-0 overflow-hidden"
-              style={{
-                animation: 'slideIn 0.4s ease-out 0.6s backwards',
-              }}>
-          <Terminal title="Recent Activity" className="border-0 rounded-none">
-            <TerminalLine type="input" prefix="$">fazt deploy my-blog --env prod</TerminalLine>
-            <TerminalLine type="success">✓ Deployed successfully (42 files, 2.1MB)</TerminalLine>
-            <TerminalLine type="output">─</TerminalLine>
-            <TerminalLine type="input" prefix="$">fazt logs my-blog --tail 10</TerminalLine>
-            <TerminalLine type="output">[2025-12-09 12:00:01] GET / 200 - 1.2ms</TerminalLine>
-            <TerminalLine type="output">[2025-12-09 12:00:05] GET /api/posts 200 - 3.4ms</TerminalLine>
-            <TerminalLine type="error">[2025-12-09 12:00:12] POST /api/contact 400 - 0.8ms</TerminalLine>
-            <TerminalLine type="output">[2025-12-09 12:00:23] GET /static/style.css 304 - 0.3ms</TerminalLine>
-          </Terminal>
-        </Card>
+        {/* System Information */}
+        <SystemInfo />
       </div>
 
       <style>{`

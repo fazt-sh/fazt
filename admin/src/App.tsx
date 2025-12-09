@@ -10,6 +10,7 @@ import { Dashboard } from './pages/Dashboard';
 import { Sites } from './pages/Sites';
 import { DesignSystem } from './pages/DesignSystem';
 import { DesignSystemPreline } from './pages/DesignSystemPreline';
+import { PlaceholderPage } from './components/skeletons';
 
 // Protected Route wrapper
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -22,21 +23,6 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-// Placeholder pages for routes not yet implemented
-function PlaceholderPage({ title }: { title: string }) {
-  return (
-    <div className="flex items-center justify-center h-full">
-      <div className="text-center">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-50 mb-2">
-          {title}
-        </h1>
-        <p className="text-gray-500 dark:text-gray-400">
-          This page is coming soon
-        </p>
-      </div>
-    </div>
-  );
-}
 
 function AppRoutes() {
   const { isAuthenticated } = useAuth();

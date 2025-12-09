@@ -6,6 +6,7 @@ import { Plus, Globe, FileText, HardDrive } from 'lucide-react';
 import { useMockMode } from '../context/MockContext';
 import { mockData } from '../lib/mockData';
 import type { Site } from '../types/models';
+import { SitesSkeleton } from '../components/skeletons';
 
 interface SiteCardProps {
   site: Site;
@@ -78,8 +79,12 @@ function SiteCard({ site }: SiteCardProps) {
 }
 
 export function Sites() {
-  const { enabled: mockMode } = useMockMode();
+  const { enabled: mockMode, loading } = useMockMode();
   const sites = mockMode ? mockData.sites : [];
+
+  if (loading) {
+    return <SitesSkeleton />;
+  }
 
   return (
     <div>

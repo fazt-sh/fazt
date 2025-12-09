@@ -34,7 +34,7 @@ export function DesignSystemPreline() {
   const [inputValue, setInputValue] = useState('');
 
   return (
-    <div className="p-6">
+    <div>
       <PageHeader
         title="Preline Design System"
         description="Fazt-branded Preline UI components"
