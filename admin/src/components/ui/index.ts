@@ -22,4 +22,3 @@ export type { ModalProps } from './Modal';
 export type { DropdownProps, DropdownItemProps } from './Dropdown';
 export type { SkeletonProps } from './Skeleton';
 export type { SpinnerProps } from './Spinner';
-export type { TerminalLineProps } from './Terminal';

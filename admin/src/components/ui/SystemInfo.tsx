@@ -1,8 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
-import { Card, CardBody } from './Card';
+import { Card } from './Card';
 import { Badge } from './Badge';
 import { useMockMode } from '../../context/MockContext';
-import { mockData } from '../../lib/mockData';
 import {
   Server,
   Cpu,

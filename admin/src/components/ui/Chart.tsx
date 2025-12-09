@@ -1,5 +1,3 @@
-import type { CSSProperties } from 'react';
-
 interface ChartProps {
   data: number[];
   height?: number;

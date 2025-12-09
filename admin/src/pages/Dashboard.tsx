@@ -1,7 +1,7 @@
 import { PageHeader } from '../components/layout/PageHeader';
-import { Button, Card, CardBody, Terminal, TerminalLine, Chart, Sparkline, SystemInfo } from '../components/ui';
-import { WorldMap } from '../components/ui/WorldMap';
-import { Globe, TrendingUp, Zap, Database, Plus, ArrowUpRight, Users, Eye } from 'lucide-react';
+import { Button, Card, CardBody, Chart, Sparkline, SystemInfo } from '../components/ui';
+import { Datamap } from '../components/ui/Datamap';
+import { Globe, TrendingUp, Zap, Database, Plus, ArrowUpRight, Eye } from 'lucide-react';
 import { useMockMode } from '../context/MockContext';
 import { mockData } from '../lib/mockData';
 import { DashboardSkeleton } from '../components/skeletons';
@@ -163,7 +163,7 @@ export function Dashboard() {
 
             {/* World Map Section */}
             <div className="mt-6 pt-6 border-t border-[rgb(var(--border-primary))]">
-              <WorldMap />
+              <Datamap />
             </div>
           </div>
         </Card>
