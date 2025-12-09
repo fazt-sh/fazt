@@ -8,8 +8,8 @@ export function AppShell() {
       <Navbar />
       <div className="flex-1 flex overflow-hidden">
         <Sidebar />
-        <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900">
-          <div className="p-6">
+        <main className="flex-1 overflow-y-auto bg-[rgb(var(--bg-base))]">
+          <div className="p-8 max-w-[1600px]">
             <Outlet />
           </div>
         </main>

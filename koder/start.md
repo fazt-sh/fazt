@@ -11,6 +11,7 @@ This document provides context to bootstrap a new coding session.
 ## 2. Architecture Pillars 🏛️
 - **VFS**: Sites stored in `files` table. In-memory LRU cache.
 - **System Sites**: `root` and `404` seeded from binary (`internal/assets`).
+- **Admin SPA**: React admin interface embedded in binary (`internal/assets/system/admin`).
 - **Runtime**: `goja` JS runtime for serverless (`main.js`).
 - **Routing**: Host-based (`admin.`, `root.`, `*.domain`).
 

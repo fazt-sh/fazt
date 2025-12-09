@@ -32,29 +32,46 @@ export function Sidebar() {
   const isDev = import.meta.env.DEV;
 
   return (
-    <aside className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
-      <nav className="flex-1 px-4 py-6 space-y-1">
-        {navItems.map((item) => {
-          // Hide dev-only items in production
-          if (item.devOnly && !isDev) return null;
+    <aside className="w-60 flex flex-col border-r border-[rgb(var(--border-primary))] bg-[rgb(var(--bg-elevated))]">
+      <nav className="flex-1 px-3 py-6">
+        <div className="space-y-0.5">
+          {navItems.map((item) => {
+            if (item.devOnly && !isDev) return null;
 
-          return (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                  isActive
-                    ? 'bg-primary text-white'
-                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                }`
-              }
-            >
-              <item.icon className="h-5 w-5" />
-              {item.label}
-            </NavLink>
-          );
-        })}
+            return (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.to === '/'}
+                className={({ isActive }) =>
+                  `group flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium
+                   transition-all duration-150 relative overflow-hidden
+                   ${
+                     isActive
+                       ? 'text-[rgb(var(--accent))] bg-[rgb(var(--accent-glow))]'
+                       : 'text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--text-primary))] hover:bg-[rgb(var(--bg-hover))]'
+                   }`
+                }
+              >
+                {({ isActive }) => (
+                  <>
+                    {/* Active indicator */}
+                    {isActive && (
+                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 bg-[rgb(var(--accent))] rounded-r" />
+                    )}
+
+                    <item.icon
+                      className={`h-[18px] w-[18px] transition-transform duration-150
+                        ${isActive ? 'scale-100' : 'group-hover:scale-105'}`}
+                      strokeWidth={isActive ? 2.5 : 2}
+                    />
+                    <span>{item.label}</span>
+                  </>
+                )}
+              </NavLink>
+            );
+          })}
+        </div>
       </nav>
     </aside>
   );

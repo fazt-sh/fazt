@@ -2,45 +2,48 @@ import { Moon, Sun, User, LogOut } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { Dropdown, DropdownItem, DropdownDivider } from '../ui/Dropdown';
-import { Button } from '../ui/Button';
 
 export function Navbar() {
   const { theme, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
 
   return (
-    <nav className="h-16 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between px-6">
-      <div className="flex items-center gap-3">
-        <div className="text-xl font-bold text-gray-900 dark:text-gray-50">
-          Fazt<span className="text-primary">.sh</span>
+    <nav className="h-14 border-b border-[rgb(var(--border-primary))] bg-[rgb(var(--bg-elevated))] flex items-center justify-between px-6">
+      <div className="flex items-center gap-4">
+        <div className="font-display text-lg text-[rgb(var(--text-primary))] tracking-tight">
+          Fazt<span className="text-[rgb(var(--accent))]">.sh</span>
         </div>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2">
         {/* Theme Toggle */}
-        <Button
-          variant="ghost"
-          size="sm"
+        <button
           onClick={toggleTheme}
-          className="rounded-full p-2"
+          className="p-2 rounded-lg text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--text-primary))]
+                     hover:bg-[rgb(var(--bg-hover))] transition-all duration-150"
           aria-label="Toggle theme"
         >
           {theme === 'light' ? (
-            <Moon className="h-5 w-5" />
+            <Moon className="h-[18px] w-[18px]" strokeWidth={2} />
           ) : (
-            <Sun className="h-5 w-5" />
+            <Sun className="h-[18px] w-[18px]" strokeWidth={2} />
           )}
-        </Button>
+        </button>
 
         {/* User Menu */}
         {user && (
           <Dropdown
             trigger={
-              <button className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white font-medium">
+              <button className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg
+                               text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--text-primary))]
+                               hover:bg-[rgb(var(--bg-hover))] transition-all duration-150
+                               border border-transparent hover:border-[rgb(var(--border-primary))]">
+                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[rgb(var(--accent))] to-orange-600
+                              flex items-center justify-center text-white text-xs font-semibold
+                              shadow-sm">
                   {user.username[0].toUpperCase()}
                 </div>
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                <span className="text-[13px] font-medium">
                   {user.username}
                 </span>
               </button>

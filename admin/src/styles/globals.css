@@ -1,24 +1,32 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  /* Theme Colors */
-  --color-primary: 255 149 0;
-  --color-primary-dark: 230 134 0;
-  --color-primary-light: 255 176 51;
+  /* Accent Color - Surgical Orange */
+  --accent: 255 135 0;
+  --accent-glow: 255 135 0 / 0.15;
 
-  /* Light Mode Colors */
-  --bg-primary: 255 255 255;
-  --bg-secondary: 249 250 251;
-  --bg-tertiary: 243 244 246;
-  --text-primary: 17 24 39;
-  --text-secondary: 107 114 128;
-  --border: 229 231 235;
+  /* Light Mode - Clean & Refined */
+  --bg-base: 250 250 250;
+  --bg-elevated: 255 255 255;
+  --bg-subtle: 246 246 247;
+  --bg-hover: 242 242 243;
 
-  /* Semantic Colors */
+  --text-primary: 10 10 10;
+  --text-secondary: 102 102 102;
+  --text-tertiary: 153 153 153;
+
+  --border-primary: 229 229 229;
+  --border-secondary: 242 242 242;
+
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.04);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.06), 0 2px 4px -2px rgb(0 0 0 / 0.04);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.04);
+
+  /* Semantic */
   --success: 34 197 94;
   --error: 239 68 68;
   --warning: 251 191 36;
@@ -26,13 +34,26 @@
 }
 
 .dark {
-  /* Dark Mode Colors */
-  --bg-primary: 17 24 39;
-  --bg-secondary: 31 41 55;
-  --bg-tertiary: 55 65 81;
-  --text-primary: 243 244 246;
-  --text-secondary: 156 163 175;
-  --border: 55 65 81;
+  /* Dark Mode - Deep & Sophisticated */
+  --bg-base: 10 10 10;
+  --bg-elevated: 20 20 20;
+  --bg-subtle: 26 26 26;
+  --bg-hover: 35 35 35;
+
+  --text-primary: 250 250 250;
+  --text-secondary: 163 163 163;
+  --text-tertiary: 115 115 115;
+
+  --border-primary: 38 38 38;
+  --border-secondary: 26 26 26;
+
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.3);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.5), 0 4px 6px -4px rgb(0 0 0 / 0.4);
+}
+
+* {
+  box-sizing: border-box;
 }
 
 html,
@@ -40,26 +61,35 @@ body {
   height: 100%;
   width: 100%;
   overflow: hidden;
-  font-family: 'Inter', system-ui, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
   margin: 0;
   padding: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
 }
 
 body {
-  background-color: white;
-  color: rgb(17, 24, 39);
-}
-
-.dark body {
-  background-color: rgb(17, 24, 39);
-  color: rgb(243, 244, 246);
+  background: rgb(var(--bg-base));
+  color: rgb(var(--text-primary));
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 #root {
   height: 100%;
   width: 100%;
+}
+
+/* Typography Scale */
+.font-display {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.font-mono {
+  font-family: Consolas, 'Courier New', monospace;
+  font-feature-settings: 'zero';
 }
 
 @layer utilities {

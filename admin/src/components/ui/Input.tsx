@@ -12,32 +12,33 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className="w-full">
         {label && (
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label className="block text-[13px] font-medium text-[rgb(var(--text-primary))] mb-2">
             {label}
           </label>
         )}
         <input
           ref={ref}
           className={`
-            w-full px-3 py-2 rounded-lg border
+            w-full px-3.5 py-2.5 rounded-lg border text-[13px]
+            transition-all duration-150
             ${error
-              ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
-              : 'border-gray-300 dark:border-gray-600 focus:ring-primary focus:border-primary'
+              ? 'border-red-500 focus:ring-2 focus:ring-red-500/20 focus:border-red-500'
+              : 'border-[rgb(var(--border-primary))] focus:ring-2 focus:ring-[rgb(var(--accent-glow))] focus:border-[rgb(var(--accent))]'
             }
-            bg-white dark:bg-gray-800
-            text-gray-900 dark:text-gray-50
-            placeholder-gray-400 dark:placeholder-gray-500
-            focus:outline-none focus:ring-2
+            bg-[rgb(var(--bg-elevated))]
+            text-[rgb(var(--text-primary))]
+            placeholder-[rgb(var(--text-tertiary))]
+            focus:outline-none
             disabled:opacity-50 disabled:cursor-not-allowed
             ${className}
           `}
           {...props}
         />
         {error && (
-          <p className="mt-1 text-sm text-red-600 dark:text-red-400">{error}</p>
+          <p className="mt-1.5 text-[13px] text-red-600 dark:text-red-400">{error}</p>
         )}
         {helperText && !error && (
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{helperText}</p>
+          <p className="mt-1.5 text-[13px] text-[rgb(var(--text-tertiary))]">{helperText}</p>
         )}
       </div>
     );

@@ -8,13 +8,13 @@ interface CardProps {
 
 export function Card({ children, className = '', variant = 'default' }: CardProps) {
   const variantStyles = {
-    default: 'bg-white dark:bg-gray-800',
-    bordered: 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700',
-    elevated: 'bg-white dark:bg-gray-800 shadow-lg',
+    default: 'bg-[rgb(var(--bg-elevated))]',
+    bordered: 'bg-[rgb(var(--bg-elevated))] border border-[rgb(var(--border-primary))]',
+    elevated: 'bg-[rgb(var(--bg-elevated))] shadow-[var(--shadow-md)]',
   };
 
   return (
-    <div className={`rounded-lg ${variantStyles[variant]} ${className}`}>
+    <div className={`rounded-xl ${variantStyles[variant]} ${className}`}>
       {children}
     </div>
   );
@@ -27,7 +27,7 @@ interface CardHeaderProps {
 
 export function CardHeader({ children, className = '' }: CardHeaderProps) {
   return (
-    <div className={`px-6 py-4 border-b border-gray-200 dark:border-gray-700 ${className}`}>
+    <div className={`px-6 py-4 border-b border-[rgb(var(--border-primary))] ${className}`}>
       {children}
     </div>
   );
@@ -53,7 +53,7 @@ interface CardFooterProps {
 
 export function CardFooter({ children, className = '' }: CardFooterProps) {
   return (
-    <div className={`px-6 py-4 border-t border-gray-200 dark:border-gray-700 ${className}`}>
+    <div className={`px-6 py-4 border-t border-[rgb(var(--border-primary))] ${className}`}>
       {children}
     </div>
   );
