@@ -1,7 +1,7 @@
 import { Moon, Sun, User, LogOut } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
-import { Dropdown, DropdownItem, DropdownDivider } from '../ui/Dropdown';
+import { Dropdown, DropdownItem, DropdownDivider } from '../ui';
 
 export function Navbar() {
   const { theme, toggleTheme } = useTheme();

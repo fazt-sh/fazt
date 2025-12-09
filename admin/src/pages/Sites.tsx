@@ -1,7 +1,7 @@
 import { PageHeader } from '../components/layout/PageHeader';
-import { Card, CardBody } from '../components/ui/Card';
-import { Button } from '../components/ui/Button';
-import { Badge } from '../components/ui/Badge';
+import { Card, CardBody } from '../components/ui';
+import { Button } from '../components/ui';
+import { Badge } from '../components/ui';
 import { Plus, Globe, FileText, HardDrive } from 'lucide-react';
 import { useMockMode } from '../context/MockContext';
 import { mockData } from '../lib/mockData';

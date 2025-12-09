@@ -14,7 +14,7 @@ import {
   DropdownDivider,
   Skeleton,
   Spinner
-} from '../components/ui-preline';
+} from '../components/ui';
 import {
   Search,
   User,

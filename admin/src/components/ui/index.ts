@@ -9,6 +9,7 @@ export { Modal } from './Modal';
 export { Dropdown, DropdownItem, DropdownDivider } from './Dropdown';
 export { Skeleton } from './Skeleton';
 export { Spinner } from './Spinner';
+export { Terminal, TerminalLine } from './Terminal';
 
 // Type exports
 export type { ButtonProps } from './Button';
@@ -19,3 +20,4 @@ export type { ModalProps } from './Modal';
 export type { DropdownProps, DropdownItemProps } from './Dropdown';
 export type { SkeletonProps } from './Skeleton';
 export type { SpinnerProps } from './Spinner';
+export type { TerminalLineProps } from './Terminal';

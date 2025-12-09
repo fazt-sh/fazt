@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { PageHeader } from '../components/layout/PageHeader';
-import { Card, CardHeader, CardBody, CardFooter } from '../components/ui/Card';
-import { Button } from '../components/ui/Button';
-import { Input } from '../components/ui/Input';
-import { Badge } from '../components/ui/Badge';
-import { Skeleton, SkeletonText } from '../components/ui/Skeleton';
-import { Spinner } from '../components/ui/Spinner';
-import { Modal, ModalFooter } from '../components/ui/Modal';
-import { Dropdown, DropdownItem, DropdownDivider } from '../components/ui/Dropdown';
+import { Card, CardHeader, CardBody, CardFooter } from '../components/ui';
+import { Button } from '../components/ui';
+import { Input } from '../components/ui';
+import { Badge } from '../components/ui';
+import { Skeleton } from '../components/ui';
+import { Spinner } from '../components/ui';
+import { Modal } from '../components/ui';
+import { Dropdown, DropdownItem, DropdownDivider } from '../components/ui';
 import { Home, Settings, LogOut } from 'lucide-react';
 
 export function DesignSystem() {
@@ -187,7 +187,7 @@ export function DesignSystem() {
             <div className="space-y-4">
               <div>
                 <p className="text-sm font-medium mb-2">Text</p>
-                <SkeletonText lines={3} />
+                <Skeleton lines={3} />
               </div>
               <div>
                 <p className="text-sm font-medium mb-2">Shapes</p>
@@ -221,18 +221,24 @@ export function DesignSystem() {
           </CardHeader>
           <CardBody>
             <Button onClick={() => setModalOpen(true)}>Open Modal</Button>
-            <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title="Example Modal">
-              <p className="text-gray-600 dark:text-gray-400">
-                This is an example modal dialog. It uses Headless UI for accessibility and animations.
+            <Modal
+              isOpen={modalOpen}
+              onClose={() => setModalOpen(false)}
+              title="Example Modal"
+              footer={
+                <>
+                  <Button variant="ghost" onClick={() => setModalOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button variant="primary" onClick={() => setModalOpen(false)}>
+                    Confirm
+                  </Button>
+                </>
+              }
+            >
+              <p className="text-[rgb(var(--text-secondary))]">
+                This is an example modal dialog. It uses Preline UI for styling.
               </p>
-              <ModalFooter>
-                <Button variant="ghost" onClick={() => setModalOpen(false)}>
-                  Cancel
-                </Button>
-                <Button variant="primary" onClick={() => setModalOpen(false)}>
-                  Confirm
-                </Button>
-              </ModalFooter>
             </Modal>
           </CardBody>
         </Card>

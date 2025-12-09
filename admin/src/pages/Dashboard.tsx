@@ -1,7 +1,5 @@
 import { PageHeader } from '../components/layout/PageHeader';
-import { Button } from '../components/ui/Button';
-import { Card } from '../components/ui/Card';
-import { Terminal, TerminalLine } from '../components/ui/Terminal';
+import { Button, Card, CardBody, Terminal, TerminalLine } from '../components/ui';
 import { Globe, TrendingUp, Zap, Database, Plus, ArrowUpRight } from 'lucide-react';
 import { useMockMode } from '../context/MockContext';
 import { mockData } from '../lib/mockData';
@@ -16,30 +14,32 @@ interface StatCardProps {
 
 function StatCard({ icon: Icon, label, value, change, index }: StatCardProps) {
   return (
-    <Card variant="bordered" className="p-6 relative overflow-hidden hover-lift radial-glow"
+    <Card variant="bordered" className="hover-lift radial-glow"
           style={{
             animation: `slideIn 0.4s ease-out ${index * 0.1}s backwards`,
           }}>
-      <div className="flex items-start justify-between mb-4">
-        <div className="p-2 rounded-lg bg-[rgb(var(--bg-subtle))] hover:bg-[rgb(var(--accent-glow))] transition-colors duration-300">
-          <Icon className="h-5 w-5 text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--accent-mid))] transition-colors duration-300" />
+      <CardBody className="p-6 relative overflow-hidden">
+        <div className="flex items-start justify-between mb-4">
+          <div className="p-2 rounded-lg bg-[rgb(var(--bg-subtle))] hover:bg-[rgb(var(--accent-glow))] transition-colors duration-300">
+            <Icon className="h-5 w-5 text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--accent-mid))] transition-colors duration-300" />
+          </div>
+          {change && (
+            <span className="flex items-center gap-1 text-xs font-medium text-green-500">
+              <ArrowUpRight className="h-3 w-3" />
+              {change}
+            </span>
+          )}
         </div>
-        {change && (
-          <span className="flex items-center gap-1 text-xs font-medium text-green-500">
-            <ArrowUpRight className="h-3 w-3" />
-            {change}
-          </span>
-        )}
-      </div>
 
-      <div className="space-y-1">
-        <p className="text-xs font-medium text-[rgb(var(--text-tertiary))] uppercase tracking-wide">
-          {label}
-        </p>
-        <p className="font-mono text-3xl font-bold text-[rgb(var(--text-primary))] tracking-tight">
-          {value}
-        </p>
-      </div>
+        <div className="space-y-1">
+          <p className="text-xs font-medium text-[rgb(var(--text-tertiary))] uppercase tracking-wide">
+            {label}
+          </p>
+          <p className="font-mono text-3xl font-bold text-[rgb(var(--text-primary))] tracking-tight">
+            {value}
+          </p>
+        </div>
+      </CardBody>
     </Card>
   );
 }

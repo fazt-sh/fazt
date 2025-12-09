@@ -14,6 +14,17 @@ class APIClient {
       },
     });
 
+    // Handle non-JSON responses gracefully
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      // If response is not JSON, check if it's an error
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      // Return empty object for successful non-JSON responses
+      return {} as T;
+    }
+
     const json = await response.json();
 
     if (!response.ok) {

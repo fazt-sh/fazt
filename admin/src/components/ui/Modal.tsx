@@ -1,98 +1,119 @@
-import { Fragment } from 'react';
+import { useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
-import { Dialog, Transition } from '@headlessui/react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
-interface ModalProps {
+export interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
   title?: string;
-  children: ReactNode;
   size?: 'sm' | 'md' | 'lg' | 'xl' | 'full';
+  children: ReactNode;
+  footer?: ReactNode;
+  closeOnBackdrop?: boolean;
   showCloseButton?: boolean;
+  className?: string;
 }
 
 export function Modal({
   isOpen,
   onClose,
   title,
-  children,
   size = 'md',
+  children,
+  footer,
+  closeOnBackdrop = true,
   showCloseButton = true,
+  className = ''
 }: ModalProps) {
-  const sizeStyles = {
-    sm: 'max-w-md',
-    md: 'max-w-lg',
-    lg: 'max-w-2xl',
-    xl: 'max-w-4xl',
-    full: 'max-w-full mx-4',
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [isOpen, onClose]);
+
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
+
+  const sizeClasses = {
+    sm: 'sm:max-w-sm',
+    md: 'sm:max-w-lg',
+    lg: 'sm:max-w-2xl',
+    xl: 'sm:max-w-4xl',
+    full: 'sm:max-w-full sm:mx-4',
   };
 
-  return (
-    <Transition appear show={isOpen} as={Fragment}>
-      <Dialog as="div" className="relative z-50" onClose={onClose}>
-        <Transition.Child
-          as={Fragment}
-          enter="ease-out duration-300"
-          enterFrom="opacity-0"
-          enterTo="opacity-100"
-          leave="ease-in duration-200"
-          leaveFrom="opacity-100"
-          leaveTo="opacity-0"
+  if (!isOpen) return null;
+
+  const modalContent = (
+    <div className="fixed inset-0 z-[80] overflow-y-auto">
+      <div className="flex min-h-full items-center justify-center p-4 text-center">
+        {/* Backdrop */}
+        <div
+          className="fixed inset-0 bg-gray-900 bg-opacity-50 transition-opacity dark:bg-opacity-75"
+          onClick={closeOnBackdrop ? onClose : undefined}
+        />
+
+        {/* Modal */}
+        <div
+          ref={modalRef}
+          className={`relative transform overflow-hidden rounded-xl bg-[rgb(var(--bg-elevated))] text-left shadow-xl transition-all ${sizeClasses[size]} w-full ${className}`}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={title ? 'modal-title' : undefined}
         >
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" />
-        </Transition.Child>
+          {/* Header */}
+          {(title || showCloseButton) && (
+            <div className="flex items-center justify-between border-b border-[rgb(var(--border-primary))] px-6 py-4">
+              {title && (
+                <h3 id="modal-title" className="text-lg font-semibold text-[rgb(var(--text-primary))]">
+                  {title}
+                </h3>
+              )}
+              {showCloseButton && (
+                <button
+                  type="button"
+                  className="rounded-lg p-1.5 text-[rgb(var(--text-secondary))] hover:bg-[rgb(var(--bg-hover))] hover:text-[rgb(var(--text-primary))] transition-colors"
+                  onClick={onClose}
+                  aria-label="Close modal"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              )}
+            </div>
+          )}
 
-        <div className="fixed inset-0 overflow-y-auto">
-          <div className="flex min-h-full items-center justify-center p-4">
-            <Transition.Child
-              as={Fragment}
-              enter="ease-out duration-300"
-              enterFrom="opacity-0 scale-95"
-              enterTo="opacity-100 scale-100"
-              leave="ease-in duration-200"
-              leaveFrom="opacity-100 scale-100"
-              leaveTo="opacity-0 scale-95"
-            >
-              <Dialog.Panel
-                className={`w-full ${sizeStyles[size]} transform overflow-hidden rounded-lg bg-white dark:bg-gray-800 shadow-xl transition-all`}
-              >
-                {(title || showCloseButton) && (
-                  <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                    {title && (
-                      <Dialog.Title className="text-lg font-semibold text-gray-900 dark:text-gray-50">
-                        {title}
-                      </Dialog.Title>
-                    )}
-                    {showCloseButton && (
-                      <button
-                        onClick={onClose}
-                        className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300 focus:outline-none"
-                      >
-                        <X className="h-5 w-5" />
-                      </button>
-                    )}
-                  </div>
-                )}
-                <div className="px-6 py-4">{children}</div>
-              </Dialog.Panel>
-            </Transition.Child>
+          {/* Body */}
+          <div className="px-6 py-4">
+            {children}
           </div>
+
+          {/* Footer */}
+          {footer && (
+            <div className="flex items-center justify-end gap-3 border-t border-[rgb(var(--border-primary))] px-6 py-4">
+              {footer}
+            </div>
+          )}
         </div>
-      </Dialog>
-    </Transition>
-  );
-}
-
-interface ModalFooterProps {
-  children: ReactNode;
-  className?: string;
-}
-
-export function ModalFooter({ children, className = '' }: ModalFooterProps) {
-  return (
-    <div className={`flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-gray-700 ${className}`}>
-      {children}
+      </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 }
