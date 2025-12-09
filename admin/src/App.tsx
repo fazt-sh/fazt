@@ -42,6 +42,7 @@ function AppRoutes() {
         <Route path="sites" element={<Sites />} />
         <Route path="sites/analytics" element={<PlaceholderPage title="Site Analytics" />} />
         <Route path="sites/create" element={<PlaceholderPage title="Create Site" />} />
+        <Route path="analytics" element={<PlaceholderPage title="Analytics" />} />
         <Route path="redirects" element={<PlaceholderPage title="Redirects" />} />
         <Route path="webhooks" element={<PlaceholderPage title="Webhooks" />} />
         <Route path="logs" element={<PlaceholderPage title="Logs" />} />

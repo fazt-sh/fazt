@@ -29,10 +29,11 @@ const navItems: NavItem[] = [
     label: 'Sites',
     children: [
       { to: '/sites', icon: Globe, label: 'All Sites' },
-      { to: '/sites/analytics', icon: BarChart3, label: 'Analytics' },
+      { to: '/sites/analytics', icon: BarChart3, label: 'Site Analytics' },
       { to: '/sites/create', icon: Globe, label: 'Create Site' },
     ]
   },
+  { to: '/analytics', icon: BarChart3, label: 'Analytics' },
   { to: '/redirects', icon: Link2, label: 'Redirects' },
   { to: '/webhooks', icon: Webhook, label: 'Webhooks' },
   { to: '/logs', icon: FileText, label: 'Logs' },
