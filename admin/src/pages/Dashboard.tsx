@@ -1,7 +1,7 @@
 import { PageHeader } from '../components/layout/PageHeader';
 import { Button, Card, CardBody, Chart, Sparkline, SystemInfo } from '../components/ui';
 import { Datamap } from '../components/ui/Datamap';
-import { Globe, TrendingUp, Zap, Database, Plus, ArrowUpRight, Eye } from 'lucide-react';
+import { Globe, TrendingUp, Zap, Plus, ArrowUpRight, Eye, BarChart3 } from 'lucide-react';
 import { useMockMode } from '../context/MockContext';
 import { mockData } from '../lib/mockData';
 import { DashboardSkeleton } from '../components/skeletons';
@@ -86,8 +86,8 @@ export function Dashboard() {
         }
       />
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      {/* Stats Grid - Now only 2 cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
         <StatCard
           icon={Globe}
           label="Sites"
@@ -96,33 +96,19 @@ export function Dashboard() {
           index={0}
         />
         <StatCard
-          icon={TrendingUp}
-          label="Views"
-          value={(stats?.total_views || 0).toLocaleString()}
-          change="+12.5%"
-          index={1}
-          sparkline={mockMode ? mockData.visitorTraffic?.slice(-7) : []}
-        />
-        <StatCard
           icon={Zap}
           label="Events"
           value={(stats?.total_events || 0).toLocaleString()}
           change="+8.3%"
-          index={2}
-        />
-        <StatCard
-          icon={Database}
-          label="Storage"
-          value={formatBytes(stats?.storage_used || 0)}
-          index={3}
+          index={1}
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Visitor Traffic Chart */}
+      <div className="grid grid-cols-1 gap-6 mb-6">
+        {/* Visitor Traffic Chart - Now full width */}
         <Card variant="bordered" className="p-6 hover-lift"
               style={{
-                animation: 'slideIn 0.4s ease-out 0.5s backwards',
+                animation: 'slideIn 0.4s ease-out 0.3s backwards',
               }}>
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -144,7 +130,7 @@ export function Dashboard() {
           <div className="space-y-4">
             <Chart
               data={mockMode ? mockData.visitorTraffic || [] : []}
-              height={120}
+              height={180}
               color="rgb(var(--accent-mid))"
             />
 
@@ -160,12 +146,17 @@ export function Dashboard() {
               </div>
               <span className="text-[rgb(var(--text-tertiary))]">Today</span>
             </div>
-
-            {/* World Map Section */}
-            <div className="mt-6 pt-6 border-t border-[rgb(var(--border-primary))]">
-              <Datamap />
-            </div>
           </div>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* World Map - Now in its own card */}
+        <Card variant="bordered" className="p-6 hover-lift"
+              style={{
+                animation: 'slideIn 0.4s ease-out 0.5s backwards',
+              }}>
+          <Datamap />
         </Card>
 
         {/* System Information */}
