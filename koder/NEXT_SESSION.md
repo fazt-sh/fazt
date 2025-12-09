@@ -1,10 +1,10 @@
-# Next Session Handoff: Admin SPA Planning & Design
+# Next Session Handoff: Admin SPA Implementation (Phase 1)
 
 **Date**: December 9, 2025
-**Status**: 🟢 **READY FOR PLANNING** - API Complete, SPA Design Phase
-**Current Phase**: Planning (Admin SPA Rebuild)
-**Recommended Model**: Sonnet (design & architecture discussion)
-**Branch**: gemini/api-reality
+**Status**: 🟢 **READY FOR IMPLEMENTATION** - Plan Complete, Phase 1 Start
+**Current Phase**: Implementation (Phase 1 - Foundation & Shell)
+**Recommended Model**: Sonnet (hands-on coding)
+**Branch**: master
 
 ---
 
@@ -12,241 +12,288 @@
 
 When starting this session, read these files in order:
 
-1. **Your Vision**: `koder/rough.md` ⭐ **START HERE - Your scattered thoughts**
-2. **API Reality**: `koder/plans/11_api-standardization.md` (What you're building on)
-3. **API Status**: Previous section below (What's complete)
+1. **The Plan**: `koder/plans/12_admin-spa-rebuild.md` ⭐ **START HERE - Complete implementation plan**
+2. **API Reference**: `koder/plans/11_api-standardization.md` (API endpoints to interface with)
+3. **Architecture**: `koder/analysis/04_comprehensive_technical_overview.md` (System overview)
+
+**Optional Reference:**
+- `koder/rough.md` - Original vision and requirements
+- `/admin-old/` - Previous admin implementation (moved from `internal/assets/system/admin/`)
 
 ---
 
 ## ✅ What's Complete (Previous Session)
 
-### API Standardization (100% Done)
-- ✅ All 11 handlers migrated to standardized format
-- ✅ Response format: `{"data": ...}` for success, `{"error": {...}}` for errors
-- ✅ Zero legacy patterns remaining
-- ✅ All tests passing
-- ✅ SPA-ready API with predictable structure
+### Planning Phase (100% Done)
+- ✅ Requirements gathering and clarification
+- ✅ Technology stack decided (React + TypeScript + Vite + Tailwind)
+- ✅ Architecture designed (component structure, state management, routing)
+- ✅ Design system specified (colors, typography, components)
+- ✅ All 12 pages planned with specifications
+- ✅ Implementation phases defined
+- ✅ Comprehensive plan document created
+- ✅ Old admin files moved to `/admin-old/`
 
-**Key for SPA Development:**
-```javascript
-// Single fetch wrapper works for ALL endpoints
-async function apiFetch(url, options) {
-  const resp = await fetch(url, options);
-  const json = await resp.json();
-  return resp.ok ? json.data : throw new Error(json.error.message);
-}
-```
-
-**Endpoints Available (~30 total):**
-- Authentication: login, logout, user/me, auth/status
-- System: health, config, limits
-- Hosting: sites CRUD, deploy, env vars, API keys
-- Analytics: events, stats, domains, tags
-- Redirects: CRUD operations
-- Webhooks: CRUD operations
-- Tracking: pixel, redirect tracking
-- Logs: site logs, deployment history
+### Tech Stack Finalized
+- **Core**: React 18 + TypeScript + Vite
+- **Styling**: Tailwind CSS (PostCSS, not CDN)
+- **State**: TanStack Query + React Context
+- **Forms**: React Hook Form
+- **UI**: Headless UI + Custom components
+- **Icons**: Lucide React
+- **Routing**: React Router v6 (hash mode)
+- **PWA**: vite-plugin-pwa
 
 ---
 
 ## 🎯 Your Mission (This Session)
 
-### Phase 1: Review & Discussion (Start Here)
+### Phase 1: Foundation & Shell
 
-**Read `koder/rough.md` and discuss with the user:**
+**Goal:** Build the visual and technical foundation. Even with just 3 pages, it should look and feel like the finished product.
 
-1. **Scope Clarification**
-   - Which features are MVP vs Nice-to-Have?
-   - Which API endpoints to integrate first?
-   - What's the page/route structure?
+**Deliverables:**
 
-2. **Technical Decisions**
-   - Component architecture pattern (Web Components? Custom elements? Plain modules?)
-   - State management approach (simple object? event-driven? state machine?)
-   - Routing strategy (hash-based? history API? single page with tabs?)
-   - Mock data strategy details
+1. **Project Setup**
+   - [ ] Create `/admin` folder at repo root
+   - [ ] Initialize Vite + React + TypeScript
+   - [ ] Install and configure Tailwind CSS
+   - [ ] Install dependencies (TanStack Query, React Router, Headless UI, Lucide React, etc.)
+   - [ ] Set up folder structure (see plan section 3)
+   - [ ] Configure vite.config.ts (see plan section 9.1)
+   - [ ] Configure tailwind.config.js (see plan section 9.2)
+   - [ ] Configure tsconfig.json (see plan section 9.3)
 
-3. **Design System**
-   - Color palette beyond theme orange?
-   - Typography scale (Inter font usage)?
-   - Spacing/sizing system?
-   - Icon library choice?
+2. **Design System Primitives**
+   - [ ] Create color palette (theme orange, light/dark modes)
+   - [ ] Set up Inter font (Google Fonts)
+   - [ ] Implement UI components in `src/components/ui/`:
+     - [ ] Button (variants: primary, secondary, ghost, danger)
+     - [ ] Input (with error states, icons)
+     - [ ] Card (header, body, footer)
+     - [ ] Badge (variants: success, error, warning, info)
+     - [ ] Skeleton (text, circle, rect)
+     - [ ] Modal (using Headless UI Dialog)
+     - [ ] Dropdown (using Headless UI Menu)
+     - [ ] Spinner/Loader
 
-4. **PWA Requirements**
-   - Offline-first? Or just installable?
-   - Service worker strategy?
-   - Cache strategy for API calls?
+3. **Core Infrastructure**
+   - [ ] API client (`src/lib/api.ts`) with standardized response handling
+   - [ ] TanStack Query setup (`src/lib/queryClient.ts`)
+   - [ ] Auth context (`src/context/AuthContext.tsx`)
+   - [ ] Theme context (`src/context/ThemeContext.tsx`) - light/dark mode
+   - [ ] Mock context (`src/context/MockContext.tsx`) - ?mock-data support
+   - [ ] Mock data file (`src/lib/mockData.ts`) with sample data
 
-5. **Development Workflow**
-   - Where to develop? (`admin/` folder in repo? Separate folder?)
-   - How to embed in Go binary? (go:embed?)
-   - Local dev server setup?
+4. **App Shell**
+   - [ ] Layout components in `src/components/layout/`:
+     - [ ] AppShell.tsx (fixed navbar + sidebar, scrollable content)
+     - [ ] Navbar.tsx (logo, user menu, theme toggle)
+     - [ ] Sidebar.tsx (navigation links, collapsible)
+     - [ ] PageHeader.tsx (page title, actions)
+   - [ ] React Router setup (hash mode)
+   - [ ] Layout constraint: Page never scrolls, only content areas
 
-### Phase 2: Create Comprehensive Plan
+5. **Sample Pages (3 pages to establish patterns)**
+   - [ ] Login page (`src/pages/Login.tsx`)
+     - Form with username/password
+     - Error handling
+     - Redirect on success
+   - [ ] Dashboard (`src/pages/Dashboard.tsx`)
+     - 4 stat cards (Sites, Views, Events, Storage)
+     - Quick actions section
+     - Uses mock data
+   - [ ] Sites page (`src/pages/Sites.tsx`)
+     - Site cards in grid
+     - Create button
+     - Search/filter
+     - Uses mock data
+   - [ ] Design System page (`src/pages/DesignSystem.tsx`)
+     - Showcase all UI components
+     - Color palette display
+     - Typography samples
+     - Visible in sidebar during development
 
-After discussion, create: **`koder/plans/12_admin-spa-rebuild.md`**
+6. **PWA Basics**
+   - [ ] Configure vite-plugin-pwa
+   - [ ] Create manifest.json (theme color: orange)
+   - [ ] Service worker shell
+   - [ ] Add icons/favicon
 
-**Plan should include:**
-1. **Architecture Overview**
+7. **Build & Integration Test**
+   - [ ] Test `npm run dev` works
+   - [ ] Test mock mode: `?mock-data` activates
+   - [ ] Test theme switching persists
+   - [ ] Test routing works
+   - [ ] Build: `npm run build` creates `admin/dist/`
+   - [ ] Create symlink: `ln -s ../../../admin/dist internal/assets/system/admin`
+   - [ ] Test Go embed: Rebuild binary, verify admin loads
+
+**Success Criteria:**
+- ✅ Visually complete (looks like finished product)
+- ✅ 3 pages fully functional with mock data
+- ✅ All primitives showcased in design system page
+- ✅ Theme switching works (persists to localStorage)
+- ✅ Mock mode works (?mock-data, localStorage, window.mockMode)
+- ✅ Layout perfect (no scroll jank, fixed navbar/sidebar)
+- ✅ Builds successfully and embeds in Go binary
+
+---
+
+## 📚 Key References
+
+### From the Plan (`koder/plans/12_admin-spa-rebuild.md`)
+
+**File Structure:** Section 3
+**Design System:** Section 4
+**Architecture:** Section 5
+**Configuration Files:** Section 9
+
+### Setup Commands
+
+```bash
+# 1. Create admin folder
+cd /home/testman/workspace
+mkdir admin
+cd admin
+
+# 2. Initialize Vite
+npm create vite@latest . -- --template react-ts
+
+# 3. Install dependencies
+npm install
+npm install -D tailwindcss postcss autoprefixer
+npm install react-router-dom @tanstack/react-query
+npm install @headlessui/react lucide-react
+npm install react-hook-form @hookform/resolvers zod
+npm install -D vite-plugin-pwa
+
+# 4. Initialize Tailwind
+npx tailwindcss init -p
+
+# 5. Start development
+npm run dev
+```
+
+### Design Tokens
+
+**Theme Color:** `rgb(255, 149, 0)` (#FF9500)
+
+**Light Mode:**
+- bg-primary: `rgb(255, 255, 255)`
+- bg-secondary: `rgb(249, 250, 251)`
+- text-primary: `rgb(17, 24, 39)`
+
+**Dark Mode:**
+- bg-primary: `rgb(17, 24, 39)`
+- bg-secondary: `rgb(31, 41, 55)`
+- text-primary: `rgb(243, 244, 246)`
+
+**Font:** Inter (Google Fonts)
+
+---
+
+## 🎨 Development Approach
+
+### Build Order (Recommended)
+
+1. **Start with infrastructure** (boring but essential)
+   - Vite setup
+   - Tailwind config
    - Folder structure
-   - Component hierarchy
-   - State management pattern
-   - Routing strategy
+   - Contexts (Auth, Theme, Mock)
+   - API client
 
-2. **Design System**
-   - Color palette
-   - Typography
-   - Spacing/layout
-   - Component library (buttons, inputs, cards, etc.)
+2. **Build design system** (fun, establishes patterns)
+   - Colors in CSS variables
+   - UI components (Button, Input, Card, etc.)
+   - Design System page to showcase
 
-3. **Features & Pages**
-   - Page breakdown with wireframes/descriptions
-   - API integration per page
-   - Mock data structure
+3. **Build layout** (shell)
+   - AppShell component
+   - Navbar with theme toggle
+   - Sidebar with navigation
 
-4. **Technical Specifications**
-   - ES6 module structure
-   - State management implementation
-   - API client abstraction
-   - Mock data system
+4. **Build pages** (one by one)
+   - Login (simple form)
+   - Dashboard (stat cards, mock data)
+   - Sites (grid of cards, mock data)
 
-5. **Implementation Phases**
-   - Phase 1: Foundation (layout, routing, state, API client)
-   - Phase 2: Core pages (dashboard, sites, analytics)
-   - Phase 3: Advanced features (webhooks, redirects, settings)
-   - Phase 4: Polish (PWA, dark mode, animations)
+5. **Test everything**
+   - Mock mode activation
+   - Theme switching
+   - Routing
+   - Build & embed
 
-6. **File Structure**
-   ```
-   admin/
-   ├── index.html
-   ├── css/
-   │   └── app.css
-   ├── js/
-   │   ├── app.js (entry point)
-   │   ├── router.js
-   │   ├── state.js
-   │   ├── api.js
-   │   ├── mock.js
-   │   ├── components/
-   │   │   ├── Layout.js
-   │   │   ├── Sidebar.js
-   │   │   ├── ...
-   │   └── pages/
-   │       ├── Dashboard.js
-   │       ├── Sites.js
-   │       ├── ...
-   └── assets/
-       ├── favicon.ico
-       └── ...
-   ```
+### Key Patterns to Establish
 
----
+**API Hook Pattern:**
+```tsx
+// hooks/useSites.ts
+export function useSites() {
+  const { enabled: mockMode } = useMockMode();
+  return useQuery({
+    queryKey: ['sites'],
+    queryFn: () => (mockMode ? mockData.sites : api.get('/api/sites')),
+  });
+}
+```
 
-## 🎨 Key Requirements from `koder/rough.md`
+**Page Component Pattern:**
+```tsx
+// pages/Sites.tsx
+export function Sites() {
+  const { data: sites, isLoading } = useSites();
 
-### Core Constraints
-- ✅ **Vanilla SPA** - No build tools (no webpack, vite, etc.)
-- ✅ **PWA-capable** - Service worker, manifest
-- ✅ **Independent folder** - Can develop separate from Go code
-- ✅ **Tailwind CSS CDN** - No npm, just CDN link
+  if (isLoading) return <PageSkeleton />;
 
-### Features
-- ✅ **Mock data system** - `?mock-data` query string, localStorage persistence
-- ✅ **Light/Dark mode** - Theme switcher
-- ✅ **Theme color**: `rgb(255, 149, 0)` (orange)
-- ✅ **Inter font** - Typography
-- ✅ **Icons** - Nice icon library (heroicons? lucide?)
-- ✅ **No layout janks** - Fixed layout, only panels scroll
-- ✅ **Memoized API** - Smart caching, avoid redundant fetches
-- ✅ **Loading skeletons** - Graceful loading states
-- ✅ **Native-like UX** - Super spiffy, fast, responsive
-
-### Architecture
-- ✅ **ES6 modules** - Native module system
-- ✅ **Component-based** - Reusable component pattern
-- ✅ **State management** - Extensible for future API changes
-- ✅ **API-driven UI** - UI structure mirrors API design
-
-### Philosophy
-> "Build the UI to delight. This is the app that will introduce users to Fazt. Make it elegant, functional, and a delight to work with."
+  return (
+    <div className="p-6">
+      <PageHeader
+        title="Sites"
+        action={<Button>Create Site</Button>}
+      />
+      <div className="grid grid-cols-3 gap-4 mt-6">
+        {sites.map(site => <SiteCard key={site.id} site={site} />)}
+      </div>
+    </div>
+  );
+}
+```
 
 ---
 
-## 🤔 Questions to Ask User
+## 🛠️ Troubleshooting
 
-Before creating the plan, clarify:
+### Common Issues
 
-1. **Page Structure**
-   - What pages/routes? (Dashboard, Sites, Analytics, Settings, ...?)
-   - Navigation pattern? (Sidebar? Top nav? Tabs?)
+**Tailwind classes not working:**
+- Check `tailwind.config.js` content paths
+- Verify `globals.css` imports Tailwind directives
+- Restart dev server
 
-2. **Priority Features**
-   - What's the absolute MVP? (Just sites management? Or include analytics too?)
-   - Which features can wait for v2?
+**React Router not loading pages:**
+- Use `HashRouter`, not `BrowserRouter`
+- Check route paths start with `/`
 
-3. **Mock Data**
-   - Mock ALL endpoints? Or just specific ones?
-   - Should mock data be realistic? (Random names/dates?)
+**Mock mode not activating:**
+- Check `?mock-data` in URL
+- Verify localStorage is being set
+- Check `useMockMode()` hook implementation
 
-4. **Component Architecture**
-   - Preference for pattern? (Web Components? Class-based? Functional modules?)
-   - How granular? (Many small components vs few large ones?)
+**Build fails:**
+- Check all imports are correct
+- Verify TypeScript types are defined
+- Run `npm install` again
 
-5. **State Management**
-   - Simple object? Event emitter? Pub/sub? State machine?
-   - Global state vs local component state?
-
-6. **Development Location**
-   - Develop in `admin/` folder at repo root?
-   - Or `internal/assets/system/admin/`?
-   - Embed strategy? (go:embed on build?)
-
-7. **Asset Sources**
-   - Use assets from `docs/` site for now?
-   - Specific logo/favicon preferences?
+**Symlink not working:**
+- Use relative path: `../../../admin/dist`
+- Verify `admin/dist/` exists (run build first)
+- Check symlink with `ls -la internal/assets/system/admin`
 
 ---
 
-## 📚 Resources Available
-
-### API Documentation
-- `koder/plans/11_api-standardization.md` - Complete API spec
-- `koder/docs/admin-api/request-response.md` - Example requests/responses
-- All endpoints return: `{"data": ...}` or `{"error": {"code": "...", "message": "..."}}`
-
-### Design Inspiration
-- Theme color: `rgb(255, 149, 0)` (vibrant orange)
-- Font: Inter (Google Fonts or CDN)
-- Icons: Heroicons? Lucide? Feather?
-- Style: Minimal, functional, elegant
-
-### Technical Constraints
-- No build process (vanilla JS/HTML/CSS)
-- Tailwind CSS via CDN
-- ES6 modules (native)
-- Mock data system for development
-
----
-
-## 🎯 Expected Outcome
-
-By end of this session:
-
-1. ✅ **Discussion complete** - All questions answered
-2. ✅ **Plan created**: `koder/plans/12_admin-spa-rebuild.md`
-3. ✅ **Plan includes**:
-   - Complete architecture
-   - File structure
-   - Component breakdown
-   - Page specifications
-   - Implementation phases
-   - Design system
-4. ✅ **Ready to build** - Next session can start coding immediately
-
----
-
-## 🚀 Quick Start (For Next Session)
+## 🚀 Quick Start (For This Session)
 
 **Command to start:**
 ```bash
@@ -254,24 +301,88 @@ read and execute koder/start.md
 ```
 
 **What will happen:**
-1. You (Sonnet) will read this file
-2. You'll read `koder/rough.md`
-3. You'll ask user clarifying questions
-4. You'll discuss and refine the vision
-5. You'll create comprehensive plan in `koder/plans/12_admin-spa-rebuild.md`
-6. You'll update this file for the NEXT session (actual build)
+1. You'll read `koder/NEXT_SESSION.md` (this file)
+2. You'll read `koder/plans/12_admin-spa-rebuild.md` (the plan)
+3. You'll set up the project (Vite + React + TypeScript)
+4. You'll build the foundation (primitives, layout, 3 pages)
+5. You'll test everything works (mock mode, theme, build)
 
 ---
 
-## 📝 Notes for Next Session
+## 📝 Notes for Implementation
 
-- **Don't start building yet** - This session is for planning only
-- **Ask questions** - Better to clarify now than rebuild later
-- **Be thorough** - The plan should be detailed enough for implementation
-- **Consider extensibility** - API will grow, UI should accommodate that
+### Important Constraints
+
+1. **No scroll on page** - Only inner panels scroll
+2. **Mock data transparent** - Components shouldn't know if using mock
+3. **Theme persists** - Save to localStorage
+4. **Loading states everywhere** - Use skeletons, not spinners alone
+5. **Design system first** - Establish patterns before building pages
+6. **Visually complete** - Even with 3 pages, it should look finished
+
+### What to Avoid
+
+- ❌ Don't build all 12 pages yet - just 3 for Phase 1
+- ❌ Don't integrate real API yet - mock data only for Phase 1
+- ❌ Don't over-engineer - Keep it simple, establish patterns
+- ❌ Don't skip Design System page - crucial for consistency
+
+### What Success Looks Like
+
+After Phase 1, you should be able to:
+- Open `http://localhost:5173/#/?mock-data`
+- See beautiful login page
+- Log in (mock auth)
+- See dashboard with stats
+- Navigate to sites page
+- See grid of site cards
+- Click Design System in sidebar
+- See all primitives
+- Toggle theme (light/dark)
+- Refresh - theme persists
+- Build successfully
+- Embed in Go binary
 
 ---
 
-**Session Goal**: Exit with a crystal-clear plan that makes building the SPA straightforward.
+## 🎯 Expected Outcome
 
-**Remember**: The user has a clear vision in `rough.md`. Your job is to refine it into an actionable, comprehensive plan.
+By end of this session:
+
+1. ✅ **Project set up** - Vite + React + TypeScript running
+2. ✅ **Design system complete** - All primitives built and showcased
+3. ✅ **App shell complete** - Navbar, sidebar, layout
+4. ✅ **3 pages working** - Login, Dashboard, Sites
+5. ✅ **Core infrastructure** - API client, contexts, routing
+6. ✅ **Mock mode working** - ?mock-data activates
+7. ✅ **Theme working** - Light/dark toggle persists
+8. ✅ **Builds successfully** - npm run build works
+9. ✅ **Embeds in Go** - Symlink + rebuild works
+
+**Visual Quality:** Should look like a finished product, even with just 3 pages.
+
+---
+
+## 📅 Next Session After This
+
+**Phase 2: Core Features**
+- Complete remaining pages (Analytics, Settings, Site Detail)
+- Real API integration (replace mock)
+- Form validation
+- Error handling
+- Advanced components (charts, tables)
+
+---
+
+## 🔗 Reference Links
+
+**Plan:** `koder/plans/12_admin-spa-rebuild.md` (comprehensive spec)
+**API:** `koder/plans/11_api-standardization.md` (endpoints)
+**Architecture:** `koder/analysis/04_comprehensive_technical_overview.md`
+**Old Admin:** `/admin-old/` (reference only, don't use)
+
+---
+
+**Session Goal:** Exit with a beautiful, functional foundation that demonstrates the final product's direction.
+
+**Remember:** Build to delight. Quality over speed. Establish patterns that make Phase 2+ easy.
