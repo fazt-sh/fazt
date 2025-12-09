@@ -15,6 +15,8 @@
     "@tailwindcss/forms": "^0.5.10",
     "@tanstack/react-query": "^5.90.12",
     "apexcharts": "^5.3.6",
+    "d3": "^3.5.17",
+    "datamaps": "^0.5.9",
     "lucide-react": "^0.556.0",
     "preline": "^3.2.3",
     "react": "^19.2.0",

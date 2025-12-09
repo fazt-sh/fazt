@@ -1,18 +1,35 @@
-import { Moon, Sun, User, LogOut } from 'lucide-react';
+import { Moon, Sun, User, LogOut, Menu } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { Dropdown, DropdownItem, DropdownDivider } from '../ui';
 
-export function Navbar() {
+interface NavbarProps {
+  onMenuClick?: () => void;
+}
+
+export function Navbar({ onMenuClick }: NavbarProps) {
   const { theme, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
 
   return (
     <nav className="h-14 glass border-b border-[rgb(var(--border-primary))] flex items-center justify-between px-6 sticky top-0 z-50">
       <div className="flex items-center gap-4">
-        <img src="/logo.png" alt="Fazt" className="h-8 w-8 rounded-lg" />
-        <div className="font-display text-lg text-[rgb(var(--text-primary))] tracking-tight">
-          Fazt<span className="gradient-text">.sh</span>
+        {/* Mobile Menu Button */}
+        <button
+          onClick={onMenuClick}
+          className="lg:hidden p-2 rounded-lg text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--text-primary))]
+                     hover:bg-[rgb(var(--bg-hover))] transition-all duration-150"
+          aria-label="Open menu"
+        >
+          <Menu className="h-[18px] w-[18px]" strokeWidth={2} />
+        </button>
+
+        {/* Logo - Hidden on mobile when sidebar is open */}
+        <div className="hidden sm:flex items-center gap-4">
+          <img src="/logo.png" alt="Fazt" className="h-8 w-8 rounded-lg" />
+          <div className="font-display text-lg text-[rgb(var(--text-primary))] tracking-tight">
+            Fazt<span className="gradient-text">.sh</span>
+          </div>
         </div>
       </div>
 

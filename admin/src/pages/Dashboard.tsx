@@ -1,5 +1,6 @@
 import { PageHeader } from '../components/layout/PageHeader';
 import { Button, Card, CardBody, Terminal, TerminalLine, Chart, Sparkline, SystemInfo } from '../components/ui';
+import { WorldMap } from '../components/ui/WorldMap';
 import { Globe, TrendingUp, Zap, Database, Plus, ArrowUpRight, Users, Eye } from 'lucide-react';
 import { useMockMode } from '../context/MockContext';
 import { mockData } from '../lib/mockData';
@@ -158,6 +159,11 @@ export function Dashboard() {
                 </div>
               </div>
               <span className="text-[rgb(var(--text-tertiary))]">Today</span>
+            </div>
+
+            {/* World Map Section */}
+            <div className="mt-6 pt-6 border-t border-[rgb(var(--border-primary))]">
+              <WorldMap />
             </div>
           </div>
         </Card>
