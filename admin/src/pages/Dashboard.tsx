@@ -98,8 +98,8 @@ export function Dashboard() {
         }
       />
 
-      {/* Stats Grid - Now only 2 cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+      {/* Top Row - Stats and Visitor Traffic */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-8">
         <StatCard
           icon={Globe}
           label="Sites"
@@ -114,51 +114,47 @@ export function Dashboard() {
           change="+8.3%"
           index={1}
         />
-      </div>
 
-      <div className="grid grid-cols-1 gap-6 mb-6">
-        {/* Visitor Traffic Chart - Now full width */}
-        <Card variant="bordered" className="p-6 hover-lift"
+        {/* Visitor Traffic Chart - Same height as stat cards */}
+        <Card variant="bordered" className="hover-lift h-full"
               style={{
                 animation: 'slideIn 0.4s ease-out 0.3s backwards',
               }}>
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="font-display text-lg text-[rgb(var(--text-primary))]">
-                Visitor Traffic
-              </h2>
-              <p className="text-sm text-[rgb(var(--text-secondary))] mt-1">
-                Last 30 days trend
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
+          <CardBody className="p-6 h-full flex flex-col">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h2 className="font-display text-sm text-[rgb(var(--text-primary))]">
+                  Visitor Traffic
+                </h2>
+                <p className="text-xs text-[rgb(var(--text-secondary))] mt-0.5">
+                  Last 30 days
+                </p>
+              </div>
               <div className="flex items-center gap-1">
-                <div className="w-3 h-3 rounded-full bg-[rgb(var(--success))]"></div>
+                <div className="w-2 h-2 rounded-full bg-[rgb(var(--success))]"></div>
                 <span className="text-xs text-[rgb(var(--text-secondary))]">+417%</span>
               </div>
             </div>
-          </div>
 
-          <div className="space-y-4">
-            <Chart
-              data={mockMode ? mockData.visitorTraffic || [] : []}
-              height={180}
-              color="rgb(var(--accent-mid))"
-            />
+            <div className="flex-1 flex items-end">
+              <Chart
+                data={mockMode ? mockData.visitorTraffic || [] : []}
+                height={100}
+                color="rgb(var(--accent-mid))"
+              />
+            </div>
 
-            <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center justify-between text-xs mt-3">
               <span className="text-[rgb(var(--text-tertiary))]">30 days ago</span>
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-1">
-                  <Eye className="h-4 w-4 text-[rgb(var(--text-secondary))]" />
-                  <span className="text-[rgb(var(--text-primary))] font-medium">
-                    {mockMode ? (mockData.visitorTraffic?.[mockData.visitorTraffic.length - 1] || 0).toLocaleString() : '0'}
-                  </span>
-                </div>
+              <div className="flex items-center gap-2">
+                <Eye className="h-3 w-3 text-[rgb(var(--text-secondary))]" />
+                <span className="text-[rgb(var(--text-primary))] font-medium">
+                  {mockMode ? (mockData.visitorTraffic?.[mockData.visitorTraffic.length - 1] || 0).toLocaleString() : '0'}
+                </span>
               </div>
               <span className="text-[rgb(var(--text-tertiary))]">Today</span>
             </div>
-          </div>
+          </CardBody>
         </Card>
       </div>
 
