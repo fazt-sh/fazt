@@ -3,6 +3,8 @@ import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { Dropdown, DropdownItem, DropdownDivider } from '../ui';
 
+import { Link } from 'react-router-dom';
+
 interface NavbarProps {
   onMenuClick?: () => void;
 }
@@ -25,12 +27,9 @@ export function Navbar({ onMenuClick }: NavbarProps) {
         </button>
 
         {/* Logo - Hidden on mobile when sidebar is open */}
-        <div className="hidden sm:flex items-center gap-4">
+        <Link to="/" className="hidden sm:flex items-center hover:opacity-80 transition-opacity">
           <img src="/logo.png" alt="Fazt" className="h-8 w-8 rounded-lg" />
-          <div className="font-display text-lg text-[rgb(var(--text-primary))] tracking-tight">
-            Fazt<span className="gradient-text">.sh</span>
-          </div>
-        </div>
+        </Link>
       </div>
 
       <div className="flex items-center gap-2">

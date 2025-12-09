@@ -42,18 +42,29 @@ export function Breadcrumbs() {
   });
 
   return (
-    <nav className="flex items-center space-x-1 text-sm text-secondary mb-4">
-      <Link to="/" className="flex items-center hover:text-primary transition-colors">
+    <nav className="flex items-center space-x-2 text-sm mb-6 animate-fade-in">
+      <Link 
+        to="/" 
+        className="group relative flex items-center text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--text-primary))] transition-colors py-1"
+      >
         <Home className="w-4 h-4" />
+        <span className="absolute bottom-0 left-0 w-full h-[2px] bg-[rgb(var(--accent))] transform scale-x-0 transition-transform duration-300 group-hover:scale-x-100 origin-left rounded-full" />
       </Link>
+      
       {breadcrumbs.map((crumb, index) => (
         <div key={crumb.path} className="flex items-center">
-          <ChevronRight className="w-4 h-4 mx-1 text-tertiary" />
+          <ChevronRight className="w-4 h-4 mx-2 text-[rgb(var(--text-tertiary))]" />
           {index === breadcrumbs.length - 1 ? (
-            <span className="text-primary font-medium">{crumb.label}</span>
-          ) : (
-            <Link to={crumb.path} className="hover:text-primary transition-colors">
+            <span className="text-[rgb(var(--accent))] font-medium tracking-wide py-1">
               {crumb.label}
+            </span>
+          ) : (
+            <Link 
+              to={crumb.path} 
+              className="group relative text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--text-primary))] transition-colors font-medium py-1"
+            >
+              {crumb.label}
+              <span className="absolute bottom-0 left-0 w-full h-[2px] bg-[rgb(var(--accent))] transform scale-x-0 transition-transform duration-300 group-hover:scale-x-100 origin-left rounded-full" />
             </Link>
           )}
         </div>
