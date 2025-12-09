@@ -4,240 +4,165 @@
 - **Project**: Fazt.sh Admin Dashboard (React + TypeScript + Vite)
 - **Location**: `/home/testman/workspace/admin`
 - **Branch**: `glm/ui-refinements`
-- **Status**: Route hierarchy planning phase, sidebar sub-menus implemented
+- **Status**: Phase 2A - Route Hierarchy Implementation
 - **Dev Server**: Running on http://localhost:37180
+- **Active Plan**: `koder/plans/14_admin-spa-complete.md`
 
 ## Most Recent Work (December 9, 2025)
 
-### Completed Features
-1. **Datamaps Component** - Successfully fixed with proper theme support
-   - Working map with country data visualization
-   - Theme-aware colors (adjusts for light/dark modes)
-   - Scrollable country table with top 15 countries
-   - Proper cleanup and re-initialization
+### Plan Consolidation
+- Created **Plan 14**: Unified Admin SPA plan combining Plans 12 and 13
+- Marked Plans 12 and 13 as superseded
+- Plan 14 is now the **single source of truth** for all Admin SPA work
 
-2. **Dashboard Reorganization**
-   - Removed Views and Storage cards from top stats
-   - Created wider Visitor Traffic card in same row as Sites/Events
-   - Separated world map into its own card
-   - Clean 2-column bottom layout (Map + System Info)
+### Completed Features (Phase 1)
+1. **Foundation & Shell** - 100% complete
+   - Vite + React + TypeScript setup
+   - Tailwind CSS with custom design system
+   - App shell (Navbar, Sidebar with sub-menus)
+   - Core infrastructure (API client, contexts, router)
+   - Login, Dashboard, Sites, DesignSystem pages
+   - PWA basics
 
-3. **Sidebar Sub-Menu System**
-   - Implemented collapsible sub-menus with proper state management
-   - Sites menu with nested items (All Sites, Analytics, Create)
-   - Chevron indicators for expand/collapse states
-   - Active state management for parent/child routes
-   - Mobile-responsive overlay system
+2. **Design System**
+   - "Technical Precision" aesthetic (Linear/Vercel-inspired)
+   - Inter + Consolas fonts
+   - CSS variables for theming
+   - All UI primitives built
 
-4. **Navigation Improvements**
-   - Fixed routing issues (added back /analytics route)
-   - Both standalone Analytics and nested Site Analytics
-   - Removed old "Preline Design System" menu
-   - Kept "Design System" for development
+3. **Dashboard**
+   - Stats cards
+   - World map with Datamaps (theme-aware)
+   - Visitor traffic visualization
 
-5. **Documentation Link**
-   - Added documentation link to dashboard header
-   - Links to https://fazt-sh.github.io/fazt/docs.html
+4. **Sidebar**
+   - Sub-menu system with expand/collapse
+   - Proper state management
+   - Mobile responsive
 
-## Critical Issue - ROUTE HIERARCHY NEEDED
+## Current Task: Phase 2A - Route Hierarchy
 
-**Problem**: The current flat route structure causes navigation confusion and doesn't match logical groupings
+### What Needs to Be Done
 
-**Solution**: A comprehensive route hierarchy plan has been created in `koder/plans/13_route-hierarchy-implementation.md`
+Implement the UX-first route structure with placeholders for all pages.
 
-### Current Route Structure (Flat - PROBLEMATIC):
+**Files to Create (28 total)**:
+- 1 Breadcrumbs component
+- 1 PlaceholderPage component
+- 5 Layout components (Sites, System, Apps, Security, External)
+- 1 NotFound page
+- 18 Placeholder pages (see Plan 14 section 6.5)
+
+**Files to Modify (2 total)**:
+- `App.tsx` - New routing structure
+- `Sidebar.tsx` - New menu items
+
+### Route Structure
+
 ```
-/                (Dashboard)
-/sites            (Sites List)
-/analytics         (Global Analytics)
-/sites/analytics   (Site Analytics)
-/sites/create     (Create Site)
-/redirects        (Redirects List)
-/webhooks         (Webhooks List)
-/logs             (Logs List)
-/settings         (Settings)
-/design-system     (Design System)
+/#/                          Dashboard
+/#/sites/*                   Sites Management
+/#/system/*                  System Administration
+/#/apps/*                    Application Management
+/#/security/*                Security Management
+/#/external/*                External Integrations
+/#/*                         404 Not Found
 ```
 
-### Proposed Logical Grouping (from plan 13):
-```
-/                (Dashboard)
-/sites/           (Sites Management Hub)
-  ├── /            (Sites List)
-  ├── /analytics  (Aggregate Site Analytics)
-  ├── /domains    (Domain Management)
-  └── /create    (Create New Site)
-
-/system/          (System Administration)
-  ├── /stats       (System Statistics)
-  ├── /limits      (Resource Limits & Safeguards)
-  ├── /logs        (System Logs)
-  ├── /backup      (Backup Management)
-  ├── /health      (Health Monitoring)
-  ├── /settings    (System Settings)
-  └── /design-system (Design System - keep in production)
-
-/apps/            (Application Management)
-  ├── /list        (Installed Apps)
-  ├── /webhooks     (Webhooks)
-  ├── /redirects    (URL Redirects)
-  ├── /tunnel      (Tunnel Management)
-  ├── /proxy       (Proxy Configuration)
-  └── /botdaddy    (Telegram Bot Server)
-
-/security/         (Security Management)
-  ├── /ssh          (SSH Keys)
-  ├── /auth-token   (Auth Tokens)
-  └── /password    (Password Policies)
-
-/external/         (External Integrations)
-  ├── /cloudflare  (Cloudflare Settings)
-  └── /litestream (Litestream Integration)
-```
+See Plan 14, Section 5.2 for complete route map.
 
 ## Bootstrap Chain
 
 To continue work, run:
 ```bash
-# From the koder directory
-read and execute start.md
+read and execute koder/start.md
 ```
 
-This will:
-- Load current context from this file
-- Load relevant documentation files
-- Verify environment
-- State readiness for next steps
+Or jump directly to the plan:
+```bash
+read koder/plans/14_admin-spa-complete.md
+```
 
-## Critical Reference for Route Planning
-- `koder/plans/13_route-hierarchy-implementation.md` - NEW: Comprehensive route hierarchy plan
-- `koder/plans/12_admin-spa-rebuild.md` (Original implementation plan - needs updating)
-- `koder/plans/11_api-standardization.md` (API endpoints reference)
+## Context Payload (Read These)
 
-## Next Steps
+1. **Active Plan**: `koder/plans/14_admin-spa-complete.md` (PRIMARY)
+2. **Architecture**: `koder/analysis/04_comprehensive_technical_overview.md`
+3. **API Reference**: `koder/plans/11_api-standardization.md`
 
-1. **REVIEW ROUTE HIERARCHY PLAN** (Top Priority)
-   - Review the new plan in `koder/plans/13_route-hierarchy-implementation.md`
-   - Discuss with stakeholders about the proposed structure
-   - Consider API alignment implications
-   - Get feedback on the suggested groupings
+### Superseded Plans (for reference only)
+- `koder/plans/12_admin-spa-rebuild.md` - Original plan (Phase 1 complete)
+- `koder/plans/13_route-hierarchy-implementation.md` - Route design (merged into 14)
 
-2. **IMPLEMENT ROUTE HIERARCHY**
-   - Update App.tsx with nested routing structure
-   - Create layout components (SitesLayout, SystemLayout, etc.)
-   - Implement proper route matching for sidebar highlighting
-   - Add breadcrumb navigation
+## Development Commands
 
-3. **IMPROVE NAVIGATION UX**
-   - Fix incorrect active states in sidebar
-   - Implement breadcrumbs for nested pages
-   - Add loading states for route transitions
-   - Ensure mobile navigation works properly
-
-## Current Development Commands
 ```bash
 # Start dev server
 cd /home/testman/workspace/admin
 npm run dev -- --port 37180 --host 0.0.0.0
-# Server runs on: http://localhost:37180/
 
 # Build for production
 npm run build
 
 # Copy to Go embed location
-cd /home/testman/workspace
 rm -rf internal/assets/system/admin
 cp -r admin/dist internal/assets/system/admin
 
-# Build Go binary with embedded admin
+# Build Go binary
 go build -o fazt ./cmd/server
 ```
 
+## Implementation Order (Phase 2A)
+
+Execute in this exact sequence:
+
+1. Create directories: `pages/sites/`, `pages/system/`, `pages/apps/`, `pages/security/`, `pages/external/`
+2. Create `components/ui/Breadcrumbs.tsx`
+3. Create `components/PlaceholderPage.tsx`
+4. Create 5 layout components
+5. Create `pages/NotFound.tsx`
+6. Create all 18 placeholder pages
+7. Update `App.tsx`
+8. Update `Sidebar.tsx` menuItems
+9. Test all routes
+10. Verify sidebar highlighting
+
+## Verification Checklist
+
+After implementation, test each route works:
+- [ ] All 25+ routes accessible
+- [ ] Breadcrumbs show on nested pages
+- [ ] Sidebar highlights correctly
+- [ ] 404 page shows for invalid routes
+- [ ] No console errors
+- [ ] Build succeeds
+
 ## Notes
-- Server is currently running on port 37180
-- Datamaps component is working properly with theme support
-- Sidebar sub-menus are functional but highlighting needs fixing
-- Route structure needs complete redesign for logical grouping
-- Hash-based routing (#/) is working correctly
 
-## 📋 Context Payload (Read These First)
-
-1. **Route Planning**: `koder/plans/13_route-hierarchy-implementation.md` (NEW - needs review)
-2. **Original Plan**: `koder/plans/12_admin-spa-rebuild.md` (Needs updating with new route structure)
-3. **API Reference**: `koder/plans/11_api-standardization.md` (API endpoints)
-4. **Architecture**: `koder/analysis/04_comprehensive_technical_overview.md` (System overview)
+- Server is running on port 37180
+- Hash-based routing (#/) is working
+- No backwards compatibility needed (no users yet)
+- Design System stays in production at `/system/design-system`
 
 ---
 
-## ✅ What's Complete
+## Your Mission (This Session)
 
-### Phase 1 - Foundation & Shell (100% Done)
-- ✅ **Project Setup**: Vite + React + TypeScript initialized
-- ✅ **Dependencies**: All packages installed
-- ✅ **Build System**: Vite configured with PWA support
-- ✅ **Folder Structure**: All directories created
-- ✅ **Core Infrastructure**: API client, TanStack Query, Contexts
-- ✅ **UI Components**: 8+ primitives built
-- ✅ **Layout**: AppShell, Navbar, Sidebar, PageHeader
-- ✅ **Pages**: Login, Dashboard, Sites, Analytics, Settings, etc.
-- ✅ **Routing**: React Router v6 (hash mode)
-- ✅ **PWA**: Service worker, manifest configured
-- ✅ **Build & Integration**: Builds successfully, embeds in Go binary
-- ✅ **GitHub Workflow**: Updated to build admin before Go binary
+### Implement Phase 2A: Route Hierarchy
 
-### UI Refinements (Session 002-004 - December 9, 2025)
-- ✅ **Design System Upgrade**: "Technical Precision" aesthetic
-- ✅ **Typography**: Inter + Consolas fonts
-- ✅ **Color System**: CSS variables, theme support
-- ✅ **Components**: Refined all components with proper states
-- ✅ **Dashboard**: Reorganized with better layout
-- ✅ **Datamaps**: Fixed with scrolling table and theme colors
-- ✅ **Sidebar**: Sub-menu system with expand/collapse
-- ✅ **Navigation**: Fixed routing and active states
+**Goal**: Create all routes with pretty placeholders so we can visualize the final admin structure.
+
+**Steps**:
+1. Read Plan 14 section 6 for exact implementation details
+2. Create all files in the specified order
+3. Test all routes work
+4. Verify sidebar and breadcrumbs
+
+**Success Criteria**:
+- All 25 routes accessible
+- Pretty placeholders on unimplemented pages
+- Navigation works correctly
+- Build succeeds
 
 ---
 
-## 🎯 Your Mission (This Session)
-
-### Evaluate and Implement Route Hierarchy
-
-**Primary Goal**: Review the route hierarchy plan and implement a better navigation structure that provides logical groupings and proper user experience.
-
-**Tasks:**
-1. **Review Plan**: Analyze `koder/plans/13_route-hierarchy-11_route-hierarchy-implementation.md`
-2. **Update Original Plan**: Modify `koder/12_admin-spa-rebuild.md` to reflect the new route hierarchy
-3. **Decision Point**: Choose between API alignment vs UX-optimized structure
-4. **Implementation**: Begin implementing the chosen route structure
-
-**Questions to Consider:**
-- Should the route structure mirror the API exactly or be optimized for user experience?
-- Are the proposed groupings logical for typical admin workflows?
-- Which approach provides better maintainability?
-- How will this affect future feature development?
-
-**Current State:**
-- ✅ Foundation solid and working
-- ✅ Professional aesthetic established
-- ✅ Datamaps working with theme support
-- ✅ Sub-menus implemented but highlighting needs route fixes
-- ❌ Route structure doesn't match logical groupings
-- ❌ Navigation experience could be more intuitive
-
----
-
-## 📚 Key References
-
-### Design System (Current)
-- **Aesthetic**: Technical Precision (Linear/Vercel-inspired)
-- **Fonts**: Inter (main) + Consolas (mono)
-- **Colors**: CSS variables with full theme support
-- **Components**: All primitives with proper states
-
-### Development
-- **Server**: http://localhost:37180 (running)
-- **Build**: `npm run build` (436KB dist)
-- **Embed**: `go build` (30MB binary)
-
----
-
-**Session Goal**: Evaluate route hierarchy options and prepare for implementation of a better navigation structure.
+**Session Goal**: Complete Phase 2A route hierarchy implementation.

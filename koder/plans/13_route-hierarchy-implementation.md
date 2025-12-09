@@ -1,8 +1,11 @@
 # Route Hierarchy Implementation Plan (FINAL)
 
 **Date**: December 9, 2025
-**Status**: APPROVED - Ready for Implementation
+**Status**: ⚠️ SUPERSEDED by Plan 14
+**Superseded By**: `koder/plans/14_admin-spa-complete.md`
 **Approach**: UX-First (Routes optimized for user workflows)
+
+> **Note**: This plan's route hierarchy has been merged into Plan 14, which is now the single source of truth for the Admin SPA.
 
 ---
 
