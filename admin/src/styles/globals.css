@@ -61,12 +61,12 @@
   --text-secondary: 136 136 136;         /* #888888 */
   --text-tertiary: 102 102 102;
 
-  --border-primary: 34 34 34;            /* #222222 */
+  --border-primary: 42 42 42;            /* #2a2a2a - Visible but subtle */
   --border-secondary: 51 51 51;          /* #333333 */
 
   /* Glassmorphism & Effects for Dark */
   --glass-bg: rgba(20, 20, 20, 0.6);
-  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-border: rgba(255, 255, 255, 0.05);
   --backdrop-blur: 12px;
 
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.4);

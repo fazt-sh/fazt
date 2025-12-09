@@ -17,14 +17,14 @@ interface CountryData {
   customName?: string;
 }
 
+interface DatamapInstance {
+  resize(): void;
+  updateChoropleth(data: any, options?: any): void;
+}
+
 declare global {
   interface Window {
-    Datamap: {
-      new(options: any): {
-        resize(): void;
-        updateChoropleth(data: any, options?: any): void;
-      };
-    };
+    Datamap: new (options: any) => DatamapInstance;
     d3: any;
     topojson: any;
   }
@@ -35,8 +35,8 @@ export function Datamap() {
   const [isLoaded, setIsLoaded] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
   const [themeKey, setThemeKey] = useState(0); // Force re-initialization on theme change
-  const mapInstanceRef = useRef<ReturnType<Window['Datamap']['new']> | null>(null);
-  const resizeTimeoutRef = useRef<NodeJS.Timeout>();
+  const mapInstanceRef = useRef<DatamapInstance | null>(null);
+  const resizeTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   // Load scripts
   useEffect(() => {
@@ -96,12 +96,8 @@ export function Datamap() {
     const isDark = document.documentElement.classList.contains('dark');
 
     // Get theme colors from CSS variables
-    const computedStyle = getComputedStyle(document.documentElement);
-    const getCSSVar = (varName: string) => {
-      const value = computedStyle.getPropertyValue(varName).trim();
-      return value;
-    };
-
+    // const computedStyle = getComputedStyle(document.documentElement);
+    
     // Create color palette based on our theme
     // Light mode: Lighter shades for better contrast
     // Dark mode: Slightly darker but still visible
@@ -140,24 +136,24 @@ export function Datamap() {
           const growDown = '<svg class="inline-block w-4 h-4 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"></polyline><polyline points="16 17 22 17 22 11"></polyline></svg>';
 
           return `
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 p-3 min-w-[200px]">
+            <div class="bg-[rgb(var(--bg-elevated))] rounded-lg shadow-xl dark:shadow-[0_4px_30px_rgba(0,0,0,0.8)] border border-[rgb(var(--border-primary))] p-3 min-w-[200px] z-50">
               <div class="flex items-center mb-2">
                 <span class="text-xl mr-2">${flagMap[data.short] || ''}</span>
-                <span class="text-sm font-semibold text-gray-900 dark:text-white">${data.customName || geo.properties.name}</span>
+                <span class="text-sm font-semibold text-[rgb(var(--text-primary))]">${data.customName || geo.properties.name}</span>
               </div>
               <div class="space-y-1.5">
                 <div class="flex items-center justify-between">
-                  <span class="text-xs text-gray-500 dark:text-gray-400">Active Visitors</span>
+                  <span class="text-xs text-[rgb(var(--text-secondary))]">Active Visitors</span>
                   <div class="flex items-center gap-1">
-                    <span class="text-sm font-bold text-gray-900 dark:text-white">${data.active.value}</span>
+                    <span class="text-sm font-bold text-[rgb(var(--text-primary))]">${data.active.value}</span>
                     <span class="text-xs ${data.active.isGrown ? 'text-green-500' : 'text-red-500'} font-medium">${data.active.percent}%</span>
                     ${data.active.isGrown ? growUp : growDown}
                   </div>
                 </div>
                 <div class="flex items-center justify-between">
-                  <span class="text-xs text-gray-500 dark:text-gray-400">New Visitors</span>
+                  <span class="text-xs text-[rgb(var(--text-secondary))]">New Visitors</span>
                   <div class="flex items-center gap-1">
-                    <span class="text-sm font-bold text-gray-900 dark:text-white">${data.new.value}</span>
+                    <span class="text-sm font-bold text-[rgb(var(--text-primary))]">${data.new.value}</span>
                     <span class="text-xs ${data.new.isGrown ? 'text-green-500' : 'text-red-500'} font-medium">${data.new.percent}%</span>
                     ${data.new.isGrown ? growUp : growDown}
                   </div>
@@ -234,7 +230,7 @@ export function Datamap() {
         </div>
       </div>
 
-      <div className="relative bg-[rgb(var(--bg-subtle))] rounded-lg border border-[rgb(var(--border-primary))] overflow-hidden transition-all duration-300 hover:shadow-[var(--shadow-md)]">
+      <div className="relative z-10 bg-[rgb(var(--bg-subtle))] rounded-lg border border-[rgb(var(--border-primary))] transition-all duration-300 hover:shadow-[var(--shadow-md)]">
         {!isLoaded && (
           <div className="absolute inset-0 flex items-center justify-center bg-[rgb(var(--bg-subtle))] z-10 backdrop-blur-sm">
             <div className="text-center">
@@ -267,7 +263,7 @@ export function Datamap() {
               </tr>
             </thead>
             <tbody className="divide-y divide-[rgb(var(--border-secondary))]">
-              {sortedData.map(([code, data], index) => (
+              {sortedData.map(([code, data]) => (
                 <tr key={code} className="hover:bg-[rgb(var(--bg-hover))] transition-colors">
                   <td className="px-2 py-1.5 whitespace-nowrap">
                     <div className="flex items-center gap-1.5">

@@ -3,25 +3,27 @@
 **Project**: Admin SPA
 **Location**: `/home/testman/workspace/admin`
 **Plan**: `koder/plans/14_admin-spa-complete.md`
-**Phase**: 2A - Route Hierarchy Implementation
+**Phase**: 3 - Polish & Production
 
-## Mission
+## Status
+- **Phase 1 (Foundation)**: Complete
+- **Phase 2A (Route Hierarchy)**: Complete
+- **Phase 2B (Core Pages)**: Complete (Site Detail, Webhooks, Redirects, Stats, Health)
 
-Implement UX-first route structure with placeholders for all pages.
-
-**Read Plan 14, Section 6** for exact implementation details:
-- 28 files to create
-- 2 files to modify
-- Step-by-step code provided
+## Next Steps
+- Implement real API integration (replace `useMockMode` with React Query hooks hitting real endpoints)
+- Add form validation with Zod
+- Implement error handling and loading states
+- Add toast notifications
 
 ## Dev Server
 ```bash
 cd admin && npm run dev -- --port 37180 --host 0.0.0.0
 ```
+(Currently running in background)
 
-## Success Criteria
-- All 25 routes accessible
-- Breadcrumbs on nested pages
-- Sidebar highlights correctly
-- 404 page for invalid routes
-- Build succeeds
+## Verification
+- Navigate to `/sites/site_1` to see Site Detail.
+- Navigate to `/apps/webhooks` to manage webhooks.
+- Navigate to `/apps/redirects` to manage redirects.
+- Navigate to `/system/stats` and `/system/health`.

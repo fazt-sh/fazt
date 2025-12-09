@@ -7,12 +7,15 @@ import { useMockMode } from '../context/MockContext';
 import { mockData } from '../lib/mockData';
 import type { Site } from '../types/models';
 import { SitesSkeleton } from '../components/skeletons';
+import { useNavigate } from 'react-router-dom';
 
 interface SiteCardProps {
   site: Site;
 }
 
 function SiteCard({ site }: SiteCardProps) {
+  const navigate = useNavigate();
+
   const formatBytes = (bytes: number): string => {
     if (bytes === 0) return '0 B';
     const k = 1024;
@@ -63,7 +66,12 @@ function SiteCard({ site }: SiteCardProps) {
         </div>
 
         <div className="flex gap-2">
-          <Button variant="primary" size="sm" className="flex-1">
+          <Button 
+            variant="primary" 
+            size="sm" 
+            className="flex-1"
+            onClick={() => navigate(`/sites/${site.id}`)}
+          >
             View
           </Button>
           <Button variant="secondary" size="sm">

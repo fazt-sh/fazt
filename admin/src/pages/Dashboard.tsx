@@ -1,7 +1,7 @@
 import { PageHeader } from '../components/layout/PageHeader';
 import { Button, Card, CardBody, Chart, Sparkline, SystemInfo } from '../components/ui';
 import { Datamap } from '../components/ui/Datamap';
-import { Globe, TrendingUp, Zap, Plus, ArrowUpRight, Eye, BarChart3 } from 'lucide-react';
+import { Globe, Zap, Plus, ArrowUpRight, Eye } from 'lucide-react';
 import { useMockMode } from '../context/MockContext';
 import { mockData } from '../lib/mockData';
 import { DashboardSkeleton } from '../components/skeletons';
@@ -55,14 +55,6 @@ function StatCard({ icon: Icon, label, value, change, index, sparkline }: StatCa
       </CardBody>
     </Card>
   );
-}
-
-function formatBytes(bytes: number): string {
-  if (bytes === 0) return '0 B';
-  const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 }
 
 export function Dashboard() {
@@ -160,7 +152,7 @@ export function Dashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* World Map - Now in its own card */}
-        <Card variant="bordered" className="p-0 hover-lift overflow-hidden"
+        <Card variant="bordered" className="p-0 hover-lift"
               style={{
                 animation: 'slideIn 0.4s ease-out 0.5s backwards',
               }}>

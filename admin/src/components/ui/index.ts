@@ -12,6 +12,7 @@ export { Spinner } from './Spinner';
 export { Terminal, TerminalLine } from './Terminal';
 export { Chart, Sparkline } from './Chart';
 export { SystemInfo } from './SystemInfo';
+export { Tabs } from './Tabs';
 
 // Type exports
 export type { ButtonProps } from './Button';

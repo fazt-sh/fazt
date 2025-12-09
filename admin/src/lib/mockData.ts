@@ -1,10 +1,42 @@
-import type { User, Site, AnalyticsStats, SystemHealth, SystemConfig } from '../types/models';
+import type { User, Site, AnalyticsStats, SystemHealth, SystemConfig, Webhook, Redirect } from '../types/models';
 
 export const mockData = {
   user: {
     username: 'admin',
     created_at: '2024-01-15T10:30:00Z',
   } as User,
+
+  redirects: [
+    {
+      id: 'r_1',
+      short_code: 'twitter',
+      target_url: 'https://twitter.com/fazt_sh',
+      click_count: 1243,
+      created_at: '2024-01-20T10:00:00Z',
+    },
+    {
+      id: 'r_2',
+      short_code: 'discord',
+      target_url: 'https://discord.gg/fazt',
+      click_count: 856,
+      created_at: '2024-01-25T14:00:00Z',
+    },
+  ] as Redirect[],
+
+  webhooks: [
+    {
+      id: 'wh_1',
+      endpoint: 'https://api.example.com/hooks/deploy',
+      method: 'POST',
+      created_at: '2024-03-01T12:00:00Z',
+    },
+    {
+      id: 'wh_2',
+      endpoint: 'https://slack.com/api/webhooks/xyz',
+      method: 'POST',
+      created_at: '2024-03-05T15:30:00Z',
+    },
+  ] as Webhook[],
 
   sites: [
     {

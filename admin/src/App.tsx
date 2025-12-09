@@ -4,24 +4,58 @@ import { ThemeProvider } from './context/ThemeContext';
 import { MockProvider } from './context/MockContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { queryClient } from './lib/queryClient';
+
+// Layouts
 import { AppShell } from './components/layout/AppShell';
+import { SitesLayout } from './components/layout/SitesLayout';
+import { SystemLayout } from './components/layout/SystemLayout';
+import { AppsLayout } from './components/layout/AppsLayout';
+import { SecurityLayout } from './components/layout/SecurityLayout';
+import { ExternalLayout } from './components/layout/ExternalLayout';
+
+// Main Pages
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import { Sites } from './pages/Sites';
 import { DesignSystem } from './pages/DesignSystem';
-import { PlaceholderPage } from './components/skeletons';
+import { NotFound } from './pages/NotFound';
 
-// Protected Route wrapper
+// Sites Pages
+import { SitesAnalytics } from './pages/sites/SitesAnalytics';
+import { SitesDomains } from './pages/sites/SitesDomains';
+import { CreateSite } from './pages/sites/CreateSite';
+import { SiteDetail } from './pages/sites/SiteDetail';
+
+// System Pages
+import { SystemStats } from './pages/system/SystemStats';
+import { SystemLimits } from './pages/system/SystemLimits';
+import { SystemLogs } from './pages/system/SystemLogs';
+import { SystemBackup } from './pages/system/SystemBackup';
+import { SystemHealth } from './pages/system/SystemHealth';
+import { SystemSettings } from './pages/system/SystemSettings';
+
+// Apps Pages
+import { AppsList } from './pages/apps/AppsList';
+import { Webhooks } from './pages/apps/Webhooks';
+import { Redirects } from './pages/apps/Redirects';
+import { Tunnel } from './pages/apps/Tunnel';
+import { Proxy } from './pages/apps/Proxy';
+import { BotDaddy } from './pages/apps/BotDaddy';
+
+// Security Pages
+import { SecuritySSH } from './pages/security/SecuritySSH';
+import { SecurityTokens } from './pages/security/SecurityTokens';
+import { SecurityPassword } from './pages/security/SecurityPassword';
+
+// External Pages
+import { ExternalCloudflare } from './pages/external/ExternalCloudflare';
+import { ExternalLitestream } from './pages/external/ExternalLitestream';
+
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth();
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
   return <>{children}</>;
 }
-
 
 function AppRoutes() {
   const { isAuthenticated } = useAuth();
@@ -30,24 +64,51 @@ function AppRoutes() {
     <Routes>
       <Route path="/login" element={isAuthenticated ? <Navigate to="/" replace /> : <Login />} />
 
-      <Route
-        path="/"
-        element={
-          <ProtectedRoute>
-            <AppShell />
-          </ProtectedRoute>
-        }
-      >
+      <Route path="/" element={<ProtectedRoute><AppShell /></ProtectedRoute>}>
         <Route index element={<Dashboard />} />
-        <Route path="sites" element={<Sites />} />
-        <Route path="sites/analytics" element={<PlaceholderPage title="Site Analytics" />} />
-        <Route path="sites/create" element={<PlaceholderPage title="Create Site" />} />
-        <Route path="analytics" element={<PlaceholderPage title="Analytics" />} />
-        <Route path="redirects" element={<PlaceholderPage title="Redirects" />} />
-        <Route path="webhooks" element={<PlaceholderPage title="Webhooks" />} />
-        <Route path="logs" element={<PlaceholderPage title="Logs" />} />
-        <Route path="settings" element={<PlaceholderPage title="Settings" />} />
-        <Route path="design-system" element={<DesignSystem />} />
+
+        <Route path="sites" element={<SitesLayout />}>
+          <Route index element={<Sites />} />
+          <Route path="analytics" element={<SitesAnalytics />} />
+          <Route path="domains" element={<SitesDomains />} />
+          <Route path="create" element={<CreateSite />} />
+          <Route path=":id" element={<SiteDetail />} />
+        </Route>
+
+        <Route path="system" element={<SystemLayout />}>
+          <Route index element={<Navigate to="stats" replace />} />
+          <Route path="stats" element={<SystemStats />} />
+          <Route path="limits" element={<SystemLimits />} />
+          <Route path="logs" element={<SystemLogs />} />
+          <Route path="backup" element={<SystemBackup />} />
+          <Route path="health" element={<SystemHealth />} />
+          <Route path="settings" element={<SystemSettings />} />
+          <Route path="design-system" element={<DesignSystem />} />
+        </Route>
+
+        <Route path="apps" element={<AppsLayout />}>
+          <Route index element={<AppsList />} />
+          <Route path="webhooks" element={<Webhooks />} />
+          <Route path="redirects" element={<Redirects />} />
+          <Route path="tunnel" element={<Tunnel />} />
+          <Route path="proxy" element={<Proxy />} />
+          <Route path="botdaddy" element={<BotDaddy />} />
+        </Route>
+
+        <Route path="security" element={<SecurityLayout />}>
+          <Route index element={<Navigate to="ssh" replace />} />
+          <Route path="ssh" element={<SecuritySSH />} />
+          <Route path="tokens" element={<SecurityTokens />} />
+          <Route path="password" element={<SecurityPassword />} />
+        </Route>
+
+        <Route path="external" element={<ExternalLayout />}>
+          <Route index element={<Navigate to="cloudflare" replace />} />
+          <Route path="cloudflare" element={<ExternalCloudflare />} />
+          <Route path="litestream" element={<ExternalLitestream />} />
+        </Route>
+
+        <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
   );
