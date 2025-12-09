@@ -34,6 +34,7 @@ export function Datamap() {
   const mapRef = useRef<HTMLDivElement>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [themeKey, setThemeKey] = useState(0); // Force re-initialization on theme change
   const mapInstanceRef = useRef<ReturnType<Window['Datamap']['new']> | null>(null);
   const resizeTimeoutRef = useRef<NodeJS.Timeout>();
 
@@ -84,6 +85,13 @@ export function Datamap() {
   // Initialize map
   useEffect(() => {
     if (!isLoaded || !mapRef.current || !window.Datamap) return;
+
+    // Clean up any existing map
+    if (mapInstanceRef.current && mapRef.current) {
+      mapRef.current.innerHTML = '';
+      mapInstanceRef.current = null;
+    }
+    setIsInitialized(false);
 
     const isDark = document.documentElement.classList.contains('dark');
 
@@ -180,14 +188,8 @@ export function Datamap() {
 
     // Theme change listener
     const handleThemeChange = () => {
-      // Re-initialize map with new colors
-      setTimeout(() => {
-        if (mapRef.current && mapInstanceRef.current) {
-          mapRef.current.innerHTML = '';
-          setIsInitialized(false);
-          // Re-initialization will happen in the next render cycle
-        }
-      }, 100);
+      // Force re-initialization by incrementing themeKey
+      setThemeKey(prev => prev + 1);
     };
 
     const observer = new MutationObserver(handleThemeChange);
@@ -208,7 +210,7 @@ export function Datamap() {
       mapInstanceRef.current = null;
       setIsInitialized(false);
     };
-  }, [isLoaded]);
+  }, [isLoaded, themeKey]); // Add themeKey to dependencies
 
   return (
     <div className="space-y-3">
