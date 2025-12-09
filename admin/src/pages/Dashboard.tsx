@@ -77,7 +77,19 @@ export function Dashboard() {
     <div>
       <PageHeader
         title="Dashboard"
-        description="Platform overview and quick actions"
+        description={
+          <span>
+            Platform overview and quick actions •
+            <a
+              href="https://fazt-sh.github.io/fazt/docs.html"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[rgb(var(--accent-mid))] hover:text-[rgb(var(--accent))] transition-colors ml-1 hover:underline"
+            >
+              Documentation
+            </a>
+          </span>
+        }
         action={
           <Button variant="primary">
             <Plus className="h-4 w-4 mr-2" />
