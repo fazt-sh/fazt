@@ -215,10 +215,10 @@ export function Datamap() {
   // Sort visitor data by active visitors
   const sortedData = Object.entries(visitorData)
     .sort(([, a], [, b]) => parseInt(b.active.value.replace(/,/g, '')) - parseInt(a.active.value.replace(/,/g, '')))
-    .slice(0, 10); // Show top 10 countries
+    .slice(0, 15); // Show top 15 countries to ensure scrolling
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="flex flex-col h-full max-h-[500px]">
       <div className="flex items-center justify-between mb-3">
         <div>
           <h3 className="font-display text-sm text-[rgb(var(--text-primary))] mb-1">
@@ -234,7 +234,7 @@ export function Datamap() {
         </div>
       </div>
 
-      <div className="relative bg-[rgb(var(--bg-subtle))] rounded-lg border border-[rgb(var(--border-primary))] overflow-hidden transition-all duration-300 hover:shadow-[var(--shadow-md)] flex-1">
+      <div className="relative bg-[rgb(var(--bg-subtle))] rounded-lg border border-[rgb(var(--border-primary))] overflow-hidden transition-all duration-300 hover:shadow-[var(--shadow-md)]">
         {!isLoaded && (
           <div className="absolute inset-0 flex items-center justify-center bg-[rgb(var(--bg-subtle))] z-10 backdrop-blur-sm">
             <div className="text-center">
@@ -256,7 +256,7 @@ export function Datamap() {
       </div>
 
       {/* Compact Table */}
-      <div className="mt-3 flex-1 max-h-48 overflow-hidden">
+      <div className="mt-3 h-40 overflow-hidden">
         <div className="h-full overflow-y-auto scrollbar-thin scrollbar-thumb-[rgb(var(--border-secondary))] scrollbar-track-transparent">
           <table className="w-full">
             <thead className="sticky top-0 bg-[rgb(var(--bg-subtle))]">
