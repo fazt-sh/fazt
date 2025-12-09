@@ -22,20 +22,21 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             w-full px-3.5 py-2.5 rounded-lg border text-[13px]
             transition-all duration-150
             ${error
-              ? 'border-red-500 focus:ring-2 focus:ring-red-500/20 focus:border-red-500'
-              : 'border-[rgb(var(--border-primary))] focus:ring-2 focus:ring-[rgb(var(--accent-glow))] focus:border-[rgb(var(--accent))]'
+              ? 'border-[rgb(var(--accent-start))] focus:ring-2 focus:ring-[rgb(var(--accent-start))]/20 focus:border-[rgb(var(--accent-start))]'
+              : 'border-[rgb(var(--border-primary))] focus:ring-2 focus:ring-[rgb(var(--accent-mid))]/30 focus:border-[rgb(var(--accent-mid))]'
             }
             bg-[rgb(var(--bg-elevated))]
             text-[rgb(var(--text-primary))]
             placeholder-[rgb(var(--text-tertiary))]
             focus:outline-none
             disabled:opacity-50 disabled:cursor-not-allowed
+            hover:border-[rgb(var(--border-secondary))]
             ${className}
           `}
           {...props}
         />
         {error && (
-          <p className="mt-1.5 text-[13px] text-red-600 dark:text-red-400">{error}</p>
+          <p className="mt-1.5 text-[13px] text-[rgb(var(--accent-start))]">{error}</p>
         )}
         {helperText && !error && (
           <p className="mt-1.5 text-[13px] text-[rgb(var(--text-tertiary))]">{helperText}</p>

@@ -10,13 +10,13 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ variant = 'primary', size = 'md', loading, disabled, children, className = '', ...props }, ref) => {
-    const baseStyles = 'inline-flex items-center justify-center rounded-lg font-medium transition-all duration-150 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed';
+    const baseStyles = 'inline-flex items-center justify-center rounded-lg font-medium transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent-mid))]/50 disabled:opacity-50 disabled:cursor-not-allowed';
 
     const variantStyles = {
-      primary: 'bg-[rgb(var(--accent))] text-white hover:bg-[rgb(var(--accent))]/90 shadow-sm hover:shadow active:scale-[0.98]',
+      primary: 'bg-gradient-to-r from-[rgb(var(--accent-start))] to-[rgb(var(--accent-mid))] text-white hover:from-[rgb(var(--accent-start))]/90 hover:to-[rgb(var(--accent-mid))]/90 shadow-sm hover:shadow-md hover-glow active:scale-[0.98]',
       secondary: 'bg-[rgb(var(--bg-subtle))] text-[rgb(var(--text-primary))] hover:bg-[rgb(var(--bg-hover))] border border-[rgb(var(--border-primary))] hover:border-[rgb(var(--border-primary))]',
       ghost: 'bg-transparent text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--text-primary))] hover:bg-[rgb(var(--bg-hover))]',
-      danger: 'bg-red-600 text-white hover:bg-red-700 shadow-sm hover:shadow active:scale-[0.98]',
+      danger: 'bg-[rgb(var(--accent-start))] text-white hover:bg-[rgb(var(--accent-start))]/90 shadow-sm hover:shadow active:scale-[0.98]',
     };
 
     const sizeStyles = {

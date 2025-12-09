@@ -26,6 +26,7 @@ const navItems: NavItem[] = [
   { to: '/logs', icon: FileText, label: 'Logs' },
   { to: '/settings', icon: Settings, label: 'Settings' },
   { to: '/design-system', icon: Palette, label: 'Design System', devOnly: true },
+  { to: '/design-system-preline', icon: Palette, label: 'Preline UI', devOnly: true },
 ];
 
 export function Sidebar() {
@@ -63,7 +64,6 @@ export function Sidebar() {
                     <item.icon
                       className={`h-[18px] w-[18px] transition-transform duration-150
                         ${isActive ? 'scale-100' : 'group-hover:scale-105'}`}
-                      strokeWidth={isActive ? 2.5 : 2}
                     />
                     <span>{item.label}</span>
                   </>

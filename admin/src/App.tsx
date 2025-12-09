@@ -9,6 +9,7 @@ import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import { Sites } from './pages/Sites';
 import { DesignSystem } from './pages/DesignSystem';
+import { DesignSystemPreline } from './pages/DesignSystemPreline';
 
 // Protected Route wrapper
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -60,6 +61,7 @@ function AppRoutes() {
         <Route path="logs" element={<PlaceholderPage title="Logs" />} />
         <Route path="settings" element={<PlaceholderPage title="Settings" />} />
         <Route path="design-system" element={<DesignSystem />} />
+        <Route path="design-system-preline" element={<DesignSystemPreline />} />
       </Route>
     </Routes>
   );

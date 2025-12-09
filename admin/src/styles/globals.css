@@ -1,13 +1,24 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+/* Preline theme overrides */
+@import "./preline-overrides.css";
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* Preline UI imports - disabled for now */
+/* @import "preline/variants.css"; */
+/* @source "../node_modules/preline/dist/*.js"; */
+
 :root {
-  /* Accent Color - Surgical Orange */
-  --accent: 255 135 0;
-  --accent-glow: 255 135 0 / 0.15;
+  /* Docs-inspired Accent Palette */
+  --accent-start: 255 59 48;    /* #ff3b30 - Bright red-orange */
+  --accent-mid: 255 149 0;      /* #ff9500 - Orange/yellow */
+  --accent-end: 255 204 0;      /* #ffcc00 - Yellow */
+  --accent: var(--accent-mid);
+  --accent-glow: 255 59 48 / 0.1;
 
   /* Light Mode - Clean & Refined */
   --bg-base: 250 250 250;
@@ -17,39 +28,51 @@
 
   --text-primary: 10 10 10;
   --text-secondary: 102 102 102;
-  --text-tertiary: 153 153 153;
+  --text-tertiary: 136 136 136;
 
   --border-primary: 229 229 229;
   --border-secondary: 242 242 242;
 
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.04);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.06), 0 2px 4px -2px rgb(0 0 0 / 0.04);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.04);
+  /* Glassmorphism & Effects */
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.2);
+  --backdrop-blur: 12px;
+
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+  --glow: 0 0 30px rgba(255, 59 48, 0.1);
 
   /* Semantic */
   --success: 34 197 94;
-  --error: 239 68 68;
-  --warning: 251 191 36;
+  --error: var(--accent-start);
+  --warning: var(--accent-mid);
   --info: 59 130 246;
 }
 
 .dark {
-  /* Dark Mode - Deep & Sophisticated */
-  --bg-base: 10 10 10;
-  --bg-elevated: 20 20 20;
+  /* Docs-inspired Dark Mode */
+  --bg-base: 5 5 5;                     /* #050505 - Almost black */
+  --bg-elevated: 20 20 20;               /* Semi-transparent dark */
   --bg-subtle: 26 26 26;
   --bg-hover: 35 35 35;
 
-  --text-primary: 250 250 250;
-  --text-secondary: 163 163 163;
-  --text-tertiary: 115 115 115;
+  --text-primary: 255 255 255;
+  --text-secondary: 136 136 136;         /* #888888 */
+  --text-tertiary: 102 102 102;
 
-  --border-primary: 38 38 38;
-  --border-secondary: 26 26 26;
+  --border-primary: 34 34 34;            /* #222222 */
+  --border-secondary: 51 51 51;          /* #333333 */
 
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.3);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.5), 0 4px 6px -4px rgb(0 0 0 / 0.4);
+  /* Glassmorphism & Effects for Dark */
+  --glass-bg: rgba(20, 20, 20, 0.6);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --backdrop-blur: 12px;
+
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.4);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.4);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.6), 0 4px 6px -4px rgb(0 0 0 / 0.5);
+  --glow: 0 0 30px rgba(255, 59, 48, 0.15);
 }
 
 * {
@@ -88,8 +111,104 @@ body {
 }
 
 .font-mono {
-  font-family: Consolas, 'Courier New', monospace;
+  font-family: 'JetBrains Mono', 'Consolas', 'Courier New', monospace;
   font-feature-settings: 'zero';
+  font-variant-ligatures: none;
+}
+
+/* Glassmorphism Component */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--backdrop-blur));
+  -webkit-backdrop-filter: blur(var(--backdrop-blur));
+  border: 1px solid var(--glass-border);
+}
+
+/* Docs-inspired Components */
+.terminal {
+  background: #0d0d0d;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+}
+
+.terminal-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.terminal-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.terminal-dot.red {
+  background: #ff5f57;
+}
+
+.terminal-dot.yellow {
+  background: #ffbd2e;
+}
+
+.terminal-dot.green {
+  background: #28ca42;
+}
+
+/* Gradient Text */
+.gradient-text {
+  background: linear-gradient(135deg, rgb(var(--accent-start)), rgb(var(--accent-mid)), rgb(var(--accent-end)));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Glow Effects */
+.glow-accent {
+  box-shadow: var(--glow);
+}
+
+.glow-text {
+  text-shadow: 0 0 20px rgba(255, 149, 0, 0.5);
+}
+
+/* Hover Animations */
+.hover-lift {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.hover-glow {
+  transition: box-shadow 0.15s ease;
+}
+
+.hover-glow:hover {
+  box-shadow: var(--glow);
+}
+
+/* Backdrop Patterns */
+.radial-glow {
+  position: relative;
+}
+
+.radial-glow::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at 50% 50%, rgba(255, 149, 0, 0.05) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: -1;
 }
 
 @layer utilities {

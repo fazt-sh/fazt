@@ -1,0 +1,944 @@
+# Preline Component Library - Design System Documentation
+
+> **Purpose:** This document provides comprehensive markup examples for converting a design system to Preline UI components. All markup is React-compatible and uses Tailwind CSS utility classes.
+
+> **Source:** [Preline UI Documentation](https://preline.co/docs/index.html) | [GitHub Repository](https://github.com/htmlstreamofficial/preline)
+
+> **Note:** Preline requires the Preline JavaScript plugin for interactive components (Modal, Dropdown, etc.). Include the plugin via CDN or npm installation.
+
+---
+
+## Table of Contents
+
+1. [Design System Overview](#design-system-overview)
+2. [Colors](#colors)
+3. [Typography](#typography)
+4. [Buttons](#buttons)
+5. [Inputs](#inputs)
+6. [Badges](#badges)
+7. [Cards](#cards)
+8. [Skeletons](#skeletons)
+9. [Spinners](#spinners)
+10. [Modal](#modal)
+11. [Dropdown](#dropdown)
+
+---
+
+## Design System Overview
+
+This documentation maps your design system components to equivalent Preline UI components. Each section includes complete HTML markup that can be converted to React components by an LLM agent.
+
+**Key Principles:**
+- All components use Tailwind CSS utility classes
+- Dark mode support included via `dark:` prefix classes
+- Responsive design with breakpoint prefixes (`sm:`, `md:`, etc.)
+- Accessibility attributes included (`aria-*`, `role`, etc.)
+
+---
+
+## Colors
+
+Your design system colors mapped to Preline/Tailwind CSS classes:
+
+| Design System Color | RGB Value | Preline/Tailwind Class | Usage |
+|---------------------|-----------|------------------------|-------|
+| Primary | rgb(255, 149, 0) | `bg-orange-500` / `text-orange-500` | Primary actions, links |
+| Success | rgb(34, 197, 94) | `bg-green-500` / `text-green-500` | Success states, confirmations |
+| Error | rgb(239, 68, 68) | `bg-red-500` / `text-red-500` | Error states, destructive actions |
+| Info | rgb(59, 130, 246) | `bg-blue-500` / `text-blue-500` | Informational content |
+
+**Note:** The exact RGB values provided do not match standard Tailwind color scales. The classes above use the closest semantic equivalents. For exact color matching, extend your Tailwind configuration:
+
+```javascript
+// tailwind.config.js
+module.exports = {
+  theme: {
+    extend: {
+      colors: {
+        primary: 'rgb(255, 149, 0)',
+        success: 'rgb(34, 197, 94)',
+        error: 'rgb(239, 68, 68)',
+        info: 'rgb(59, 130, 246)',
+      }
+    }
+  }
+}
+```
+
+---
+
+## Typography
+
+### Headings
+
+**Heading 1 (text-4xl font-bold)**
+```html
+<h1 class="text-4xl font-bold text-gray-800 dark:text-white">
+  Heading 1
+</h1>
+```
+
+**Heading 2 (text-3xl font-bold)**
+```html
+<h2 class="text-3xl font-bold text-gray-800 dark:text-white">
+  Heading 2
+</h2>
+```
+
+**Heading 3 (text-2xl font-semibold)**
+```html
+<h3 class="text-2xl font-semibold text-gray-800 dark:text-white">
+  Heading 3
+</h3>
+```
+
+### Body Text
+
+**Body Text (text-base)**
+```html
+<p class="text-base text-gray-800 dark:text-white">
+  The quick brown fox jumps over the lazy dog.
+</p>
+```
+
+**Small Text (text-sm)**
+```html
+<p class="text-sm text-gray-600 dark:text-neutral-400">
+  The quick brown fox jumps over the lazy dog.
+</p>
+```
+
+### Text Utilities
+
+```html
+<!-- Bold -->
+<strong class="font-bold">Bold text</strong>
+
+<!-- Italic -->
+<em class="italic">Italic text</em>
+
+<!-- Muted/Secondary -->
+<span class="text-gray-500 dark:text-neutral-400">Muted text</span>
+
+<!-- Link -->
+<a href="#" class="text-blue-600 hover:text-blue-800 dark:text-blue-500 dark:hover:text-blue-400">
+  Link text
+</a>
+```
+
+---
+
+## Buttons
+
+### Variants
+
+**Primary Button**
+```html
+<button 
+  type="button" 
+  class="py-3 px-4 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-transparent bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:bg-blue-700 disabled:opacity-50 disabled:pointer-events-none"
+>
+  Primary
+</button>
+```
+
+**Secondary Button (Outline)**
+```html
+<button 
+  type="button" 
+  class="py-3 px-4 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-800 shadow-sm hover:bg-gray-50 focus:outline-none focus:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-white dark:hover:bg-neutral-700"
+>
+  Secondary
+</button>
+```
+
+**Ghost Button**
+```html
+<button 
+  type="button" 
+  class="py-3 px-4 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-transparent text-gray-800 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 disabled:opacity-50 disabled:pointer-events-none dark:text-white dark:hover:bg-neutral-700"
+>
+  Ghost
+</button>
+```
+
+**Danger Button**
+```html
+<button 
+  type="button" 
+  class="py-3 px-4 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-transparent bg-red-600 text-white hover:bg-red-700 focus:outline-none focus:bg-red-700 disabled:opacity-50 disabled:pointer-events-none"
+>
+  Danger
+</button>
+```
+
+### Sizes
+
+**Small Button**
+```html
+<button 
+  type="button" 
+  class="py-2 px-3 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-transparent bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:pointer-events-none"
+>
+  Small
+</button>
+```
+
+**Medium Button (Default)**
+```html
+<button 
+  type="button" 
+  class="py-3 px-4 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-transparent bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:pointer-events-none"
+>
+  Medium
+</button>
+```
+
+**Large Button**
+```html
+<button 
+  type="button" 
+  class="p-4 sm:p-5 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-transparent bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:pointer-events-none"
+>
+  Large
+</button>
+```
+
+### States
+
+**Loading State**
+```html
+<button 
+  type="button" 
+  class="py-3 px-4 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-transparent bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:pointer-events-none"
+>
+  <span 
+    class="animate-spin inline-block size-4 border-[3px] border-current border-t-transparent text-white rounded-full" 
+    role="status" 
+    aria-label="loading"
+  >
+    <span class="sr-only">Loading...</span>
+  </span>
+  Loading
+</button>
+```
+
+**Disabled State**
+```html
+<button 
+  type="button" 
+  class="py-3 px-4 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-transparent bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:pointer-events-none" 
+  disabled
+>
+  Disabled
+</button>
+```
+
+---
+
+## Inputs
+
+### Default Input
+
+```html
+<div>
+  <label 
+    for="default-input" 
+    class="block text-sm font-medium mb-2 dark:text-white"
+  >
+    Default Input
+  </label>
+  <input 
+    type="text" 
+    id="default-input" 
+    class="py-3 px-4 block w-full border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600" 
+    placeholder="Enter text..."
+  >
+</div>
+```
+
+### Input with Helper Text
+
+```html
+<div>
+  <label 
+    for="input-helper-text" 
+    class="block text-sm font-medium mb-2 dark:text-white"
+  >
+    With Helper Text
+  </label>
+  <input 
+    type="text" 
+    id="input-helper-text" 
+    class="py-3 px-4 block w-full border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600" 
+    placeholder="Enter text..." 
+    aria-describedby="input-helper-text-description"
+  >
+  <p 
+    class="text-sm text-gray-500 mt-2 dark:text-neutral-400" 
+    id="input-helper-text-description"
+  >
+    This is helper text
+  </p>
+</div>
+```
+
+### Input with Error
+
+```html
+<div>
+  <label 
+    for="input-error" 
+    class="block text-sm font-medium mb-2 dark:text-white"
+  >
+    With Error
+  </label>
+  <div class="relative">
+    <input 
+      type="text" 
+      id="input-error" 
+      class="py-3 px-4 block w-full border-red-500 rounded-lg text-sm focus:border-red-500 focus:ring-red-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-900 dark:border-red-500 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-red-600" 
+      placeholder="Enter text..." 
+      aria-describedby="input-error-helper"
+      aria-invalid="true"
+    >
+    <div class="absolute inset-y-0 end-0 flex items-center pointer-events-none pe-3">
+      <svg 
+        class="shrink-0 size-4 text-red-500" 
+        xmlns="http://www.w3.org/2000/svg" 
+        width="24" 
+        height="24" 
+        viewBox="0 0 24 24" 
+        fill="none" 
+        stroke="currentColor" 
+        stroke-width="2" 
+        stroke-linecap="round" 
+        stroke-linejoin="round"
+      >
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" x2="12" y1="8" y2="12"></line>
+        <line x1="12" x2="12.01" y1="16" y2="16"></line>
+      </svg>
+    </div>
+  </div>
+  <p 
+    class="text-sm text-red-600 mt-2" 
+    id="input-error-helper"
+  >
+    This field is required
+  </p>
+</div>
+```
+
+### Disabled Input
+
+```html
+<div>
+  <label 
+    for="disabled-input" 
+    class="block text-sm font-medium mb-2 dark:text-white"
+  >
+    Disabled
+  </label>
+  <input 
+    type="text" 
+    id="disabled-input" 
+    class="py-3 px-4 block w-full border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500" 
+    placeholder="Enter text..." 
+    disabled
+  >
+</div>
+```
+
+---
+
+## Badges
+
+### Solid Badges
+
+**Default Badge**
+```html
+<span class="inline-flex items-center gap-x-1.5 py-1.5 px-3 rounded-full text-xs font-medium bg-gray-800 text-white dark:bg-white dark:text-neutral-800">
+  Default
+</span>
+```
+
+**Success Badge**
+```html
+<span class="inline-flex items-center gap-x-1.5 py-1.5 px-3 rounded-full text-xs font-medium bg-teal-500 text-white">
+  Success
+</span>
+```
+
+**Error Badge**
+```html
+<span class="inline-flex items-center gap-x-1.5 py-1.5 px-3 rounded-full text-xs font-medium bg-red-500 text-white">
+  Error
+</span>
+```
+
+**Warning Badge**
+```html
+<span class="inline-flex items-center gap-x-1.5 py-1.5 px-3 rounded-full text-xs font-medium bg-yellow-500 text-white">
+  Warning
+</span>
+```
+
+**Info Badge**
+```html
+<span class="inline-flex items-center gap-x-1.5 py-1.5 px-3 rounded-full text-xs font-medium bg-blue-600 text-white">
+  Info
+</span>
+```
+
+### Soft Badges (Light Background)
+
+**Soft Success Badge**
+```html
+<span class="inline-flex items-center gap-x-1.5 py-1.5 px-3 rounded-full text-xs font-medium bg-teal-100 text-teal-800 dark:bg-teal-800/30 dark:text-teal-500">
+  Success
+</span>
+```
+
+**Soft Error Badge**
+```html
+<span class="inline-flex items-center gap-x-1.5 py-1.5 px-3 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-800/30 dark:text-red-500">
+  Error
+</span>
+```
+
+**Soft Warning Badge**
+```html
+<span class="inline-flex items-center gap-x-1.5 py-1.5 px-3 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-800/30 dark:text-yellow-500">
+  Warning
+</span>
+```
+
+**Soft Info Badge**
+```html
+<span class="inline-flex items-center gap-x-1.5 py-1.5 px-3 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-800/30 dark:text-blue-500">
+  Info
+</span>
+```
+
+---
+
+## Cards
+
+### Default Card
+
+```html
+<div class="flex flex-col bg-white border shadow-sm rounded-xl dark:bg-neutral-900 dark:border-neutral-700">
+  <div class="p-4 md:p-5">
+    <h3 class="text-lg font-bold text-gray-800 dark:text-white">
+      Default Card
+    </h3>
+    <p class="mt-1 text-gray-500 dark:text-neutral-400">
+      Card body text goes here
+    </p>
+  </div>
+</div>
+```
+
+### Bordered Card
+
+```html
+<div class="flex flex-col bg-white border border-gray-200 rounded-xl dark:bg-neutral-900 dark:border-neutral-700">
+  <div class="p-4 md:p-5">
+    <h3 class="text-lg font-bold text-gray-800 dark:text-white">
+      Bordered Card
+    </h3>
+    <p class="mt-1 text-gray-500 dark:text-neutral-400">
+      Card with visible border
+    </p>
+  </div>
+</div>
+```
+
+### Elevated Card (with Shadow)
+
+```html
+<div class="flex flex-col bg-white border shadow-md rounded-xl dark:bg-neutral-900 dark:border-neutral-700 dark:shadow-neutral-700/70">
+  <div class="p-4 md:p-5">
+    <h3 class="text-lg font-bold text-gray-800 dark:text-white">
+      Elevated Card
+    </h3>
+    <p class="mt-1 text-gray-500 dark:text-neutral-400">
+      Card with shadow elevation
+    </p>
+  </div>
+</div>
+```
+
+### Card with Header, Body, and Footer
+
+```html
+<div class="flex flex-col bg-white border shadow-sm rounded-xl dark:bg-neutral-900 dark:border-neutral-700">
+  <!-- Card Header -->
+  <div class="bg-gray-100 border-b rounded-t-xl py-3 px-4 md:py-4 md:px-5 dark:bg-neutral-800 dark:border-neutral-700">
+    <p class="text-sm text-gray-500 dark:text-neutral-400">
+      Card Header
+    </p>
+  </div>
+  
+  <!-- Card Body -->
+  <div class="p-4 md:p-5">
+    <h3 class="text-lg font-bold text-gray-800 dark:text-white">
+      Card Title
+    </h3>
+    <p class="mt-1 text-gray-500 dark:text-neutral-400">
+      Card Body
+    </p>
+  </div>
+  
+  <!-- Card Footer -->
+  <div class="bg-gray-100 border-t rounded-b-xl py-3 px-4 md:py-4 md:px-5 dark:bg-neutral-800 dark:border-neutral-700">
+    <p class="text-sm text-gray-500 dark:text-neutral-400">
+      Card Footer
+    </p>
+  </div>
+</div>
+```
+
+---
+
+## Skeletons
+
+### Text Skeleton
+
+```html
+<div class="animate-pulse">
+  <div class="h-4 bg-gray-200 rounded-full dark:bg-neutral-700 w-full mb-2.5"></div>
+  <div class="h-4 bg-gray-200 rounded-full dark:bg-neutral-700 w-5/6 mb-2.5"></div>
+  <div class="h-4 bg-gray-200 rounded-full dark:bg-neutral-700 w-4/5"></div>
+</div>
+```
+
+### Shape Skeletons
+
+**Circle Skeleton**
+```html
+<div class="flex animate-pulse">
+  <div class="shrink-0">
+    <span class="size-12 block bg-gray-200 rounded-full dark:bg-neutral-700"></span>
+  </div>
+</div>
+```
+
+**Square Skeleton**
+```html
+<div class="flex animate-pulse">
+  <div class="shrink-0">
+    <span class="size-12 block bg-gray-200 rounded-lg dark:bg-neutral-700"></span>
+  </div>
+</div>
+```
+
+**Rectangle Skeleton**
+```html
+<div class="flex animate-pulse">
+  <div class="shrink-0">
+    <span class="w-full h-24 block bg-gray-200 rounded-lg dark:bg-neutral-700"></span>
+  </div>
+</div>
+```
+
+### Combined Card Skeleton
+
+```html
+<div class="border border-gray-200 rounded-lg shadow-sm p-4 dark:border-neutral-700">
+  <div class="animate-pulse">
+    <!-- Image placeholder -->
+    <div class="flex items-center justify-center h-48 bg-gray-300 rounded dark:bg-neutral-700 mb-4">
+      <svg class="w-10 h-10 text-gray-200 dark:text-neutral-600" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 18">
+        <path d="M18 0H2a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2Zm-5.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Zm4.376 10.481A1 1 0 0 1 16 15H4a1 1 0 0 1-.895-1.447l3.5-7A1 1 0 0 1 7.468 6a.965.965 0 0 1 .9.5l2.775 4.757 1.546-1.887a1 1 0 0 1 1.618.1l2.541 4a1 1 0 0 1 .028 1.011Z"/>
+      </svg>
+    </div>
+    <!-- Text lines -->
+    <div class="h-4 bg-gray-200 rounded-full dark:bg-neutral-700 w-1/2 mb-2.5"></div>
+    <div class="h-3 bg-gray-200 rounded-full dark:bg-neutral-700 w-full mb-2.5"></div>
+    <div class="h-3 bg-gray-200 rounded-full dark:bg-neutral-700 w-full mb-2.5"></div>
+    <div class="h-3 bg-gray-200 rounded-full dark:bg-neutral-700 w-3/5"></div>
+  </div>
+</div>
+```
+
+---
+
+## Spinners
+
+### Default Spinner
+
+```html
+<div 
+  class="animate-spin inline-block size-6 border-[3px] border-current border-t-transparent text-blue-600 rounded-full dark:text-blue-500" 
+  role="status" 
+  aria-label="loading"
+>
+  <span class="sr-only">Loading...</span>
+</div>
+```
+
+### Spinner Sizes
+
+**Small Spinner**
+```html
+<div 
+  class="animate-spin inline-block size-4 border-[3px] border-current border-t-transparent text-blue-600 rounded-full" 
+  role="status" 
+  aria-label="loading"
+>
+  <span class="sr-only">Loading...</span>
+</div>
+```
+
+**Medium Spinner (Default)**
+```html
+<div 
+  class="animate-spin inline-block size-6 border-[3px] border-current border-t-transparent text-blue-600 rounded-full" 
+  role="status" 
+  aria-label="loading"
+>
+  <span class="sr-only">Loading...</span>
+</div>
+```
+
+**Large Spinner**
+```html
+<div 
+  class="animate-spin inline-block size-8 border-[3px] border-current border-t-transparent text-blue-600 rounded-full" 
+  role="status" 
+  aria-label="loading"
+>
+  <span class="sr-only">Loading...</span>
+</div>
+```
+
+### Spinner Color Variants
+
+**Success Spinner (Green)**
+```html
+<div 
+  class="animate-spin inline-block size-6 border-[3px] border-current border-t-transparent text-green-600 rounded-full" 
+  role="status" 
+  aria-label="loading"
+>
+  <span class="sr-only">Loading...</span>
+</div>
+```
+
+**Error Spinner (Red)**
+```html
+<div 
+  class="animate-spin inline-block size-6 border-[3px] border-current border-t-transparent text-red-600 rounded-full" 
+  role="status" 
+  aria-label="loading"
+>
+  <span class="sr-only">Loading...</span>
+</div>
+```
+
+**Warning Spinner (Yellow)**
+```html
+<div 
+  class="animate-spin inline-block size-6 border-[3px] border-current border-t-transparent text-yellow-600 rounded-full" 
+  role="status" 
+  aria-label="loading"
+>
+  <span class="sr-only">Loading...</span>
+</div>
+```
+
+---
+
+## Modal
+
+### Modal Trigger Button
+
+```html
+<button 
+  type="button" 
+  class="py-3 px-4 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-transparent bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:bg-blue-700" 
+  data-hs-overlay="#basic-modal"
+>
+  Open Modal
+</button>
+```
+
+### Modal Structure
+
+```html
+<div 
+  id="basic-modal" 
+  class="hs-overlay hidden size-full fixed top-0 start-0 z-[80] overflow-x-hidden overflow-y-auto pointer-events-none" 
+  role="dialog" 
+  tabindex="-1" 
+  aria-labelledby="basic-modal-label"
+>
+  <div class="hs-overlay-open:mt-7 hs-overlay-open:opacity-100 hs-overlay-open:duration-500 mt-0 opacity-0 ease-out transition-all sm:max-w-lg sm:w-full m-3 sm:mx-auto">
+    <div class="flex flex-col bg-white border shadow-sm rounded-xl pointer-events-auto dark:bg-neutral-800 dark:border-neutral-700 dark:shadow-neutral-700/70">
+      
+      <!-- Modal Header -->
+      <div class="flex justify-between items-center py-3 px-4 border-b dark:border-neutral-700">
+        <h3 
+          id="basic-modal-label" 
+          class="font-bold text-gray-800 dark:text-white"
+        >
+          Modal title
+        </h3>
+        <button 
+          type="button" 
+          class="size-8 inline-flex justify-center items-center gap-x-2 rounded-full border border-transparent bg-gray-100 text-gray-800 hover:bg-gray-200 focus:outline-none focus:bg-gray-200 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-700 dark:hover:bg-neutral-600 dark:text-neutral-400 dark:focus:bg-neutral-600" 
+          aria-label="Close" 
+          data-hs-overlay="#basic-modal"
+        >
+          <span class="sr-only">Close</span>
+          <svg 
+            class="shrink-0 size-4" 
+            xmlns="http://www.w3.org/2000/svg" 
+            width="24" 
+            height="24" 
+            viewBox="0 0 24 24" 
+            fill="none" 
+            stroke="currentColor" 
+            stroke-width="2" 
+            stroke-linecap="round" 
+            stroke-linejoin="round"
+          >
+            <path d="M18 6 6 18"></path>
+            <path d="m6 6 12 12"></path>
+          </svg>
+        </button>
+      </div>
+      
+      <!-- Modal Body -->
+      <div class="p-4 overflow-y-auto">
+        <p class="text-gray-800 dark:text-neutral-400">
+          Modal body content goes here.
+        </p>
+      </div>
+      
+      <!-- Modal Footer -->
+      <div class="flex justify-end items-center gap-x-2 py-3 px-4 border-t dark:border-neutral-700">
+        <button 
+          type="button" 
+          class="py-2 px-3 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-800 shadow-sm hover:bg-gray-50 focus:outline-none focus:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-white dark:hover:bg-neutral-700 dark:focus:bg-neutral-700" 
+          data-hs-overlay="#basic-modal"
+        >
+          Close
+        </button>
+        <button 
+          type="button" 
+          class="py-2 px-3 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-transparent bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:bg-blue-700 disabled:opacity-50 disabled:pointer-events-none"
+        >
+          Save changes
+        </button>
+      </div>
+      
+    </div>
+  </div>
+</div>
+```
+
+### Modal Sizes
+
+**Small Modal**
+```html
+<!-- Change sm:max-w-lg to sm:max-w-sm -->
+<div class="hs-overlay-open:mt-7 hs-overlay-open:opacity-100 hs-overlay-open:duration-500 mt-0 opacity-0 ease-out transition-all sm:max-w-sm sm:w-full m-3 sm:mx-auto">
+  <!-- Modal content -->
+</div>
+```
+
+**Large Modal**
+```html
+<!-- Change sm:max-w-lg to sm:max-w-4xl -->
+<div class="hs-overlay-open:mt-7 hs-overlay-open:opacity-100 hs-overlay-open:duration-500 mt-0 opacity-0 ease-out transition-all sm:max-w-4xl sm:w-full m-3 sm:mx-auto">
+  <!-- Modal content -->
+</div>
+```
+
+---
+
+## Dropdown
+
+### Basic Dropdown
+
+```html
+<div class="hs-dropdown relative inline-flex">
+  <!-- Dropdown Button -->
+  <button 
+    id="dropdown-default" 
+    type="button" 
+    class="hs-dropdown-toggle py-3 px-4 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-800 shadow-sm hover:bg-gray-50 focus:outline-none focus:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-white dark:hover:bg-neutral-700 dark:focus:bg-neutral-700" 
+    aria-haspopup="menu" 
+    aria-expanded="false" 
+    aria-label="Dropdown"
+  >
+    Open Dropdown
+    <svg 
+      class="hs-dropdown-open:rotate-180 size-4" 
+      xmlns="http://www.w3.org/2000/svg" 
+      width="24" 
+      height="24" 
+      viewBox="0 0 24 24" 
+      fill="none" 
+      stroke="currentColor" 
+      stroke-width="2" 
+      stroke-linecap="round" 
+      stroke-linejoin="round"
+    >
+      <path d="m6 9 6 6 6-6"></path>
+    </svg>
+  </button>
+
+  <!-- Dropdown Menu -->
+  <div 
+    class="hs-dropdown-menu transition-[opacity,margin] duration hs-dropdown-open:opacity-100 opacity-0 hidden min-w-60 bg-white shadow-md rounded-lg p-2 mt-2 dark:bg-neutral-800 dark:border dark:border-neutral-700" 
+    role="menu" 
+    aria-orientation="vertical" 
+    aria-labelledby="dropdown-default"
+  >
+    <a 
+      class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 dark:text-neutral-400 dark:hover:bg-neutral-700 dark:hover:text-neutral-300 dark:focus:bg-neutral-700" 
+      href="#"
+    >
+      Action
+    </a>
+    <a 
+      class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 dark:text-neutral-400 dark:hover:bg-neutral-700 dark:hover:text-neutral-300 dark:focus:bg-neutral-700" 
+      href="#"
+    >
+      Another action
+    </a>
+    <a 
+      class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 dark:text-neutral-400 dark:hover:bg-neutral-700 dark:hover:text-neutral-300 dark:focus:bg-neutral-700" 
+      href="#"
+    >
+      Something else here
+    </a>
+  </div>
+</div>
+```
+
+### Dropdown with Dividers
+
+```html
+<div class="hs-dropdown relative inline-flex">
+  <button 
+    id="dropdown-dividers" 
+    type="button" 
+    class="hs-dropdown-toggle py-3 px-4 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-800 shadow-sm hover:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none" 
+    aria-haspopup="menu"
+  >
+    Dropdown
+    <svg class="hs-dropdown-open:rotate-180 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+  </button>
+
+  <div 
+    class="hs-dropdown-menu transition-[opacity,margin] duration hs-dropdown-open:opacity-100 opacity-0 hidden min-w-60 bg-white shadow-md rounded-lg p-2 mt-2 divide-y divide-gray-200 dark:bg-neutral-800 dark:border dark:border-neutral-700 dark:divide-neutral-700" 
+    role="menu"
+  >
+    <div class="py-2 first:pt-0 last:pb-0">
+      <a class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 dark:text-neutral-400 dark:hover:bg-neutral-700" href="#">
+        Newsletter
+      </a>
+      <a class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 dark:text-neutral-400 dark:hover:bg-neutral-700" href="#">
+        Purchases
+      </a>
+    </div>
+    <div class="py-2 first:pt-0 last:pb-0">
+      <a class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 dark:text-neutral-400 dark:hover:bg-neutral-700" href="#">
+        Downloads
+      </a>
+      <a class="flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100 dark:text-neutral-400 dark:hover:bg-neutral-700" href="#">
+        Team Account
+      </a>
+    </div>
+  </div>
+</div>
+```
+
+---
+
+## Installation and Setup
+
+### CDN Installation
+
+To use Preline components with interactive functionality, include the Preline JavaScript plugin:
+
+```html
+<!-- Include Preline JS from CDN -->
+<script src="https://cdn.jsdelivr.net/npm/preline@2.5.0/dist/preline.js"></script>
+```
+
+### NPM Installation
+
+```bash
+npm install preline
+```
+
+Then import in your JavaScript:
+
+```javascript
+import 'preline';
+```
+
+### Tailwind CSS Configuration
+
+Add Preline to your `tailwind.config.js`:
+
+```javascript
+module.exports = {
+  content: [
+    './node_modules/preline/dist/*.js',
+    './src/**/*.{html,js,jsx,ts,tsx}',
+  ],
+  plugins: [
+    require('preline/plugin'),
+  ],
+}
+```
+
+---
+
+## React Conversion Notes
+
+When converting these HTML examples to React components:
+
+1. **Replace `class` with `className`**
+2. **Replace `for` with `htmlFor`** (in label elements)
+3. **Convert data attributes:** `data-hs-overlay` becomes `data-hs-overlay` (no change needed)
+4. **Self-closing tags:** Ensure all self-closing tags end with `/>`
+5. **Event handlers:** Convert to camelCase (e.g., `onclick` → `onClick`)
+6. **Boolean attributes:** Use explicit boolean values (e.g., `disabled={true}`)
+
+### Example React Conversion
+
+**HTML:**
+```html
+<button type="button" class="py-3 px-4" disabled>
+  Button
+</button>
+```
+
+**React:**
+```jsx
+<button type="button" className="py-3 px-4" disabled={true}>
+  Button
+</button>
+```
+
+---
+
+## Additional Resources
+
+- **Preline Documentation:** [https://preline.co/docs/index.html](https://preline.co/docs/index.html)
+- **Preline GitHub:** [https://github.com/htmlstreamofficial/preline](https://github.com/htmlstreamofficial/preline)
+- **Tailwind CSS Documentation:** [https://tailwindcss.com/docs](https://tailwindcss.com/docs)
+
+---
+
+**Document Version:** 1.0  
+**Last Updated:** December 2024  
+**Author:** Manus AI

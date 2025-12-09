@@ -1,0 +1,275 @@
+/* Preline UI Theme Overrides for Fazt Admin */
+/* This file overrides Preline's default styles with Fazt theme colors */
+
+/* Glassmorphism effect for components with 'glass' class */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--backdrop-blur));
+  -webkit-backdrop-filter: blur(var(--backdrop-blur));
+  border: 1px solid var(--glass-border);
+}
+
+/* Hover lift animation */
+.hover-lift {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Hover glow effect */
+.hover-glow:hover {
+  box-shadow: var(--glow);
+}
+
+/* Preline Overrides */
+
+/* Buttons */
+.hs-button {
+  transition: all 0.15s ease;
+  border: none !important;
+}
+
+/* Remove borders from all buttons by default */
+button {
+  border: none !important;
+}
+
+/* Light mode specific border colors */
+:root {
+  --border-primary-light: 229 229 229; /* #e5e5e5 */
+  --border-secondary-light: 242 242 242; /* #f2f2f2 */
+}
+
+/* Dark mode specific border colors */
+.dark {
+  --border-primary-dark: 34 34 34; /* #222222 */
+  --border-secondary-dark: 51 51 51; /* #333333 */
+}
+
+/* Focus styles without border */
+button:focus-visible {
+  outline: 2px solid rgb(var(--accent-mid) / 0.5);
+  outline-offset: 2px;
+}
+
+.hs-button:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgb(var(--accent-mid) / 0.5);
+}
+
+/* Inputs */
+.hs-input {
+  transition: all 0.15s ease;
+}
+
+.hs-input:focus {
+  box-shadow: 0 0 0 2px rgb(var(--accent-mid) / 0.3);
+}
+
+/* Dropdowns */
+.hs-dropdown-menu {
+  background-color: rgb(var(--bg-elevated));
+  border-color: rgb(var(--border-primary));
+  box-shadow: var(--shadow-lg);
+}
+
+.hs-dropdown-item {
+  transition: all 0.15s ease;
+}
+
+.hs-dropdown-item:hover {
+  background-color: rgb(var(--bg-hover));
+}
+
+.hs-dropdown-item:focus {
+  background-color: rgb(var(--bg-hover));
+  outline: none;
+}
+
+/* Modals */
+.hs-modal-overlay {
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.hs-modal-content {
+  background-color: rgb(var(--bg-elevated));
+  border-color: rgb(var(--border-primary));
+  box-shadow: var(--shadow-lg);
+}
+
+/* Cards */
+.hs-card {
+  background-color: rgb(var(--bg-elevated));
+  border-color: rgb(var(--border-primary));
+  transition: all 0.15s ease;
+}
+
+.hs-card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+/* Badges */
+.hs-badge {
+  font-weight: 500;
+}
+
+/* Form Elements */
+.hs-form-label {
+  font-weight: 500;
+  color: rgb(var(--text-primary));
+}
+
+.hs-form-helper {
+  color: rgb(var(--text-tertiary));
+}
+
+.hs-form-error {
+  color: rgb(var(--accent-start));
+}
+
+/* Tables */
+.hs-table {
+  border-color: rgb(var(--border-primary));
+}
+
+.hs-table th {
+  background-color: rgb(var(--bg-subtle));
+  color: rgb(var(--text-primary));
+}
+
+.hs-table tr:hover {
+  background-color: rgb(var(--bg-hover));
+}
+
+/* Toasts */
+.hs-toast {
+  background-color: rgb(var(--bg-elevated));
+  border-color: rgb(var(--border-primary));
+  box-shadow: var(--shadow-lg);
+}
+
+.hs-toast-success {
+  background-color: rgb(var(--success));
+  color: white;
+}
+
+.hs-toast-error {
+  background-color: rgb(var(--accent-start));
+  color: white;
+}
+
+.hs-toast-warning {
+  background-color: rgb(var(--warning));
+  color: white;
+}
+
+.hs-toast-info {
+  background-color: rgb(var(--info));
+  color: white;
+}
+
+/* Progress Bars */
+.hs-progress {
+  background-color: rgb(var(--bg-subtle));
+}
+
+.hs-progress-bar {
+  background-color: rgb(var(--accent-mid));
+}
+
+/* Tabs */
+.hs-tabs-active {
+  color: rgb(var(--accent-mid));
+  border-bottom-color: rgb(var(--accent-mid));
+}
+
+/* Accordion */
+.hs-accordion-active {
+  background-color: rgb(var(--bg-hover));
+}
+
+/* Checklist */
+.hs-checkbox:checked {
+  background-color: rgb(var(--accent-mid));
+  border-color: rgb(var(--accent-mid));
+}
+
+/* Radio */
+.hs-radio:checked {
+  background-color: rgb(var(--accent-mid));
+  border-color: rgb(var(--accent-mid));
+}
+
+/* Switch */
+.hs-switch-active {
+  background-color: rgb(var(--accent-mid));
+}
+
+/* Dark mode specific overrides */
+.dark .hs-dropdown-menu {
+  background-color: rgb(var(--bg-elevated));
+  border-color: rgb(var(--border-primary));
+}
+
+.dark .hs-modal-content {
+  background-color: rgb(var(--bg-elevated));
+  border-color: rgb(var(--border-primary));
+}
+
+.dark .hs-card {
+  background-color: rgb(var(--bg-elevated));
+  border-color: rgb(var(--border-primary));
+}
+
+.dark .hs-table th {
+  background-color: rgb(var(--bg-subtle));
+}
+
+.dark .hs-toast {
+  background-color: rgb(var(--bg-elevated));
+  border-color: rgb(var(--border-primary));
+}
+
+/* Additional utilities */
+
+/* Backdrop patterns */
+.radial-glow {
+  position: relative;
+}
+
+.radial-glow::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at 50% 50%, rgba(255, 149, 0, 0.05) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Focus ring styles */
+.focus-ring-accent:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgb(var(--accent-mid) / 0.5);
+}
+
+/* Animation keyframes */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-in {
+  animation: slideIn 0.4s ease-out;
+}

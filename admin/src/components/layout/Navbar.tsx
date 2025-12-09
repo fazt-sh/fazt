@@ -8,10 +8,11 @@ export function Navbar() {
   const { user, logout } = useAuth();
 
   return (
-    <nav className="h-14 border-b border-[rgb(var(--border-primary))] bg-[rgb(var(--bg-elevated))] flex items-center justify-between px-6">
+    <nav className="h-14 glass border-b border-[rgb(var(--border-primary))] flex items-center justify-between px-6 sticky top-0 z-50">
       <div className="flex items-center gap-4">
+        <img src="/logo.png" alt="Fazt" className="h-8 w-8 rounded-lg" />
         <div className="font-display text-lg text-[rgb(var(--text-primary))] tracking-tight">
-          Fazt<span className="text-[rgb(var(--accent))]">.sh</span>
+          Fazt<span className="gradient-text">.sh</span>
         </div>
       </div>
 
@@ -38,7 +39,7 @@ export function Navbar() {
                                text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--text-primary))]
                                hover:bg-[rgb(var(--bg-hover))] transition-all duration-150
                                border border-transparent hover:border-[rgb(var(--border-primary))]">
-                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[rgb(var(--accent))] to-orange-600
+                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[rgb(var(--accent-start))] to-[rgb(var(--accent-mid))]
                               flex items-center justify-center text-white text-xs font-semibold
                               shadow-sm">
                   {user.username[0].toUpperCase()}

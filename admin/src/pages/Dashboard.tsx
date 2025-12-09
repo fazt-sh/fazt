@@ -1,5 +1,7 @@
 import { PageHeader } from '../components/layout/PageHeader';
 import { Button } from '../components/ui/Button';
+import { Card } from '../components/ui/Card';
+import { Terminal, TerminalLine } from '../components/ui/Terminal';
 import { Globe, TrendingUp, Zap, Database, Plus, ArrowUpRight } from 'lucide-react';
 import { useMockMode } from '../context/MockContext';
 import { mockData } from '../lib/mockData';
@@ -14,40 +16,31 @@ interface StatCardProps {
 
 function StatCard({ icon: Icon, label, value, change, index }: StatCardProps) {
   return (
-    <div
-      className="group relative rounded-xl border border-[rgb(var(--border-primary))] bg-[rgb(var(--bg-elevated))] p-6
-                 hover:border-[rgb(var(--accent))] transition-all duration-300 hover:shadow-[var(--shadow-md)]
-                 overflow-hidden"
-      style={{
-        animation: `slideIn 0.4s ease-out ${index * 0.1}s backwards`,
-      }}
-    >
-      {/* Subtle gradient overlay on hover */}
-      <div className="absolute inset-0 bg-gradient-to-br from-[rgb(var(--accent-glow))] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-
-      <div className="relative">
-        <div className="flex items-start justify-between mb-4">
-          <div className="p-2 rounded-lg bg-[rgb(var(--bg-subtle))] group-hover:bg-[rgb(var(--accent-glow))] transition-colors duration-300">
-            <Icon className="h-5 w-5 text-[rgb(var(--text-secondary))] group-hover:text-[rgb(var(--accent))] transition-colors duration-300" strokeWidth={2} />
-          </div>
-          {change && (
-            <span className="flex items-center gap-1 text-xs font-medium text-green-500">
-              <ArrowUpRight className="h-3 w-3" />
-              {change}
-            </span>
-          )}
+    <Card variant="bordered" className="p-6 relative overflow-hidden hover-lift radial-glow"
+          style={{
+            animation: `slideIn 0.4s ease-out ${index * 0.1}s backwards`,
+          }}>
+      <div className="flex items-start justify-between mb-4">
+        <div className="p-2 rounded-lg bg-[rgb(var(--bg-subtle))] hover:bg-[rgb(var(--accent-glow))] transition-colors duration-300">
+          <Icon className="h-5 w-5 text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--accent-mid))] transition-colors duration-300" />
         </div>
-
-        <div className="space-y-1">
-          <p className="text-xs font-medium text-[rgb(var(--text-tertiary))] uppercase tracking-wide">
-            {label}
-          </p>
-          <p className="font-mono text-3xl font-bold text-[rgb(var(--text-primary))] tracking-tight">
-            {value}
-          </p>
-        </div>
+        {change && (
+          <span className="flex items-center gap-1 text-xs font-medium text-green-500">
+            <ArrowUpRight className="h-3 w-3" />
+            {change}
+          </span>
+        )}
       </div>
-    </div>
+
+      <div className="space-y-1">
+        <p className="text-xs font-medium text-[rgb(var(--text-tertiary))] uppercase tracking-wide">
+          {label}
+        </p>
+        <p className="font-mono text-3xl font-bold text-[rgb(var(--text-primary))] tracking-tight">
+          {value}
+        </p>
+      </div>
+    </Card>
   );
 }
 
@@ -107,22 +100,39 @@ export function Dashboard() {
         />
       </div>
 
-      {/* Quick Actions */}
-      <div
-        className="rounded-xl border border-[rgb(var(--border-primary))] bg-[rgb(var(--bg-elevated))] p-6"
-        style={{
-          animation: 'slideIn 0.4s ease-out 0.5s backwards',
-        }}
-      >
-        <h2 className="font-display text-lg text-[rgb(var(--text-primary))] mb-4">
-          Quick Actions
-        </h2>
-        <div className="flex flex-wrap gap-3">
-          <Button variant="secondary">Manage Sites</Button>
-          <Button variant="secondary">View Analytics</Button>
-          <Button variant="secondary">Create Redirect</Button>
-          <Button variant="secondary">Settings</Button>
-        </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Quick Actions */}
+        <Card variant="bordered" className="p-6"
+              style={{
+                animation: 'slideIn 0.4s ease-out 0.5s backwards',
+              }}>
+          <h2 className="font-display text-lg text-[rgb(var(--text-primary))] mb-4">
+            Quick Actions
+          </h2>
+          <div className="flex flex-wrap gap-3">
+            <Button variant="secondary">Manage Sites</Button>
+            <Button variant="secondary">View Analytics</Button>
+            <Button variant="secondary">Create Redirect</Button>
+            <Button variant="secondary">Settings</Button>
+          </div>
+        </Card>
+
+        {/* Recent Activity Terminal */}
+        <Card variant="bordered" className="p-0 overflow-hidden"
+              style={{
+                animation: 'slideIn 0.4s ease-out 0.6s backwards',
+              }}>
+          <Terminal title="Recent Activity" className="border-0 rounded-none">
+            <TerminalLine type="input" prefix="$">fazt deploy my-blog --env prod</TerminalLine>
+            <TerminalLine type="success">✓ Deployed successfully (42 files, 2.1MB)</TerminalLine>
+            <TerminalLine type="output">─</TerminalLine>
+            <TerminalLine type="input" prefix="$">fazt logs my-blog --tail 10</TerminalLine>
+            <TerminalLine type="output">[2025-12-09 12:00:01] GET / 200 - 1.2ms</TerminalLine>
+            <TerminalLine type="output">[2025-12-09 12:00:05] GET /api/posts 200 - 3.4ms</TerminalLine>
+            <TerminalLine type="error">[2025-12-09 12:00:12] POST /api/contact 400 - 0.8ms</TerminalLine>
+            <TerminalLine type="output">[2025-12-09 12:00:23] GET /static/style.css 304 - 0.3ms</TerminalLine>
+          </Terminal>
+        </Card>
       </div>
 
       <style>{`
