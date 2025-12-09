@@ -11,6 +11,7 @@ read and execute koder/start.md
 - **Cartridge Architecture**: One Binary (`fazt`) + One SQLite DB (`data.db`)
 - **Zero Dependencies**: Pure Go + `modernc.org/sqlite`. NO CGO.
 - **VFS**: Sites/assets live in DB, not filesystem
+- **Admin SPA**: Embedded React 18 + Vite + Tailwind CSS app (`admin/`)
 - **Safety**: `CGO_ENABLED=0` always
 
 ## Build & Test
@@ -25,7 +26,7 @@ go run ./cmd/server server start --port 8080  # Run dev
 - `internal/handlers/` - HTTP handlers
 - `internal/api/` - Response helpers
 - `internal/hosting/` - VFS, Deploy
-- `admin/` - React SPA source
+- `admin/` - React SPA source (See `koder/plans/14_admin-spa-complete.md`)
 - `koder/plans/` - Implementation plans
 
 ## API Response Format
