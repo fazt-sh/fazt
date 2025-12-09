@@ -1,4 +1,5 @@
-import { NavLink } from 'react-router-dom';
+import { useState } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
   Globe,
@@ -8,29 +9,54 @@ import {
   Settings,
   FileText,
   Palette,
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-react';
 
 interface NavItem {
-  to: string;
+  to?: string;
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   devOnly?: boolean;
+  children?: NavItem[];
 }
 
 const navItems: NavItem[] = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/sites', icon: Globe, label: 'Sites' },
-  { to: '/analytics', icon: BarChart3, label: 'Analytics' },
+  {
+    to: '/sites',
+    icon: Globe,
+    label: 'Sites',
+    children: [
+      { to: '/sites', icon: Globe, label: 'All Sites' },
+      { to: '/sites/analytics', icon: BarChart3, label: 'Analytics' },
+      { to: '/sites/create', icon: Globe, label: 'Create Site' },
+    ]
+  },
   { to: '/redirects', icon: Link2, label: 'Redirects' },
   { to: '/webhooks', icon: Webhook, label: 'Webhooks' },
   { to: '/logs', icon: FileText, label: 'Logs' },
   { to: '/settings', icon: Settings, label: 'Settings' },
   { to: '/design-system', icon: Palette, label: 'Design System', devOnly: true },
-  { to: '/design-system-preline', icon: Palette, label: 'Preline UI', devOnly: true },
 ];
 
 export function Sidebar() {
+  const [expandedItems, setExpandedItems] = useState<string[]>(['sites']);
+  const location = useLocation();
   const isDev = import.meta.env.DEV;
+
+  const toggleExpanded = (label: string) => {
+    setExpandedItems(prev =>
+      prev.includes(label)
+        ? prev.filter(item => item !== label)
+        : [...prev, label]
+    );
+  };
+
+  const isActive = (to: string) => {
+    if (to === '/') return location.pathname === '/';
+    return location.pathname.startsWith(to);
+  };
 
   return (
     <aside className="w-60 flex flex-col border-r border-[rgb(var(--border-primary))] bg-[rgb(var(--bg-elevated))]">
@@ -39,10 +65,83 @@ export function Sidebar() {
           {navItems.map((item) => {
             if (item.devOnly && !isDev) return null;
 
+            const hasChildren = item.children && item.children.length > 0;
+            const isExpanded = expandedItems.includes(item.label.toLowerCase());
+
+            if (hasChildren) {
+              return (
+                <div key={item.label}>
+                  <button
+                    onClick={() => toggleExpanded(item.label.toLowerCase())}
+                    className={`w-full group flex items-center justify-between gap-3 px-3 py-2 rounded-lg text-[13px] font-medium
+                     transition-all duration-150 relative overflow-hidden
+                     ${
+                       isActive(item.to || '')
+                         ? 'text-[rgb(var(--accent))] bg-[rgb(var(--accent-glow))]'
+                         : 'text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--text-primary))] hover:bg-[rgb(var(--bg-hover))]'
+                     }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      {/* Active indicator */}
+                      {isActive(item.to || '') && (
+                        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 bg-[rgb(var(--accent))] rounded-r" />
+                      )}
+
+                      <item.icon
+                        className={`h-[18px] w-[18px] transition-transform duration-150
+                          ${isActive(item.to || '') ? 'scale-100' : 'group-hover:scale-105'}`}
+                      />
+                      <span>{item.label}</span>
+                    </div>
+                    {isExpanded ? (
+                      <ChevronDown className="h-4 w-4" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4" />
+                    )}
+                  </button>
+
+                  {/* Sub-menu */}
+                  {isExpanded && (
+                    <div className="ml-6 mt-1 space-y-0.5">
+                      {item.children?.map((child) => (
+                        <NavLink
+                          key={child.to}
+                          to={child.to || ''}
+                          className={({ isActive }) =>
+                            `group flex items-center gap-3 px-3 py-1.5 rounded-lg text-[12px] font-medium
+                             transition-all duration-150 relative overflow-hidden
+                             ${
+                               isActive
+                                 ? 'text-[rgb(var(--accent))] bg-[rgb(var(--accent-glow))]'
+                                 : 'text-[rgb(var(--text-tertiary))] hover:text-[rgb(var(--text-primary))] hover:bg-[rgb(var(--bg-hover))]'
+                             }`
+                          }
+                        >
+                          {({ isActive }) => (
+                            <>
+                              {/* Active indicator */}
+                              {isActive && (
+                                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-3 bg-[rgb(var(--accent))] rounded-r" />
+                              )}
+                              <child.icon
+                                className={`h-[16px] w-[16px] transition-transform duration-150
+                                  ${isActive ? 'scale-100' : 'group-hover:scale-105'}`}
+                              />
+                              <span>{child.label}</span>
+                            </>
+                          )}
+                        </NavLink>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
             return (
               <NavLink
                 key={item.to}
-                to={item.to}
+                to={item.to || ''}
                 end={item.to === '/'}
                 className={({ isActive }) =>
                   `group flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium

@@ -9,7 +9,6 @@ import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import { Sites } from './pages/Sites';
 import { DesignSystem } from './pages/DesignSystem';
-import { DesignSystemPreline } from './pages/DesignSystemPreline';
 import { PlaceholderPage } from './components/skeletons';
 
 // Protected Route wrapper
@@ -41,13 +40,13 @@ function AppRoutes() {
       >
         <Route index element={<Dashboard />} />
         <Route path="sites" element={<Sites />} />
-        <Route path="analytics" element={<PlaceholderPage title="Analytics" />} />
+        <Route path="sites/analytics" element={<PlaceholderPage title="Site Analytics" />} />
+        <Route path="sites/create" element={<PlaceholderPage title="Create Site" />} />
         <Route path="redirects" element={<PlaceholderPage title="Redirects" />} />
         <Route path="webhooks" element={<PlaceholderPage title="Webhooks" />} />
         <Route path="logs" element={<PlaceholderPage title="Logs" />} />
         <Route path="settings" element={<PlaceholderPage title="Settings" />} />
         <Route path="design-system" element={<DesignSystem />} />
-        <Route path="design-system-preline" element={<DesignSystemPreline />} />
       </Route>
     </Routes>
   );
