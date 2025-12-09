@@ -51,3 +51,8 @@ tmp/
 temp/
 cookies.txt
 *.pid
+
+# Admin SPA (built artifacts - embedded in Go binary)
+/internal/assets/system/admin/
+/admin/node_modules/
+/admin/dist/

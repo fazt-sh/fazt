@@ -1,0 +1,84 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Theme Colors */
+  --color-primary: 255 149 0;
+  --color-primary-dark: 230 134 0;
+  --color-primary-light: 255 176 51;
+
+  /* Light Mode Colors */
+  --bg-primary: 255 255 255;
+  --bg-secondary: 249 250 251;
+  --bg-tertiary: 243 244 246;
+  --text-primary: 17 24 39;
+  --text-secondary: 107 114 128;
+  --border: 229 231 235;
+
+  /* Semantic Colors */
+  --success: 34 197 94;
+  --error: 239 68 68;
+  --warning: 251 191 36;
+  --info: 59 130 246;
+}
+
+.dark {
+  /* Dark Mode Colors */
+  --bg-primary: 17 24 39;
+  --bg-secondary: 31 41 55;
+  --bg-tertiary: 55 65 81;
+  --text-primary: 243 244 246;
+  --text-secondary: 156 163 175;
+  --border: 55 65 81;
+}
+
+html,
+body {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: white;
+  color: rgb(17, 24, 39);
+}
+
+.dark body {
+  background-color: rgb(17, 24, 39);
+  color: rgb(243, 244, 246);
+}
+
+#root {
+  height: 100%;
+  width: 100%;
+}
+
+@layer utilities {
+  .bg-primary {
+    background-color: rgb(var(--bg-primary));
+  }
+  .bg-secondary {
+    background-color: rgb(var(--bg-secondary));
+  }
+  .bg-tertiary {
+    background-color: rgb(var(--bg-tertiary));
+  }
+  .text-primary {
+    color: rgb(var(--text-primary));
+  }
+  .text-secondary {
+    color: rgb(var(--text-secondary));
+  }
+  .border-color {
+    border-color: rgb(var(--border));
+  }
+}
