@@ -2,10 +2,12 @@ import { Link, useLocation } from 'react-router-dom';
 import { ChevronRight, Home } from 'lucide-react';
 
 const routeLabels: Record<string, string> = {
+  dashboard: 'Dashboard',
   sites: 'Sites',
   analytics: 'Analytics',
   domains: 'Domains',
   create: 'Create',
+  profile: 'Profile',
   system: 'System',
   stats: 'Statistics',
   limits: 'Limits',
@@ -44,7 +46,7 @@ export function Breadcrumbs() {
   return (
     <nav className="flex items-center space-x-2 text-sm mb-6 animate-fade-in">
       <Link 
-        to="/" 
+        to="/dashboard" 
         className="group relative flex items-center text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--text-primary))] transition-colors py-1"
       >
         <Home className="w-4 h-4" />

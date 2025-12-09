@@ -3,12 +3,14 @@ import { PageHeader } from '../../components/layout/PageHeader';
 import { Button, Card, CardBody, Modal, Input } from '../../components/ui';
 import { ExternalLink, Plus, Trash2, Edit2, Copy, BarChart3 } from 'lucide-react';
 import { useMockMode } from '../../context/MockContext';
+import { useToast } from '../../context/ToastContext';
 import { mockData } from '../../lib/mockData';
 import { useForm } from 'react-hook-form';
 import type { Redirect } from '../../types/models';
 
 export function Redirects() {
   const { enabled: mockMode } = useMockMode();
+  const { success } = useToast();
   const [redirects, setRedirects] = useState<Redirect[]>(mockMode ? mockData.redirects : []);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRedirect, setEditingRedirect] = useState<Redirect | null>(null);
@@ -31,6 +33,7 @@ export function Redirects() {
   const onSubmit = (data: { short_code: string; target_url: string }) => {
     if (editingRedirect) {
       setRedirects(prev => prev.map(r => r.id === editingRedirect.id ? { ...r, ...data } : r));
+      success('Redirect updated successfully');
     } else {
       const newRedirect: Redirect = {
         id: `r_${Date.now()}`,
@@ -40,6 +43,7 @@ export function Redirects() {
         created_at: new Date().toISOString(),
       };
       setRedirects(prev => [...prev, newRedirect]);
+      success('Redirect created successfully');
     }
     setIsModalOpen(false);
   };
@@ -47,13 +51,14 @@ export function Redirects() {
   const handleDelete = (id: string) => {
     if (confirm('Are you sure you want to delete this redirect?')) {
       setRedirects(prev => prev.filter(r => r.id !== id));
+      success('Redirect deleted');
     }
   };
 
   const copyLink = (code: string) => {
     const url = `${window.location.origin}/r/${code}`; // Assuming /r/ prefix for redirects
     navigator.clipboard.writeText(url);
-    alert('Link copied to clipboard!'); // Should use toast
+    success('Link copied to clipboard');
   };
 
   return (

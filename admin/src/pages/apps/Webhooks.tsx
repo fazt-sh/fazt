@@ -3,12 +3,14 @@ import { PageHeader } from '../../components/layout/PageHeader';
 import { Button, Card, CardBody, Badge, Modal, Input } from '../../components/ui';
 import { Webhook, Plus, Trash2, Edit2 } from 'lucide-react';
 import { useMockMode } from '../../context/MockContext';
+import { useToast } from '../../context/ToastContext';
 import { mockData } from '../../lib/mockData';
 import { useForm } from 'react-hook-form';
 import type { Webhook as WebhookModel } from '../../types/models';
 
 export function Webhooks() {
   const { enabled: mockMode } = useMockMode();
+  const { success } = useToast();
   const [webhooks, setWebhooks] = useState<WebhookModel[]>(mockMode ? mockData.webhooks : []);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingWebhook, setEditingWebhook] = useState<WebhookModel | null>(null);
@@ -31,6 +33,7 @@ export function Webhooks() {
   const onSubmit = (data: { endpoint: string; method: string }) => {
     if (editingWebhook) {
       setWebhooks(prev => prev.map(w => w.id === editingWebhook.id ? { ...w, ...data } : w));
+      success('Webhook updated successfully');
     } else {
       const newWebhook: WebhookModel = {
         id: `wh_${Date.now()}`,
@@ -39,6 +42,7 @@ export function Webhooks() {
         created_at: new Date().toISOString(),
       };
       setWebhooks(prev => [...prev, newWebhook]);
+      success('Webhook created successfully');
     }
     setIsModalOpen(false);
   };
@@ -46,6 +50,7 @@ export function Webhooks() {
   const handleDelete = (id: string) => {
     if (confirm('Are you sure you want to delete this webhook?')) {
       setWebhooks(prev => prev.filter(w => w.id !== id));
+      success('Webhook deleted');
     }
   };
 

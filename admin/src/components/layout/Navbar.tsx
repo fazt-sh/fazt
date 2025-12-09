@@ -27,7 +27,7 @@ export function Navbar({ onMenuClick }: NavbarProps) {
         </button>
 
         {/* Logo - Hidden on mobile when sidebar is open */}
-        <Link to="/" className="hidden sm:flex items-center hover:opacity-80 transition-opacity">
+        <Link to="/dashboard" className="hidden sm:flex items-center hover:opacity-80 transition-opacity">
           <img src="/logo.png" alt="Fazt" className="h-8 w-8 rounded-lg" />
         </Link>
       </div>
@@ -67,7 +67,7 @@ export function Navbar({ onMenuClick }: NavbarProps) {
             }
           >
             <DropdownItem icon={<User className="h-4 w-4" />}>
-              Profile
+              <Link to="/profile" className="w-full text-left">Profile</Link>
             </DropdownItem>
             <DropdownDivider />
             <DropdownItem

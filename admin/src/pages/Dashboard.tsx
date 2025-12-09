@@ -1,4 +1,5 @@
 import { PageHeader } from '../components/layout/PageHeader';
+import { Breadcrumbs } from '../components/ui/Breadcrumbs';
 import { Button, Card, CardBody, Chart, Sparkline, SystemInfo } from '../components/ui';
 import { Datamap } from '../components/ui/Datamap';
 import { Globe, Zap, Plus, ArrowUpRight, Eye } from 'lucide-react';
@@ -67,6 +68,7 @@ export function Dashboard() {
 
   return (
     <div>
+      <Breadcrumbs />
       <PageHeader
         title="Dashboard"
         description={

@@ -13,6 +13,7 @@ export { Terminal, TerminalLine } from './Terminal';
 export { Chart, Sparkline } from './Chart';
 export { SystemInfo } from './SystemInfo';
 export { Tabs } from './Tabs';
+export { SectionHeader } from './SectionHeader';
 
 // Type exports
 export type { ButtonProps } from './Button';

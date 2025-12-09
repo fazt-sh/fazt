@@ -3,6 +3,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from './context/ThemeContext';
 import { MockProvider } from './context/MockContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ToastProvider } from './context/ToastContext';
 import { queryClient } from './lib/queryClient';
 
 // Layouts
@@ -17,6 +18,7 @@ import { ExternalLayout } from './components/layout/ExternalLayout';
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import { Sites } from './pages/Sites';
+import { Profile } from './pages/Profile';
 import { DesignSystem } from './pages/DesignSystem';
 import { NotFound } from './pages/NotFound';
 
@@ -45,7 +47,6 @@ import { BotDaddy } from './pages/apps/BotDaddy';
 // Security Pages
 import { SecuritySSH } from './pages/security/SecuritySSH';
 import { SecurityTokens } from './pages/security/SecurityTokens';
-import { SecurityPassword } from './pages/security/SecurityPassword';
 
 // External Pages
 import { ExternalCloudflare } from './pages/external/ExternalCloudflare';
@@ -65,7 +66,9 @@ function AppRoutes() {
       <Route path="/login" element={isAuthenticated ? <Navigate to="/" replace /> : <Login />} />
 
       <Route path="/" element={<ProtectedRoute><AppShell /></ProtectedRoute>}>
-        <Route index element={<Dashboard />} />
+        <Route index element={<Navigate to="/dashboard" replace />} />
+        <Route path="dashboard" element={<Dashboard />} />
+        <Route path="profile" element={<Profile />} />
 
         <Route path="sites" element={<SitesLayout />}>
           <Route index element={<Sites />} />
@@ -99,7 +102,6 @@ function AppRoutes() {
           <Route index element={<Navigate to="ssh" replace />} />
           <Route path="ssh" element={<SecuritySSH />} />
           <Route path="tokens" element={<SecurityTokens />} />
-          <Route path="password" element={<SecurityPassword />} />
         </Route>
 
         <Route path="external" element={<ExternalLayout />}>
@@ -119,11 +121,13 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <MockProvider>
-          <AuthProvider>
-            <HashRouter>
-              <AppRoutes />
-            </HashRouter>
-          </AuthProvider>
+          <ToastProvider>
+            <AuthProvider>
+              <HashRouter>
+                <AppRoutes />
+              </HashRouter>
+            </AuthProvider>
+          </ToastProvider>
         </MockProvider>
       </ThemeProvider>
     </QueryClientProvider>

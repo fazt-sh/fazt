@@ -1,4 +1,5 @@
 import { type LucideIcon, Construction } from 'lucide-react';
+import { PageHeader } from './layout/PageHeader';
 
 interface PlaceholderPageProps {
   title: string;
@@ -9,10 +10,7 @@ interface PlaceholderPageProps {
 export function PlaceholderPage({ title, description, icon: Icon }: PlaceholderPageProps) {
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-primary">{title}</h1>
-        <p className="text-secondary mt-1">{description}</p>
-      </div>
+      <PageHeader title={title} description={description} />
 
       <div className="bg-[rgb(var(--bg-elevated))] border border-[rgb(var(--border-primary))] rounded-xl p-12">
         <div className="flex flex-col items-center justify-center text-center">

@@ -22,12 +22,12 @@ import {
   Shield,
   Key,
   KeyRound,
-  Lock,
   Link2,
   Cloud,
   Database,
   ChevronDown,
   ChevronRight,
+  User,
 } from 'lucide-react';
 
 interface MenuItem {
@@ -42,8 +42,13 @@ const menuItems: MenuItem[] = [
   {
     label: 'Dashboard',
     icon: LayoutDashboard,
-    path: '/',
+    path: '/dashboard',
     exact: true,
+  },
+  {
+    label: 'Profile',
+    icon: User,
+    path: '/profile',
   },
   {
     label: 'Sites',
@@ -90,7 +95,6 @@ const menuItems: MenuItem[] = [
     children: [
       { label: 'SSH Keys', path: '/security/ssh', icon: Key },
       { label: 'Auth Tokens', path: '/security/tokens', icon: KeyRound },
-      { label: 'Password', path: '/security/password', icon: Lock },
     ],
   },
   {
