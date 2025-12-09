@@ -4,34 +4,96 @@
 - **Project**: Fazt.sh Admin Dashboard (React + TypeScript + Vite)
 - **Location**: `/home/testman/workspace/admin`
 - **Branch**: `glm/ui-refinements`
-- **Status**: UI refinement phase completed, datamaps component needs fixing
+- **Status**: Route hierarchy planning phase, sidebar sub-menus implemented
+- **Dev Server**: Running on http://localhost:37180
 
-## Most Recent Work
+## Most Recent Work (December 9, 2025)
 
 ### Completed Features
-1. **UI Components** - Full Preline UI implementation with Fazt theming
-   - Button, Input, Card, Badge, Modal, Dropdown
-   - Skeleton, Spinner, Terminal components
-   - Chart and Sparkline visualizations
-   - SystemInfo with radial gauges (CSS-based, no ApexCharts)
+1. **Datamaps Component** - Successfully fixed with proper theme support
+   - Working map with country data visualization
+   - Theme-aware colors (adjusts for light/dark modes)
+   - Scrollable country table with top 15 countries
+   - Proper cleanup and re-initialization
 
-2. **Navigation** - Preline-styled sidebar
-   - Collapsible desktop sidebar
-   - Mobile-responsive overlay sidebar
-   - Smooth animations and transitions
-   - Solid color active state (no gradient)
+2. **Dashboard Reorganization**
+   - Removed Views and Storage cards from top stats
+   - Created wider Visitor Traffic card in same row as Sites/Events
+   - Separated world map into its own card
+   - Clean 2-column bottom layout (Map + System Info)
 
-3. **Dashboard** - Complete dashboard with:
-   - Stats cards with sparklines
-   - Visitor Traffic chart
-   - System Information display with radial gauges
-   - World map component (datamaps implementation - NOT WORKING)
+3. **Sidebar Sub-Menu System**
+   - Implemented collapsible sub-menus with proper state management
+   - Sites menu with nested items (All Sites, Analytics, Create)
+   - Chevron indicators for expand/collapse states
+   - Active state management for parent/child routes
+   - Mobile-responsive overlay system
 
-### Current Issue - DATAMAPS IMPLEMENTATION FAILED
-- **Attempted**: Created Datamap component following Preline documentation
-- **Problem**: datamaps@0.5.9 with CDN script loading approach failed
-- **Status**: Component created but not displaying properly
-- **Need**: Proper datamaps integration that works
+4. **Navigation Improvements**
+   - Fixed routing issues (added back /analytics route)
+   - Both standalone Analytics and nested Site Analytics
+   - Removed old "Preline Design System" menu
+   - Kept "Design System" for development
+
+5. **Documentation Link**
+   - Added documentation link to dashboard header
+   - Links to https://fazt-sh.github.io/fazt/docs.html
+
+## Critical Issue - ROUTE HIERARCHY NEEDED
+
+**Problem**: The current flat route structure causes navigation confusion and doesn't match logical groupings
+
+**Solution**: A comprehensive route hierarchy plan has been created in `koder/plans/13_route-hierarchy-implementation.md`
+
+### Current Route Structure (Flat - PROBLEMATIC):
+```
+/                (Dashboard)
+/sites            (Sites List)
+/analytics         (Global Analytics)
+/sites/analytics   (Site Analytics)
+/sites/create     (Create Site)
+/redirects        (Redirects List)
+/webhooks         (Webhooks List)
+/logs             (Logs List)
+/settings         (Settings)
+/design-system     (Design System)
+```
+
+### Proposed Logical Grouping (from plan 13):
+```
+/                (Dashboard)
+/sites/           (Sites Management Hub)
+  ├── /            (Sites List)
+  ├── /analytics  (Aggregate Site Analytics)
+  ├── /domains    (Domain Management)
+  └── /create    (Create New Site)
+
+/system/          (System Administration)
+  ├── /stats       (System Statistics)
+  ├── /limits      (Resource Limits & Safeguards)
+  ├── /logs        (System Logs)
+  ├── /backup      (Backup Management)
+  ├── /health      (Health Monitoring)
+  ├── /settings    (System Settings)
+  └── /design-system (Design System - keep in production)
+
+/apps/            (Application Management)
+  ├── /list        (Installed Apps)
+  ├── /webhooks     (Webhooks)
+  ├── /redirects    (URL Redirects)
+  ├── /tunnel      (Tunnel Management)
+  ├── /proxy       (Proxy Configuration)
+  └── /botdaddy    (Telegram Bot Server)
+
+/security/         (Security Management)
+  ├── /ssh          (SSH Keys)
+  ├── /auth-token   (Auth Tokens)
+  └── /password    (Password Policies)
+
+/external/         (External Integrations)
+  ├── /cloudflare  (Cloudflare Settings)
+  └── /litestream (Litestream Integration)
+```
 
 ## Bootstrap Chain
 
@@ -47,216 +109,42 @@ This will:
 - Verify environment
 - State readiness for next steps
 
-## Critical Reference for Datamaps
-- `koder/ui/preline/datamaps.html` - Exact implementation reference needed
-- Must follow Preline's datamaps pattern exactly
-- Requires proper script loading and initialization
-- CSS integration with Fazt theme needed
+## Critical Reference for Route Planning
+- `koder/plans/13_route-hierarchy-implementation.md` - NEW: Comprehensive route hierarchy plan
+- `koder/plans/12_admin-spa-rebuild.md` (Original implementation plan - needs updating)
+- `koder/plans/11_api-standardization.md` (API endpoints reference)
 
 ## Next Steps
-1. **FIX DATAMAPS IMPLEMENTATION** (Top Priority)
-   - Review koder/ui/preline/datamaps.html for correct pattern
-   - Verify script loading approach (maybe inline vs CDN)
-   - Ensure proper initialization timing
-   - Test with real data visualization
-   - Match Fazt theming (colors, borders, transitions)
 
-2. **Complete Dashboard**
-   - Ensure all components are working properly
-   - Test login flow
-   - Verify responsive design
-   - Fix any CSS/styling issues
+1. **REVIEW ROUTE HIERARCHY PLAN** (Top Priority)
+   - Review the new plan in `koder/plans/13_route-hierarchy-implementation.md`
+   - Discuss with stakeholders about the proposed structure
+   - Consider API alignment implications
+   - Get feedback on the suggested groupings
 
-## Relevant Files for Datamaps
-- `/home/testman/workspace/admin/src/components/ui/Datamap.tsx` - Current implementation (not working)
-- `/home/testman/workspace/admin/src/pages/Dashboard.tsx` - Where Datamap is used
-- `koder/ui/preline/datamaps.html` - Reference implementation
+2. **IMPLEMENT ROUTE HIERARCHY**
+   - Update App.tsx with nested routing structure
+   - Create layout components (SitesLayout, SystemLayout, etc.)
+   - Implement proper route matching for sidebar highlighting
+   - Add breadcrumb navigation
 
-## Development Commands
+3. **IMPROVE NAVIGATION UX**
+   - Fix incorrect active states in sidebar
+   - Implement breadcrumbs for nested pages
+   - Add loading states for route transitions
+   - Ensure mobile navigation works properly
+
+## Current Development Commands
 ```bash
 # Start dev server
 cd /home/testman/workspace/admin
 npm run dev -- --port 37180 --host 0.0.0.0
 # Server runs on: http://localhost:37180/
-```
-
-## Notes
-- Server is currently running on port 37180
-- All other components are working properly
-- Only datamaps implementation needs fixing
-- Use Preline documentation as exact reference
-- Do not deviate from established patterns
-
-## 📋 Context Payload (Read These First)
-
-When starting this session, read these files in order:
-
-1. **The Plan**: `koder/plans/12_admin-spa-rebuild.md` (Original implementation plan)
-2. **API Reference**: `koder/plans/11_api-standardization.md` (API endpoints)
-3. **Architecture**: `koder/analysis/04_comprehensive_technical_overview.md` (System overview)
-
-**Optional Reference:**
-- `koder/rough.md` - Original vision
-- `/admin-old/` - Previous implementation
-
----
-
-## ✅ What's Complete
-
-### Phase 1 - Foundation & Shell (100% Done)
-- ✅ **Project Setup**: Vite + React + TypeScript initialized
-- ✅ **Dependencies**: All packages installed (Tailwind v3, TanStack Query, React Router, etc.)
-- ✅ **Build System**: Vite configured with PWA support
-- ✅ **Folder Structure**: All directories created (components, pages, hooks, lib, context, types)
-- ✅ **Core Infrastructure**:
-  - API client with standardized response handling
-  - TanStack Query setup
-  - Three contexts: Auth, Theme, Mock
-  - Mock data file with sample data
-  - TypeScript types for API responses
-- ✅ **UI Components**: 8 primitives built (Button, Input, Card, Badge, Skeleton, Modal, Dropdown, Spinner)
-- ✅ **Layout**: AppShell, Navbar, Sidebar, PageHeader
-- ✅ **Pages**: Login, Dashboard, Sites, Design System (+ placeholders)
-- ✅ **Routing**: React Router v6 (hash mode) with protected routes
-- ✅ **PWA**: Service worker, manifest configured
-- ✅ **Build & Integration**: Builds successfully, embeds in Go binary
-- ✅ **GitHub Workflow**: Updated to build admin before Go binary
-- ✅ **Git Ignore**: Build artifacts properly excluded
-
-### UI Refinements (Session 002 - December 9, 2025)
-- ✅ **Design System Upgrade**: "Technical Precision" aesthetic (Linear/Vercel-inspired)
-- ✅ **Typography**: Inter (main) + Consolas (mono) - clean and readable
-- ✅ **Color System**:
-  - Deep dark mode (#0A0A0A base)
-  - Clean light mode (#FAFAFA base)
-  - Surgical orange accent (#FF8700)
-  - CSS variables for consistency
-- ✅ **Sidebar**: Fixed hover/active states in both themes, added active indicator
-- ✅ **Dashboard**: Staggered animations, hover effects, monospaced metrics, change indicators
-- ✅ **Components**: Refined Button, Input, Card with proper focus/hover/active states
-- ✅ **Navbar**: Refined controls, gradient avatar, smooth transitions
-- ✅ **Interactions**: 150ms transitions, proper hover states, focus rings with accent glow
-- ✅ **Spacing**: Better rhythm, generous padding, grid-based precision
-
-### Tech Stack
-- **Core**: React 18 + TypeScript + Vite
-- **Styling**: Tailwind CSS v3 (PostCSS)
-- **State**: TanStack Query + React Context
-- **Forms**: React Hook Form (installed, not yet used)
-- **UI**: Headless UI + Custom components
-- **Icons**: Lucide React
-- **Routing**: React Router v6 (hash mode)
-- **PWA**: vite-plugin-pwa
-- **Fonts**: Inter (Google Fonts) + Consolas (system)
-
----
-
-## 🎯 Your Mission (This Session)
-
-### Continue UI Refinements & Polish
-
-**Goal:** Continue refining the interface to achieve exceptional quality. Focus on micro-interactions, visual polish, and delightful details.
-
-**Potential Areas for Refinement:**
-
-1. **Sites Page**
-   - [ ] Refine site cards with better hover states
-   - [ ] Add staggered animations like Dashboard
-   - [ ] Improve grid layout and spacing
-   - [ ] Better empty state design
-
-2. **Remaining Components**
-   - [ ] Refine Badge component (better variants, sizes)
-   - [ ] Refine Modal with backdrop blur and better animations
-   - [ ] Refine Dropdown with better positioning and transitions
-   - [ ] Add Toast notification system
-
-3. **Micro-Interactions**
-   - [ ] Add subtle page transitions (fade in/out)
-   - [ ] Improve button click feedback
-   - [ ] Add loading skeletons for data fetching
-   - [ ] Smooth scroll behavior
-
-4. **Design System Page**
-   - [ ] Improve component showcase layout
-   - [ ] Add code snippets for each component
-   - [ ] Better organization and sections
-   - [ ] Interactive examples
-
-5. **Visual Polish**
-   - [ ] Add subtle background patterns/textures
-   - [ ] Refine shadows and depth
-   - [ ] Better focus indicators for accessibility
-   - [ ] Improve responsive breakpoints
-
-6. **Performance**
-   - [ ] Optimize animation performance
-   - [ ] Lazy load routes
-   - [ ] Review bundle size
-   - [ ] Add loading states
-
-**Current State:**
-- ✅ Foundation complete and working
-- ✅ Professional aesthetic established
-- ✅ Core interactions refined
-- ✅ Sidebar issue fixed
-- ✅ Builds successfully (436KB dist)
-- ✅ Embeds in Go binary (30MB)
-
----
-
-## 📚 Key References
-
-### Design System (Current)
-
-**Aesthetic:** Technical Precision (Linear/Vercel-inspired)
-
-**Fonts:**
-- **Inter** - Main UI font (Google Fonts)
-- **Consolas** - Monospaced for metrics (system font)
-
-**Color System (CSS Variables):**
-
-Light Mode:
-- `--bg-base`: 250 250 250 (#FAFAFA)
-- `--bg-elevated`: 255 255 255 (white)
-- `--bg-subtle`: 246 246 247
-- `--bg-hover`: 242 242 243
-- `--text-primary`: 10 10 10
-- `--text-secondary`: 102 102 102
-- `--text-tertiary`: 153 153 153
-- `--accent`: 255 135 0 (#FF8700)
-
-Dark Mode:
-- `--bg-base`: 10 10 10 (#0A0A0A)
-- `--bg-elevated`: 20 20 20
-- `--bg-subtle`: 26 26 26
-- `--bg-hover`: 35 35 35
-- `--text-primary`: 250 250 250
-- `--text-secondary`: 163 163 163
-- `--text-tertiary`: 115 115 115
-- `--accent`: 255 135 0 (#FF8700)
-
-**Shadows:**
-- `--shadow-sm`: Subtle surface lift
-- `--shadow-md`: Card elevation
-- `--shadow-lg`: Modal/dropdown depth
-
-### Development Commands
-
-```bash
-# Start dev server
-cd /home/testman/workspace/admin
-npm run dev
-# → http://localhost:5173
-
-# Activate mock mode
-# → http://localhost:5173/?mock-data#/
 
 # Build for production
 npm run build
 
-# Copy to Go embed location (symlinks don't work)
+# Copy to Go embed location
 cd /home/testman/workspace
 rm -rf internal/assets/system/admin
 cp -r admin/dist internal/assets/system/admin
@@ -265,214 +153,91 @@ cp -r admin/dist internal/assets/system/admin
 go build -o fazt ./cmd/server
 ```
 
----
+## Notes
+- Server is currently running on port 37180
+- Datamaps component is working properly with theme support
+- Sidebar sub-menus are functional but highlighting needs fixing
+- Route structure needs complete redesign for logical grouping
+- Hash-based routing (#/) is working correctly
 
-## 🎨 UI Refinement Philosophy
+## 📋 Context Payload (Read These First)
 
-### Current Aesthetic Direction
-
-**"Technical Precision"** - Developer-focused luxury
-- Clean, refined minimalism
-- Surgical use of accent color (not everywhere)
-- Confident typography with tight tracking
-- Generous spacing with grid-based precision
-- Layered surfaces with real depth
-- Smooth, purposeful micro-interactions
-
-### Key Principles
-
-1. **Intentional Motion**
-   - 150ms transitions as standard
-   - Staggered animations on page load
-   - Hover states that enhance, not distract
-   - Active states with micro-scale feedback
-
-2. **Typography Hierarchy**
-   - Large, confident headings (font-display)
-   - Small, refined body text (13px)
-   - Monospaced numbers for technical feel
-   - Tight letter-spacing on headings
-
-3. **Color Restraint**
-   - Accent color used surgically
-   - Subtle grays for hierarchy
-   - Borders define surfaces
-   - Shadows add depth sparingly
-
-4. **Interaction States**
-   - Every element has hover/focus/active
-   - Focus rings with accent glow
-   - Transitions on state changes
-   - Visual feedback on all clicks
-
-### Key Patterns to Establish
-
-**API Hook Pattern:**
-```tsx
-// hooks/useSites.ts
-export function useSites() {
-  const { enabled: mockMode } = useMockMode();
-  return useQuery({
-    queryKey: ['sites'],
-    queryFn: () => (mockMode ? mockData.sites : api.get('/api/sites')),
-  });
-}
-```
-
-**Page Component Pattern:**
-```tsx
-// pages/Sites.tsx
-export function Sites() {
-  const { data: sites, isLoading } = useSites();
-
-  if (isLoading) return <PageSkeleton />;
-
-  return (
-    <div className="p-6">
-      <PageHeader
-        title="Sites"
-        action={<Button>Create Site</Button>}
-      />
-      <div className="grid grid-cols-3 gap-4 mt-6">
-        {sites.map(site => <SiteCard key={site.id} site={site} />)}
-      </div>
-    </div>
-  );
-}
-```
+1. **Route Planning**: `koder/plans/13_route-hierarchy-implementation.md` (NEW - needs review)
+2. **Original Plan**: `koder/plans/12_admin-spa-rebuild.md` (Needs updating with new route structure)
+3. **API Reference**: `koder/plans/11_api-standardization.md` (API endpoints)
+4. **Architecture**: `koder/analysis/04_comprehensive_technical_overview.md` (System overview)
 
 ---
 
-## 🛠️ Troubleshooting
+## ✅ What's Complete
 
-### Common Issues
+### Phase 1 - Foundation & Shell (100% Done)
+- ✅ **Project Setup**: Vite + React + TypeScript initialized
+- ✅ **Dependencies**: All packages installed
+- ✅ **Build System**: Vite configured with PWA support
+- ✅ **Folder Structure**: All directories created
+- ✅ **Core Infrastructure**: API client, TanStack Query, Contexts
+- ✅ **UI Components**: 8+ primitives built
+- ✅ **Layout**: AppShell, Navbar, Sidebar, PageHeader
+- ✅ **Pages**: Login, Dashboard, Sites, Analytics, Settings, etc.
+- ✅ **Routing**: React Router v6 (hash mode)
+- ✅ **PWA**: Service worker, manifest configured
+- ✅ **Build & Integration**: Builds successfully, embeds in Go binary
+- ✅ **GitHub Workflow**: Updated to build admin before Go binary
 
-**Tailwind classes not working:**
-- Check `tailwind.config.js` content paths
-- Verify `globals.css` imports Tailwind directives
-- Restart dev server
-
-**React Router not loading pages:**
-- Use `HashRouter`, not `BrowserRouter`
-- Check route paths start with `/`
-
-**Mock mode not activating:**
-- Check `?mock-data` in URL
-- Verify localStorage is being set
-- Check `useMockMode()` hook implementation
-
-**Build fails:**
-- Check all imports are correct
-- Verify TypeScript types are defined
-- Run `npm install` again
-
-**Symlink not working:**
-- Use relative path: `../../../admin/dist`
-- Verify `admin/dist/` exists (run build first)
-- Check symlink with `ls -la internal/assets/system/admin`
+### UI Refinements (Session 002-004 - December 9, 2025)
+- ✅ **Design System Upgrade**: "Technical Precision" aesthetic
+- ✅ **Typography**: Inter + Consolas fonts
+- ✅ **Color System**: CSS variables, theme support
+- ✅ **Components**: Refined all components with proper states
+- ✅ **Dashboard**: Reorganized with better layout
+- ✅ **Datamaps**: Fixed with scrolling table and theme colors
+- ✅ **Sidebar**: Sub-menu system with expand/collapse
+- ✅ **Navigation**: Fixed routing and active states
 
 ---
 
-## 🚀 Quick Start (For This Session)
+## 🎯 Your Mission (This Session)
 
-**Command to start:**
-```bash
-read and execute koder/start.md
-```
+### Evaluate and Implement Route Hierarchy
 
-**What will happen:**
-1. You'll read `koder/NEXT_SESSION.md` (this file)
-2. You'll read `koder/plans/12_admin-spa-rebuild.md` (the plan)
-3. You'll set up the project (Vite + React + TypeScript)
-4. You'll build the foundation (primitives, layout, 3 pages)
-5. You'll test everything works (mock mode, theme, build)
+**Primary Goal**: Review the route hierarchy plan and implement a better navigation structure that provides logical groupings and proper user experience.
 
----
+**Tasks:**
+1. **Review Plan**: Analyze `koder/plans/13_route-hierarchy-11_route-hierarchy-implementation.md`
+2. **Update Original Plan**: Modify `koder/12_admin-spa-rebuild.md` to reflect the new route hierarchy
+3. **Decision Point**: Choose between API alignment vs UX-optimized structure
+4. **Implementation**: Begin implementing the chosen route structure
 
-## 📝 Notes for Continuing
+**Questions to Consider:**
+- Should the route structure mirror the API exactly or be optimized for user experience?
+- Are the proposed groupings logical for typical admin workflows?
+- Which approach provides better maintainability?
+- How will this affect future feature development?
 
-### What Works Well
-
-1. **Sidebar** - Hover/active states fixed, smooth transitions
-2. **Dashboard** - Staggered animations, good card design
-3. **Color system** - CSS variables working perfectly
-4. **Theme switching** - Persists to localStorage, smooth transitions
-5. **Mock mode** - Activates via `?mock-data`, works reliably
-6. **Build system** - Compiles to 436KB, embeds in Go binary
-
-### Areas to Consider
-
-1. **Sites Page** - Could use the same treatment as Dashboard
-2. **Remaining Components** - Badge, Modal, Dropdown need refinement
-3. **Page Transitions** - Could add subtle fade in/out between routes
-4. **Loading States** - Could add skeletons for better perceived performance
-5. **Responsive Design** - Currently focused on desktop, could refine mobile
-6. **Accessibility** - Focus indicators working, could improve keyboard nav
-
-### Testing the UI
-
-```bash
-# 1. Start dev server
-cd /home/testman/workspace/admin
-npm run dev
-
-# 2. Open in browser with mock mode
-http://localhost:5173/?mock-data#/
-
-# 3. Test flows
-- Login (any username/password works in mock mode)
-- Navigate to Dashboard
-- Check theme toggle (moon/sun icon in navbar)
-- Navigate to Sites
-- Check sidebar active states
-- Open Design System page
-- Test all component states
-
-# 4. Check both themes
-- Toggle between light/dark
-- Verify all hover states work
-- Check sidebar especially (was previously broken)
-```
+**Current State:**
+- ✅ Foundation solid and working
+- ✅ Professional aesthetic established
+- ✅ Datamaps working with theme support
+- ✅ Sub-menus implemented but highlighting needs route fixes
+- ❌ Route structure doesn't match logical groupings
+- ❌ Navigation experience could be more intuitive
 
 ---
 
-## 🎯 Session Goals
+## 📚 Key References
 
-Focus on continuing to refine the UI with delightful details and micro-interactions. The foundation is solid - now make it exceptional.
+### Design System (Current)
+- **Aesthetic**: Technical Precision (Linear/Vercel-inspired)
+- **Fonts**: Inter (main) + Consolas (mono)
+- **Colors**: CSS variables with full theme support
+- **Components**: All primitives with proper states
 
-**Potential Focus Areas:**
-- Polish remaining pages (Sites, Design System)
-- Refine components that haven't been touched yet
-- Add subtle animations and transitions
-- Improve loading states
-- Better responsive design
-- Accessibility improvements
-
-**Philosophy:**
-Build to delight. Quality over speed. Establish patterns that make the interface feel crafted, not generated.
+### Development
+- **Server**: http://localhost:37180 (running)
+- **Build**: `npm run build` (436KB dist)
+- **Embed**: `go build` (30MB binary)
 
 ---
 
-## 📅 Future Sessions
-
-**Phase 2: Core Features** (After UI is polished)
-- Complete remaining pages (Analytics, Settings, Site Detail)
-- Real API integration (replace mock data)
-- Form validation with React Hook Form
-- Error handling and toast notifications
-- Advanced components (charts, tables)
-
----
-
-## 🔗 Reference Links
-
-**Plan:** `koder/plans/12_admin-spa-rebuild.md` (comprehensive spec)
-**API:** `koder/plans/11_api-standardization.md` (endpoints)
-**Architecture:** `koder/analysis/04_comprehensive_technical_overview.md`
-**Old Admin:** `/admin-old/` (reference only, don't use)
-
----
-
-**Session Goal:** Exit with a beautiful, functional foundation that demonstrates the final product's direction.
-
-**Remember:** Build to delight. Quality over speed. Establish patterns that make Phase 2+ easy.
+**Session Goal**: Evaluate route hierarchy options and prepare for implementation of a better navigation structure.
