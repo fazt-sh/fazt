@@ -212,9 +212,14 @@ export function Datamap() {
     };
   }, [isLoaded, themeKey]); // Add themeKey to dependencies
 
+  // Sort visitor data by active visitors
+  const sortedData = Object.entries(visitorData)
+    .sort(([, a], [, b]) => parseInt(b.active.value.replace(/,/g, '')) - parseInt(a.active.value.replace(/,/g, '')))
+    .slice(0, 10); // Show top 10 countries
+
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
+    <div className="h-full flex flex-col">
+      <div className="flex items-center justify-between mb-3">
         <div>
           <h3 className="font-display text-sm text-[rgb(var(--text-primary))] mb-1">
             Global Visitor Distribution
@@ -229,7 +234,7 @@ export function Datamap() {
         </div>
       </div>
 
-      <div className="relative bg-[rgb(var(--bg-subtle))] rounded-lg border border-[rgb(var(--border-primary))] overflow-hidden transition-all duration-300 hover:shadow-[var(--shadow-md)]">
+      <div className="relative bg-[rgb(var(--bg-subtle))] rounded-lg border border-[rgb(var(--border-primary))] overflow-hidden transition-all duration-300 hover:shadow-[var(--shadow-md)] flex-1">
         {!isLoaded && (
           <div className="absolute inset-0 flex items-center justify-center bg-[rgb(var(--bg-subtle))] z-10 backdrop-blur-sm">
             <div className="text-center">
@@ -242,7 +247,7 @@ export function Datamap() {
           ref={mapRef}
           className="transition-all duration-500"
           style={{
-            height: '350px',
+            height: '300px',
             width: '100%',
             opacity: isInitialized ? 1 : 0,
             transform: isInitialized ? 'translateY(0)' : 'translateY(10px)',
@@ -250,27 +255,55 @@ export function Datamap() {
         />
       </div>
 
-      <div className="flex items-center justify-between text-xs">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 group cursor-pointer">
-            <div className="w-4 h-4 rounded" style={{ backgroundColor: 'rgba(255, 204, 0, 0.4)' }}></div>
-            <span className="text-[rgb(var(--text-secondary))] transition-colors group-hover:text-[rgb(var(--text-primary))]">Low</span>
-          </div>
-          <div className="flex items-center gap-2 group cursor-pointer">
-            <div className="w-4 h-4 rounded" style={{ backgroundColor: 'rgba(255, 149, 0, 0.6)' }}></div>
-            <span className="text-[rgb(var(--text-secondary))] transition-colors group-hover:text-[rgb(var(--text-primary))]">Medium</span>
-          </div>
-          <div className="flex items-center gap-2 group cursor-pointer">
-            <div className="w-4 h-4 rounded" style={{ backgroundColor: 'rgba(255, 149, 0, 0.8)' }}></div>
-            <span className="text-[rgb(var(--text-secondary))] transition-colors group-hover:text-[rgb(var(--text-primary))]">High</span>
-          </div>
-          <div className="flex items-center gap-2 group cursor-pointer">
-            <div className="w-4 h-4 rounded" style={{ backgroundColor: 'rgba(255, 59, 48, 0.9)' }}></div>
-            <span className="text-[rgb(var(--text-secondary))] transition-colors group-hover:text-[rgb(var(--text-primary))]">Major</span>
-          </div>
-        </div>
-        <div className="text-[rgb(var(--text-tertiary))] font-mono">
-          Top: {mapStats.topCountries.slice(0, 3).join(', ')}
+      {/* Compact Table */}
+      <div className="mt-3 flex-1 max-h-48 overflow-hidden">
+        <div className="h-full overflow-y-auto scrollbar-thin scrollbar-thumb-[rgb(var(--border-secondary))] scrollbar-track-transparent">
+          <table className="w-full">
+            <thead className="sticky top-0 bg-[rgb(var(--bg-subtle))]">
+              <tr className="text-left border-b border-[rgb(var(--border-primary))]">
+                <th className="px-2 py-1.5 text-[10px] font-medium text-[rgb(var(--text-tertiary))] uppercase tracking-wider">Country</th>
+                <th className="px-2 py-1.5 text-[10px] font-medium text-[rgb(var(--text-tertiary))] uppercase tracking-wider text-right">Visitors</th>
+                <th className="px-2 py-1.5 text-[10px] font-medium text-[rgb(var(--text-tertiary))] uppercase tracking-wider text-right">Growth</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[rgb(var(--border-secondary))]">
+              {sortedData.map(([code, data], index) => (
+                <tr key={code} className="hover:bg-[rgb(var(--bg-hover))] transition-colors">
+                  <td className="px-2 py-1.5 whitespace-nowrap">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm">{flagMap[code] || ''}</span>
+                      <span className="text-xs font-medium text-[rgb(var(--text-secondary))]">
+                        {data.customName || code}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-2 py-1.5 text-right">
+                    <span className="text-xs font-mono text-[rgb(var(--text-primary))]">
+                      {data.active.value}
+                    </span>
+                  </td>
+                  <td className="px-2 py-1.5 text-right">
+                    <span className={`text-xs font-medium flex items-center justify-end gap-1 ${
+                      data.active.isGrown ? 'text-green-500' : 'text-red-500'
+                    }`}>
+                      {data.active.isGrown ? (
+                        <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
+                          <polyline points="16 7 22 7 22 13"></polyline>
+                        </svg>
+                      ) : (
+                        <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <polyline points="22 17 13.5 8.5 8.5 13.5 2 7"></polyline>
+                          <polyline points="16 17 22 17 22 11"></polyline>
+                        </svg>
+                      )}
+                      {data.active.percent}%
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

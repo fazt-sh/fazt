@@ -160,11 +160,13 @@ export function Dashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* World Map - Now in its own card */}
-        <Card variant="bordered" className="p-6 hover-lift"
+        <Card variant="bordered" className="p-0 hover-lift overflow-hidden"
               style={{
                 animation: 'slideIn 0.4s ease-out 0.5s backwards',
               }}>
-          <Datamap />
+          <div className="p-6">
+            <Datamap />
+          </div>
         </Card>
 
         {/* System Information */}
