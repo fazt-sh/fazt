@@ -1,26 +1,35 @@
 import type { ReactNode } from 'react';
+import type { CSSProperties } from 'react';
 
-interface CardProps {
+export interface CardProps {
   children: ReactNode;
   className?: string;
-  variant?: 'default' | 'bordered' | 'elevated';
+  variant?: 'default' | 'bordered' | 'elevated' | 'glass';
+  hover?: boolean;
+  style?: CSSProperties;
 }
 
-export function Card({ children, className = '', variant = 'default' }: CardProps) {
+export function Card({ children, className = '', variant = 'default', hover = false, style }: CardProps) {
   const variantStyles = {
     default: 'bg-[rgb(var(--bg-elevated))]',
     bordered: 'bg-[rgb(var(--bg-elevated))] border border-[rgb(var(--border-primary))]',
-    elevated: 'bg-[rgb(var(--bg-elevated))] shadow-[var(--shadow-md)]',
+    elevated: 'bg-[rgb(var(--bg-elevated))] shadow-md',
+    glass: 'glass',
   };
 
+  const hoverStyles = hover ? 'hover-lift' : '';
+
   return (
-    <div className={`rounded-xl ${variantStyles[variant]} ${className}`}>
+    <div
+      style={style}
+      className={`rounded-xl transition-all duration-150 ${variantStyles[variant]} ${hoverStyles} ${className}`}
+    >
       {children}
     </div>
   );
 }
 
-interface CardHeaderProps {
+export interface CardHeaderProps {
   children: ReactNode;
   className?: string;
 }
@@ -33,7 +42,7 @@ export function CardHeader({ children, className = '' }: CardHeaderProps) {
   );
 }
 
-interface CardBodyProps {
+export interface CardBodyProps {
   children: ReactNode;
   className?: string;
 }
@@ -46,7 +55,7 @@ export function CardBody({ children, className = '' }: CardBodyProps) {
   );
 }
 
-interface CardFooterProps {
+export interface CardFooterProps {
   children: ReactNode;
   className?: string;
 }

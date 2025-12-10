@@ -2,9 +2,9 @@ import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Input } from '../components/ui/Input';
-import { Button } from '../components/ui/Button';
-import { Card, CardBody } from '../components/ui/Card';
+import { Input } from '../components/ui';
+import { Button } from '../components/ui';
+import { Card, CardBody } from '../components/ui';
 
 export function Login() {
   const [username, setUsername] = useState('');

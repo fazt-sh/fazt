@@ -1,18 +1,35 @@
-import { Moon, Sun, User, LogOut } from 'lucide-react';
+import { Moon, Sun, User, LogOut, Menu } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
-import { Dropdown, DropdownItem, DropdownDivider } from '../ui/Dropdown';
+import { Dropdown, DropdownItem, DropdownDivider } from '../ui';
 
-export function Navbar() {
+import { Link } from 'react-router-dom';
+
+interface NavbarProps {
+  onMenuClick?: () => void;
+}
+
+export function Navbar({ onMenuClick }: NavbarProps) {
   const { theme, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
 
   return (
-    <nav className="h-14 border-b border-[rgb(var(--border-primary))] bg-[rgb(var(--bg-elevated))] flex items-center justify-between px-6">
+    <nav className="h-14 glass border-b border-[rgb(var(--border-primary))] flex items-center justify-between px-6 sticky top-0 z-50">
       <div className="flex items-center gap-4">
-        <div className="font-display text-lg text-[rgb(var(--text-primary))] tracking-tight">
-          Fazt<span className="text-[rgb(var(--accent))]">.sh</span>
-        </div>
+        {/* Mobile Menu Button */}
+        <button
+          onClick={onMenuClick}
+          className="lg:hidden p-2 rounded-lg text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--text-primary))]
+                     hover:bg-[rgb(var(--bg-hover))] transition-all duration-150"
+          aria-label="Open menu"
+        >
+          <Menu className="h-[18px] w-[18px]" strokeWidth={2} />
+        </button>
+
+        {/* Logo - Hidden on mobile when sidebar is open */}
+        <Link to="/dashboard" className="hidden sm:flex items-center hover:opacity-80 transition-opacity">
+          <img src="/logo.png" alt="Fazt" className="h-8 w-8 rounded-lg" />
+        </Link>
       </div>
 
       <div className="flex items-center gap-2">
@@ -38,7 +55,7 @@ export function Navbar() {
                                text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--text-primary))]
                                hover:bg-[rgb(var(--bg-hover))] transition-all duration-150
                                border border-transparent hover:border-[rgb(var(--border-primary))]">
-                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[rgb(var(--accent))] to-orange-600
+                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[rgb(var(--accent-start))] to-[rgb(var(--accent-mid))]
                               flex items-center justify-center text-white text-xs font-semibold
                               shadow-sm">
                   {user.username[0].toUpperCase()}
@@ -50,7 +67,7 @@ export function Navbar() {
             }
           >
             <DropdownItem icon={<User className="h-4 w-4" />}>
-              Profile
+              <Link to="/profile" className="w-full text-left">Profile</Link>
             </DropdownItem>
             <DropdownDivider />
             <DropdownItem

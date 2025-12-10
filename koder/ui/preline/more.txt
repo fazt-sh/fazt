@@ -1,0 +1,96 @@
+Components:
+* Installation
+* Framework Guides
+* Preline JavaScript
+* Accessibility
+* Changelog
+* Introduction
+* Resources
+* License
+* Configuration
+* Dark Mode
+* Theme
+* Container
+* Columns
+* Grid
+* Layout Splitter
+* Typography
+* Images
+* Links
+* Dividers and <hr>
+* KBD
+* Custom Scrollbar
+* Accordion
+* Alerts
+* Avatar
+* Avatar Group
+* Badge
+* Blockquote
+* Buttons
+* Button Group
+* Card
+* Chat Bubbles
+* Carousel
+* Collapse
+* Datepicker
+* Devices
+* Lists
+* List Group
+* Legend Indicator
+* Progress
+* File Uploading Progress
+* Ratings
+* Skeleton
+* Spinners
+* Styled Icons
+* Toasts
+* Timeline
+* Tree View
+* Navbar
+* Mega Menu
+* Navs
+* Tabs
+* Sidebar
+* Scrollspy
+* Breadcrumb
+* Pagination
+* Stepper
+* Input
+* Input Group
+* Textarea
+* File Input
+* Checkbox
+* Radio
+* Switch
+* Select
+* Range Slider
+* Color Picker
+* TimePicker
+* Advanced Select
+* ComboBox
+* SearchBox
+* Input Number
+* Strong Password
+* Toggle Password
+* Toggle Count
+* Copy Markup
+* PIN Input
+* Dropdown
+* Context Menu
+* Modal
+* Offcanvas (Drawer)
+* Popover
+* Tooltip
+* Tables
+* Advanced Range Slider
+* Advanced Datepicker
+* Charts
+* Clipboard
+* Confetti Animation
+* Datamaps
+* Datatables
+* Drag and Drop
+* File Upload
+* Maps
+* Toast Notifications
+* WYSIWYG Editor

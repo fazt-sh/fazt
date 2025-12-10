@@ -1,29 +1,58 @@
 import type { ReactNode } from 'react';
 
-interface BadgeProps {
+export interface BadgeProps {
   children: ReactNode;
+  className?: string;
   variant?: 'default' | 'success' | 'error' | 'warning' | 'info';
   size?: 'sm' | 'md' | 'lg';
-  className?: string;
+  soft?: boolean;
+  dot?: boolean;
 }
 
-export function Badge({ children, variant = 'default', size = 'md', className = '' }: BadgeProps) {
-  const variantStyles = {
-    default: 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200',
-    success: 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400',
-    error: 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400',
-    warning: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400',
-    info: 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400',
+export function Badge({
+  children,
+  className = '',
+  variant = 'default',
+  size = 'md',
+  soft = false,
+  dot = false
+}: BadgeProps) {
+  const sizeStyles = {
+    sm: 'py-0.5 px-2 text-xs',
+    md: 'py-1.5 px-3 text-xs',
+    lg: 'py-2 px-4 text-sm',
   };
 
-  const sizeStyles = {
-    sm: 'px-2 py-0.5 text-xs',
-    md: 'px-2.5 py-1 text-sm',
-    lg: 'px-3 py-1.5 text-base',
+  const variantStyles = soft ? {
+    default: 'bg-gray-100 text-gray-800 dark:bg-gray-800/30 dark:text-gray-500',
+    success: 'bg-green-100 text-green-800 dark:bg-green-800/30 dark:text-green-500',
+    error: 'bg-red-100 text-red-800 dark:bg-red-800/30 dark:text-red-500',
+    warning: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-800/30 dark:text-yellow-500',
+    info: 'bg-blue-100 text-blue-800 dark:bg-blue-800/30 dark:text-blue-500',
+  } : {
+    default: 'bg-gray-800 text-white dark:bg-white dark:text-neutral-800',
+    success: 'bg-[rgb(var(--success))] text-white',
+    error: 'bg-[rgb(var(--accent-start))] text-white',
+    warning: 'bg-[rgb(var(--accent-mid))] text-white',
+    info: 'bg-[rgb(var(--info))] text-white',
   };
+
+  const dotStyles = dot ? 'pl-1.5' : '';
+  const dotElement = dot ? (
+    <span className={`mr-1.5 h-2 w-2 rounded-full ${
+      variant === 'success' ? 'bg-current' :
+      variant === 'error' ? 'bg-current' :
+      variant === 'warning' ? 'bg-current' :
+      variant === 'info' ? 'bg-current' :
+      'bg-current'
+    }`} />
+  ) : null;
 
   return (
-    <span className={`inline-flex items-center rounded-full font-medium ${variantStyles[variant]} ${sizeStyles[size]} ${className}`}>
+    <span
+      className={`inline-flex items-center gap-x-1.5 rounded-full font-medium ${sizeStyles[size]} ${variantStyles[variant]} ${dotStyles} ${className}`}
+    >
+      {dotElement}
       {children}
     </span>
   );

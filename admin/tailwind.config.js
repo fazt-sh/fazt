@@ -3,6 +3,7 @@ export default {
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
+    "./node_modules/preline/dist/*.js", // Add Preline content
   ],
   darkMode: 'class', // Enable class-based dark mode
   theme: {
@@ -16,8 +17,28 @@ export default {
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
+        mono: ['JetBrains Mono', 'Consolas', 'Courier New', 'monospace'],
+      },
+      // Add custom animations
+      keyframes: {
+        slideIn: {
+          '0%': {
+            opacity: '0',
+            transform: 'translateY(10px)',
+          },
+          '100%': {
+            opacity: '1',
+            transform: 'translateY(0)',
+          },
+        },
+      },
+      animation: {
+        'slide-in': 'slideIn 0.4s ease-out',
       },
     },
   },
-  plugins: [],
+  plugins: [
+    require('@tailwindcss/forms'), // Add forms plugin
+    // require('preline/plugin'), // Preline plugin - not available yet
+  ],
 };

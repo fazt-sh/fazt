@@ -2,21 +2,21 @@ import type { ReactNode } from 'react';
 
 interface PageHeaderProps {
   title: string;
-  description?: string;
+  description?: ReactNode;
   action?: ReactNode;
 }
 
 export function PageHeader({ title, description, action }: PageHeaderProps) {
   return (
-    <div className="flex items-center justify-between mb-8">
+    <div className="flex items-start justify-between mb-6">
       <div>
-        <h1 className="font-display text-3xl text-[rgb(var(--text-primary))] tracking-tight">
+        <h1 className="text-2xl font-semibold text-[rgb(var(--text-primary))]">
           {title}
         </h1>
         {description && (
-          <p className="mt-2 text-[13px] text-[rgb(var(--text-secondary))]">
+          <div className="text-[rgb(var(--text-secondary))] mt-1">
             {description}
-          </p>
+          </div>
         )}
       </div>
       {action && <div>{action}</div>}

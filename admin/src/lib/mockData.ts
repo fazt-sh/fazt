@@ -1,10 +1,42 @@
-import type { User, Site, AnalyticsStats, SystemHealth, SystemConfig } from '../types/models';
+import type { User, Site, AnalyticsStats, SystemHealth, SystemConfig, Webhook, Redirect } from '../types/models';
 
 export const mockData = {
   user: {
     username: 'admin',
     created_at: '2024-01-15T10:30:00Z',
   } as User,
+
+  redirects: [
+    {
+      id: 'r_1',
+      short_code: 'twitter',
+      target_url: 'https://twitter.com/fazt_sh',
+      click_count: 1243,
+      created_at: '2024-01-20T10:00:00Z',
+    },
+    {
+      id: 'r_2',
+      short_code: 'discord',
+      target_url: 'https://discord.gg/fazt',
+      click_count: 856,
+      created_at: '2024-01-25T14:00:00Z',
+    },
+  ] as Redirect[],
+
+  webhooks: [
+    {
+      id: 'wh_1',
+      endpoint: 'https://api.example.com/hooks/deploy',
+      method: 'POST',
+      created_at: '2024-03-01T12:00:00Z',
+    },
+    {
+      id: 'wh_2',
+      endpoint: 'https://slack.com/api/webhooks/xyz',
+      method: 'POST',
+      created_at: '2024-03-05T15:30:00Z',
+    },
+  ] as Webhook[],
 
   sites: [
     {
@@ -61,4 +93,18 @@ export const mockData = {
     port: 8080,
     version: 'v0.8.0-dev',
   } as SystemConfig,
+
+  // Visitor traffic data for the last 30 days
+  visitorTraffic: [
+    142, 165, 188, 156, 203, 245, 289, 267, 301, 334, 367, 345, 389, 412, 445,
+    423, 467, 489, 512, 534, 556, 534, 578, 601, 623, 645, 667, 689, 712, 734
+  ],
+
+  // Real-time visitor data for the last 24 hours
+  realTimeVisitors: [
+    45, 42, 38, 35, 33, 31, 29, 28, 27, 26, 28, 32, 35, 41, 47, 52,
+    58, 63, 67, 71, 68, 64, 61, 58, 55, 52, 48, 45, 42, 40, 38,
+    41, 45, 49, 54, 58, 62, 67, 71, 75, 79, 82, 85, 88, 91, 93,
+    96, 98, 101, 103, 105, 107, 108, 109, 110, 111, 112, 113, 114
+  ],
 };
