@@ -159,3 +159,64 @@
 - [ ] 28 `telegram-bot-server` <to-discuss>
   - what about a telegram bot server so that it is easy to set up a telegram bot
     easily
+
+- [ ] 29 `multiple-domains` <to-discuss>
+  - **Custom Domain Mapping**: Map any external domain (e.g., `blog.example.com`) to a Fazt site (`my-blog`) via a `domain_mappings` SQL table.
+  - **Dynamic Routing**: Update the HTTP router to resolve incoming Host headers against the DB before falling back to subdomain logic.
+  - **On-Demand HTTPS**: Configure CertMagic to allow certificate issuance for any domain found in the mapping table (Zero-Config SSL).
+  - **White Labeling**: Enables "Agency Mode" where end-users interact with custom domains and never see the underlying `fazt.sh` infrastructure.
+
+  - [ ] 30 `core-serverless-v2` <to-discuss>
+  - **Structure**: Move serverless entry point to `api/main.js` to avoid
+    conflicts with static frontend assets (e.g., client-side `js/main.js`).
+  - **Imports**: Implement a `require()` shim to enable code splitting within
+    the `api/` folder (e.g., `const db = require('./db.js')`).
+  - **Standard Library**: Embed optimized, ES5-compatible builds of essential
+    utilities (`lodash`, `cheerio`, `marked`, `uuid`) directly into binary.
+  - **Zero-Build**: Allow Users and AI Agents to deploy powerful logic without
+    `npm install` or bundlers by simply calling `require('lodash')`.
+  - **Virtual Modules**: Runtime intercepts `require` calls for standard libs
+    and serves pre-compiled sources from memory for sub-millisecond load.
+
+- [ ] 31 `core-ai-shim` <to-discuss>
+  - **Standardized Interface**: Embed a `require('fazt-ai')` module that
+    normalizes request/response shapes for OpenAI, Anthropic, and Gemini.
+  - **Env Var Integration**: Auto-load `OPENAI_API_KEY` from system env so
+    user code doesn't need to handle secrets or config boilerplate.
+  - **Streaming**: Support chunked responses to allow Agentic Apps to stream
+    text back to the calling client or UI.
+
+- [ ] 32 `proto-email-in` <to-discuss>
+  - **SMTP Sink**: Bind to Port 25 to receive incoming emails (Requires VPS
+    provider to allow inbound traffic).
+  - **Routing**: Map private addresses (e.g., `agent-xyz@domain.com`) to
+    specific serverless apps using the App UUID.
+  - **Trigger**: Execute `api/main.js` with `{ event: 'email' }` payload.
+  - **Use Cases**: Enable "Email-to-Agent" workflows like parsing receipts,
+    summarizing newsletters, or triggering deploys via email.
+
+- [ ] 33 `core-app-identity` <to-discuss>
+  - **Stable UUIDs**: Decouple data storage from subdomains. Generate a unique
+    `app_id` (e.g., `app_x9z2`) for every site creation.
+  - **Private Routing**: Derive sensitive endpoints like Inbound Email
+    (`x9z2@fazt.sh`) and Webhooks from the UUID to prevent public guessing.
+  - **Data Resilience**: Allow renaming subdomains without losing KV Store
+    data or logs, as they are keyed to the immutable `app_id`.
+  - **Peer Access**: Enable "IPC" where App A can grant read access to its
+    data bucket to App B via UUID references.
+
+- [ ] 34 `core-marketplace` <to-discuss>
+  - **Repositories**: Adopt "Linux Distro" model where Marketplaces are just
+    Git URLs (e.g., `github.com/fazt-sh/store`) acting as package sources.
+  - **Discovery**: Cache remote `registry.json` in DB to browse available
+    apps locally without installing them (`apt-cache search` style).
+  - **Installation**: `fazt app install <name>` fetches specific app assets
+    from the Git Repo via Zip stream and hydrates them into the VFS.
+  - **Personal**: Any app not from a Marketplace (CLI deploy, MCP push) is
+    classified as "Personal" source.
+  - **Manifest**: `app.json` defines metadata, versioning, and required `env`
+    variables, enabling interactive installation wizards.
+  - **Tracking**: Add `deployed_by` column to track the Actor (Admin CLI,
+    MCP Agent Token) who installed the app.
+  - **Updates**: `fazt app update` checks the `source_marketplace` URL for
+    newer versions defined in `registry.json`.
