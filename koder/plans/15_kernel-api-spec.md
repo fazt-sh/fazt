@@ -1,7 +1,7 @@
 # Plan 15: Kernel API Specification
 
 **Date**: December 10, 2025
-**Status**: Draft / RFC (v2)
+**Status**: Draft / RFC (v3)
 **Depends On**: Plan 14 (Admin SPA Phase 2C) ✅
 **Blocks**: Phase 3 (Real Data Integration)
 
@@ -40,6 +40,9 @@ CREATE TABLE apps (
     spa_mode    INTEGER DEFAULT 0,          -- Route all to index.html
     clean_urls  INTEGER DEFAULT 1,          -- Strip .html
     dir_listing INTEGER DEFAULT 0,          -- Show file browser
+
+    -- Manifest (from app.json)
+    manifest    TEXT,                       -- Cached app.json as JSON string
 
     -- Metadata
     created_at  TEXT NOT NULL,
@@ -115,14 +118,145 @@ Community can maintain awesome-lists; that's not infrastructure we build.
 
 ---
 
-## 3. The Scheduler (Hibernate Architecture)
+## 3. App Structure
 
-### 3.1 The Problem
+### 3.1 Folder Layout
+
+```
+my-app/
+├── app.json              # Optional manifest (metadata, env requirements)
+├── index.html            # Static frontend entry (optional)
+├── styles.css            # Static assets
+├── script.js             # Frontend JS
+├── favicon.ico
+└── api/                  # Serverless backend (optional)
+    ├── main.js           # Entry point — executed on triggers
+    ├── helpers.js        # Local modules (require('./helpers.js'))
+    └── db.js             # More local modules
+```
+
+**Key points:**
+- `api/main.js` is the serverless entry point (not root `main.js`)
+- Everything outside `api/` is served as static files
+- `app.json` is optional but recommended for installable apps
+
+### 3.2 `app.json` Manifest
+
+```json
+{
+  "name": "Stock Watcher",
+  "description": "Monitor stock prices and get ntfy alerts",
+  "version": "1.0.0",
+  "author": "username",
+  "icon": "icon.svg",
+  "homepage": "https://github.com/user/stock-watcher",
+
+  "env": [
+    {
+      "key": "NTFY_TOPIC",
+      "required": true,
+      "description": "Your ntfy.sh topic for alerts"
+    },
+    {
+      "key": "STOCK_API_KEY",
+      "required": false,
+      "description": "Optional API key for higher rate limits"
+    }
+  ],
+
+  "triggers": ["http", "schedule"]
+}
+```
+
+**Fields:**
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `name` | No | Display name (defaults to folder name) |
+| `description` | No | Short description for dashboard |
+| `version` | No | Semver (informational only) |
+| `author` | No | Creator attribution |
+| `icon` | No | Path to icon file (512x512 SVG/PNG) |
+| `homepage` | No | Link to docs/repo |
+| `env` | No | Required/optional environment variables |
+| `triggers` | No | What triggers this app expects |
+
+**Behavior:**
+- Read at deploy/install time
+- Cached in `apps` table (`manifest` JSON column)
+- Dashboard shows env prompts during git install
+- Missing `app.json` = app works fine, just no metadata
+
+### 3.3 Serverless Entry Point
+
+**Old (v0.7):** `main.js` at root
+**New (v0.8):** `api/main.js`
+
+This change prevents conflicts with frontend build tools and clearly separates concerns.
+
+```
+Request flow:
+
+GET /                    → serves index.html (static)
+GET /styles.css          → serves styles.css (static)
+GET /script.js           → serves script.js (static)
+POST /api/anything       → executes api/main.js (serverless)
+GET /api/data            → executes api/main.js (serverless)
+```
+
+### 3.4 `require()` Shim
+
+Apps can split serverless code across multiple files:
+
+```javascript
+// api/main.js
+const { formatPrice } = require('./helpers.js');
+const db = require('./db.js');
+
+if (process.trigger === 'http') {
+    const price = db.getLatestPrice(request.query.symbol);
+    return { price: formatPrice(price) };
+}
+```
+
+```javascript
+// api/helpers.js
+module.exports = {
+    formatPrice: (cents) => `$${(cents / 100).toFixed(2)}`
+};
+```
+
+```javascript
+// api/db.js
+const prices = {};
+module.exports = {
+    getLatestPrice: (symbol) => prices[symbol] || 0,
+    setPrice: (symbol, price) => { prices[symbol] = price; }
+};
+```
+
+**Implementation:**
+- `require()` is shimmed in Goja runtime
+- Only relative paths within `api/` folder allowed
+- Files loaded from VFS (database)
+- Circular dependencies handled (cached modules)
+- No npm/node_modules — just local files
+
+**NOT supported:**
+- `require('lodash')` — no npm packages (for now)
+- `require('../outside.js')` — can't escape `api/` folder
+- Dynamic requires — `require(variable)` won't work
+
+---
+
+## 4. The Scheduler (Hibernate Architecture)
+
+### 4.1 The Problem
 
 AI agents need to "wait" — check stock prices every 5 minutes, poll APIs, retry failed tasks.
 Traditional approach: `while(true) { sleep(5m); work(); }` — this blocks threads and dies on timeout.
 
-### 3.2 The Solution: Interrupt-Driven Execution
+### 4.2 The Solution: Interrupt-Driven Execution
 
 Agents don't "run" — they **hibernate**. They do work in milliseconds, then schedule their next wake-up.
 
@@ -148,7 +282,7 @@ Agents don't "run" — they **hibernate**. They do work in milliseconds, then sc
                       └─────────┘              │
 ```
 
-### 3.3 Jobs Table
+### 4.3 Jobs Table
 
 ```sql
 CREATE TABLE jobs (
@@ -168,7 +302,7 @@ CREATE INDEX idx_jobs_wake ON jobs(wake_at) WHERE status = 'pending';
 CREATE INDEX idx_jobs_app ON jobs(app_id);
 ```
 
-### 3.4 JavaScript Runtime API
+### 4.4 JavaScript Runtime API
 
 ```javascript
 // ═══════════════════════════════════════════════════════════════
@@ -239,7 +373,7 @@ if (process.trigger === 'schedule') {
 }
 ```
 
-### 3.5 Backend Implementation (Go)
+### 4.5 Backend Implementation (Go)
 
 ```go
 // Ticker runs every second, checks for due jobs
@@ -299,7 +433,7 @@ func (r *Runtime) registerScheduler(vm *goja.Runtime, appID string) {
 }
 ```
 
-### 3.6 Resource Limits
+### 4.6 Resource Limits
 
 | Limit | Value | Rationale |
 |-------|-------|-----------|
@@ -311,16 +445,16 @@ func (r *Runtime) registerScheduler(vm *goja.Runtime, appID string) {
 
 ---
 
-## 4. API Design
+## 5. API Design
 
-### 4.1 Design Principles
+### 5.1 Design Principles
 
 1. **REST + JSON**: Standard HTTP verbs, JSON request/response
 2. **Envelope Format**: All responses wrapped in `{ data, meta, error }`
 3. **Consistent Naming**: Plural nouns, kebab-case paths
 4. **Pagination**: `?limit=N&offset=M` for list endpoints
 
-### 4.2 Endpoint Map
+### 5.2 Endpoint Map
 
 #### Authentication
 ```
@@ -412,7 +546,7 @@ POST   /api/apps/install        Install app from git URL
        { "url": "https://github.com/user/app", "name": "my-app" }
 ```
 
-### 4.3 Response Envelope
+### 5.3 Response Envelope
 
 ```typescript
 // Success
@@ -437,9 +571,9 @@ POST   /api/apps/install        Install app from git URL
 
 ---
 
-## 5. Migration Path
+## 6. Migration Path
 
-### 5.1 Database Migration
+### 6.1 Database Migration
 
 ```sql
 -- Step 1: Add columns to sites
@@ -469,7 +603,7 @@ UPDATE files SET app_id = site_id;
 -- Then drop site_id column
 ```
 
-### 5.2 Backwards Compatibility
+### 6.2 Backwards Compatibility
 
 For v0.8 transition:
 - `/api/sites` → alias to `/api/apps` (logs deprecation warning)
@@ -478,7 +612,7 @@ For v0.8 transition:
 
 ---
 
-## 6. Implementation Phases
+## 7. Implementation Phases
 
 ### Phase A: Schema & Migration
 - [ ] Write migration script
@@ -495,12 +629,15 @@ For v0.8 transition:
 - [ ] `/api/apps/{id}/jobs` handlers
 - [ ] Backwards compat aliases
 
-### Phase C: Scheduler
+### Phase C: Scheduler & Runtime
 - [ ] Jobs table implementation
 - [ ] Ticker goroutine
 - [ ] `fazt.schedule()` in Goja runtime
-- [ ] `process.state`, `process.trigger` injection
+- [ ] `process.state`, `process.trigger`, `process.env` injection
 - [ ] Resource limits enforcement
+- [ ] `require()` shim for local `api/` files
+- [ ] Entry point change: `main.js` → `api/main.js`
+- [ ] Parse and cache `app.json` manifest on deploy
 
 ### Phase D: Dashboard Integration
 - [ ] Update API client
@@ -516,9 +653,9 @@ For v0.8 transition:
 
 ---
 
-## 7. System Apps
+## 8. System Apps
 
-### 7.1 Reserved IDs
+### 8.1 Reserved IDs
 
 ```go
 var SystemApps = map[string]SystemApp{
@@ -528,7 +665,7 @@ var SystemApps = map[string]SystemApp{
 }
 ```
 
-### 7.2 Properties
+### 8.2 Properties
 
 - **Pinned**: Hydrated at boot, served from RAM
 - **Protected**: Cannot be deleted via API
@@ -536,7 +673,7 @@ var SystemApps = map[string]SystemApp{
 
 ---
 
-## 8. Success Criteria
+## 9. Success Criteria
 
 - [ ] All existing functionality works via new API
 - [ ] Dashboard wired to real data
@@ -547,7 +684,7 @@ var SystemApps = map[string]SystemApp{
 
 ---
 
-## 9. What We're NOT Building (Scope Control)
+## 10. What We're NOT Building (Scope Control)
 
 | Feature | Status | Rationale |
 |---------|--------|-----------|
@@ -559,7 +696,7 @@ var SystemApps = map[string]SystemApp{
 
 ---
 
-## 10. Appendix: Endpoint Migration Table
+## 11. Appendix: Endpoint Migration Table
 
 | Current                       | New                              | Change      |
 |-------------------------------|----------------------------------|-------------|
@@ -584,6 +721,9 @@ var SystemApps = map[string]SystemApp{
 
 ---
 
-**Plan Status**: Draft v2
-**Key Changes from v1**: Removed marketplace, added scheduler architecture
+**Plan Status**: Draft v3
+**Key Changes**:
+- v1→v2: Removed marketplace, added scheduler architecture
+- v2→v3: Added app.json manifest, api/ folder structure, require() shim
+
 **Next Action**: Review, then implement Phase A (Schema Migration)
