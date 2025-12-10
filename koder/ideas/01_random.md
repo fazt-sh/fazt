@@ -220,3 +220,19 @@
     MCP Agent Token) who installed the app.
   - **Updates**: `fazt app update` checks the `source_marketplace` URL for
     newer versions defined in `registry.json`.
+
+- [ ] 35 `ui-macos-shell` <to-discuss>
+  - **Dashboard as OS**: Rename `admin.<DOMAIN>` to `os.<DOMAIN>` for the
+    "operating system" metaphor.
+  - **Icon Grid**: Display all apps (system + user) as icons on a desktop-like
+    home screen, similar to macOS Launchpad.
+  - **System Features as Panels**: Stats, Jobs, Config, Logs open as
+    panels/windows within the dashboard (React routes, not separate subdomains).
+  - **User Apps in Iframe**: Clicking a user app icon opens it in an iframe
+    overlay with window chrome (close/minimize/maximize buttons).
+  - **No Subdomain Spam**: System features don't get their own subdomains —
+    they're all part of `os.<DOMAIN>`. User apps keep their subdomains.
+  - **Window Management (v0.9+)**: Draggable/resizable windows, dock at bottom,
+    minimize to dock — full macOS-like experience.
+  - **Scope**: Nice-to-have polish for "personal cloud OS" story. Defer to
+    after core functionality is stable.
