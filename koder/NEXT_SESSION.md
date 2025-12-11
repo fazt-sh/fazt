@@ -1,54 +1,47 @@
 # Current Task
 
-**Project**: Admin SPA
-**Location**: `/home/testman/workspace/admin`
-**Plan**: `koder/plans/14_admin-spa-complete.md`
-**Phase**: 2C - Feature UI Completion (Bridge to Phase 3)
+**Project**: Fazt.sh
+**Location**: `/home/testman/workspace`
+**Phase**: Transition from Phase 2C (UI Mocks) to Phase 3 (Integration)
+**Last Session**: Dec 11, 2025
 
-## Status Update (Dec 9, 2025)
+## 🛑 Context (Read First)
+We paused the session after successfully completing two major parallel tracks:
+1.  **Frontend**: Completed the complex `SiteDetail` page UI with 5 tabs (Overview, Env, Keys, Logs, Settings). It currently runs on `mockData`.
+2.  **Backend**: Implemented and tested the `internal/analytics/buffer` to prevent DB write storms.
 
-We have successfully completed the core shell and main CRUD pages. The app is fully navigable with a polished look and feel.
+**Current State**: The repo is stable. Frontend is fully navigable (Mock Mode). Backend infrastructure is solid, but some API endpoints (DELETEs) defined in the spec are still missing.
 
-### ✅ Completed
-- **Navigation**: Sidebar (collapsible), Navbar, Breadcrumbs, UX-first routing.
-- **Global Systems**: Theme (Dark/Light), Toast Notifications, Mock Mode.
-- **Pages (Full UI)**:
-  - Dashboard (Stats, Datamap, Traffic Chart).
-  - Sites List (Grid view).
-  - Webhooks (List, Create, Edit, Delete).
-  - Redirects (List, Create, Edit, Delete).
-  - Profile (Tabs, Forms).
-  - System Stats & Health.
+## ✅ Completed Recently
+- **UI**: `SiteDetail.tsx` is done. All modals, visibility toggles, and "Danger Zone" interactions work in mock mode.
+- **Backend Tests**: Created `internal/analytics/buffer_test.go` (covered flush, shutdown, concurrent adds).
+- **Backend Core**: Analytics buffering and System Observability APIs (`/api/system/*`) are in place.
 
-### 🚧 Pending UI (Must complete before Data Integration)
-The `SiteDetail` page has placeholder text for complex tabs. These need full React components (mocked first if necessary to verify UX).
+## 📋 Next Session Goals
 
-1.  **Site Logs UI** (`/sites/:id` -> Logs Tab)
-    - Needs to integrate the existing `Terminal` component.
-    - Needs a log stream viewer interface.
-2.  **Environment Variables UI** (`/sites/:id` -> Environment Tab)
-    - Needs a key-value table/grid.
-    - Needs "Add Variable" modal/inline row.
-    - Needs "Reveal/Hide" secret toggle.
-3.  **API Keys UI** (`/sites/:id` -> API Keys Tab)
-    - Needs a list of keys.
-    - Needs "Create Key" flow (showing key only once).
-4.  **Site Settings UI** (`/sites/:id` -> Settings Tab)
-    - Needs "Delete Site" danger zone.
-    - Needs "Custom Domain" configuration form.
+### 1. Verification (First 10 mins)
+- Run backend tests: `go test -v ./internal/analytics`
+- Run frontend: `cd admin && npm run dev`
+- verify the `SiteDetail` page looks good and interactions (like adding an env var) work in the UI.
 
-## Next Steps (Immediate)
-1.  **Finish SiteDetail UI**: Implement the 4 missing tabs listed above using mock data.
-2.  **Verify 100% UI**: Ensure every pixel of the interface is clickable and looks "production-ready" with mock data.
+### 2. Decision Point: API vs Integration
+We need to choose one path to proceed:
 
-## Next Steps (After UI Complete)
-1.  **Phase 3**: Real Data Integration.
-    - Replace `mockData.ts` with TanStack Query hooks hitting the Go API.
-    - Add Zod validation.
-    - Add Error Boundaries.
+**Path A (Recommended): Finish Backend API**
+- The `implementation-review` noted that `DELETE /api/redirects` and `DELETE /api/webhooks` are missing.
+- Implement these to reach full `v0.7.2` feature parity.
+- Standardize the remaining handlers to use the new `api.Envelope`.
 
-## Dev Server
-```bash
-cd admin && npm run dev -- --port 37180 --host 0.0.0.0
-```
-(Currently running in background)
+**Path B: Start Frontend Integration**
+- Switch frontend from `mockData` to `TanStack Query`.
+- This will likely break the UI initially until the API is fully aligned.
+
+### 3. Execution Plan (If Path A)
+1.  Implement `DELETE` handlers in Go.
+2.  Update `internal/api/response.go` if needed.
+3.  Bump version to `v0.7.2` in `main.go`.
+
+## References
+- **UI Logic**: `admin/src/pages/sites/SiteDetail.tsx`
+- **Backend Review**: `koder/analysis/06_implementation-review.md` (Detailed gap analysis)
+- **API Spec**: `koder/docs/admin-api/spec.md`
