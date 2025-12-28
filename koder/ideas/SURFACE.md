@@ -81,9 +81,11 @@ console.log()                   // Logging
 + fazt proc start|stop|restart|upgrade
 + fazt fs mount|unmount|ls
 + fazt net route add|remove|list
++ fazt net logs|allow|limits            # Egress proxy
 + fazt storage migrate|backup|restore
 + fazt security root-pass
-~ fazt server *                 # Deprecated, use fazt proc
++ fazt events list|watch|emit           # Event bus
+~ fazt server *                         # Deprecated, use fazt proc
 ```
 
 ### HTTP API
@@ -95,6 +97,8 @@ console.log()                   // Logging
 + GET    /api/apps/{uuid}               # Get by UUID
 + PUT    /api/apps/{uuid}               # Update app
 + DELETE /api/apps/{uuid}               # Delete app
++ GET    /api/events                    # Query events
++ GET    /api/net/logs                  # Proxy logs
 ~ /api/sites/* → /api/apps/*            # Renamed
 ```
 
@@ -105,6 +109,18 @@ console.log()                   // Logging
 + fazt.app.name                 // Current app name
 + fazt.app.env                  // Environment variables
 + fazt.log.info|warn|error()    // Structured logging
+
+// Events (IPC)
++ fazt.events.emit(type, data, options?)
++ fazt.events.on(pattern, handler)
++ fazt.events.off(pattern, handler)
++ fazt.events.once(pattern, handler)
++ fazt.events.query(options)
+
+// Network proxy
++ fazt.net.fetch(url, options?)
+// options: auth, cache, retry, timeout, etc.
++ fazt.net.logs(options?)
 ```
 
 ---
@@ -161,6 +177,8 @@ console.log()                   // Logging
 ```
 + fazt app run <uuid> [--cron]          # Manual trigger
 + fazt app logs <uuid>                  # View app logs
++ fazt sandbox exec '<code>'            # Execute in sandbox
++ fazt sandbox validate '<code>'        # Validate code
 ```
 
 ### HTTP API
@@ -168,6 +186,7 @@ console.log()                   // Logging
 ```
 + POST   /api/apps/{uuid}/invoke        # Trigger function
 + GET    /api/apps/{uuid}/logs
++ POST   /api/sandbox/exec              # Execute in sandbox
 ```
 
 ### JS Runtime
@@ -182,6 +201,13 @@ console.log()                   // Logging
 
 + fazt.schedule(delayMs, state)         // Schedule future execution
 + fazt.cron.next()                      // Next scheduled run time
+
+// Sandbox (safe code execution)
++ fazt.sandbox.exec(options)
+// options: { code, input, context, timeout, memoryLimit, capabilities }
+// Returns: { value, logs }
++ fazt.sandbox.validate(code)
+// Returns: { valid, errors }
 
 // app.json additions
 {
@@ -690,6 +716,8 @@ fazt
 ├── schedule()
 ├── cron
 │   ├── next()
+├── sandbox
+│   ├── exec(), validate()
 ├── ai
 │   ├── complete(), stream(), embed()
 ├── git
@@ -697,10 +725,13 @@ fazt
 ├── kernel
 │   ├── deploy(), status(), apps, limits()
 ├── net
+│   ├── fetch(), logs()
 │   ├── vpn
 │   │   ├── status(), peer(), authorize()
 │   ├── domain
 │   │   ├── current(), isPrimary()
+├── events
+│   ├── emit(), on(), off(), once(), query()
 ├── security
 │   ├── sign(), verify(), encrypt(), decrypt()
 │   ├── vault
@@ -750,11 +781,13 @@ fazt
 ```
 fazt proc       # Process lifecycle
 fazt fs         # Filesystem operations
-fazt net        # Networking (routes, vpn, domains)
+fazt net        # Networking (routes, vpn, domains, egress proxy)
+fazt events     # Internal event bus
 fazt storage    # Storage operations
 fazt security   # Cryptographic operations
 fazt identity   # Owner identity
 fazt app        # App management
+fazt sandbox    # Safe code execution
 fazt marketplace # App sources
 fazt mcp        # AI agent protocol
 fazt mesh       # P2P synchronization

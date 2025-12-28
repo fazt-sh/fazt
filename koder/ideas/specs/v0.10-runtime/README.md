@@ -30,6 +30,7 @@ libraries without npm, and schedule background tasks.
 - `serverless.md` - The `api/` folder convention and request handling
 - `stdlib.md` - Embedded standard library
 - `cron.md` - Scheduled execution and hibernate pattern
+- `sandbox.md` - Safe code execution for agents and dynamic evaluation
 
 ## Dependencies
 

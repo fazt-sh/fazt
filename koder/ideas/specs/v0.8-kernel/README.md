@@ -34,6 +34,8 @@ and mental models throughout the codebase.
 - `safeguards.md` - Circuit breakers and degradation
 - `limits.md` - Per-subsystem soft limits
 - `apps.md` - "Everything is an App" model
+- `events.md` - Internal event bus (IPC)
+- `proxy.md` - Network egress control
 
 ## Dependencies
 

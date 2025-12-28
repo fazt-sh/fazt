@@ -42,19 +42,23 @@ Each version builds on the previous, adding capabilities while maintaining:
 - **OS Nomenclature**: Internal packages renamed to OS concepts
   - `proc/` - Process lifecycle, systemd
   - `fs/` - Virtual filesystem
-  - `net/` - SSL, routing, domains
+  - `net/` - SSL, routing, domains, egress proxy
   - `storage/` - SQLite engine
   - `security/` - Auth, permissions
   - `syscall/` - API bridge
 - **EDD**: Evolutionary Database Design (append-only schema)
 - **Safeguards**: Resource limits, circuit breakers
 - **"Everything is an App"**: Sites become Apps with UUIDs
+- **Events**: Internal event bus for IPC
+- **Proxy**: Network egress control with caching
 
 **New Surface**:
 - `fazt proc start|stop|upgrade`
 - `fazt fs mount|ls`
 - `fazt net route add`
 - `fazt storage migrate`
+- `fazt events emit|watch`
+- `fazt net logs|allow|limits`
 
 **Specs**: `specs/v0.8-kernel/`
 
@@ -104,12 +108,16 @@ Each version builds on the previous, adding capabilities while maintaining:
 - **JS-Cron**: Scheduled function execution
   - Defined in `app.json`
   - Hibernate architecture (zero RAM when idle)
+- **Sandbox**: Safe code execution for agents
+  - Isolated environment with resource limits
+  - Optional capability grants
 
 **New Surface**:
 - `require('./db.js')` - Local imports
 - `require('lodash')` - Stdlib access
 - `fazt.schedule(delay, state)`
 - `app.json` cron definitions
+- `fazt.sandbox.exec(options)` - Safe code execution
 
 **Specs**: `specs/v0.10-runtime/`
 
