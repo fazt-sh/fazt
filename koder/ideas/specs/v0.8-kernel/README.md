@@ -38,6 +38,10 @@ and mental models throughout the codebase.
 - `proxy.md` - Network egress control
 - `pulse.md` - Cognitive observability (system self-awareness)
 - `devices.md` - External service abstraction (/dev/*)
+- `beacon.md` - Local network discovery (mDNS)
+- `timekeeper.md` - Local time consensus (without NTP)
+- `chirp.md` - Audio-based data transfer
+- `mnemonic.md` - Human-channel data exchange (word sequences)
 
 ## Dependencies
 

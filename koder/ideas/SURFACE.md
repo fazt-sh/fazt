@@ -88,6 +88,10 @@ console.log()                   // Logging
 + fazt pulse status|ask|history|beat    # Cognitive observability
 + fazt dev list|test|logs|limits        # External service devices
 + fazt config set dev.*                 # Configure devices
++ fazt beacon status|scan|set-name      # Local network discovery
++ fazt time status|sync|peers           # Local time consensus
++ fazt chirp send|listen|encode|decode  # Audio data transfer
++ fazt mnemonic encode|decode           # Human-channel exchange
 ~ fazt server *                         # Deprecated, use fazt proc
 ```
 
@@ -150,6 +154,29 @@ console.log()                   // Logging
 + fazt.dev.oauth.callback(options)    // Exchange code for tokens
 + fazt.dev.oauth.userinfo(options)    // Get user info
 + fazt.dev.oauth.refresh(options)     // Refresh token
+
+// Beacon (local discovery - usually automatic, explicit use optional)
++ fazt.beacon.discover(options?)      // Find nearby Fazt nodes
++ fazt.beacon.on('found', handler)    // Live discovery
++ fazt.beacon.on('lost', handler)     // Node disappeared
+
+// Timekeeper (time consensus - usually automatic, explicit use optional)
++ fazt.time.now()                     // Consensus time (or system time)
++ fazt.time.status()                  // { local, consensus, drift, sources }
++ fazt.time.drift()                   // Milliseconds of drift
++ fazt.time.peers()                   // Contributing peers
++ fazt.time.sync()                    // Force sync
+
+// Chirp (audio transfer - explicit use only)
++ fazt.chirp.encode(data, options?)   // Data to audio buffer
++ fazt.chirp.decode(audioBuffer)      // Audio buffer to data
++ fazt.chirp.send(data, options?)     // Play via speaker
++ fazt.chirp.listen(options?)         // Capture via microphone
+
+// Mnemonic (human-channel exchange - explicit use only)
++ fazt.mnemonic.encode(data)          // Data to word sequence
++ fazt.mnemonic.decode(words)         // Words to data
++ fazt.mnemonic.validate(words)       // Check validity
 ```
 
 ---
@@ -821,6 +848,14 @@ fazt
 │   ├── emit(), on(), off(), once(), query()
 ├── pulse
 │   ├── status(), history(), insights(), ask(), trend()
+├── beacon
+│   ├── discover(), on(), announce()
+├── time
+│   ├── now(), status(), drift(), peers(), sync()
+├── chirp
+│   ├── encode(), decode(), send(), listen()
+├── mnemonic
+│   ├── encode(), decode(), validate()
 ├── dev
 │   ├── billing
 │   │   ├── customers, subscriptions, checkout, portal, invoices
@@ -890,6 +925,10 @@ fazt events     # Internal event bus
 fazt storage    # Storage operations
 fazt security   # Cryptographic operations
 fazt identity   # Owner identity
+fazt beacon     # Local network discovery (mDNS)
+fazt time       # Local time consensus
+fazt chirp      # Audio data transfer
+fazt mnemonic   # Human-channel data exchange
 fazt app        # App management
 fazt sandbox    # Safe code execution
 fazt marketplace # App sources

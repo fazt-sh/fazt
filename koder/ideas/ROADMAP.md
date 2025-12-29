@@ -60,6 +60,11 @@ Each version builds on the previous, adding capabilities while maintaining:
   - `dev.sms` - Twilio, MessageBird
   - `dev.email` - SendGrid, Postmark
   - `dev.oauth` - Google, GitHub, Apple
+- **Resilience Primitives**: Infrastructure-layer fallbacks
+  - `beacon` - Local network discovery (mDNS) when DNS unavailable
+  - `timekeeper` - Local time consensus when NTP unavailable
+  - `chirp` - Audio data transfer when no network exists
+  - `mnemonic` - Human-channel exchange (voice, paper, radio)
 
 **New Surface**:
 - `fazt proc start|stop|upgrade`
@@ -70,6 +75,10 @@ Each version builds on the previous, adding capabilities while maintaining:
 - `fazt net logs|allow|limits`
 - `fazt pulse status|ask|history`
 - `fazt dev list|test|logs`
+- `fazt beacon status|scan`
+- `fazt time status|sync`
+- `fazt chirp send|listen`
+- `fazt mnemonic encode|decode`
 
 **Specs**: `specs/v0.8-kernel/`
 
