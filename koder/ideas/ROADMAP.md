@@ -381,7 +381,7 @@ Each version builds on the previous, adding capabilities while maintaining:
 **Key Changes**:
 - **Services Layer**: Go libraries between kernel and apps
 - **Forms**: Dumb bucket for form submissions
-- **Media**: Image resize, optimize, thumbnails (WASM-accelerated)
+- **Media**: Image resize, optimize, thumbnails, blurhash, QR, barcode, mimetype
 - **PDF**: HTML/CSS to PDF generation (WASM-powered)
 - **Markdown**: Compile .md to HTML, shortcodes, classless CSS
 - **Search**: Full-text indexing with Bleve
@@ -392,12 +392,17 @@ Each version builds on the previous, adding capabilities while maintaining:
 - **Hooks**: Bidirectional webhooks (inbound + outbound)
   - Inbound: Signature verification for Stripe, GitHub, Shopify
   - Outbound: Event delivery with retry and logging
+- **Sanitize**: HTML/text sanitization (XSS protection)
+- **Money**: Decimal arithmetic for currency (integer cents)
+- **Humanize**: Human-readable formatting (bytes, time, numbers)
+- **Timezone**: IANA timezone handling (embedded tzdata)
 
 **Architecture**:
 ```
 Apps (JS)
     ↓
-Services (Go)  ← forms, media, pdf, markdown, search, qr, hooks
+Services (Go)  ← forms, media, pdf, markdown, search, qr, hooks,
+                  sanitize, money, humanize, timezone
     ↓
 Kernel (Go)    ← proc, fs, net, storage, security, wasm, pulse, dev
 ```
@@ -405,6 +410,7 @@ Kernel (Go)    ← proc, fs, net, storage, security, wasm, pulse, dev
 **New Surface**:
 - `fazt.services.forms.list|get|delete|count|clear`
 - `fazt.services.media.resize|thumbnail|crop|optimize|convert`
+- `fazt.services.media.blurhash|qr|barcode|mimetype`
 - `fazt.services.pdf.fromHtml|fromFile|fromUrl|merge|info`
 - `fazt.services.markdown.render|renderFile`
 - `fazt.services.search.index|query|reindex|dropIndex`
@@ -413,10 +419,15 @@ Kernel (Go)    ← proc, fs, net, storage, security, wasm, pulse, dev
 - `fazt.services.shorturl.create|get|stats|delete`
 - `fazt.services.captcha.create|verify`
 - `fazt.services.hooks.events|replay|register|emit`
+- `fazt.services.sanitize.html|text|markdown|url`
+- `fazt.services.money.add|subtract|multiply|divide|format|parse`
+- `fazt.services.humanize.bytes|time|duration|number|ordinal`
+- `fazt.services.timezone.now|convert|format|isDST|info`
 - `/_services/forms/{name}` - POST endpoint
 - `/_services/media/{path}` - On-the-fly processing
 - `/_services/pdf/render` - HTML to PDF
 - `/_services/qr?data=...` - QR generation
+- `/_services/barcode?data=&format=...` - Barcode generation
 - `/_services/comments/{target}` - Comments endpoint
 - `/_s/{code}` - Short URL redirect
 - `/_hooks/{provider}` - Inbound webhook receiver

@@ -700,6 +700,7 @@ console.log()                   // Logging
 + POST   /_services/pdf/render                    # HTML to PDF
 + GET    /_services/pdf/render?file={path}        # File to PDF
 + GET    /_services/qr?data=&size=                # QR generation
++ GET    /_services/barcode?data=&format=        # Barcode generation
 + GET    /_services/search?q=                     # Search endpoint
 + POST   /_services/markdown/render               # Compile markdown
 + GET    /_services/comments/{target}             # Get comments
@@ -733,6 +734,19 @@ console.log()                   // Logging
 + fazt.services.media.optimize(path, options?)
 + fazt.services.media.convert(path, format)
 + fazt.services.media.info(path)
++ fazt.services.media.blurhash(path, options?)
++ fazt.services.media.blurhashDataUrl(hash, options?)
++ fazt.services.media.qr(data, options?)
++ fazt.services.media.qrDataUrl(data, options?)
++ fazt.services.media.qrSvg(data, options?)
++ fazt.services.media.barcode(data, options)
++ fazt.services.media.barcodeDataUrl(data, options)
++ fazt.services.media.mimetype(path)
++ fazt.services.media.mimetypeFromBytes(buffer)
++ fazt.services.media.extFromMime(mime)
++ fazt.services.media.mimeFromExt(ext)
++ fazt.services.media.isImage(path)
++ fazt.services.media.is(path, mime)
 
 // PDF (HTML/CSS to PDF via WASM)
 + fazt.services.pdf.fromHtml(html, options?)
@@ -804,6 +818,63 @@ console.log()                   // Logging
 + fazt.services.hooks.emit(type, data)       // Trigger outbound
 + fazt.services.hooks.deliveries(options?)   // Query deliveries
 + fazt.services.hooks.retryDelivery(id)
+
+// Sanitize (HTML/text sanitization)
++ fazt.services.sanitize.html(input, options?)
+// options: { policy: 'strict'|'basic'|'rich', allow: [], allowAttrs: {} }
++ fazt.services.sanitize.text(input)
++ fazt.services.sanitize.markdown(input, options?)
++ fazt.services.sanitize.url(input, options?)
+
+// Money (decimal arithmetic)
++ fazt.services.money.add(...amounts)
++ fazt.services.money.subtract(a, b)
++ fazt.services.money.multiply(amount, factor)
++ fazt.services.money.divide(amount, divisor, options?)
++ fazt.services.money.percent(amount, percent)
++ fazt.services.money.addPercent(amount, percent)
++ fazt.services.money.subtractPercent(amount, percent)
++ fazt.services.money.format(cents, currency, options?)
++ fazt.services.money.parse(string, currency)
++ fazt.services.money.compare(a, b)
++ fazt.services.money.min(...amounts)
++ fazt.services.money.max(...amounts)
++ fazt.services.money.split(amount, parts)
++ fazt.services.money.allocate(amount, ratios)
++ fazt.services.money.currency(code)
++ fazt.services.money.currencies()
+
+// Humanize (human-readable formatting)
++ fazt.services.humanize.bytes(bytes, options?)
++ fazt.services.humanize.time(timestamp, options?)
++ fazt.services.humanize.duration(ms, options?)
++ fazt.services.humanize.number(n, options?)
++ fazt.services.humanize.compact(n, options?)
++ fazt.services.humanize.ordinal(n)
++ fazt.services.humanize.plural(count, singular, plural?, options?)
++ fazt.services.humanize.truncate(text, length, options?)
++ fazt.services.humanize.list(items, options?)
+
+// Timezone (IANA timezone handling)
++ fazt.services.timezone.now(tz)
++ fazt.services.timezone.convert(time, fromTz, toTz, options?)
++ fazt.services.timezone.parse(time, tz, options?)
++ fazt.services.timezone.format(timestamp, tz, options?)
++ fazt.services.timezone.isDST(tz, time?)
++ fazt.services.timezone.transitions(tz, year)
++ fazt.services.timezone.info(tz)
++ fazt.services.timezone.list(options?)
++ fazt.services.timezone.search(query)
++ fazt.services.timezone.offset(fromTz, toTz, time?)
++ fazt.services.timezone.offsetFromUTC(tz, time?)
++ fazt.services.timezone.next(time, tz)
++ fazt.services.timezone.scheduleDaily(time, tz)
++ fazt.services.timezone.isWithin(timestamp, tz, range)
+
+// Rate Limiting (in fazt.limits namespace)
++ fazt.limits.rate.status(key)
++ fazt.limits.rate.check(key, options)
++ fazt.limits.rate.consume(key, options)
 ```
 
 ---
@@ -888,11 +959,19 @@ fazt
 │   ├── spawn(), get(), list(), cancel(), wait()
 │   ├── deadLetter
 │       ├── list(), get(), retry(), delete()
+├── limits
+│   ├── rate
+│       ├── status(), check(), consume()
 ├── services
     ├── forms
     │   ├── list(), get(), delete(), count(), clear()
     ├── media
     │   ├── resize(), thumbnail(), crop(), optimize(), convert(), info()
+    │   ├── blurhash(), blurhashDataUrl()
+    │   ├── qr(), qrDataUrl(), qrSvg()
+    │   ├── barcode(), barcodeDataUrl()
+    │   ├── mimetype(), mimetypeFromBytes(), extFromMime(), mimeFromExt()
+    │   ├── isImage(), is()
     ├── pdf
     │   ├── fromHtml(), fromFile(), fromUrl(), merge(), info(), delete()
     ├── markdown
@@ -910,9 +989,24 @@ fazt
     ├── captcha
     │   ├── create(), verify()
     ├── hooks
-        ├── events(), event(), replay(), replayFailed(), stats()
-        ├── register(), list(), update(), delete(), emit()
-        ├── deliveries(), retryDelivery()
+    │   ├── events(), event(), replay(), replayFailed(), stats()
+    │   ├── register(), list(), update(), delete(), emit()
+    │   ├── deliveries(), retryDelivery()
+    ├── sanitize
+    │   ├── html(), text(), markdown(), url()
+    ├── money
+    │   ├── add(), subtract(), multiply(), divide()
+    │   ├── percent(), addPercent(), subtractPercent()
+    │   ├── format(), parse(), compare(), min(), max()
+    │   ├── split(), allocate(), currency(), currencies()
+    ├── humanize
+    │   ├── bytes(), time(), duration(), number(), compact()
+    │   ├── ordinal(), plural(), truncate(), list()
+    ├── timezone
+        ├── now(), convert(), parse(), format()
+        ├── isDST(), transitions(), info(), list(), search()
+        ├── offset(), offsetFromUTC()
+        ├── next(), scheduleDaily(), isWithin()
 ```
 
 ### CLI Command Groups

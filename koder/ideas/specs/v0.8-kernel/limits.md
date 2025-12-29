@@ -113,6 +113,149 @@ workers:
   resultRetentionDays: 7          # Keep completed
 ```
 
+## Rate Limiting
+
+Request rate limiting per client/app. Protects against abuse, brute force,
+and ensures fair access. Uses token bucket algorithm with per-key sliding windows.
+
+### Default Rates
+
+```yaml
+rate:
+  global:
+    requestsPerSecond: 1000       # All apps combined
+  perApp:
+    requestsPerSecond: 100        # Per app
+    requestsPerMinute: 2000       # Per app
+  perClient:
+    requestsPerSecond: 10         # Per IP
+    requestsPerMinute: 300        # Per IP
+  perEndpoint:
+    requestsPerSecond: 5          # Per endpoint per IP
+```
+
+### Rate Limit Behavior
+
+When rate limit is exceeded:
+
+```http
+HTTP/1.1 429 Too Many Requests
+Retry-After: 1
+X-RateLimit-Limit: 10
+X-RateLimit-Remaining: 0
+X-RateLimit-Reset: 1703980845
+```
+
+### Custom Rate Limits
+
+Per-endpoint rate limiting in `app.json`:
+
+```json
+{
+  "rate": {
+    "api/login": {
+      "perClient": { "perMinute": 5 },
+      "message": "Too many login attempts"
+    },
+    "api/signup": {
+      "perClient": { "perMinute": 3 }
+    },
+    "api/search": {
+      "perClient": { "perSecond": 2 }
+    },
+    "api/webhook": {
+      "perClient": { "perSecond": 50 }
+    }
+  }
+}
+```
+
+### Rate Limiting in JS
+
+```javascript
+// Check rate limit status
+const status = await fazt.limits.rate.status(clientIp);
+// { remaining: 8, limit: 10, reset: 1703980845 }
+
+// Custom rate limiting logic
+const allowed = await fazt.limits.rate.check('custom-key', {
+  limit: 5,
+  window: 60  // seconds
+});
+
+if (!allowed) {
+  return { status: 429, body: 'Rate limited' };
+}
+
+// Consume multiple tokens (for expensive operations)
+const allowed = await fazt.limits.rate.consume('api-key-123', {
+  limit: 100,
+  window: 3600,  // per hour
+  cost: 10       // this request costs 10 tokens
+});
+```
+
+### Rate Limit Keys
+
+Built-in key extraction:
+
+| Key | Description |
+|-----|-------------|
+| `ip` | Client IP address (default) |
+| `ip+endpoint` | IP + request path |
+| `user` | Authenticated user ID |
+| `apiKey` | API key from header |
+| `custom` | Custom key from header/cookie |
+
+Configure in `app.json`:
+
+```json
+{
+  "rate": {
+    "keyBy": "ip",              // Default
+    "api/v1/*": {
+      "keyBy": "apiKey",        // API key from X-API-Key header
+      "perClient": { "perHour": 1000 }
+    }
+  }
+}
+```
+
+### Whitelist/Blacklist
+
+```json
+{
+  "rate": {
+    "whitelist": ["10.0.0.0/8", "192.168.0.0/16"],
+    "blacklist": ["1.2.3.4"]
+  }
+}
+```
+
+Whitelisted IPs bypass rate limits. Blacklisted IPs get immediate 403.
+
+### Rate Limit Storage
+
+Uses efficient in-memory sliding window:
+
+```go
+// Token bucket with sliding window
+type RateLimiter struct {
+    buckets sync.Map  // key -> *bucket
+    cleanup *time.Ticker
+}
+
+type bucket struct {
+    tokens    float64
+    lastCheck time.Time
+    mu        sync.Mutex
+}
+```
+
+- Memory efficient: ~100 bytes per active key
+- Auto-cleanup: Expired buckets removed every minute
+- No persistence needed: Limits reset on restart (by design)
+
 ## Behavior at Thresholds
 
 ### At 80% (Warning)

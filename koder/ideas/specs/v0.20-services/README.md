@@ -23,7 +23,9 @@ the kernel (low-level primitives) and apps (user code).
 │         (user code, JS runtime)              │
 ├─────────────────────────────────────────────┤
 │                 Services                     │  ← NEW
-│     forms | media | markdown | search        │
+│   forms | media | pdf | markdown | search    │
+│   qr | comments | shorturl | captcha | hooks │
+│   sanitize | money | humanize | timezone     │
 ├─────────────────────────────────────────────┤
 │                  Kernel                      │
 │   proc | fs | net | storage | security       │
@@ -57,7 +59,11 @@ fazt/
 │       ├── comments/
 │       ├── shorturl/
 │       ├── captcha/
-│       └── hooks/
+│       ├── hooks/
+│       ├── sanitize/
+│       ├── money/
+│       ├── humanize/
+│       └── timezone/
 └── ...
 ```
 
@@ -66,7 +72,7 @@ fazt/
 | Service | Purpose | Key Capability |
 |---------|---------|----------------|
 | `forms` | Collect form submissions | POST endpoint, zero config |
-| `media` | Image processing | Resize, optimize, thumbnails |
+| `media` | Image processing | Resize, blurhash, QR, barcode, mimetype |
 | `pdf` | Generate PDFs | HTML/CSS to PDF via WASM |
 | `markdown` | Compile markdown | Goldmark, shortcodes, CSS |
 | `search` | Full-text search | Bleve indexing |
@@ -75,6 +81,10 @@ fazt/
 | `shorturl` | Shareable short links | Click tracking, expiration |
 | `captcha` | Spam protection | Math/text challenges |
 | `hooks` | Bidirectional webhooks | Inbound verification, outbound delivery |
+| `sanitize` | HTML/text sanitization | XSS protection, policy-based |
+| `money` | Decimal arithmetic | Integer cents, no float errors |
+| `humanize` | Human-readable formatting | Bytes, time, numbers, ordinals |
+| `timezone` | IANA timezone handling | Embedded tzdata, DST-aware |
 
 ## Common Properties
 
@@ -89,7 +99,7 @@ All services share:
 ## Documents
 
 - `forms.md` - Form submission collection
-- `media.md` - Image processing
+- `media.md` - Image processing (resize, blurhash, QR, barcode, mimetype)
 - `pdf.md` - PDF generation from HTML/CSS
 - `markdown.md` - Markdown compilation
 - `search.md` - Full-text search
@@ -98,6 +108,10 @@ All services share:
 - `shorturl.md` - Short URL generation
 - `captcha.md` - Spam protection challenges
 - `hooks.md` - Bidirectional webhook handling
+- `sanitize.md` - HTML/text sanitization
+- `money.md` - Decimal currency arithmetic
+- `humanize.md` - Human-readable formatting
+- `timezone.md` - IANA timezone handling
 
 ## Dependencies
 
