@@ -875,6 +875,23 @@ console.log()                   // Logging
 + fazt.limits.rate.status(key)
 + fazt.limits.rate.check(key, options)
 + fazt.limits.rate.consume(key, options)
+
+// Password (secure hashing)
++ fazt.services.password.hash(plaintext, options?)
++ fazt.services.password.verify(plaintext, hash)
++ fazt.services.password.needsRehash(hash)
++ fazt.services.password.config()
+
+// Geo (geographic primitives)
++ fazt.services.geo.distance(lat1, lon1, lat2, lon2, options?)
++ fazt.services.geo.fromIP(ip)
++ fazt.services.geo.countryFromIP(ip)
++ fazt.services.geo.contains(polygon, point)
++ fazt.services.geo.inBounds(bbox, lat, lon)
++ fazt.services.geo.bounds(points)
++ fazt.services.geo.timezone(lat, lon)
++ fazt.services.geo.countryAt(lat, lon)
++ fazt.services.geo.nearby(items, center, options)
 ```
 
 ---
@@ -1003,10 +1020,16 @@ fazt
     │   ├── bytes(), time(), duration(), number(), compact()
     │   ├── ordinal(), plural(), truncate(), list()
     ├── timezone
-        ├── now(), convert(), parse(), format()
-        ├── isDST(), transitions(), info(), list(), search()
-        ├── offset(), offsetFromUTC()
-        ├── next(), scheduleDaily(), isWithin()
+    │   ├── now(), convert(), parse(), format()
+    │   ├── isDST(), transitions(), info(), list(), search()
+    │   ├── offset(), offsetFromUTC()
+    │   ├── next(), scheduleDaily(), isWithin()
+    ├── password
+    │   ├── hash(), verify(), needsRehash(), config()
+    ├── geo
+        ├── distance(), fromIP(), countryFromIP()
+        ├── contains(), inBounds(), bounds()
+        ├── timezone(), countryAt(), nearby()
 ```
 
 ### CLI Command Groups

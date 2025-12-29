@@ -26,6 +26,7 @@ the kernel (low-level primitives) and apps (user code).
 │   forms | media | pdf | markdown | search    │
 │   qr | comments | shorturl | captcha | hooks │
 │   sanitize | money | humanize | timezone     │
+│   password | geo                             │
 ├─────────────────────────────────────────────┤
 │                  Kernel                      │
 │   proc | fs | net | storage | security       │
@@ -63,7 +64,9 @@ fazt/
 │       ├── sanitize/
 │       ├── money/
 │       ├── humanize/
-│       └── timezone/
+│       ├── timezone/
+│       ├── password/
+│       └── geo/
 └── ...
 ```
 
@@ -85,6 +88,8 @@ fazt/
 | `money` | Decimal arithmetic | Integer cents, no float errors |
 | `humanize` | Human-readable formatting | Bytes, time, numbers, ordinals |
 | `timezone` | IANA timezone handling | Embedded tzdata, DST-aware |
+| `password` | Secure credential hashing | Argon2id, timing-safe verify |
+| `geo` | Geographic primitives | Distance, IP geolocation, geofencing |
 
 ## Common Properties
 
@@ -112,6 +117,8 @@ All services share:
 - `money.md` - Decimal currency arithmetic
 - `humanize.md` - Human-readable formatting
 - `timezone.md` - IANA timezone handling
+- `password.md` - Secure Argon2id password hashing
+- `geo.md` - Geographic primitives and IP geolocation
 
 ## Dependencies
 

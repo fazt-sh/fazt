@@ -396,13 +396,15 @@ Each version builds on the previous, adding capabilities while maintaining:
 - **Money**: Decimal arithmetic for currency (integer cents)
 - **Humanize**: Human-readable formatting (bytes, time, numbers)
 - **Timezone**: IANA timezone handling (embedded tzdata)
+- **Password**: Secure Argon2id hashing for credentials
+- **Geo**: Geographic primitives, IP geolocation (embedded geodata)
 
 **Architecture**:
 ```
 Apps (JS)
     ↓
 Services (Go)  ← forms, media, pdf, markdown, search, qr, hooks,
-                  sanitize, money, humanize, timezone
+                  sanitize, money, humanize, timezone, password, geo
     ↓
 Kernel (Go)    ← proc, fs, net, storage, security, wasm, pulse, dev
 ```
@@ -423,11 +425,14 @@ Kernel (Go)    ← proc, fs, net, storage, security, wasm, pulse, dev
 - `fazt.services.money.add|subtract|multiply|divide|format|parse`
 - `fazt.services.humanize.bytes|time|duration|number|ordinal`
 - `fazt.services.timezone.now|convert|format|isDST|info`
+- `fazt.services.password.hash|verify|needsRehash`
+- `fazt.services.geo.distance|fromIP|contains|nearby`
 - `/_services/forms/{name}` - POST endpoint
 - `/_services/media/{path}` - On-the-fly processing
 - `/_services/pdf/render` - HTML to PDF
 - `/_services/qr?data=...` - QR generation
 - `/_services/barcode?data=&format=...` - Barcode generation
+- `/_services/geo/ip` - IP geolocation endpoint
 - `/_services/comments/{target}` - Comments endpoint
 - `/_s/{code}` - Short URL redirect
 - `/_hooks/{provider}` - Inbound webhook receiver
