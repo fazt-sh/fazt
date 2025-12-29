@@ -24,6 +24,7 @@ libraries without npm, and schedule background tasks.
 | Stdlib | Pre-bundled libraries in binary |
 | JS-Cron | Scheduled function execution |
 | Hibernate | Zero RAM when idle |
+| WASM primitive | Internal wazero runtime for services |
 
 ## Documents
 
@@ -31,6 +32,7 @@ libraries without npm, and schedule background tasks.
 - `stdlib.md` - Embedded standard library
 - `cron.md` - Scheduled execution and hibernate pattern
 - `sandbox.md` - Safe code execution for agents and dynamic evaluation
+- `wasm.md` - Internal WASM primitive for services (not exposed to JS)
 
 ## Dependencies
 

@@ -36,6 +36,8 @@ and mental models throughout the codebase.
 - `apps.md` - "Everything is an App" model
 - `events.md` - Internal event bus (IPC)
 - `proxy.md` - Network egress control
+- `pulse.md` - Cognitive observability (system self-awareness)
+- `devices.md` - External service abstraction (/dev/*)
 
 ## Dependencies
 

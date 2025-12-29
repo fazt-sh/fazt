@@ -51,6 +51,15 @@ Each version builds on the previous, adding capabilities while maintaining:
 - **"Everything is an App"**: Sites become Apps with UUIDs
 - **Events**: Internal event bus for IPC
 - **Proxy**: Network egress control with caching
+- **Pulse**: Cognitive observability (system self-awareness)
+  - Periodic health collection and LLM analysis
+  - Natural language queries about system state
+  - Proactive notifications for critical issues
+- **Devices**: External service abstraction (`/dev/*`)
+  - `dev.billing` - Stripe, Paddle, LemonSqueezy
+  - `dev.sms` - Twilio, MessageBird
+  - `dev.email` - SendGrid, Postmark
+  - `dev.oauth` - Google, GitHub, Apple
 
 **New Surface**:
 - `fazt proc start|stop|upgrade`
@@ -59,6 +68,8 @@ Each version builds on the previous, adding capabilities while maintaining:
 - `fazt storage migrate`
 - `fazt events emit|watch`
 - `fazt net logs|allow|limits`
+- `fazt pulse status|ask|history`
+- `fazt dev list|test|logs`
 
 **Specs**: `specs/v0.8-kernel/`
 
@@ -111,6 +122,10 @@ Each version builds on the previous, adding capabilities while maintaining:
 - **Sandbox**: Safe code execution for agents
   - Isolated environment with resource limits
   - Optional capability grants
+- **WASM Primitive**: Internal wazero runtime
+  - Not exposed to JS apps
+  - Used by kernel services for performance-critical ops
+  - Embedded modules: libimage, libpdf, libxlsx
 
 **New Surface**:
 - `require('./db.js')` - Local imports
@@ -357,37 +372,45 @@ Each version builds on the previous, adding capabilities while maintaining:
 **Key Changes**:
 - **Services Layer**: Go libraries between kernel and apps
 - **Forms**: Dumb bucket for form submissions
-- **Media**: Image resize, optimize, thumbnails
+- **Media**: Image resize, optimize, thumbnails (WASM-accelerated)
+- **PDF**: HTML/CSS to PDF generation (WASM-powered)
 - **Markdown**: Compile .md to HTML, shortcodes, classless CSS
 - **Search**: Full-text indexing with Bleve
 - **QR**: Generate QR codes from text/URL
 - **Comments**: User feedback on any entity, threading, moderation
 - **Short URL**: Shareable links with click tracking
 - **Captcha**: Math/text challenges for spam protection
+- **Hooks**: Bidirectional webhooks (inbound + outbound)
+  - Inbound: Signature verification for Stripe, GitHub, Shopify
+  - Outbound: Event delivery with retry and logging
 
 **Architecture**:
 ```
 Apps (JS)
     ↓
-Services (Go)  ← forms, media, markdown, search, qr
+Services (Go)  ← forms, media, pdf, markdown, search, qr, hooks
     ↓
-Kernel (Go)    ← proc, fs, net, storage, security
+Kernel (Go)    ← proc, fs, net, storage, security, wasm, pulse, dev
 ```
 
 **New Surface**:
 - `fazt.services.forms.list|get|delete|count|clear`
 - `fazt.services.media.resize|thumbnail|crop|optimize|convert`
+- `fazt.services.pdf.fromHtml|fromFile|fromUrl|merge|info`
 - `fazt.services.markdown.render|renderFile`
 - `fazt.services.search.index|query|reindex|dropIndex`
 - `fazt.services.qr.generate|dataUrl`
 - `fazt.services.comments.add|list|get|hide|approve|delete`
 - `fazt.services.shorturl.create|get|stats|delete`
 - `fazt.services.captcha.create|verify`
+- `fazt.services.hooks.events|replay|register|emit`
 - `/_services/forms/{name}` - POST endpoint
 - `/_services/media/{path}` - On-the-fly processing
+- `/_services/pdf/render` - HTML to PDF
 - `/_services/qr?data=...` - QR generation
 - `/_services/comments/{target}` - Comments endpoint
 - `/_s/{code}` - Short URL redirect
+- `/_hooks/{provider}` - Inbound webhook receiver
 
 **Specs**: `specs/v0.20-services/`
 

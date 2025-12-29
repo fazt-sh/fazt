@@ -85,6 +85,9 @@ console.log()                   // Logging
 + fazt storage migrate|backup|restore
 + fazt security root-pass
 + fazt events list|watch|emit           # Event bus
++ fazt pulse status|ask|history|beat    # Cognitive observability
++ fazt dev list|test|logs|limits        # External service devices
++ fazt config set dev.*                 # Configure devices
 ~ fazt server *                         # Deprecated, use fazt proc
 ```
 
@@ -99,6 +102,10 @@ console.log()                   // Logging
 + DELETE /api/apps/{uuid}               # Delete app
 + GET    /api/events                    # Query events
 + GET    /api/net/logs                  # Proxy logs
++ GET    /api/pulse/status              # Current health
++ GET    /api/pulse/history             # Past beats
++ POST   /api/pulse/ask                 # Natural language query
++ GET    /api/dev/{device}/status       # Device status
 ~ /api/sites/* → /api/apps/*            # Renamed
 ```
 
@@ -121,6 +128,28 @@ console.log()                   // Logging
 + fazt.net.fetch(url, options?)
 // options: auth, cache, retry, timeout, etc.
 + fazt.net.logs(options?)
+
+// Pulse (cognitive observability)
++ fazt.pulse.status()              // Current health assessment
++ fazt.pulse.history(hours)        // Past beats with metrics
++ fazt.pulse.insights(hours?)      // LLM-generated insights
++ fazt.pulse.ask(question)         // Natural language query
++ fazt.pulse.trend(metric, hours)  // Time-series for charting
+
+// Devices (external service abstraction)
++ fazt.dev.billing.customers.create|get|update|list
++ fazt.dev.billing.subscriptions.create|get|cancel|list
++ fazt.dev.billing.checkout.create
++ fazt.dev.billing.portal.create
++ fazt.dev.billing.invoices.list|get
++ fazt.dev.sms.send(options)       // Send SMS
++ fazt.dev.sms.status(id)          // Check delivery status
++ fazt.dev.email.send(options)     // Send email
++ fazt.dev.email.sendTemplate(options)
++ fazt.dev.oauth.authorize(options)   // Generate auth URL
++ fazt.dev.oauth.callback(options)    // Exchange code for tokens
++ fazt.dev.oauth.userinfo(options)    // Get user info
++ fazt.dev.oauth.refresh(options)     // Refresh token
 ```
 
 ---
@@ -179,6 +208,9 @@ console.log()                   // Logging
 + fazt app logs <uuid>                  # View app logs
 + fazt sandbox exec '<code>'            # Execute in sandbox
 + fazt sandbox validate '<code>'        # Validate code
++ fazt wasm list                        # List loaded modules (admin)
++ fazt wasm stats <module>              # Module stats (admin)
++ fazt wasm cache clear                 # Clear module cache (admin)
 ```
 
 ### HTTP API
@@ -215,6 +247,24 @@ console.log()                   // Logging
     { "schedule": "0 * * * *", "handler": "api/hourly.js" }
   ]
 }
+```
+
+### Kernel Primitives (Internal, not exposed to JS)
+
+```go
+// WASM Runtime - for kernel services only
++ wasm.Load(ctx, bytes, config)         // Load WASM module
++ wasm.NewCache(config)                 // Module cache
++ module.Call(ctx, fn, args)            // Invoke function
++ module.WriteBytes(data)               // Write to WASM memory
++ module.ReadBytes(ptr, len)            // Read from WASM memory
++ module.SetFuelLimit(n)                // CPU limit
++ module.Export(name, fn)               // Host function
+
+// Config options
+// - MemoryLimit: 64MB default, 256MB max
+// - FuelLimit: instruction budget (~1B = 1 second)
+// - Embedded modules: libimage, libpdf, libxlsx
 ```
 
 ---
@@ -608,7 +658,11 @@ console.log()                   // Logging
 ```
 + fazt services forms list|show|export|purge
 + fazt services media resize|cache
++ fazt services pdf render|info|list|purge
 + fazt services search list|show|query|reindex
++ fazt hooks events|replay|stats          # Inbound
++ fazt hooks list|register|delete         # Outbound
++ fazt hooks deliveries|retry-delivery    # Delivery management
 ```
 
 ### HTTP API
@@ -616,14 +670,23 @@ console.log()                   // Logging
 ```
 + POST   /_services/forms/{name}                  # Form submission endpoint
 + GET    /_services/media/{path}?w=&h=&thumb=     # On-the-fly processing
++ POST   /_services/pdf/render                    # HTML to PDF
++ GET    /_services/pdf/render?file={path}        # File to PDF
 + GET    /_services/qr?data=&size=                # QR generation
 + GET    /_services/search?q=                     # Search endpoint
 + POST   /_services/markdown/render               # Compile markdown
 + GET    /_services/comments/{target}             # Get comments
 + POST   /_services/comments/{target}             # Add comment
-+ GET    /_s/{code}                          # Short URL redirect
++ GET    /_s/{code}                               # Short URL redirect
 + POST   /_services/captcha                       # Create captcha
 + POST   /_services/captcha/{id}/verify           # Verify answer
++ POST   /_hooks/{provider}                       # Inbound webhook receiver
++ GET    /api/hooks/events                        # List inbound events
++ POST   /api/hooks/events/{id}/replay            # Replay event
++ GET    /api/hooks                               # List outbound hooks
++ POST   /api/hooks                               # Register outbound hook
++ DELETE /api/hooks/{id}                          # Delete hook
++ GET    /api/hooks/deliveries                    # List deliveries
 ```
 
 ### JS Runtime
@@ -643,6 +706,16 @@ console.log()                   // Logging
 + fazt.services.media.optimize(path, options?)
 + fazt.services.media.convert(path, format)
 + fazt.services.media.info(path)
+
+// PDF (HTML/CSS to PDF via WASM)
++ fazt.services.pdf.fromHtml(html, options?)
++ fazt.services.pdf.fromFile(path, options?)
++ fazt.services.pdf.fromUrl(url, options?)
++ fazt.services.pdf.merge(paths, options?)
++ fazt.services.pdf.info(path)
++ fazt.services.pdf.delete(path)
+// options: { pageSize, margin, orientation, output }
+// output: 'path' (default) | 'bytes'
 
 // Markdown
 + fazt.services.markdown.render(content, options?)
@@ -690,6 +763,20 @@ console.log()                   // Logging
 + fazt.services.captcha.create(options?)
 + fazt.services.captcha.verify(id, answer)
 // options: { type } - 'math' | 'text'
+
+// Hooks (bidirectional webhooks)
++ fazt.services.hooks.events(options?)       // Query inbound events
++ fazt.services.hooks.event(id)              // Get specific event
++ fazt.services.hooks.replay(id)             // Replay event
++ fazt.services.hooks.replayFailed(provider?)
++ fazt.services.hooks.stats(provider)        // Inbound stats
++ fazt.services.hooks.register(options)      // Register outbound hook
++ fazt.services.hooks.list()                 // List outbound hooks
++ fazt.services.hooks.update(id, options)
++ fazt.services.hooks.delete(id)
++ fazt.services.hooks.emit(type, data)       // Trigger outbound
++ fazt.services.hooks.deliveries(options?)   // Query deliveries
++ fazt.services.hooks.retryDelivery(id)
 ```
 
 ---
@@ -732,6 +819,17 @@ fazt
 │   │   ├── current(), isPrimary()
 ├── events
 │   ├── emit(), on(), off(), once(), query()
+├── pulse
+│   ├── status(), history(), insights(), ask(), trend()
+├── dev
+│   ├── billing
+│   │   ├── customers, subscriptions, checkout, portal, invoices
+│   ├── sms
+│   │   ├── send(), status()
+│   ├── email
+│   │   ├── send(), sendTemplate()
+│   ├── oauth
+│       ├── authorize(), callback(), userinfo(), refresh()
 ├── security
 │   ├── sign(), verify(), encrypt(), decrypt()
 │   ├── vault
@@ -760,6 +858,8 @@ fazt
     │   ├── list(), get(), delete(), count(), clear()
     ├── media
     │   ├── resize(), thumbnail(), crop(), optimize(), convert(), info()
+    ├── pdf
+    │   ├── fromHtml(), fromFile(), fromUrl(), merge(), info(), delete()
     ├── markdown
     │   ├── render(), renderFile(), extract()
     ├── search
@@ -773,7 +873,11 @@ fazt
     │   ├── create(), get(), update(), delete(), list()
     │   ├── stats(), clicks()
     ├── captcha
-        ├── create(), verify()
+    │   ├── create(), verify()
+    ├── hooks
+        ├── events(), event(), replay(), replayFailed(), stats()
+        ├── register(), list(), update(), delete(), emit()
+        ├── deliveries(), retryDelivery()
 ```
 
 ### CLI Command Groups
@@ -795,5 +899,8 @@ fazt limits     # Resource limits (presets, show, reset)
 fazt realtime   # WebSocket pub/sub
 fazt email      # SMTP sink
 fazt worker     # Background jobs
-fazt services   # Services (forms, media, markdown, search, qr)
+fazt services   # Services (forms, media, pdf, markdown, search, qr)
+fazt pulse      # Cognitive observability (health, ask, insights)
+fazt dev        # External service devices (billing, sms, email, oauth)
+fazt hooks      # Bidirectional webhooks (inbound, outbound)
 ```

@@ -50,12 +50,14 @@ fazt/
 │   └── services/
 │       ├── forms/
 │       ├── media/
+│       ├── pdf/
 │       ├── markdown/
 │       ├── search/
 │       ├── qr/
 │       ├── comments/
 │       ├── shorturl/
-│       └── captcha/
+│       ├── captcha/
+│       └── hooks/
 └── ...
 ```
 
@@ -65,12 +67,14 @@ fazt/
 |---------|---------|----------------|
 | `forms` | Collect form submissions | POST endpoint, zero config |
 | `media` | Image processing | Resize, optimize, thumbnails |
+| `pdf` | Generate PDFs | HTML/CSS to PDF via WASM |
 | `markdown` | Compile markdown | Goldmark, shortcodes, CSS |
 | `search` | Full-text search | Bleve indexing |
 | `qr` | Generate QR codes | PNG from text/URL |
 | `comments` | User feedback on entities | Threading, moderation |
 | `shorturl` | Shareable short links | Click tracking, expiration |
 | `captcha` | Spam protection | Math/text challenges |
+| `hooks` | Bidirectional webhooks | Inbound verification, outbound delivery |
 
 ## Common Properties
 
@@ -86,12 +90,14 @@ All services share:
 
 - `forms.md` - Form submission collection
 - `media.md` - Image processing
+- `pdf.md` - PDF generation from HTML/CSS
 - `markdown.md` - Markdown compilation
 - `search.md` - Full-text search
 - `qr.md` - QR code generation
 - `comments.md` - User comments/feedback
 - `shorturl.md` - Short URL generation
 - `captcha.md` - Spam protection challenges
+- `hooks.md` - Bidirectional webhook handling
 
 ## Dependencies
 
