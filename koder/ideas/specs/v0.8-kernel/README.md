@@ -34,6 +34,7 @@ and mental models throughout the codebase.
 - `safeguards.md` - Circuit breakers and degradation
 - `limits.md` - Per-subsystem soft limits
 - `apps.md` - "Everything is an App" model
+- `provenance.md` - Data lineage (app_id, user_id on everything)
 - `events.md` - Internal event bus (IPC)
 - `proxy.md` - Network egress control
 - `pulse.md` - Cognitive observability (system self-awareness)

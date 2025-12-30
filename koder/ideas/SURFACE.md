@@ -83,6 +83,15 @@ console.log()                   // Logging
 + fazt net route add|remove|list
 + fazt net logs|allow|limits            # Egress proxy
 + fazt storage migrate|backup|restore
++ fazt storage cleanup [--older-than]     # Hard delete soft-deleted data
++ fazt storage vacuum                      # Forensic cleanup (SQLite VACUUM)
++ fazt app export <app> [--output]         # Export app as cartridge
++ fazt app import <file> [--mode]          # Import cartridge
++ fazt app delete <app> [--purge]          # Soft/hard delete app
++ fazt app restore <app>                   # Restore soft-deleted app
++ fazt user export --user <id> [--app]     # Export user data (GDPR)
++ fazt user delete <id> [--purge]          # Delete user data
++ fazt user anonymize <id>                 # Anonymize user (keep data, scrub identity)
 + fazt security root-pass
 + fazt events list|watch|emit           # Event bus
 + fazt pulse status|ask|history|beat    # Cognitive observability
@@ -114,10 +123,20 @@ console.log()                   // Logging
 + GET    /api/pulse/history             # Past beats
 + POST   /api/pulse/ask                 # Natural language query
 + GET    /api/dev/{device}/status       # Device status
++ POST   /api/apps/{uuid}/export        # Export app as cartridge
++ POST   /api/apps/import               # Import cartridge
++ POST   /api/apps/{uuid}/restore       # Restore soft-deleted app
++ GET    /api/users/{id}/export         # Export user data (GDPR)
++ DELETE /api/users/{id}                # Delete user
++ POST   /api/users/{id}/anonymize      # Anonymize user
 ~ /api/sites/* → /api/apps/*            # Renamed
 ```
 
 ### JS Runtime (fazt namespace)
+
+**Note**: Provenance (app_id, user_id tracking) is automatic and invisible.
+All storage operations automatically include provenance context. Apps don't
+need to do anything special - data ownership is handled by the kernel.
 
 ```javascript
 + fazt.app.id                   // Current app UUID
