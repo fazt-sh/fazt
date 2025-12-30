@@ -87,7 +87,11 @@ console.log()                   // Logging
 + fazt events list|watch|emit           # Event bus
 + fazt pulse status|ask|history|beat    # Cognitive observability
 + fazt dev list|test|logs|limits        # External service devices
-+ fazt config set dev.*                 # Configure devices
++ fazt dev config <device> --token      # Configure devices
++ fazt dev infra vps list|create|destroy|status|ssh|exec  # VPS management
++ fazt dev infra dns zones|records|set|delete|check       # DNS management
++ fazt dev infra domain check|search|register|list        # Domain management
++ fazt dev infra ssh-keys list|add|remove                 # SSH key management
 + fazt beacon status|scan|set-name      # Local network discovery
 + fazt time status|sync|peers           # Local time consensus
 + fazt chirp send|listen|encode|decode  # Audio data transfer
@@ -154,6 +158,34 @@ console.log()                   // Logging
 + fazt.dev.oauth.callback(options)    // Exchange code for tokens
 + fazt.dev.oauth.userinfo(options)    // Get user info
 + fazt.dev.oauth.refresh(options)     // Refresh token
+
+// Infrastructure (cloud substrate)
++ fazt.dev.infra.vps.types(provider)       // List server types
++ fazt.dev.infra.vps.regions(provider)     // List regions
++ fazt.dev.infra.vps.create(options)       // Create VPS
++ fazt.dev.infra.vps.list()                // List managed VPSes
++ fazt.dev.infra.vps.get(id)               // Get VPS details
++ fazt.dev.infra.vps.status(id)            // VPS health status
++ fazt.dev.infra.vps.exec(id, command)     // Execute command
++ fazt.dev.infra.vps.reboot(id)            // Reboot VPS
++ fazt.dev.infra.vps.destroy(id)           // Destroy VPS (triggers halt)
++ fazt.dev.infra.vps.sshKeys(provider)     // List SSH keys
++ fazt.dev.infra.vps.addSshKey(provider, options)
++ fazt.dev.infra.vps.removeSshKey(provider, name)
+
++ fazt.dev.infra.dns.zones()               // List managed zones
++ fazt.dev.infra.dns.records(zone)         // List records
++ fazt.dev.infra.dns.set(zone, record)     // Create/update record
++ fazt.dev.infra.dns.delete(zone, record)  // Delete record
++ fazt.dev.infra.dns.setMany(zone, records)// Bulk operations
++ fazt.dev.infra.dns.checkPropagation(fqdn)// Check DNS propagation
+
++ fazt.dev.infra.domain.check(domain)      // Check availability
++ fazt.dev.infra.domain.search(query)      // Search available domains
++ fazt.dev.infra.domain.register(options)  // Register (triggers halt)
++ fazt.dev.infra.domain.list()             // List owned domains
++ fazt.dev.infra.domain.get(domain)        // Get domain details
++ fazt.dev.infra.domain.update(domain, options)
 
 // Beacon (local discovery - usually automatic, explicit use optional)
 + fazt.beacon.discover(options?)      // Find nearby Fazt nodes
@@ -952,7 +984,16 @@ fazt
 │   ├── email
 │   │   ├── send(), sendTemplate()
 │   ├── oauth
-│       ├── authorize(), callback(), userinfo(), refresh()
+│   │   ├── authorize(), callback(), userinfo(), refresh()
+│   ├── infra
+│       ├── vps
+│       │   ├── types(), regions(), create(), list(), get(), status()
+│       │   ├── exec(), reboot(), destroy(), sshKeys(), addSshKey()
+│       ├── dns
+│       │   ├── zones(), records(), set(), delete(), setMany()
+│       │   ├── checkPropagation()
+│       ├── domain
+│           ├── check(), search(), register(), list(), get(), update()
 ├── security
 │   ├── sign(), verify(), encrypt(), decrypt()
 │   ├── vault
@@ -1057,6 +1098,6 @@ fazt email      # SMTP sink
 fazt worker     # Background jobs
 fazt services   # Services (forms, media, pdf, markdown, search, qr)
 fazt pulse      # Cognitive observability (health, ask, insights)
-fazt dev        # External service devices (billing, sms, email, oauth)
+fazt dev        # External service devices (billing, sms, email, oauth, infra)
 fazt hooks      # Bidirectional webhooks (inbound, outbound)
 ```

@@ -60,6 +60,10 @@ Each version builds on the previous, adding capabilities while maintaining:
   - `dev.sms` - Twilio, MessageBird
   - `dev.email` - SendGrid, Postmark
   - `dev.oauth` - Google, GitHub, Apple
+- **Infrastructure**: Cloud substrate abstraction (`dev.infra.*`)
+  - `dev.infra.vps` - Hetzner, DigitalOcean, Vultr
+  - `dev.infra.dns` - Cloudflare, Hetzner DNS
+  - `dev.infra.domain` - Cloudflare Registrar
 - **Resilience Primitives**: Infrastructure-layer fallbacks
   - `beacon` - Local network discovery (mDNS) when DNS unavailable
   - `timekeeper` - Local time consensus when NTP unavailable
@@ -74,7 +78,10 @@ Each version builds on the previous, adding capabilities while maintaining:
 - `fazt events emit|watch`
 - `fazt net logs|allow|limits`
 - `fazt pulse status|ask|history`
-- `fazt dev list|test|logs`
+- `fazt dev list|test|logs|config`
+- `fazt dev infra vps list|create|destroy|status`
+- `fazt dev infra dns zones|records|set|delete`
+- `fazt dev infra domain check|register|list`
 - `fazt beacon status|scan`
 - `fazt time status|sync`
 - `fazt chirp send|listen`
