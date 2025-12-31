@@ -1,4 +1,4 @@
-# Password Service
+# Password Library
 
 ## Summary
 
@@ -21,10 +21,10 @@ if (storedHash === inputHash) { ... } // Vulnerable to timing analysis
 
 ```javascript
 // Secure by default
-const hash = await fazt.services.password.hash('user-password');
+const hash = await fazt.lib.password.hash('user-password');
 // "$argon2id$v=19$m=65536,t=3,p=4$..."
 
-const valid = await fazt.services.password.verify('user-password', hash);
+const valid = await fazt.lib.password.verify('user-password', hash);
 // true/false (timing-safe)
 ```
 
@@ -34,7 +34,7 @@ const valid = await fazt.services.password.verify('user-password', hash);
 
 ```javascript
 // Default settings (OWASP recommended)
-const hash = await fazt.services.password.hash('mypassword');
+const hash = await fazt.lib.password.hash('mypassword');
 // "$argon2id$v=19$m=65536,t=3,p=4$randomsalt$hashvalue"
 
 // The hash includes:
@@ -52,7 +52,7 @@ const hash = await fazt.services.password.hash('mypassword');
 ```javascript
 const hash = user.passwordHash; // From database
 
-const valid = await fazt.services.password.verify('entered-password', hash);
+const valid = await fazt.lib.password.verify('entered-password', hash);
 
 if (valid) {
   // Password correct
@@ -65,11 +65,11 @@ if (valid) {
 
 ```javascript
 // When you upgrade security parameters, existing hashes may be outdated
-const needsRehash = fazt.services.password.needsRehash(hash);
+const needsRehash = fazt.lib.password.needsRehash(hash);
 
 if (needsRehash && passwordIsValid) {
   // Re-hash with current parameters
-  const newHash = await fazt.services.password.hash(password);
+  const newHash = await fazt.lib.password.hash(password);
   await updateUserHash(userId, newHash);
 }
 ```
@@ -78,14 +78,14 @@ if (needsRehash && passwordIsValid) {
 
 ```javascript
 // For high-security applications (slower but stronger)
-const hash = await fazt.services.password.hash('password', {
+const hash = await fazt.lib.password.hash('password', {
   memory: 128 * 1024,  // 128MB (default: 64MB)
   time: 4,             // 4 iterations (default: 3)
   parallelism: 4       // 4 threads (default: 4)
 });
 
 // For resource-constrained environments
-const hash = await fazt.services.password.hash('password', {
+const hash = await fazt.lib.password.hash('password', {
   memory: 32 * 1024,   // 32MB
   time: 3,
   parallelism: 2
@@ -113,17 +113,17 @@ const hash = await fazt.services.password.hash('password', {
 ## JS API
 
 ```javascript
-fazt.services.password.hash(plaintext, options?)
+fazt.lib.password.hash(plaintext, options?)
 // options: { memory: number, time: number, parallelism: number }
 // Returns: string (PHC format hash)
 
-fazt.services.password.verify(plaintext, hash)
+fazt.lib.password.verify(plaintext, hash)
 // Returns: boolean (timing-safe comparison)
 
-fazt.services.password.needsRehash(hash, options?)
+fazt.lib.password.needsRehash(hash, options?)
 // Returns: boolean (true if parameters below current defaults)
 
-fazt.services.password.config()
+fazt.lib.password.config()
 // Returns: { memory, time, parallelism } (current defaults)
 ```
 
@@ -189,7 +189,7 @@ async function register(email, password) {
     throw new Error('Password too short');
   }
 
-  const hash = await fazt.services.password.hash(password);
+  const hash = await fazt.lib.password.hash(password);
 
   await fazt.storage.ds.insert('users', {
     email,
@@ -207,19 +207,19 @@ async function login(email, password) {
 
   if (!user) {
     // Timing-safe: still do a hash comparison to prevent enumeration
-    await fazt.services.password.verify(password, '$argon2id$v=19$m=65536,t=3,p=4$dummy$dummy');
+    await fazt.lib.password.verify(password, '$argon2id$v=19$m=65536,t=3,p=4$dummy$dummy');
     throw new Error('Invalid credentials');
   }
 
-  const valid = await fazt.services.password.verify(password, user.passwordHash);
+  const valid = await fazt.lib.password.verify(password, user.passwordHash);
 
   if (!valid) {
     throw new Error('Invalid credentials');
   }
 
   // Check if we should upgrade the hash
-  if (fazt.services.password.needsRehash(user.passwordHash)) {
-    const newHash = await fazt.services.password.hash(password);
+  if (fazt.lib.password.needsRehash(user.passwordHash)) {
+    const newHash = await fazt.lib.password.hash(password);
     await fazt.storage.ds.update('users', { id: user.id }, {
       passwordHash: newHash
     });
@@ -235,12 +235,12 @@ async function login(email, password) {
 async function changePassword(userId, currentPassword, newPassword) {
   const user = await fazt.storage.ds.findOne('users', { id: userId });
 
-  const valid = await fazt.services.password.verify(currentPassword, user.passwordHash);
+  const valid = await fazt.lib.password.verify(currentPassword, user.passwordHash);
   if (!valid) {
     throw new Error('Current password incorrect');
   }
 
-  const newHash = await fazt.services.password.hash(newPassword);
+  const newHash = await fazt.lib.password.hash(newPassword);
 
   await fazt.storage.ds.update('users', { id: userId }, {
     passwordHash: newHash,

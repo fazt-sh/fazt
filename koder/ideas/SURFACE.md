@@ -735,7 +735,7 @@ need to do anything special - data ownership is handled by the kernel.
 
 ```
 + fazt services forms list|show|export|purge
-+ fazt services media resize|cache
++ fazt services image resize|cache           # Renamed from media
 + fazt services pdf render|info|list|purge
 + fazt services search list|show|query|reindex
 + fazt hooks events|replay|stats          # Inbound
@@ -747,7 +747,7 @@ need to do anything special - data ownership is handled by the kernel.
 
 ```
 + POST   /_services/forms/{name}                  # Form submission endpoint
-+ GET    /_services/media/{path}?w=&h=&thumb=     # On-the-fly processing
++ GET    /_services/image/{path}?w=&h=&thumb=     # On-the-fly processing
 + POST   /_services/pdf/render                    # HTML to PDF
 + GET    /_services/pdf/render?file={path}        # File to PDF
 + GET    /_services/qr?data=&size=                # QR generation
@@ -771,6 +771,8 @@ need to do anything special - data ownership is handled by the kernel.
 ### JS Runtime
 
 ```javascript
+// === SERVICES (stateful, I/O, lifecycle) ===
+
 // Forms (dumb bucket)
 + fazt.services.forms.list(name, options?)
 + fazt.services.forms.get(name, id)
@@ -778,26 +780,15 @@ need to do anything special - data ownership is handled by the kernel.
 + fazt.services.forms.count(name)
 + fazt.services.forms.clear(name)
 
-// Media (image processing)
-+ fazt.services.media.resize(path, options)
-+ fazt.services.media.thumbnail(path, size)
-+ fazt.services.media.crop(path, options)
-+ fazt.services.media.optimize(path, options?)
-+ fazt.services.media.convert(path, format)
-+ fazt.services.media.info(path)
-+ fazt.services.media.blurhash(path, options?)
-+ fazt.services.media.blurhashDataUrl(hash, options?)
-+ fazt.services.media.qr(data, options?)
-+ fazt.services.media.qrDataUrl(data, options?)
-+ fazt.services.media.qrSvg(data, options?)
-+ fazt.services.media.barcode(data, options)
-+ fazt.services.media.barcodeDataUrl(data, options)
-+ fazt.services.media.mimetype(path)
-+ fazt.services.media.mimetypeFromBytes(buffer)
-+ fazt.services.media.extFromMime(mime)
-+ fazt.services.media.mimeFromExt(ext)
-+ fazt.services.media.isImage(path)
-+ fazt.services.media.is(path, mime)
+// Image (renamed from media)
++ fazt.services.image.resize(path, options)
++ fazt.services.image.thumbnail(path, size)
++ fazt.services.image.crop(path, options)
++ fazt.services.image.optimize(path, options?)
++ fazt.services.image.convert(path, format)
++ fazt.services.image.info(path)
++ fazt.services.image.blurhash(path, options?)
++ fazt.services.image.blurhashDataUrl(hash, options?)
 
 // PDF (HTML/CSS to PDF via WASM)
 + fazt.services.pdf.fromHtml(html, options?)
@@ -824,10 +815,13 @@ need to do anything special - data ownership is handled by the kernel.
 + fazt.services.search.dropIndex(collection)
 + fazt.services.search.indexes()
 
-// QR
+// QR & Barcode (consolidated)
 + fazt.services.qr.generate(data, options?)
 + fazt.services.qr.dataUrl(data, options?)
-// options: { size }
++ fazt.services.qr.svg(data, options?)
++ fazt.services.qr.barcode(data, options)
++ fazt.services.qr.barcodeDataUrl(data, options)
+// options: { size, format }
 
 // Comments
 + fazt.services.comments.add(target, options)
@@ -870,79 +864,89 @@ need to do anything special - data ownership is handled by the kernel.
 + fazt.services.hooks.deliveries(options?)   // Query deliveries
 + fazt.services.hooks.retryDelivery(id)
 
-// Sanitize (HTML/text sanitization)
-+ fazt.services.sanitize.html(input, options?)
-// options: { policy: 'strict'|'basic'|'rich', allow: [], allowAttrs: {} }
-+ fazt.services.sanitize.text(input)
-+ fazt.services.sanitize.markdown(input, options?)
-+ fazt.services.sanitize.url(input, options?)
-
-// Money (decimal arithmetic)
-+ fazt.services.money.add(...amounts)
-+ fazt.services.money.subtract(a, b)
-+ fazt.services.money.multiply(amount, factor)
-+ fazt.services.money.divide(amount, divisor, options?)
-+ fazt.services.money.percent(amount, percent)
-+ fazt.services.money.addPercent(amount, percent)
-+ fazt.services.money.subtractPercent(amount, percent)
-+ fazt.services.money.format(cents, currency, options?)
-+ fazt.services.money.parse(string, currency)
-+ fazt.services.money.compare(a, b)
-+ fazt.services.money.min(...amounts)
-+ fazt.services.money.max(...amounts)
-+ fazt.services.money.split(amount, parts)
-+ fazt.services.money.allocate(amount, ratios)
-+ fazt.services.money.currency(code)
-+ fazt.services.money.currencies()
-
-// Humanize (human-readable formatting)
-+ fazt.services.humanize.bytes(bytes, options?)
-+ fazt.services.humanize.time(timestamp, options?)
-+ fazt.services.humanize.duration(ms, options?)
-+ fazt.services.humanize.number(n, options?)
-+ fazt.services.humanize.compact(n, options?)
-+ fazt.services.humanize.ordinal(n)
-+ fazt.services.humanize.plural(count, singular, plural?, options?)
-+ fazt.services.humanize.truncate(text, length, options?)
-+ fazt.services.humanize.list(items, options?)
-
-// Timezone (IANA timezone handling)
-+ fazt.services.timezone.now(tz)
-+ fazt.services.timezone.convert(time, fromTz, toTz, options?)
-+ fazt.services.timezone.parse(time, tz, options?)
-+ fazt.services.timezone.format(timestamp, tz, options?)
-+ fazt.services.timezone.isDST(tz, time?)
-+ fazt.services.timezone.transitions(tz, year)
-+ fazt.services.timezone.info(tz)
-+ fazt.services.timezone.list(options?)
-+ fazt.services.timezone.search(query)
-+ fazt.services.timezone.offset(fromTz, toTz, time?)
-+ fazt.services.timezone.offsetFromUTC(tz, time?)
-+ fazt.services.timezone.next(time, tz)
-+ fazt.services.timezone.scheduleDaily(time, tz)
-+ fazt.services.timezone.isWithin(timestamp, tz, range)
-
 // Rate Limiting (in fazt.limits namespace)
 + fazt.limits.rate.status(key)
 + fazt.limits.rate.check(key, options)
 + fazt.limits.rate.consume(key, options)
 
+// === LIB (pure functions, no state, no side effects) ===
+
+// Money (decimal arithmetic)
++ fazt.lib.money.add(...amounts)
++ fazt.lib.money.subtract(a, b)
++ fazt.lib.money.multiply(amount, factor)
++ fazt.lib.money.divide(amount, divisor, options?)
++ fazt.lib.money.percent(amount, percent)
++ fazt.lib.money.addPercent(amount, percent)
++ fazt.lib.money.subtractPercent(amount, percent)
++ fazt.lib.money.format(cents, currency, options?)
++ fazt.lib.money.parse(string, currency)
++ fazt.lib.money.compare(a, b)
++ fazt.lib.money.min(...amounts)
++ fazt.lib.money.max(...amounts)
++ fazt.lib.money.split(amount, parts)
++ fazt.lib.money.allocate(amount, ratios)
++ fazt.lib.money.currency(code)
++ fazt.lib.money.currencies()
+
+// Humanize (human-readable formatting)
++ fazt.lib.humanize.bytes(bytes, options?)
++ fazt.lib.humanize.time(timestamp, options?)
++ fazt.lib.humanize.duration(ms, options?)
++ fazt.lib.humanize.number(n, options?)
++ fazt.lib.humanize.compact(n, options?)
++ fazt.lib.humanize.ordinal(n)
++ fazt.lib.humanize.plural(count, singular, plural?, options?)
++ fazt.lib.humanize.truncate(text, length, options?)
++ fazt.lib.humanize.list(items, options?)
+
+// Timezone (IANA timezone handling)
++ fazt.lib.timezone.now(tz)
++ fazt.lib.timezone.convert(time, fromTz, toTz, options?)
++ fazt.lib.timezone.parse(time, tz, options?)
++ fazt.lib.timezone.format(timestamp, tz, options?)
++ fazt.lib.timezone.isDST(tz, time?)
++ fazt.lib.timezone.transitions(tz, year)
++ fazt.lib.timezone.info(tz)
++ fazt.lib.timezone.list(options?)
++ fazt.lib.timezone.search(query)
++ fazt.lib.timezone.offset(fromTz, toTz, time?)
++ fazt.lib.timezone.offsetFromUTC(tz, time?)
++ fazt.lib.timezone.next(time, tz)
++ fazt.lib.timezone.scheduleDaily(time, tz)
++ fazt.lib.timezone.isWithin(timestamp, tz, range)
+
+// Sanitize (HTML/text sanitization)
++ fazt.lib.sanitize.html(input, options?)
+// options: { policy: 'strict'|'basic'|'rich', allow: [], allowAttrs: {} }
++ fazt.lib.sanitize.text(input)
++ fazt.lib.sanitize.markdown(input, options?)
++ fazt.lib.sanitize.url(input, options?)
+
 // Password (secure hashing)
-+ fazt.services.password.hash(plaintext, options?)
-+ fazt.services.password.verify(plaintext, hash)
-+ fazt.services.password.needsRehash(hash)
-+ fazt.services.password.config()
++ fazt.lib.password.hash(plaintext, options?)
++ fazt.lib.password.verify(plaintext, hash)
++ fazt.lib.password.needsRehash(hash)
++ fazt.lib.password.config()
 
 // Geo (geographic primitives)
-+ fazt.services.geo.distance(lat1, lon1, lat2, lon2, options?)
-+ fazt.services.geo.fromIP(ip)
-+ fazt.services.geo.countryFromIP(ip)
-+ fazt.services.geo.contains(polygon, point)
-+ fazt.services.geo.inBounds(bbox, lat, lon)
-+ fazt.services.geo.bounds(points)
-+ fazt.services.geo.timezone(lat, lon)
-+ fazt.services.geo.countryAt(lat, lon)
-+ fazt.services.geo.nearby(items, center, options)
++ fazt.lib.geo.distance(lat1, lon1, lat2, lon2, options?)
++ fazt.lib.geo.fromIP(ip)
++ fazt.lib.geo.countryFromIP(ip)
++ fazt.lib.geo.contains(polygon, point)
++ fazt.lib.geo.inBounds(bbox, lat, lon)
++ fazt.lib.geo.bounds(points)
++ fazt.lib.geo.timezone(lat, lon)
++ fazt.lib.geo.countryAt(lat, lon)
++ fazt.lib.geo.nearby(items, center, options)
+
+// Mime (mimetype detection - extracted from media)
++ fazt.lib.mime.detect(path)
++ fazt.lib.mime.fromBytes(buffer)
++ fazt.lib.mime.toExt(mime)
++ fazt.lib.mime.fromExt(ext)
++ fazt.lib.mime.isImage(path)
++ fazt.lib.mime.is(path, mime)
 ```
 
 ---
@@ -1039,38 +1043,34 @@ fazt
 ├── limits
 │   ├── rate
 │       ├── status(), check(), consume()
-├── services
-    ├── forms
-    │   ├── list(), get(), delete(), count(), clear()
-    ├── media
-    │   ├── resize(), thumbnail(), crop(), optimize(), convert(), info()
-    │   ├── blurhash(), blurhashDataUrl()
-    │   ├── qr(), qrDataUrl(), qrSvg()
-    │   ├── barcode(), barcodeDataUrl()
-    │   ├── mimetype(), mimetypeFromBytes(), extFromMime(), mimeFromExt()
-    │   ├── isImage(), is()
-    ├── pdf
-    │   ├── fromHtml(), fromFile(), fromUrl(), merge(), info(), delete()
-    ├── markdown
-    │   ├── render(), renderFile(), extract()
-    ├── search
-    │   ├── index(), indexFiles(), query(), reindex(), dropIndex(), indexes()
-    ├── qr
-    │   ├── generate(), dataUrl()
-    ├── comments
-    │   ├── add(), list(), get(), update(), delete()
-    │   ├── hide(), show(), approve(), count()
-    ├── shorturl
-    │   ├── create(), get(), update(), delete(), list()
-    │   ├── stats(), clicks()
-    ├── captcha
-    │   ├── create(), verify()
-    ├── hooks
-    │   ├── events(), event(), replay(), replayFailed(), stats()
-    │   ├── register(), list(), update(), delete(), emit()
-    │   ├── deliveries(), retryDelivery()
-    ├── sanitize
-    │   ├── html(), text(), markdown(), url()
+├── services                              # Stateful services
+│   ├── forms
+│   │   ├── list(), get(), delete(), count(), clear()
+│   ├── image                             # Renamed from media
+│   │   ├── resize(), thumbnail(), crop(), optimize(), convert(), info()
+│   │   ├── blurhash(), blurhashDataUrl()
+│   ├── pdf
+│   │   ├── fromHtml(), fromFile(), fromUrl(), merge(), info(), delete()
+│   ├── markdown
+│   │   ├── render(), renderFile(), extract()
+│   ├── search
+│   │   ├── index(), indexFiles(), query(), reindex(), dropIndex(), indexes()
+│   ├── qr                                # Consolidated (includes barcode)
+│   │   ├── generate(), dataUrl(), svg()
+│   │   ├── barcode(), barcodeDataUrl()
+│   ├── comments
+│   │   ├── add(), list(), get(), update(), delete()
+│   │   ├── hide(), show(), approve(), count()
+│   ├── shorturl
+│   │   ├── create(), get(), update(), delete(), list()
+│   │   ├── stats(), clicks()
+│   ├── captcha
+│   │   ├── create(), verify()
+│   └── hooks
+│       ├── events(), event(), replay(), replayFailed(), stats()
+│       ├── register(), list(), update(), delete(), emit()
+│       ├── deliveries(), retryDelivery()
+└── lib                                   # Pure functions (no state)
     ├── money
     │   ├── add(), subtract(), multiply(), divide()
     │   ├── percent(), addPercent(), subtractPercent()
@@ -1084,12 +1084,18 @@ fazt
     │   ├── isDST(), transitions(), info(), list(), search()
     │   ├── offset(), offsetFromUTC()
     │   ├── next(), scheduleDaily(), isWithin()
+    ├── sanitize
+    │   ├── html(), text(), markdown(), url()
     ├── password
     │   ├── hash(), verify(), needsRehash(), config()
     ├── geo
-        ├── distance(), fromIP(), countryFromIP()
-        ├── contains(), inBounds(), bounds()
-        ├── timezone(), countryAt(), nearby()
+    │   ├── distance(), fromIP(), countryFromIP()
+    │   ├── contains(), inBounds(), bounds()
+    │   ├── timezone(), countryAt(), nearby()
+    └── mime
+        ├── detect(), fromBytes()
+        ├── toExt(), fromExt()
+        ├── isImage(), is()
 ```
 
 ### CLI Command Groups
@@ -1115,7 +1121,7 @@ fazt limits     # Resource limits (presets, show, reset)
 fazt realtime   # WebSocket pub/sub
 fazt email      # SMTP sink
 fazt worker     # Background jobs
-fazt services   # Services (forms, media, pdf, markdown, search, qr)
+fazt services   # Services (forms, image, pdf, markdown, search, qr)
 fazt pulse      # Cognitive observability (health, ask, insights)
 fazt dev        # External service devices (billing, sms, email, oauth, infra)
 fazt hooks      # Bidirectional webhooks (inbound, outbound)

@@ -1,4 +1,4 @@
-# Geo Service
+# Geo Library
 
 ## Summary
 
@@ -23,19 +23,19 @@ Embedded geodata means location features work offline with zero API costs.
 
 ```javascript
 // Distance between two points
-const km = fazt.services.geo.distance(
+const km = fazt.lib.geo.distance(
   40.7128, -74.0060,  // New York
   51.5074, -0.1278    // London
 );
 // 5570.22
 
 // IP to location (embedded database)
-const loc = fazt.services.geo.fromIP('8.8.8.8');
+const loc = fazt.lib.geo.fromIP('8.8.8.8');
 // { country: 'US', region: 'CA', city: 'Mountain View',
 //   lat: 37.386, lon: -122.084, timezone: 'America/Los_Angeles' }
 
 // Point in polygon
-const inside = fazt.services.geo.contains(deliveryZone, userLocation);
+const inside = fazt.lib.geo.contains(deliveryZone, userLocation);
 ```
 
 ## Usage
@@ -44,14 +44,14 @@ const inside = fazt.services.geo.contains(deliveryZone, userLocation);
 
 ```javascript
 // Haversine formula - great-circle distance
-const km = fazt.services.geo.distance(lat1, lon1, lat2, lon2);
+const km = fazt.lib.geo.distance(lat1, lon1, lat2, lon2);
 
 // With units
-const miles = fazt.services.geo.distance(lat1, lon1, lat2, lon2, { unit: 'mi' });
-const meters = fazt.services.geo.distance(lat1, lon1, lat2, lon2, { unit: 'm' });
+const miles = fazt.lib.geo.distance(lat1, lon1, lat2, lon2, { unit: 'mi' });
+const meters = fazt.lib.geo.distance(lat1, lon1, lat2, lon2, { unit: 'm' });
 
 // Example: New York to Los Angeles
-fazt.services.geo.distance(40.7128, -74.0060, 34.0522, -118.2437);
+fazt.lib.geo.distance(40.7128, -74.0060, 34.0522, -118.2437);
 // 3935.75 km
 ```
 
@@ -59,7 +59,7 @@ fazt.services.geo.distance(40.7128, -74.0060, 34.0522, -118.2437);
 
 ```javascript
 // From IP address
-const loc = await fazt.services.geo.fromIP('203.0.113.50');
+const loc = await fazt.lib.geo.fromIP('203.0.113.50');
 // {
 //   ip: '203.0.113.50',
 //   country: 'AU',
@@ -73,10 +73,10 @@ const loc = await fazt.services.geo.fromIP('203.0.113.50');
 // }
 
 // From current request (in serverless handler)
-const loc = await fazt.services.geo.fromIP(request.ip);
+const loc = await fazt.lib.geo.fromIP(request.ip);
 
 // Country only (faster, smaller dataset)
-const country = await fazt.services.geo.countryFromIP('8.8.8.8');
+const country = await fazt.lib.geo.countryFromIP('8.8.8.8');
 // { country: 'US', countryName: 'United States' }
 ```
 
@@ -94,7 +94,7 @@ const polygon = [
 
 const point = [40.7527, -73.9772];
 
-const inside = fazt.services.geo.contains(polygon, point);
+const inside = fazt.lib.geo.contains(polygon, point);
 // true
 
 // GeoJSON format also supported
@@ -102,7 +102,7 @@ const geojson = {
   type: 'Polygon',
   coordinates: [[...]]
 };
-fazt.services.geo.contains(geojson, point);
+fazt.lib.geo.contains(geojson, point);
 ```
 
 ### Bounding Box
@@ -114,11 +114,11 @@ const bbox = {
   minLon: -74.02, maxLon: -73.95
 };
 
-fazt.services.geo.inBounds(bbox, 40.75, -73.99);
+fazt.lib.geo.inBounds(bbox, 40.75, -73.99);
 // true
 
 // Get bounding box for a set of points
-const bounds = fazt.services.geo.bounds([
+const bounds = fazt.lib.geo.bounds([
   [40.7128, -74.0060],
   [40.7580, -73.9855],
   [40.7484, -73.9857]
@@ -132,7 +132,7 @@ const bounds = fazt.services.geo.bounds([
 // Find points within radius
 const stores = await fazt.storage.ds.find('stores', {});
 
-const nearby = fazt.services.geo.nearby(
+const nearby = fazt.lib.geo.nearby(
   stores,
   { lat: 40.7128, lon: -74.0060 },  // Center point
   {
@@ -150,19 +150,19 @@ const nearby = fazt.services.geo.nearby(
 
 ```javascript
 // Get timezone for coordinates
-const tz = fazt.services.geo.timezone(40.7128, -74.0060);
+const tz = fazt.lib.geo.timezone(40.7128, -74.0060);
 // 'America/New_York'
 
 // Useful when you have GPS but user hasn't set timezone
-const userTz = fazt.services.geo.timezone(user.lat, user.lon);
-const localTime = fazt.services.timezone.now(userTz);
+const userTz = fazt.lib.geo.timezone(user.lat, user.lon);
+const localTime = fazt.lib.timezone.now(userTz);
 ```
 
 ### Country from Coordinates
 
 ```javascript
 // Reverse lookup: coordinates to country
-const country = fazt.services.geo.countryAt(48.8566, 2.3522);
+const country = fazt.lib.geo.countryAt(48.8566, 2.3522);
 // { country: 'FR', countryName: 'France' }
 ```
 
@@ -170,36 +170,36 @@ const country = fazt.services.geo.countryAt(48.8566, 2.3522);
 
 ```javascript
 // Distance
-fazt.services.geo.distance(lat1, lon1, lat2, lon2, options?)
+fazt.lib.geo.distance(lat1, lon1, lat2, lon2, options?)
 // options: { unit: 'km' | 'mi' | 'm' }
 // Returns: number
 
 // IP Geolocation
-fazt.services.geo.fromIP(ip)
+fazt.lib.geo.fromIP(ip)
 // Returns: { country, countryName, region, city, lat, lon, timezone, isp }
 
-fazt.services.geo.countryFromIP(ip)
+fazt.lib.geo.countryFromIP(ip)
 // Returns: { country, countryName }
 
 // Geometry
-fazt.services.geo.contains(polygon, point)
+fazt.lib.geo.contains(polygon, point)
 // Returns: boolean
 
-fazt.services.geo.inBounds(bbox, lat, lon)
+fazt.lib.geo.inBounds(bbox, lat, lon)
 // Returns: boolean
 
-fazt.services.geo.bounds(points)
+fazt.lib.geo.bounds(points)
 // Returns: { minLat, maxLat, minLon, maxLon }
 
 // Lookup
-fazt.services.geo.timezone(lat, lon)
+fazt.lib.geo.timezone(lat, lon)
 // Returns: string (IANA timezone)
 
-fazt.services.geo.countryAt(lat, lon)
+fazt.lib.geo.countryAt(lat, lon)
 // Returns: { country, countryName }
 
 // Utilities
-fazt.services.geo.nearby(items, center, options)
+fazt.lib.geo.nearby(items, center, options)
 // Returns: items with _distance field, sorted
 ```
 
@@ -273,7 +273,7 @@ module.exports = async (request) => {
     active: true
   });
 
-  const nearby = fazt.services.geo.nearby(stores, { lat, lon }, {
+  const nearby = fazt.lib.geo.nearby(stores, { lat, lon }, {
     radius: parseFloat(radius),
     latField: 'lat',
     lonField: 'lon',
@@ -301,7 +301,7 @@ async function canDeliver(address) {
   const { lat, lon } = address;
 
   for (const zone of deliveryZones) {
-    if (fazt.services.geo.contains(zone.polygon, [lat, lon])) {
+    if (fazt.lib.geo.contains(zone.polygon, [lat, lon])) {
       return { canDeliver: true, zone: zone.name, fee: zone.deliveryFee };
     }
   }
@@ -315,7 +315,7 @@ async function canDeliver(address) {
 ```javascript
 async function checkLoginLocation(userId, requestIP) {
   const user = await fazt.storage.ds.findOne('users', { id: userId });
-  const currentLoc = await fazt.services.geo.fromIP(requestIP);
+  const currentLoc = await fazt.lib.geo.fromIP(requestIP);
 
   if (!user.lastLoginCountry) {
     return { suspicious: false };
@@ -352,7 +352,7 @@ async function getUserTimezone(request, userId) {
   }
 
   // Infer from IP
-  const loc = await fazt.services.geo.fromIP(request.ip);
+  const loc = await fazt.lib.geo.fromIP(request.ip);
   return loc.timezone || 'UTC';
 }
 ```
@@ -361,7 +361,7 @@ async function getUserTimezone(request, userId) {
 
 ```javascript
 async function checkCompliance(request) {
-  const loc = await fazt.services.geo.fromIP(request.ip);
+  const loc = await fazt.lib.geo.fromIP(request.ip);
 
   const gdprCountries = ['DE', 'FR', 'IT', 'ES', 'NL', ...];
   const isGDPR = gdprCountries.includes(loc.country);

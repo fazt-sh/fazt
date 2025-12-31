@@ -2,8 +2,11 @@
 
 ## Summary
 
-Generate QR codes from text or URLs. Returns PNG images. Simple, focused,
-one job.
+Generate QR codes and barcodes from text or URLs. Returns PNG/SVG images.
+Consolidated from separate QR and barcode functions.
+
+**Note:** Barcode generation moved here from `fazt.services.media` for cleaner
+organization - both QR and barcodes are code generation, not image processing.
 
 ## Usage
 
@@ -31,22 +34,6 @@ module.exports = async (req) => {
 };
 ```
 
-## HTTP Endpoint
-
-```
-GET /_services/qr?data=https://example.com
-GET /_services/qr?data=https://example.com&size=512
-```
-
-Returns PNG image directly.
-
-**Parameters:**
-
-| Param | Description | Default |
-|-------|-------------|---------|
-| `data` | Content to encode (required) | - |
-| `size` | Image size in pixels | 256 |
-
 ## In HTML
 
 ```html
@@ -63,22 +50,115 @@ Scan to visit:
 {{qr data="https://example.com" size="200"}}
 ```
 
+### Generate QR as SVG
+
+```javascript
+const svg = await fazt.services.qr.svg('https://example.com', {
+  size: 256
+});
+// Returns: string (SVG markup)
+```
+
+### Generate Barcode
+
+```javascript
+// Generate barcode image
+const barcodePath = await fazt.services.qr.barcode('123456789012', {
+  format: 'ean13'    // Barcode format (required)
+});
+// Returns path: "_qr/barcode_abc123.png"
+
+// Supported formats
+const barcodes = {
+  'codabar': '123456',
+  'code39': 'HELLO',
+  'code93': 'HELLO123',
+  'code128': 'Hello World!',
+  'ean8': '12345670',
+  'ean13': '5901234123457',
+  'itf': '123456789012',
+  'upca': '012345678905',
+  'upce': '01234565'
+};
+
+// With options
+const barcode = await fazt.services.qr.barcode('5901234123457', {
+  format: 'ean13',
+  width: 200,
+  height: 80,
+  includeText: true  // Show number below barcode (default: true)
+});
+
+// As data URL
+const dataUrl = await fazt.services.qr.barcodeDataUrl('123456789012', {
+  format: 'ean13'
+});
+```
+
+## HTTP Endpoints
+
+### QR Code
+```
+GET /_services/qr?data=https://example.com
+GET /_services/qr?data=https://example.com&size=512
+GET /_services/qr?data=https://example.com&fmt=svg
+```
+
+### Barcode
+```
+GET /_services/barcode?data=5901234123457&format=ean13
+GET /_services/barcode?data=HELLO&format=code39&width=300
+```
+
+**QR Parameters:**
+
+| Param | Description | Default |
+|-------|-------------|---------|
+| `data` | Content to encode (required) | - |
+| `size` | Image size in pixels | 256 |
+| `level` | Error correction: L, M, Q, H | M |
+| `fmt` | Output format: png, svg | png |
+
+**Barcode Parameters:**
+
+| Param | Description | Default |
+|-------|-------------|---------|
+| `data` | Content to encode (required) | - |
+| `format` | Barcode format (required) | - |
+| `width` | Image width | 200 |
+| `height` | Image height | 80 |
+| `text` | Show text below: 1/0 | 1 |
+
 ## JS API
 
 ```javascript
+// QR Code
 fazt.services.qr.generate(data, options?)
-// options: { size }
+// options: { size, level }
 // Returns: string (path to PNG)
 
 fazt.services.qr.dataUrl(data, options?)
 // Returns: string (base64 data URL)
-// Useful for embedding directly: <img src="{{dataUrl}}">
+
+fazt.services.qr.svg(data, options?)
+// Returns: string (SVG markup)
+
+// Barcode
+fazt.services.qr.barcode(data, options)
+// options: { format, width, height, includeText }
+// Returns: string (path to PNG)
+
+fazt.services.qr.barcodeDataUrl(data, options)
+// Returns: string (base64 data URL)
 ```
 
-## Go Library
+## Go Libraries
 
 ```go
-import "github.com/skip2/go-qrcode"
+import (
+    "github.com/skip2/go-qrcode"   // ~15KB, QR generation
+    "github.com/boombuler/barcode" // ~20KB, barcode generation
+)
 ```
 
 Pure Go, no CGO.

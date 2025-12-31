@@ -386,60 +386,65 @@ Each version builds on the previous, adding capabilities while maintaining:
 **Theme**: Common patterns as platform primitives.
 
 **Key Changes**:
-- **Services Layer**: Go libraries between kernel and apps
+- **Services Layer**: Stateful Go services between kernel and apps
+- **Lib Layer**: Pure utility functions (no state, no side effects)
 - **Forms**: Dumb bucket for form submissions
-- **Media**: Image resize, optimize, thumbnails, blurhash, QR, barcode, mimetype
+- **Image**: Image resize, optimize, thumbnails, blurhash (renamed from Media)
 - **PDF**: HTML/CSS to PDF generation (WASM-powered)
 - **Markdown**: Compile .md to HTML, shortcodes, classless CSS
 - **Search**: Full-text indexing with Bleve
-- **QR**: Generate QR codes from text/URL
+- **QR**: Generate QR codes and barcodes (consolidated)
 - **Comments**: User feedback on any entity, threading, moderation
 - **Short URL**: Shareable links with click tracking
 - **Captcha**: Math/text challenges for spam protection
 - **Hooks**: Bidirectional webhooks (inbound + outbound)
   - Inbound: Signature verification for Stripe, GitHub, Shopify
   - Outbound: Event delivery with retry and logging
-- **Sanitize**: HTML/text sanitization (XSS protection)
-- **Money**: Decimal arithmetic for currency (integer cents)
-- **Humanize**: Human-readable formatting (bytes, time, numbers)
-- **Timezone**: IANA timezone handling (embedded tzdata)
-- **Password**: Secure Argon2id hashing for credentials
-- **Geo**: Geographic primitives, IP geolocation (embedded geodata)
+- **Lib utilities** (pure functions):
+  - **Money**: Decimal arithmetic for currency (integer cents)
+  - **Humanize**: Human-readable formatting (bytes, time, numbers)
+  - **Timezone**: IANA timezone handling (embedded tzdata)
+  - **Sanitize**: HTML/text sanitization (XSS protection)
+  - **Password**: Secure Argon2id hashing for credentials
+  - **Geo**: Geographic primitives, IP geolocation (embedded geodata)
+  - **Mime**: Mimetype detection (extracted from Image)
 
 **Architecture**:
 ```
 Apps (JS)
     ↓
-Services (Go)  ← forms, media, pdf, markdown, search, qr, hooks,
-                  sanitize, money, humanize, timezone, password, geo
+Services (Go)  ← forms, image, pdf, markdown, search, qr, hooks,
+                  comments, shorturl, captcha (stateful)
+    ↓
+Lib (Go)       ← money, humanize, timezone, sanitize, password,
+                  geo, mime (pure functions)
     ↓
 Kernel (Go)    ← proc, fs, net, storage, security, wasm, pulse, dev
 ```
 
 **New Surface**:
 - `fazt.services.forms.list|get|delete|count|clear`
-- `fazt.services.media.resize|thumbnail|crop|optimize|convert`
-- `fazt.services.media.blurhash|qr|barcode|mimetype`
+- `fazt.services.image.resize|thumbnail|crop|optimize|convert|blurhash`
 - `fazt.services.pdf.fromHtml|fromFile|fromUrl|merge|info`
 - `fazt.services.markdown.render|renderFile`
 - `fazt.services.search.index|query|reindex|dropIndex`
-- `fazt.services.qr.generate|dataUrl`
+- `fazt.services.qr.generate|dataUrl|svg|barcode`
 - `fazt.services.comments.add|list|get|hide|approve|delete`
 - `fazt.services.shorturl.create|get|stats|delete`
 - `fazt.services.captcha.create|verify`
 - `fazt.services.hooks.events|replay|register|emit`
-- `fazt.services.sanitize.html|text|markdown|url`
-- `fazt.services.money.add|subtract|multiply|divide|format|parse`
-- `fazt.services.humanize.bytes|time|duration|number|ordinal`
-- `fazt.services.timezone.now|convert|format|isDST|info`
-- `fazt.services.password.hash|verify|needsRehash`
-- `fazt.services.geo.distance|fromIP|contains|nearby`
+- `fazt.lib.money.add|subtract|multiply|divide|format|parse`
+- `fazt.lib.humanize.bytes|time|duration|number|ordinal`
+- `fazt.lib.timezone.now|convert|format|isDST|info`
+- `fazt.lib.sanitize.html|text|markdown|url`
+- `fazt.lib.password.hash|verify|needsRehash`
+- `fazt.lib.geo.distance|fromIP|contains|nearby`
+- `fazt.lib.mime.detect|fromBytes|toExt|fromExt`
 - `/_services/forms/{name}` - POST endpoint
-- `/_services/media/{path}` - On-the-fly processing
+- `/_services/image/{path}` - On-the-fly processing
 - `/_services/pdf/render` - HTML to PDF
 - `/_services/qr?data=...` - QR generation
 - `/_services/barcode?data=&format=...` - Barcode generation
-- `/_services/geo/ip` - IP geolocation endpoint
 - `/_services/comments/{target}` - Comments endpoint
 - `/_s/{code}` - Short URL redirect
 - `/_hooks/{provider}` - Inbound webhook receiver

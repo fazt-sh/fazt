@@ -21,13 +21,13 @@ simple APIs backed by fast WASM.
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │  Apps (JS)                                                   │
-│  fazt.services.media.resize()   ← simple API                │
+│  fazt.services.image.resize()   ← simple API                │
 └─────────────────────┬───────────────────────────────────────┘
                       │
                       ▼
 ┌─────────────────────────────────────────────────────────────┐
 │  Services Layer (Go)                                         │
-│  services/media/resize.go       ← calls kernel WASM         │
+│  services/image/resize.go       ← calls kernel WASM         │
 └─────────────────────┬───────────────────────────────────────┘
                       │
                       ▼

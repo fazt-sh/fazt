@@ -22,16 +22,27 @@ the kernel (low-level primitives) and apps (user code).
 │                   Apps                       │
 │         (user code, JS runtime)              │
 ├─────────────────────────────────────────────┤
-│                 Services                     │  ← NEW
-│   forms | media | pdf | markdown | search    │
+│                 Services                     │  ← Stateful
+│   forms | image | pdf | markdown | search    │
 │   qr | comments | shorturl | captcha | hooks │
-│   sanitize | money | humanize | timezone     │
-│   password | geo                             │
+├─────────────────────────────────────────────┤
+│                   Lib                        │  ← Pure functions
+│   money | humanize | timezone | sanitize     │
+│   password | geo | mime                      │
 ├─────────────────────────────────────────────┤
 │                  Kernel                      │
 │   proc | fs | net | storage | security       │
 └─────────────────────────────────────────────┘
 ```
+
+### Services vs Lib
+
+**Services** (`fazt.services.*`) - Stateful, have lifecycle, do I/O:
+- Store data (forms, comments, shorturl, search, hooks, captcha)
+- Transform with caching (image, pdf, qr, markdown)
+
+**Lib** (`fazt.lib.*`) - Pure functions, no state, no side effects:
+- Compute values (money, humanize, timezone, sanitize, password, geo, mime)
 
 ## Future Repo Structure
 
@@ -40,7 +51,8 @@ Designed for eventual separation:
 ```
 github.com/fazt-sh/
 ├── kernel/      # Core primitives
-├── services/    # Common patterns (this)
+├── services/    # Stateful services
+├── lib/         # Pure utility functions
 └── fazt/        # Binary, CLI, admin
 ```
 
@@ -50,23 +62,25 @@ Current structure (separation-ready):
 fazt/
 ├── pkg/
 │   ├── kernel/
-│   └── services/
-│       ├── forms/
-│       ├── media/
-│       ├── pdf/
-│       ├── markdown/
-│       ├── search/
-│       ├── qr/
-│       ├── comments/
-│       ├── shorturl/
-│       ├── captcha/
-│       ├── hooks/
-│       ├── sanitize/
+│   ├── services/
+│   │   ├── forms/
+│   │   ├── image/       # Renamed from media
+│   │   ├── pdf/
+│   │   ├── markdown/
+│   │   ├── search/
+│   │   ├── qr/          # Consolidated (includes barcode)
+│   │   ├── comments/
+│   │   ├── shorturl/
+│   │   ├── captcha/
+│   │   └── hooks/
+│   └── lib/
 │       ├── money/
 │       ├── humanize/
 │       ├── timezone/
+│       ├── sanitize/
 │       ├── password/
-│       └── geo/
+│       ├── geo/
+│       └── mime/        # Extracted from media
 └── ...
 ```
 
@@ -75,25 +89,31 @@ fazt/
 | Service | Purpose | Key Capability |
 |---------|---------|----------------|
 | `forms` | Collect form submissions | POST endpoint, zero config |
-| `media` | Image processing | Resize, blurhash, QR, barcode, mimetype |
+| `image` | Image processing | Resize, thumbnail, blurhash |
 | `pdf` | Generate PDFs | HTML/CSS to PDF via WASM |
 | `markdown` | Compile markdown | Goldmark, shortcodes, CSS |
 | `search` | Full-text search | Bleve indexing |
-| `qr` | Generate QR codes | PNG from text/URL |
+| `qr` | QR & barcode generation | PNG/SVG from text/URL |
 | `comments` | User feedback on entities | Threading, moderation |
 | `shorturl` | Shareable short links | Click tracking, expiration |
 | `captcha` | Spam protection | Math/text challenges |
 | `hooks` | Bidirectional webhooks | Inbound verification, outbound delivery |
-| `sanitize` | HTML/text sanitization | XSS protection, policy-based |
+
+## Lib
+
+| Library | Purpose | Key Capability |
+|---------|---------|----------------|
 | `money` | Decimal arithmetic | Integer cents, no float errors |
 | `humanize` | Human-readable formatting | Bytes, time, numbers, ordinals |
 | `timezone` | IANA timezone handling | Embedded tzdata, DST-aware |
+| `sanitize` | HTML/text sanitization | XSS protection, policy-based |
 | `password` | Secure credential hashing | Argon2id, timing-safe verify |
 | `geo` | Geographic primitives | Distance, IP geolocation, geofencing |
+| `mime` | Mimetype detection | File/buffer analysis |
 
 ## Common Properties
 
-All services share:
+**Services** share:
 
 1. **App Scoping**: Data isolated by `app_uuid`
 2. **Origin Check**: HTTP endpoints only accept same-origin requests
@@ -101,24 +121,36 @@ All services share:
 4. **JS API**: Accessible via `fazt.services.*` namespace
 5. **HTTP Endpoints**: Available at `/_services/{service}/...`
 
+**Lib** functions:
+
+1. **Pure**: No side effects, same input → same output
+2. **Stateless**: No data stored, no lifecycle
+3. **JS API**: Accessible via `fazt.lib.*` namespace
+4. **No HTTP**: Not exposed as endpoints (nothing to expose)
+
 ## Documents
 
+### Services
 - `forms.md` - Form submission collection
-- `media.md` - Image processing (resize, blurhash, QR, barcode, mimetype)
+- `image.md` - Image processing (resize, blurhash)
 - `pdf.md` - PDF generation from HTML/CSS
 - `markdown.md` - Markdown compilation
 - `search.md` - Full-text search
-- `qr.md` - QR code generation
+- `qr.md` - QR and barcode generation
 - `comments.md` - User comments/feedback
 - `shorturl.md` - Short URL generation
 - `captcha.md` - Spam protection challenges
 - `hooks.md` - Bidirectional webhook handling
-- `sanitize.md` - HTML/text sanitization
+
+### Lib
 - `money.md` - Decimal currency arithmetic
 - `humanize.md` - Human-readable formatting
 - `timezone.md` - IANA timezone handling
+- `sanitize.md` - HTML/text sanitization
 - `password.md` - Secure Argon2id password hashing
 - `geo.md` - Geographic primitives and IP geolocation
+- `mime.md` - Mimetype detection (extracted from media)
+- `lib-split.md` - Migration spec for services/lib separation
 
 ## Dependencies
 

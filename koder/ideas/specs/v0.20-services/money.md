@@ -1,4 +1,4 @@
-# Money Service
+# Money Library
 
 ## Summary
 
@@ -31,7 +31,7 @@ Store money as integer cents, use proper decimal math:
 // 2598 (exactly $25.98)
 
 // Format for display
-fazt.services.money.format(2598, 'USD')
+fazt.lib.money.format(2598, 'USD')
 // "$25.98"
 ```
 
@@ -41,79 +41,79 @@ fazt.services.money.format(2598, 'USD')
 
 ```javascript
 // All operations work with integer cents
-fazt.services.money.add(1999, 599)        // 2598
-fazt.services.money.subtract(2598, 599)   // 1999
-fazt.services.money.multiply(1999, 3)     // 5997
-fazt.services.money.divide(6000, 3)       // 2000
+fazt.lib.money.add(1999, 599)        // 2598
+fazt.lib.money.subtract(2598, 599)   // 1999
+fazt.lib.money.multiply(1999, 3)     // 5997
+fazt.lib.money.divide(6000, 3)       // 2000
 
 // Chained operations
-fazt.services.money.add(1999, 599, 299)   // 2897 (variadic)
+fazt.lib.money.add(1999, 599, 299)   // 2897 (variadic)
 ```
 
 ### Percentages
 
 ```javascript
 // Calculate 20% of $19.99
-fazt.services.money.percent(1999, 20)     // 400 (rounds to nearest cent)
+fazt.lib.money.percent(1999, 20)     // 400 (rounds to nearest cent)
 
 // Add 8.25% tax
-fazt.services.money.addPercent(1999, 8.25) // 2164
+fazt.lib.money.addPercent(1999, 8.25) // 2164
 
 // Subtract 15% discount
-fazt.services.money.subtractPercent(1999, 15) // 1699
+fazt.lib.money.subtractPercent(1999, 15) // 1699
 ```
 
 ### Rounding
 
 ```javascript
 // Explicit rounding control
-fazt.services.money.divide(1000, 3)                    // 333 (default: round half up)
-fazt.services.money.divide(1000, 3, { round: 'up' })   // 334
-fazt.services.money.divide(1000, 3, { round: 'down' }) // 333
-fazt.services.money.divide(1000, 3, { round: 'even' }) // 333 (banker's rounding)
+fazt.lib.money.divide(1000, 3)                    // 333 (default: round half up)
+fazt.lib.money.divide(1000, 3, { round: 'up' })   // 334
+fazt.lib.money.divide(1000, 3, { round: 'down' }) // 333
+fazt.lib.money.divide(1000, 3, { round: 'even' }) // 333 (banker's rounding)
 ```
 
 ### Formatting
 
 ```javascript
 // Basic formatting
-fazt.services.money.format(2598, 'USD')           // "$25.98"
-fazt.services.money.format(2598, 'EUR')           // "€25.98"
-fazt.services.money.format(2598, 'GBP')           // "£25.98"
-fazt.services.money.format(259800, 'JPY')         // "¥2,598" (no decimals)
+fazt.lib.money.format(2598, 'USD')           // "$25.98"
+fazt.lib.money.format(2598, 'EUR')           // "€25.98"
+fazt.lib.money.format(2598, 'GBP')           // "£25.98"
+fazt.lib.money.format(259800, 'JPY')         // "¥2,598" (no decimals)
 
 // Locale-aware formatting
-fazt.services.money.format(2598, 'EUR', { locale: 'de-DE' }) // "25,98 €"
-fazt.services.money.format(2598, 'EUR', { locale: 'fr-FR' }) // "25,98 €"
-fazt.services.money.format(2598, 'USD', { locale: 'en-US' }) // "$25.98"
+fazt.lib.money.format(2598, 'EUR', { locale: 'de-DE' }) // "25,98 €"
+fazt.lib.money.format(2598, 'EUR', { locale: 'fr-FR' }) // "25,98 €"
+fazt.lib.money.format(2598, 'USD', { locale: 'en-US' }) // "$25.98"
 
 // Without symbol
-fazt.services.money.format(2598, 'USD', { symbol: false })   // "25.98"
+fazt.lib.money.format(2598, 'USD', { symbol: false })   // "25.98"
 
 // With explicit sign
-fazt.services.money.format(2598, 'USD', { sign: true })      // "+$25.98"
-fazt.services.money.format(-2598, 'USD', { sign: true })     // "-$25.98"
+fazt.lib.money.format(2598, 'USD', { sign: true })      // "+$25.98"
+fazt.lib.money.format(-2598, 'USD', { sign: true })     // "-$25.98"
 ```
 
 ### Parsing
 
 ```javascript
 // Parse formatted strings back to cents
-fazt.services.money.parse("$25.98", 'USD')        // 2598
-fazt.services.money.parse("25,98 €", 'EUR')       // 2598
-fazt.services.money.parse("25.98", 'USD')         // 2598 (no symbol ok)
-fazt.services.money.parse("invalid")              // null
+fazt.lib.money.parse("$25.98", 'USD')        // 2598
+fazt.lib.money.parse("25,98 €", 'EUR')       // 2598
+fazt.lib.money.parse("25.98", 'USD')         // 2598 (no symbol ok)
+fazt.lib.money.parse("invalid")              // null
 ```
 
 ### Comparison
 
 ```javascript
-fazt.services.money.compare(1999, 2598)   // -1 (less)
-fazt.services.money.compare(2598, 1999)   // 1 (greater)
-fazt.services.money.compare(1999, 1999)   // 0 (equal)
+fazt.lib.money.compare(1999, 2598)   // -1 (less)
+fazt.lib.money.compare(2598, 1999)   // 1 (greater)
+fazt.lib.money.compare(1999, 1999)   // 0 (equal)
 
-fazt.services.money.min(1999, 2598, 999)  // 999
-fazt.services.money.max(1999, 2598, 999)  // 2598
+fazt.lib.money.min(1999, 2598, 999)  // 999
+fazt.lib.money.max(1999, 2598, 999)  // 2598
 ```
 
 ### Allocation
@@ -122,15 +122,15 @@ Split money fairly (handles rounding):
 
 ```javascript
 // Split $100 three ways
-fazt.services.money.split(10000, 3)
+fazt.lib.money.split(10000, 3)
 // [3334, 3333, 3333] - first gets extra cent
 
 // Proportional allocation
-fazt.services.money.allocate(10000, [50, 30, 20])
+fazt.lib.money.allocate(10000, [50, 30, 20])
 // [5000, 3000, 2000]
 
 // When it doesn't divide evenly
-fazt.services.money.allocate(10001, [50, 50])
+fazt.lib.money.allocate(10001, [50, 50])
 // [5001, 5000] - remainder goes to first
 ```
 
@@ -138,14 +138,14 @@ fazt.services.money.allocate(10001, [50, 50])
 
 ```javascript
 // Get currency info
-fazt.services.money.currency('USD')
+fazt.lib.money.currency('USD')
 // { code: 'USD', symbol: '$', decimals: 2, name: 'US Dollar' }
 
-fazt.services.money.currency('JPY')
+fazt.lib.money.currency('JPY')
 // { code: 'JPY', symbol: '¥', decimals: 0, name: 'Japanese Yen' }
 
 // List supported currencies
-fazt.services.money.currencies()
+fazt.lib.money.currencies()
 // ['USD', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD', ...]
 ```
 
@@ -153,34 +153,34 @@ fazt.services.money.currencies()
 
 ```javascript
 // Arithmetic
-fazt.services.money.add(...amounts)
-fazt.services.money.subtract(a, b)
-fazt.services.money.multiply(amount, factor)
-fazt.services.money.divide(amount, divisor, options?)
+fazt.lib.money.add(...amounts)
+fazt.lib.money.subtract(a, b)
+fazt.lib.money.multiply(amount, factor)
+fazt.lib.money.divide(amount, divisor, options?)
 // options: { round: 'up' | 'down' | 'even' | 'halfUp' }
 
 // Percentages
-fazt.services.money.percent(amount, percent)
-fazt.services.money.addPercent(amount, percent)
-fazt.services.money.subtractPercent(amount, percent)
+fazt.lib.money.percent(amount, percent)
+fazt.lib.money.addPercent(amount, percent)
+fazt.lib.money.subtractPercent(amount, percent)
 
 // Formatting
-fazt.services.money.format(cents, currency, options?)
+fazt.lib.money.format(cents, currency, options?)
 // options: { locale, symbol, sign }
-fazt.services.money.parse(string, currency)
+fazt.lib.money.parse(string, currency)
 
 // Comparison
-fazt.services.money.compare(a, b)
-fazt.services.money.min(...amounts)
-fazt.services.money.max(...amounts)
+fazt.lib.money.compare(a, b)
+fazt.lib.money.min(...amounts)
+fazt.lib.money.max(...amounts)
 
 // Allocation
-fazt.services.money.split(amount, parts)
-fazt.services.money.allocate(amount, ratios)
+fazt.lib.money.split(amount, parts)
+fazt.lib.money.allocate(amount, ratios)
 
 // Currency info
-fazt.services.money.currency(code)
-fazt.services.money.currencies()
+fazt.lib.money.currency(code)
+fazt.lib.money.currencies()
 ```
 
 ## HTTP Endpoint
@@ -229,23 +229,23 @@ async function calculateCartTotal(cartId) {
   let subtotal = 0;
   for (const item of items) {
     const product = await fazt.storage.ds.findOne('products', { id: item.productId });
-    subtotal = fazt.services.money.add(
+    subtotal = fazt.lib.money.add(
       subtotal,
-      fazt.services.money.multiply(product.priceCents, item.quantity)
+      fazt.lib.money.multiply(product.priceCents, item.quantity)
     );
   }
 
-  const tax = fazt.services.money.percent(subtotal, 8.25);
-  const total = fazt.services.money.add(subtotal, tax);
+  const tax = fazt.lib.money.percent(subtotal, 8.25);
+  const total = fazt.lib.money.add(subtotal, tax);
 
   return {
     subtotal,
     tax,
     total,
     formatted: {
-      subtotal: fazt.services.money.format(subtotal, 'USD'),
-      tax: fazt.services.money.format(tax, 'USD'),
-      total: fazt.services.money.format(total, 'USD')
+      subtotal: fazt.lib.money.format(subtotal, 'USD'),
+      tax: fazt.lib.money.format(tax, 'USD'),
+      total: fazt.lib.money.format(total, 'USD')
     }
   };
 }
@@ -261,9 +261,9 @@ const lineItems = [
 
 const lines = lineItems.map(item => ({
   ...item,
-  totalCents: fazt.services.money.multiply(item.unitPriceCents, item.quantity),
-  formatted: fazt.services.money.format(
-    fazt.services.money.multiply(item.unitPriceCents, item.quantity),
+  totalCents: fazt.lib.money.multiply(item.unitPriceCents, item.quantity),
+  formatted: fazt.lib.money.format(
+    fazt.lib.money.multiply(item.unitPriceCents, item.quantity),
     'USD'
   )
 }));
@@ -275,14 +275,14 @@ const lines = lineItems.map(item => ({
 ```javascript
 function prorateSubscription(monthlyPriceCents, daysRemaining, totalDays) {
   // Use allocation to avoid rounding errors
-  const dailyRates = fazt.services.money.allocate(
+  const dailyRates = fazt.lib.money.allocate(
     monthlyPriceCents,
     Array(totalDays).fill(1)
   );
 
   // Sum the days remaining
   return dailyRates.slice(0, daysRemaining).reduce(
-    (sum, day) => fazt.services.money.add(sum, day),
+    (sum, day) => fazt.lib.money.add(sum, day),
     0
   );
 }

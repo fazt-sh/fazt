@@ -1,17 +1,18 @@
-# Sanitize Service
+# Sanitize Library
 
 ## Summary
 
 HTML and text sanitization primitives. Strip dangerous content from user input
 to prevent XSS attacks. Security-critical - implemented in Go for reliability.
 
-## Why a Service
+## Why a Library
 
 Sanitization is:
 - **Security-critical**: Get it wrong → XSS vulnerabilities
 - **Subtle**: Many bypass techniques, edge cases
 - **Universal**: Every app accepting user HTML needs this
 - **Better in Go**: Battle-tested libraries, not JS regex
+- **Pure**: Same input always produces same output (no state)
 
 ## Capabilities
 
@@ -29,7 +30,7 @@ Sanitization is:
 ```javascript
 const userInput = '<script>alert("xss")</script><p onclick="evil()">Hello <b>world</b></p>';
 
-const safe = fazt.services.sanitize.html(userInput);
+const safe = fazt.lib.sanitize.html(userInput);
 // '<p>Hello <b>world</b></p>'
 // - Script tag removed
 // - onclick handler removed
@@ -40,25 +41,25 @@ const safe = fazt.services.sanitize.html(userInput);
 
 ```javascript
 // Strict - text formatting only
-const strict = fazt.services.sanitize.html(input, {
+const strict = fazt.lib.sanitize.html(input, {
   policy: 'strict'
 });
 // Allows: b, i, em, strong, p, br
 
 // Basic - common content tags
-const basic = fazt.services.sanitize.html(input, {
+const basic = fazt.lib.sanitize.html(input, {
   policy: 'basic'
 });
 // Allows: strict + a, ul, ol, li, blockquote, code, pre
 
 // Rich - user-generated content
-const rich = fazt.services.sanitize.html(input, {
+const rich = fazt.lib.sanitize.html(input, {
   policy: 'rich'
 });
 // Allows: basic + img, h1-h6, table, hr
 
 // Custom allowlist
-const custom = fazt.services.sanitize.html(input, {
+const custom = fazt.lib.sanitize.html(input, {
   allow: ['p', 'a', 'img'],
   allowAttrs: {
     'a': ['href', 'title'],
@@ -72,7 +73,7 @@ const custom = fazt.services.sanitize.html(input, {
 ```javascript
 const html = '<p>Hello <b>world</b>!</p>';
 
-const text = fazt.services.sanitize.text(html);
+const text = fazt.lib.sanitize.text(html);
 // 'Hello world!'
 ```
 
@@ -82,19 +83,19 @@ const text = fazt.services.sanitize.text(html);
 // After rendering markdown, sanitize the HTML output
 const markdown = '# Hello\n\n<script>bad</script>';
 const html = fazt.services.markdown.render(markdown);
-const safe = fazt.services.sanitize.markdown(html);
+const safe = fazt.lib.sanitize.markdown(html);
 ```
 
 ### Sanitize URLs
 
 ```javascript
-fazt.services.sanitize.url('https://example.com/path')
+fazt.lib.sanitize.url('https://example.com/path')
 // 'https://example.com/path' (valid)
 
-fazt.services.sanitize.url('javascript:alert(1)')
+fazt.lib.sanitize.url('javascript:alert(1)')
 // null (dangerous protocol)
 
-fazt.services.sanitize.url('//evil.com', { requireAbsolute: true })
+fazt.lib.sanitize.url('//evil.com', { requireAbsolute: true })
 // null (protocol-relative not allowed)
 ```
 
@@ -152,18 +153,18 @@ Full user content, suitable for CMS:
 ## JS API
 
 ```javascript
-fazt.services.sanitize.html(input, options?)
+fazt.lib.sanitize.html(input, options?)
 // options: { policy: 'strict'|'basic'|'rich', allow: [], allowAttrs: {} }
 // Returns: string (sanitized HTML)
 
-fazt.services.sanitize.text(input)
+fazt.lib.sanitize.text(input)
 // Returns: string (plain text, all HTML removed)
 
-fazt.services.sanitize.markdown(input, options?)
+fazt.lib.sanitize.markdown(input, options?)
 // Same as html() but tuned for markdown output
 // Returns: string (sanitized HTML)
 
-fazt.services.sanitize.url(input, options?)
+fazt.lib.sanitize.url(input, options?)
 // options: { requireAbsolute: boolean, allowedSchemes: [] }
 // Returns: string | null (null if invalid/dangerous)
 ```
@@ -206,7 +207,7 @@ const comment = request.body.comment;
 // Store original
 await fazt.storage.ds.insert('comments', {
   raw: comment,
-  html: fazt.services.sanitize.html(comment, { policy: 'strict' }),
+  html: fazt.lib.sanitize.html(comment, { policy: 'strict' }),
   createdAt: Date.now()
 });
 
@@ -220,7 +221,7 @@ await fazt.storage.ds.insert('comments', {
 const content = request.body.content;
 
 // Sanitize with rich policy
-const safe = fazt.services.sanitize.html(content, { policy: 'rich' });
+const safe = fazt.lib.sanitize.html(content, { policy: 'rich' });
 
 // Store both
 await fazt.storage.ds.insert('posts', {
@@ -234,7 +235,7 @@ await fazt.storage.ds.insert('posts', {
 ```javascript
 // Sanitize user-provided URLs
 const userUrl = request.body.website;
-const safeUrl = fazt.services.sanitize.url(userUrl);
+const safeUrl = fazt.lib.sanitize.url(userUrl);
 
 if (safeUrl) {
   await fazt.storage.ds.update('profiles', { id: userId }, {
