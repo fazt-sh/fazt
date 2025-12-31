@@ -1,91 +1,172 @@
 ---
 description: Brainstorm ideas for Fazt's evolution (project)
 model: opus
-allowed-tools: Read, Write, Edit, Glob
+allowed-tools: Read, Write, Edit, Glob, Grep
 ---
 
 # Fazt Ideation Session
 
-## Setup
+## Context Loading
 
-1. Read `koder/ideas/ROADMAP.md` and `koder/ideas/SURFACE.md`
-2. Simulate that everything up to v0.16 is implemented
-3. Understand the full capability surface
+First, load the philosophical and technical foundation:
 
-## Quality Gates (Apply Before Proposing)
+1. **Philosophy** (required):
+   - Read `koder/philosophy/CORE.md` - Foundational principles
+   - Read `koder/philosophy/SENSORS.md` - Sensor-specific philosophy
+   - Read `koder/philosophy/EVOLUTION.md` - How we got here
 
-For each potential idea, evaluate:
+2. **Technical Surface** (required):
+   - Read `koder/ideas/ROADMAP.md` - Version progression
+   - Read `koder/ideas/SURFACE.md` - Current API surface
 
-### 1. Primitive or Pattern?
-- **Primitive**: Fundamental building block that can't be decomposed further
-- **Pattern**: Composition of existing primitives
-- Only propose primitives. Patterns can be documentation/examples, not features.
+3. **Assume**: Everything up to v0.20 is implemented. Sensor/percept/effect architecture is planned.
 
-### 2. Composable from Existing?
-- Can this be achieved by combining existing primitives?
-- If yes → don't propose (it's a pattern)
-- If no → continue evaluation
+## Brainstorming Directions
 
-### 3. Value Assessment
+Each session, pick **2-3 directions** from below. Vary the selection to keep sessions fresh. Consider user's input/arguments if provided.
+
+### Direction A: Extend Primitives
+- What new kernel primitives would unlock significant capability?
+- Apply the primitive-vs-pattern test (only propose true primitives)
+- Consider: Does this compose with existing primitives?
+
+### Direction B: Extend Services
+- What higher-level services would provide value?
+- Services should compose from kernel primitives
+- Consider: Is this general enough to be a platform service?
+
+### Direction C: Simplify API Surface
+- Where is the current API surface overly complex?
+- Can multiple APIs be unified into one?
+- Are there redundant capabilities that should be merged?
+- Does the naming follow consistent patterns?
+
+### Direction D: Use Case Expansion
+- What valuable use cases are *almost* supported but need 1-2 additions?
+- What's the minimum change for maximum new capability?
+- Think: "If we just added X, we could do Y, Z, and W"
+
+### Direction E: What Doesn't Fit
+- What planned or existing features don't align with the philosophy?
+- What feels bolted-on rather than integrated?
+- What violates the principles in CORE.md?
+
+### Direction F: What to Remove
+- What complexity could be eliminated?
+- What features have low value relative to maintenance cost?
+- What would we not add if starting fresh today?
+
+### Direction G: Refactor Candidates
+- What parts of the architecture feel strained?
+- Where are the abstraction boundaries wrong?
+- What would benefit from redesign?
+
+### Direction H: Philosophy Refinement
+- Are there principles that are too restrictive without good reason?
+- Could relaxing a constraint enable significantly more value?
+- Are we being pure for purity's sake, or for user benefit?
+
+### Direction I: Principle Conflicts
+- What universally accepted principles does Fazt oppose?
+- Are these oppositions justified? What's the tradeoff?
+- Should we reconsider any contrarian positions?
+
+### Direction J: GTM Pathways
+- What features would accelerate adoption?
+- What's the "killer feature" that makes people try Fazt?
+- What reduces friction for first-time users?
+
+### Direction K: Gap Analysis
+- Compare Fazt to alternatives (Coolify, Dokku, etc.)
+- What do they have that we don't (and should we care)?
+- What do we have that they don't (and how do we emphasize it)?
+
+## Quality Gates
+
+For any concrete proposal, evaluate:
+
+### Primitive Test
 ```
-Intrinsic Value:    What's the value if friction were zero?
-Current Friction:   Why isn't this used more today?
-Fazt Collapse:      Can Fazt dramatically reduce the friction?
-```
-Note: Low current usage doesn't mean low value. High-value + high-friction + low-usage = OPPORTUNITY (e.g., encryption, HTTPS).
-
-### 4. Layer Assignment
-- **Kernel**: Core OS primitives (proc, fs, net, storage, security, events)
-- **Runtime**: Execution environment (JS engine, sandbox, cron, WASM)
-- **Services**: Higher-level utilities (forms, media, pdf, search)
-
-### 5. Cost Assessment
-- Binary size impact
-- Complexity added to codebase
-- Maintenance burden
-- Does it require new dependencies?
-
-### Decision Formula
-```
-Propose only if:
-  - True primitive (not pattern)
-  - Cannot compose from existing
-  - (Intrinsic Value × Friction Collapse) > Complexity Cost
+Is it a primitive?     Can it be decomposed further?
+Is it composable?      Can existing primitives achieve this?
+Is it necessary?       Does it enable things otherwise impossible?
 ```
 
-## Present Ideas
-
-Generate 2-3 ideas that pass the quality gates. For each:
-
+### Philosophy Alignment
 ```
-**Idea Name** (Layer: kernel|runtime|services)
-
-What: One sentence description
-Primitive: The irreducible capability it adds
-Value/Friction: Why this matters (intrinsic value + friction it collapses)
-Cost: Complexity and binary impact (low|medium|high)
-
-API Surface (minimal):
-- `fazt.namespace.method()`
-- `fazt cli command`
+Single binary:         Does this fit in one executable?
+Pure Go:               Can this be done without CGO?
+JSON everywhere:       Does data flow as JSON?
+Events as spine:       Does this integrate via events?
 ```
 
-Keep it brief. Numbers for easy reference.
+### Value Assessment
+```
+Intrinsic value:       What's the value if friction were zero?
+Current friction:      Why isn't this used more today?
+Fazt collapse:         Can Fazt dramatically reduce friction?
+```
 
-## Conversation
+### Cost Assessment
+```
+Complexity:            How much does this complicate the system?
+Maintenance:           What's the ongoing burden?
+Binary size:           Significant impact?
+```
 
-- User may ask questions about specific ideas
-- User may challenge whether something is truly a primitive
-- User may say "build idea 2" or combine ideas
-- Be willing to say "on reflection, this is a pattern not a primitive"
+## Output Format
+
+For each brainstorming direction explored:
+
+### [Direction Name]
+
+**Observation:** What did you notice?
+
+**Analysis:** Why does this matter?
+
+**Proposal (if any):**
+```
+Name: [Feature/Change]
+Type: primitive | service | simplification | removal | refactor
+Layer: kernel | runtime | services | philosophy
+
+What: One sentence
+Why: Value proposition
+Cost: low | medium | high
+Alignment: How it fits the philosophy
+
+API Surface (if applicable):
+- fazt.namespace.method()
+- fazt cli command
+```
+
+**Alternative considered:** What else could address this?
+
+## Conversation Flow
+
+- Present 2-3 directions with analysis
+- User may ask to explore other directions
+- User may challenge proposals
+- User may say "build it" for a specific idea
+- Be willing to say "on reflection, this doesn't fit"
 
 ## When User Approves an Idea
 
-Create the spec file:
-1. Determine which version it fits (or propose new one)
-2. Create `koder/ideas/specs/v0.X-*/feature-name.md`
-3. Update the version's README.md if it exists
+1. Determine which version it fits (or propose new)
+2. Create spec: `koder/ideas/specs/v0.X-*/feature-name.md`
+3. Update version README.md if exists
 4. Update SURFACE.md with new APIs
-5. Keep it concise—same style as existing specs
+5. Keep specs concise, match existing style
 
-Then say: "Added. Run `/koder-ideate` again when ready for more."
+Then: "Added. Run `/koder-ideate` again when ready for more."
+
+## Session Goals
+
+Every ideation session should aim to:
+- **Improve**: Make Fazt better at what it does
+- **Simplify**: Reduce complexity where possible
+- **Extend**: Add capability where valuable
+- **Align**: Ensure coherence with philosophy
+- **Prioritize**: Focus on adoption and robustness
+
+The best ideas are often subtractions, not additions.
