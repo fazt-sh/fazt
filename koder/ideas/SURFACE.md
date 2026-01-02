@@ -94,6 +94,7 @@ console.log()                   // Logging
 + fazt user anonymize <id>                 # Anonymize user (keep data, scrub identity)
 + fazt security root-pass
 + fazt events list|watch|emit           # Event bus
++ fazt events temporal list|register|remove|pause|resume|show|debug  # Temporal rules
 + fazt pulse status|ask|history|beat    # Cognitive observability
 + fazt dev list|test|logs|limits        # External service devices
 + fazt dev config <device> --token      # Configure devices
@@ -150,6 +151,20 @@ need to do anything special - data ownership is handled by the kernel.
 + fazt.events.off(pattern, handler)
 + fazt.events.once(pattern, handler)
 + fazt.events.query(options)
+
+// Temporal operators (windowing, patterns, rate limiting)
++ fazt.events.window(pattern, duration, handler)
++ fazt.events.sliding(pattern, window, step, handler)
++ fazt.events.debounce(pattern, delay, handler)
++ fazt.events.throttle(pattern, interval, handler, options?)
++ fazt.events.sequence(patterns, timeout, handler)
++ fazt.events.absence(pattern, duration, handler)
++ fazt.events.temporal.register(config)
++ fazt.events.temporal.list()
++ fazt.events.temporal.get(name)
++ fazt.events.temporal.remove(name)
++ fazt.events.temporal.pause(name)
++ fazt.events.temporal.resume(name)
 
 // Network proxy
 + fazt.net.fetch(url, options?)
@@ -741,6 +756,10 @@ need to do anything special - data ownership is handled by the kernel.
 + fazt hooks events|replay|stats          # Inbound
 + fazt hooks list|register|delete         # Outbound
 + fazt hooks deliveries|retry-delivery    # Delivery management
++ fazt notify send|list|history|preferences    # Notifications
++ fazt notify templates list|show              # Notification templates
++ fazt api list|add|show|test|remove           # API Profiles
++ fazt api authorize|call|rate-limit|logs|cache  # API operations
 ```
 
 ### HTTP API
@@ -766,6 +785,28 @@ need to do anything special - data ownership is handled by the kernel.
 + POST   /api/hooks                               # Register outbound hook
 + DELETE /api/hooks/{id}                          # Delete hook
 + GET    /api/hooks/deliveries                    # List deliveries
+
+# Notifications
++ POST   /api/notify                              # Send notification
++ GET    /api/notify                              # List history
++ GET    /api/notify/unread                       # Unread count
++ GET    /api/notify/{id}                         # Get notification
++ POST   /api/notify/{id}/read                    # Mark read
++ POST   /api/notify/read-all                     # Mark all read
++ GET    /api/notify/preferences                  # Get preferences
++ PUT    /api/notify/preferences                  # Set preferences
++ GET    /api/notify/templates                    # List templates
+
+# API Profiles
++ GET    /api/profiles                            # List profiles
++ POST   /api/profiles                            # Register profile
++ GET    /api/profiles/{name}                     # Get profile
++ PUT    /api/profiles/{name}                     # Update profile
++ DELETE /api/profiles/{name}                     # Delete profile
++ POST   /api/profiles/{name}/test                # Test connectivity
++ GET    /api/profiles/{name}/authorize           # Start OAuth flow
++ POST   /api/profiles/{name}/callback            # Handle OAuth callback
++ POST   /api/profiles/{name}/call                # Call endpoint
 ```
 
 ### JS Runtime
@@ -863,6 +904,48 @@ need to do anything special - data ownership is handled by the kernel.
 + fazt.services.hooks.emit(type, data)       // Trigger outbound
 + fazt.services.hooks.deliveries(options?)   // Query deliveries
 + fazt.services.hooks.retryDelivery(id)
+
+// Notifications (unified multi-channel delivery)
++ fazt.services.notify.send(options)
+// options: { to?, title, body, priority?, channels?, category?, data?, actions? }
++ fazt.services.notify.preferences.get(userId?)
++ fazt.services.notify.preferences.set(options)
+// options: { channels, quietHours, digest, categories, dnd }
++ fazt.services.notify.history(options?)
+// options: { limit, offset, unreadOnly, category, since }
++ fazt.services.notify.get(id)
++ fazt.services.notify.markRead(id)
++ fazt.services.notify.markAllRead(options?)
++ fazt.services.notify.delete(id)
++ fazt.services.notify.unreadCount(options?)
++ fazt.services.notify.sendBulk(notifications[])
++ fazt.services.notify.templates.create(name, template)
++ fazt.services.notify.templates.list()
++ fazt.services.notify.templates.get(name)
++ fazt.services.notify.templates.delete(name)
++ fazt.services.notify.sendTemplate(name, variables, options)
+
+// API Profiles (external API gateway)
++ fazt.services.api.register(profile)
++ fazt.services.api.registerFromFile(path)
++ fazt.services.api.registerBuiltin(name, credentials)
++ fazt.services.api.list()
++ fazt.services.api.get(name)
++ fazt.services.api.update(name, updates)
++ fazt.services.api.delete(name)
++ fazt.services.api.test(name)
++ fazt.services.api.authorize(name, options?)
++ fazt.services.api.handleCallback(name, params)
++ fazt.services.api.rateLimit(name)
++ fazt.services.api.clearCache(name, endpoint?)
++ fazt.services.api.logs(name, options?)
+
+// API Profile Client (from fazt.api.connect)
++ fazt.api.connect(name)                     // Returns bound client
+// client.call(endpoint, params?, options?)
+// client.request(options)
+// client.status()
++ fazt.api.asTool(name)                      // Expose API as AI tool
 
 // Rate Limiting (in fazt.limits namespace)
 + fazt.limits.rate.status(key)
@@ -989,6 +1072,10 @@ fazt
 │   │   ├── current(), isPrimary()
 ├── events
 │   ├── emit(), on(), off(), once(), query()
+│   ├── window(), sliding(), debounce(), throttle()
+│   ├── sequence(), absence()
+│   ├── temporal
+│   │   ├── register(), list(), get(), remove(), pause(), resume()
 ├── pulse
 │   ├── status(), history(), insights(), ask(), trend()
 ├── beacon
@@ -1066,10 +1153,25 @@ fazt
 │   │   ├── stats(), clicks()
 │   ├── captcha
 │   │   ├── create(), verify()
-│   └── hooks
-│       ├── events(), event(), replay(), replayFailed(), stats()
-│       ├── register(), list(), update(), delete(), emit()
-│       ├── deliveries(), retryDelivery()
+│   ├── hooks
+│   │   ├── events(), event(), replay(), replayFailed(), stats()
+│   │   ├── register(), list(), update(), delete(), emit()
+│   │   ├── deliveries(), retryDelivery()
+│   ├── notify                            # Unified notifications
+│   │   ├── send(), sendBulk(), sendTemplate()
+│   │   ├── history(), get(), markRead(), markAllRead(), delete()
+│   │   ├── unreadCount()
+│   │   ├── preferences
+│   │   │   ├── get(), set()
+│   │   ├── templates
+│   │       ├── create(), list(), get(), delete()
+│   └── api                               # API Profiles
+│       ├── register(), registerFromFile(), registerBuiltin()
+│       ├── list(), get(), update(), delete(), test()
+│       ├── authorize(), handleCallback()
+│       ├── rateLimit(), clearCache(), logs()
+├── api                                   # API Profile Client
+│   ├── connect(), asTool()
 └── lib                                   # Pure functions (no state)
     ├── money
     │   ├── add(), subtract(), multiply(), divide()
@@ -1125,4 +1227,6 @@ fazt services   # Services (forms, image, pdf, markdown, search, qr)
 fazt pulse      # Cognitive observability (health, ask, insights)
 fazt dev        # External service devices (billing, sms, email, oauth, infra)
 fazt hooks      # Bidirectional webhooks (inbound, outbound)
+fazt notify     # Unified notifications (send, preferences, templates)
+fazt api        # External API profiles (register, connect, call)
 ```
