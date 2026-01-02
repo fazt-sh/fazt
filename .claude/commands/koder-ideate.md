@@ -35,48 +35,12 @@ Each session, pick **2-3 directions** from below. Vary the selection to keep ses
 - Services should compose from kernel primitives
 - Consider: Is this general enough to be a platform service?
 
-### Direction C: Simplify API Surface
-- Where is the current API surface overly complex?
-- Can multiple APIs be unified into one?
-- Are there redundant capabilities that should be merged?
-- Does the naming follow consistent patterns?
-
 ### Direction D: Use Case Expansion
 - What valuable use cases are *almost* supported but need 1-2 additions?
 - What's the minimum change for maximum new capability?
 - Think: "If we just added X, we could do Y, Z, and W"
 
-### Direction E: What Doesn't Fit
-- What planned or existing features don't align with the philosophy?
-- What feels bolted-on rather than integrated?
-- What violates the principles in CORE.md?
-
-### Direction F: What to Remove
-- What complexity could be eliminated?
-- What features have low value relative to maintenance cost?
-- What would we not add if starting fresh today?
-
-### Direction G: Refactor Candidates
-- What parts of the architecture feel strained?
-- Where are the abstraction boundaries wrong?
-- What would benefit from redesign?
-
-### Direction H: Philosophy Refinement
-- Are there principles that are too restrictive without good reason?
-- Could relaxing a constraint enable significantly more value?
-- Are we being pure for purity's sake, or for user benefit?
-
-### Direction I: Principle Conflicts
-- What universally accepted principles does Fazt oppose?
-- Are these oppositions justified? What's the tradeoff?
-- Should we reconsider any contrarian positions?
-
-### Direction J: GTM Pathways
-- What features would accelerate adoption?
-- What's the "killer feature" that makes people try Fazt?
-- What reduces friction for first-time users?
-
-### Direction K: Gap Analysis
+### Direction J: Gap Analysis
 - Compare Fazt to alternatives (Coolify, Dokku, etc.)
 - What do they have that we don't (and should we care)?
 - What do we have that they don't (and how do we emphasize it)?
@@ -127,7 +91,7 @@ For each brainstorming direction explored:
 **Proposal (if any):**
 ```
 Name: [Feature/Change]
-Type: primitive | service | simplification | removal | refactor
+Type: primitive | service | simplification | removal
 Layer: kernel | runtime | services | philosophy
 
 What: One sentence
@@ -164,7 +128,6 @@ Then: "Added. Run `/koder-ideate` again when ready for more."
 
 Every ideation session should aim to:
 - **Improve**: Make Fazt better at what it does
-- **Simplify**: Reduce complexity where possible
 - **Extend**: Add capability where valuable
 - **Align**: Ensure coherence with philosophy
 - **Prioritize**: Focus on adoption and robustness
