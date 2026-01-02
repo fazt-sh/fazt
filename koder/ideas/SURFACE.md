@@ -1030,6 +1030,25 @@ need to do anything special - data ownership is handled by the kernel.
 + fazt.lib.mime.fromExt(ext)
 + fazt.lib.mime.isImage(path)
 + fazt.lib.mime.is(path, mime)
+
+// Text (LangChain-compatible text splitting)
++ fazt.lib.text.split(text, options?)
+// options: { chunkSize, chunkOverlap, separators, keepSeparator }
++ fazt.lib.text.splitDocuments(documents, options?)
++ fazt.lib.text.createDocuments(texts, metadatas?, options?)
++ fazt.lib.text.countChars(text)
+
+// Document (exact LangChain Document format)
++ fazt.lib.document.create(pageContent, metadata?)
++ fazt.lib.document.fromJSON(json)
++ fazt.lib.document.toJSON(doc)
++ fazt.lib.document.fromJSONArray(jsonArray)
++ fazt.lib.document.toJSONArray(docs)
++ fazt.lib.document.withScore(doc, score)
++ fazt.lib.document.isValid(obj)
++ fazt.lib.document.validate(obj)
++ fazt.lib.document.fromChromem(chromemDoc)
++ fazt.lib.document.toChromem(doc, id)
 ```
 
 ---
@@ -1051,6 +1070,12 @@ fazt
 │   │   ├── find(), insert(), update(), delete()
 │   ├── s3
 │   │   ├── put(), get(), delete(), list()
+│   ├── vector                            # Vector store (SQLite-backed)
+│   │   ├── createCollection(), getCollection(), listCollections()
+│   │   ├── deleteCollection(), updateCollection()
+│   │   ├── addDocuments(), get(), getByMetadata(), list(), listIds()
+│   │   ├── count(), delete(), deleteMany(), deleteByMetadata(), clear()
+│   │   ├── query(), queryEmbedding()
 ├── fs
 │   ├── cid(), ipfsUrl()
 ├── schedule()
@@ -1194,10 +1219,18 @@ fazt
     │   ├── distance(), fromIP(), countryFromIP()
     │   ├── contains(), inBounds(), bounds()
     │   ├── timezone(), countryAt(), nearby()
-    └── mime
-        ├── detect(), fromBytes()
-        ├── toExt(), fromExt()
-        ├── isImage(), is()
+    ├── mime
+    │   ├── detect(), fromBytes()
+    │   ├── toExt(), fromExt()
+    │   ├── isImage(), is()
+    ├── text                              # LangChain-compatible text splitting
+    │   ├── split(), splitDocuments(), createDocuments()
+    │   ├── countChars()
+    └── document                          # LangChain Document format
+        ├── create(), fromJSON(), toJSON()
+        ├── fromJSONArray(), toJSONArray()
+        ├── withScore(), isValid(), validate()
+        ├── fromChromem(), toChromem()
 ```
 
 ### CLI Command Groups
@@ -1229,4 +1262,6 @@ fazt dev        # External service devices (billing, sms, email, oauth, infra)
 fazt hooks      # Bidirectional webhooks (inbound, outbound)
 fazt notify     # Unified notifications (send, preferences, templates)
 fazt api        # External API profiles (register, connect, call)
+fazt vector     # Vector store (collections, documents, query)
+fazt text       # Text splitting utilities
 ```
