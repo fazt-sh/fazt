@@ -17,42 +17,56 @@ We reject the App Store model:
 
 ### The Git Model
 
-A marketplace is just a Git repo with a specific structure:
+Any Git repo can contain Fazt apps. Install directly via `repo/folder` path:
 
-```
-fazt-marketplace/
-├── registry.json           # App index
-├── apps/
-│   ├── blog/
-│   │   ├── app.json
-│   │   ├── index.html
-│   │   └── api/
-│   │       └── main.js
-│   └── todo/
-│       ├── app.json
-│       └── ...
+```bash
+# Install from any GitHub repo + subfolder
+fazt app install github.com/fazt-sh/store/haikus
+fazt app install github.com/someproject/repo/examples/demo
+
+# The official store is just a monorepo
+fazt app install github.com/fazt-sh/store/devlog
 ```
 
-## Registry Format
+Store structure (no registry.json required):
+
+```
+github.com/fazt-sh/store/
+├── haikus/                 # Flagship blog example
+│   ├── app.json
+│   ├── _posts/
+│   └── _plugins/
+├── devlog/                 # Developer blog
+│   ├── app.json
+│   └── ...
+├── portfolio/              # Portfolio site
+└── docs/                   # Documentation template
+```
+
+Each folder is a standalone app. No index needed - the folder IS the app.
+
+## Registry Format (Optional)
+
+A `registry.json` at repo root enables search and versioning. Without it,
+apps are still installable via direct path.
 
 ### registry.json
 
 ```json
 {
-  "name": "Official Fazt Apps",
-  "url": "https://github.com/fazt-sh/marketplace",
+  "name": "Fazt Store",
   "apps": [
     {
-      "name": "blog",
-      "version": "1.2.0",
-      "description": "Simple markdown blog",
-      "path": "apps/blog"
+      "name": "haikus",
+      "version": "1.0.0",
+      "description": "Japanese haiku collection",
+      "path": "haikus"
     },
     {
-      "name": "todo",
-      "version": "2.0.1",
-      "description": "Task management app",
-      "path": "apps/todo"
+      "name": "devlog",
+      "version": "2.1.0",
+      "description": "Developer blog with code features",
+      "path": "devlog"
     }
   ]
 }
@@ -60,49 +74,15 @@ fazt-marketplace/
 
 ## CLI Commands
 
-### Add Marketplace
-
-```bash
-# Add official marketplace
-fazt marketplace add https://github.com/fazt-sh/marketplace
-
-# Add community marketplace
-fazt marketplace add https://github.com/alice/my-apps
-```
-
-### Sync Registry
-
-```bash
-# Fetch latest registry from all marketplaces
-fazt marketplace sync
-
-# Output:
-# Syncing fazt-sh/marketplace... 15 apps
-# Syncing alice/my-apps... 3 apps
-# Total: 18 apps available
-```
-
-### Search Apps
-
-```bash
-fazt app search blog
-
-# Output:
-# fazt-sh/blog     v1.2.0  Simple markdown blog
-# alice/my-blog    v0.3.0  Photo blog with gallery
-```
-
 ### Install App
 
 ```bash
-# Install from marketplace
-fazt app install blog
+# Install from any GitHub repo/folder (primary method)
+fazt app install github.com/fazt-sh/store/haikus
+fazt app install github.com/someuser/repo/my-app
 
-# Install specific version
-fazt app install blog@1.1.0
-
-# Install from specific marketplace
-fazt app install alice/my-blog
+# Short form for official store
+fazt app install fazt-sh/store/haikus
 ```
 
 ### Update App
@@ -130,13 +110,13 @@ fazt app remove blog --keep-data
 ## Installation Flow
 
 ```
-1. fazt app install blog
-2. Resolve: Find "blog" in registry cache
-3. Fetch: Download app folder from Git repo
-4. Validate: Check app.json, verify signatures (future)
+1. fazt app install github.com/fazt-sh/store/haikus
+2. Parse: Extract repo URL and folder path
+3. Fetch: Clone/download the specific folder from Git
+4. Validate: Check app.json exists
 5. Provision: Generate UUID, create VFS entries
-6. Configure: Prompt for required env vars
-7. Deploy: App is live at blog.example.com
+6. Configure: Prompt for required env vars (if any)
+7. Deploy: App is live at haikus.example.com
 ```
 
 ## Source Tracking
@@ -157,26 +137,26 @@ CREATE TABLE apps (
 
 ### Source Types
 
-| Type          | Description         | Example                 |
-| ------------- | ------------------- | ----------------------- |
-| `personal`    | Deployed via CLI    | `fazt deploy ./my-site` |
-| `marketplace` | Installed from repo | `fazt app install blog` |
+| Type       | Description              | Example                                      |
+|------------|--------------------------|----------------------------------------------|
+| `personal` | Deployed from local dir  | `fazt deploy ./my-site`                      |
+| `git`      | Installed from Git repo  | `fazt app install github.com/user/repo/app`  |
 
 ## Update Detection
 
 ```go
-func (m *Marketplace) CheckUpdates(app *App) (*Update, error) {
-    if app.SourceType != "marketplace" {
+func CheckUpdates(app *App) (*Update, error) {
+    if app.SourceType != "git" {
         return nil, nil // Personal apps don't have updates
     }
 
-    registry := m.GetRegistry(app.SourceURL)
-    latest := registry.GetApp(app.Name)
+    // Fetch latest commit for the app folder
+    latest := git.GetLatestCommit(app.SourceURL, app.SourcePath)
 
-    if semver.Compare(latest.Version, app.SourceVersion) > 0 {
+    if latest.SHA != app.SourceVersion {
         return &Update{
-            From: app.SourceVersion,
-            To:   latest.Version,
+            From: app.SourceVersion[:7],
+            To:   latest.SHA[:7],
         }, nil
     }
 
@@ -188,11 +168,11 @@ func (m *Marketplace) CheckUpdates(app *App) (*Update, error) {
 
 ### Trust Model
 
-Marketplaces are trusted by the user who adds them:
+Installing from any Git URL is a trust decision:
 
 ```bash
-# This is a trust decision
-fazt marketplace add https://github.com/untrusted/apps
+# User decides to trust this source
+fazt app install github.com/untrusted/repo/app
 ```
 
 ### Future: Signature Verification
@@ -223,10 +203,10 @@ Proceed? [y/N]
 
 ## Personal Apps
 
-Apps not from a marketplace are "personal":
+Apps deployed from local directory are "personal":
 
 ```bash
-fazt deploy ./my-site --slug my-site
+fazt deploy ./my-site
 
 # Source is recorded as:
 # source_type: 'personal'
@@ -236,11 +216,11 @@ fazt deploy ./my-site --slug my-site
 
 Personal apps:
 - Don't receive update notifications
-- Can be converted to marketplace by publishing
-- Are labeled "Sideloaded" in dashboard
+- Can be pushed to a Git repo and re-installed as `git` type
+- Are labeled "Local" in dashboard
 
 ## Open Questions
 
-1. **Private Marketplaces**: Support authenticated Git repos?
-2. **Dependency Resolution**: Apps depending on other apps?
-3. **Rollback**: Revert to previous version on failed update?
+1. **Private Repos**: Support authenticated Git repos (SSH keys, tokens)?
+2. **Rollback**: Revert to previous version on failed update?
+3. **Pinning**: Pin to specific commit vs always latest?

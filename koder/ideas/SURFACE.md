@@ -502,27 +502,23 @@ See `specs/v0.10-runtime/static-site.md` for full documentation.
 ### CLI Commands
 
 ```
-+ fazt app install <name> [--source <url>]
++ fazt app install <github-url/folder>  # Install from any repo/folder
 + fazt app update <name>
 + fazt app remove <name>
-+ fazt app list [--source personal|marketplace]
-+ fazt marketplace add <git-url>
-+ fazt marketplace remove <name>
-+ fazt marketplace sync
++ fazt app list [--source personal|git]
 ```
 
 ### HTTP API
 
 ```
-+ GET    /api/marketplace
-+ POST   /api/marketplace/install
++ POST   /api/apps/install              # Install from Git URL
 + GET    /api/apps/{uuid}/manifest
 ```
 
 ### JS Runtime
 
 ```javascript
-+ fazt.app.source                       // 'personal' | 'marketplace'
++ fazt.app.source                       // 'personal' | 'git'
 + fazt.app.version                      // Installed version
 + fazt.app.manifest                     // Parsed app.json
 
@@ -1433,9 +1429,8 @@ fazt beacon     # Local network discovery (mDNS)
 fazt time       # Local time consensus
 fazt chirp      # Audio data transfer
 fazt mnemonic   # Human-channel data exchange
-fazt app        # App management
+fazt app        # App management (install from Git, deploy local)
 fazt sandbox    # Safe code execution
-fazt marketplace # App sources
 fazt mcp        # AI agent protocol
 fazt mesh       # P2P synchronization
 fazt limits     # Resource limits (presets, show, reset)

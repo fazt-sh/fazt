@@ -61,7 +61,7 @@ something that makes users smile when they first run `serve`. Design TBD.
 ```
 my-site/
 ├── _config.yml           # Site configuration
-├── _posts/               # Blog posts
+├── _posts/               # Blog posts (processed by SSG)
 │   └── 2025-01-15-hello-world.md
 ├── _layouts/             # Page templates
 │   ├── default.html
@@ -75,6 +75,26 @@ my-site/
 ├── index.md              # Homepage
 └── about.md              # Static page
 ```
+
+### Mixing Static and SSG Content
+
+Regular HTML folders work alongside Jekyll content:
+
+```
+my-site/
+├── _posts/               # SSG processes these
+├── _layouts/
+├── index.md              # SSG processes this
+├── wedding-invite/       # Regular static folder - served as-is
+│   ├── index.html        # → /wedding-invite/
+│   └── style.css         # → /wedding-invite/style.css
+└── apps/
+    └── calculator.html   # → /apps/calculator.html
+```
+
+**Detection rule:** SSG only activates when `_posts/` or `_config.yml` exists.
+It processes `_posts/*.md` and `*.md` files with frontmatter. Everything else
+(HTML, CSS, JS, images, folders) is served unchanged.
 
 ## Writing Posts
 
@@ -431,34 +451,64 @@ fazt ssg build [--destination _site]  # Build static files
 fazt deploy ./_site                   # Deploy built output
 ```
 
-## Themes
+## Example Apps & Plugins
 
-Themes are just `_layouts/` + `_includes/` + `assets/`. Clone or copy any
-Jekyll-compatible theme:
+The Fazt store (`github.com/fazt-sh/store/`) contains curated example apps.
+Each is crafted to be beautiful, purposeful, and educational.
 
-```bash
-# Clone a theme as starting point
-git clone https://github.com/example/minimal-theme my-blog
-cd my-blog
-fazt ssg serve
+### Haikus (Flagship Blog Example)
+
+A collection of Japanese haikus with meanings. Showcases all SSG capabilities:
+
 ```
-
-Theme structure:
-```
-my-theme/
+github.com/fazt-sh/store/haikus/
+├── _config.yml
+├── _posts/
+│   ├── 2025-01-01-old-pond.md      # Bashō's famous frog poem
+│   └── ...
 ├── _layouts/
-│   ├── default.html
-│   ├── post.html
-│   └── page.html
-├── _includes/
-│   ├── head.html
-│   ├── nav.html
-│   └── footer.html
+│   └── haiku.html                   # Elegant minimal layout
+├── _plugins/
+│   ├── emoji.js                     # :cherry_blossom: → 🌸
+│   ├── reading-time.js              # "1 min read"
+│   ├── archives.js                  # Tag/season archives
+│   ├── vertical-text.js             # Traditional vertical rendering
+│   └── romanji.js                   # Japanese → romanji filter
 └── assets/
-    └── style.css
+    └── style.css                    # Beautiful typography
 ```
 
-## Plugins (Optional)
+Install it:
+```bash
+fazt deploy github.com/fazt-sh/store/haikus
+```
+
+The `repo/folder` pattern works with any GitHub repo - projects can include
+Fazt apps in subfolders alongside their main code:
+```bash
+fazt deploy github.com/someproject/repo/examples/fazt-demo
+```
+
+Or copy just the plugins you need:
+```bash
+curl -O https://raw.githubusercontent.com/fazt-sh/store/main/haikus/_plugins/emoji.js
+mv emoji.js _plugins/
+```
+
+### Learning from Examples
+
+Each store app demonstrates different capabilities:
+
+| App         | Showcases                                    |
+|-------------|----------------------------------------------|
+| `haikus`    | Blog plugins, elegant design, custom filters |
+| `devlog`    | Code embedding, gists, syntax highlighting   |
+| `portfolio` | Static pages, image galleries                |
+| `docs`      | Multi-section navigation, search             |
+
+Browse, install, or copy parts. Learn by reading real code.
+
+## Plugins
 
 Extend with JavaScript plugins in `_plugins/`:
 
