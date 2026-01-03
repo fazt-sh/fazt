@@ -14,13 +14,13 @@ Prometheus, Datadog). Rather than replace them, integrate with them.
 
 **Philosophy alignment:**
 - Single binary: Metrics export is ~100 lines, no deps
-- JSON everywhere: `/metrics` is text, but `fazt.kernel.metrics()` returns JSON
+- JSON everywhere: `/api/metrics` is text, but `fazt.kernel.metrics()` returns JSON
 - Events as spine: Metrics are derived from event stream
 
 ## Endpoint
 
 ```
-GET /metrics
+GET /api/metrics
 ```
 
 Returns OpenMetrics format (Prometheus-compatible):
@@ -143,19 +143,19 @@ scrape_configs:
     static_configs:
       - targets: ['fazt.example.com:443']
     scheme: https
-    metrics_path: /metrics
+    metrics_path: /api/metrics
 ```
 
 ## Authentication
 
-The `/metrics` endpoint requires authentication by default:
+The `/api/metrics` endpoint requires authentication by default:
 
 ```bash
 # Enable public metrics (not recommended for production)
 fazt config set metrics.public true
 
 # Use bearer token
-curl -H "Authorization: Bearer $TOKEN" https://fazt.example.com/metrics
+curl -H "Authorization: Bearer $TOKEN" https://fazt.example.com/api/metrics
 ```
 
 ## Implementation Notes

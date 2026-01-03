@@ -115,7 +115,7 @@ console.log()                   // Logging
 ```
 + GET    /api/kernel/status
 + GET    /api/kernel/metrics
-+ GET    /metrics                         # OpenMetrics/Prometheus format
++ GET    /api/metrics                     # OpenMetrics/Prometheus format
 + POST   /api/apps                      # Create app
 + GET    /api/apps/{uuid}               # Get by UUID
 + PUT    /api/apps/{uuid}               # Update app
