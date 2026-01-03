@@ -25,6 +25,9 @@ for personal-scale use cases. Examples: ipfs-lite, vector-lite, wireguard-go.
 
 | Date       | Project     | Verdict    | Reason                           |
 |------------|-------------|------------|----------------------------------|
+| 2026-01-03 | bluemonday  | USE-AS-IS  | HTML sanitization, security-safe |
+| 2026-01-03 | gjson       | USE-AS-IS  | Zero-dep JSON path queries       |
+| 2026-01-03 | goldmark    | USE-AS-IS  | Zero-dep markdown parser         |
 | 2026-01-03 | go-expr     | USE-AS-IS  | Zero-dep expression engine       |
 | 2026-01-03 | go-redka    | PATTERN    | Redis-on-SQLite schema patterns  |
 | 2026-01-03 | go-crush    | PATTERN    | Skills, permissions, LSP routing |
@@ -41,6 +44,60 @@ go-crush (FSL), we document patterns for independent implementation.
 If you find a **permissive Go project** with similar agentic patterns,
 evaluate it - reference code accelerates implementation even when patterns
 are already documented.
+
+---
+
+### bluemonday
+
+- **URL**: https://github.com/microcosm-cc/bluemonday
+- **What**: HTML sanitization library
+- **Verdict**: USE-AS-IS
+- **License**: BSD 3-Clause
+
+**Why USE-AS-IS**: HTML sanitization is security-critical and easy to get wrong.
+Bluemonday is the Go standard, battle-tested, whitelist-based approach.
+
+```go
+p := bluemonday.UGCPolicy()  // User-generated content preset
+safe := p.Sanitize(untrustedHTML)
+```
+
+**Fazt applicability**: HIGH if hosting user content - comments, form submissions,
+markdown with embedded HTML. Security-critical, don't reinvent.
+
+---
+
+### gjson
+
+- **URL**: https://github.com/tidwall/gjson
+- **What**: Fast JSON path queries without unmarshaling
+- **Verdict**: USE-AS-IS
+- **License**: MIT
+
+**Why USE-AS-IS**: Zero deps, ~2k lines. Query JSON blobs without full parse.
+
+```go
+value := gjson.Get(json, "name.last")        // Simple path
+value := gjson.Get(json, "friends.#.name")   // Array iteration
+value := gjson.Get(json, `friends.#(age>40).name`)  // Filtering
+```
+
+**Fazt applicability**: HIGH - serverless functions querying large JSON in SQLite
+without memory overhead of full unmarshal.
+
+---
+
+### goldmark
+
+- **URL**: https://github.com/yuin/goldmark
+- **What**: CommonMark compliant markdown parser
+- **Verdict**: USE-AS-IS
+- **License**: MIT
+
+**Why USE-AS-IS**: Zero deps, highly extensible, standard Go choice for markdown.
+
+**Fazt applicability**: MEDIUM - auto-render .md files in VFS as HTML pages.
+Could power documentation sites or blog-style deployments.
 
 ---
 
