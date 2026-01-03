@@ -106,6 +106,7 @@ console.log()                   // Logging
 + fazt time status|sync|peers           # Local time consensus
 + fazt chirp send|listen|encode|decode  # Audio data transfer
 + fazt mnemonic encode|decode           # Human-channel exchange
++ fazt metrics [--json] [--watch]       # OpenMetrics export
 ~ fazt server *                         # Deprecated, use fazt proc
 ```
 
@@ -114,6 +115,7 @@ console.log()                   // Logging
 ```
 + GET    /api/kernel/status
 + GET    /api/kernel/metrics
++ GET    /metrics                         # OpenMetrics/Prometheus format
 + POST   /api/apps                      # Create app
 + GET    /api/apps/{uuid}               # Get by UUID
 + PUT    /api/apps/{uuid}               # Update app
@@ -177,6 +179,10 @@ need to do anything special - data ownership is handled by the kernel.
 + fazt.pulse.insights(hours?)      // LLM-generated insights
 + fazt.pulse.ask(question)         // Natural language query
 + fazt.pulse.trend(metric, hours)  // Time-series for charting
+
+// Metrics (OpenMetrics/Prometheus)
++ fazt.kernel.metrics()            // All metrics as JSON
++ fazt.kernel.metric(name)         // Single metric value
 
 // Devices (external service abstraction)
 + fazt.dev.billing.customers.create|get|update|list
