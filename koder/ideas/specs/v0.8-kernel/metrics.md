@@ -21,7 +21,7 @@ Prometheus, Datadog). Rather than replace them, integrate with them.
 
 ```
 GET /api/metrics       # JSON (default)
-GET /api/metrics.text  # OpenMetrics/Prometheus format
+GET /api/metrics.txt   # OpenMetrics/Prometheus format
 ```
 
 ### JSON Response (default)
@@ -169,7 +169,7 @@ scrape_configs:
     static_configs:
       - targets: ['fazt.example.com:443']
     scheme: https
-    metrics_path: /api/metrics.text
+    metrics_path: /api/metrics.txt
 ```
 
 ## Authentication
@@ -182,7 +182,7 @@ fazt config set metrics.public true
 
 # Use bearer token
 curl -H "Authorization: Bearer $TOKEN" https://fazt.example.com/api/metrics
-curl -H "Authorization: Bearer $TOKEN" https://fazt.example.com/api/metrics.text
+curl -H "Authorization: Bearer $TOKEN" https://fazt.example.com/api/metrics.txt
 ```
 
 ## Implementation Notes
@@ -198,7 +198,7 @@ type Metrics struct {
 }
 
 func (m *Metrics) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-    if strings.HasSuffix(r.URL.Path, ".text") {
+    if strings.HasSuffix(r.URL.Path, ".txt") {
         w.Header().Set("Content-Type", "text/plain; version=0.0.4")
         m.writeOpenMetrics(w)
     } else {

@@ -17,6 +17,28 @@ at each version checkpoint.
 
 ---
 
+## Conventions
+
+### Format Extensions
+
+API endpoints return JSON by default. Alternative formats use file extensions:
+
+```
+GET /api/resource        # JSON (default, implicit)
+GET /api/resource.txt    # Plain text
+GET /api/resource.csv    # CSV
+GET /api/resource.md     # Markdown
+GET /api/resource.html   # HTML
+GET /api/resource.xml    # XML
+```
+
+The extension describes the *format*, not the consumer. This pattern:
+- Scales naturally with standard file extensions
+- Keeps JSON as the implicit default ("JSON everywhere" philosophy)
+- Makes content negotiation explicit in the URL
+
+---
+
 ## v0.7 - Cartridge PaaS (Current)
 
 ### CLI Commands
@@ -116,7 +138,7 @@ console.log()                   // Logging
 + GET    /api/kernel/status
 + GET    /api/kernel/metrics
 + GET    /api/metrics                     # JSON (default)
-+ GET    /api/metrics.text               # OpenMetrics/Prometheus format
++ GET    /api/metrics.txt                # OpenMetrics/Prometheus format
 + POST   /api/apps                      # Create app
 + GET    /api/apps/{uuid}               # Get by UUID
 + PUT    /api/apps/{uuid}               # Update app
