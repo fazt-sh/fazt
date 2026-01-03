@@ -3,7 +3,8 @@ fazt
 koder/rough.md
 koder/scratch.md
 /server
-fazt-*
+/fazt-*
+!.claude/commands/fazt-*.md
 cc-server
 cc-server-*
 *.exe
