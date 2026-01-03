@@ -14,21 +14,26 @@ libraries without npm, and schedule background tasks.
 2. **Standard Library**: Bundled utilities (lodash, cheerio, etc.)
 3. **Scheduling**: JS-Cron for background tasks
 4. **Zero-Build**: No npm, no bundlers, no build step
+5. **Static Sites**: Built-in SSG with Jekyll-style conventions
 
 ## Key Changes
 
 | Capability     | Description                          |
-| -------------- | ------------------------------------ |
+|----------------|--------------------------------------|
 | `api/` folder  | Dedicated serverless code location   |
 | `require()`    | Local file imports                   |
 | Stdlib         | Pre-bundled libraries in binary      |
 | JS-Cron        | Scheduled function execution         |
 | Hibernate      | Zero RAM when idle                   |
 | WASM primitive | Internal wazero runtime for services |
+| `.ejs` pages   | PHP-style pages with embedded JS     |
+| Static sites   | Jekyll-style SSG for blogs/docs      |
 
 ## Documents
 
 - `serverless.md` - The `api/` folder convention and request handling
+- `ejs-pages.md` - PHP-style pages with embedded JavaScript
+- `static-site.md` - Jekyll-style static site generator
 - `stdlib.md` - Embedded standard library
 - `cron.md` - Scheduled execution and hibernate pattern
 - `sandbox.md` - Safe code execution for agents and dynamic evaluation

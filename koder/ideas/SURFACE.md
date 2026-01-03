@@ -340,6 +340,11 @@ need to do anything special - data ownership is handled by the kernel.
 + fazt wasm list                        # List loaded modules (admin)
 + fazt wasm stats <module>              # Module stats (admin)
 + fazt wasm cache clear                 # Clear module cache (admin)
+
+# Static Site Generator
++ fazt ssg init                         # Scaffold minimal working blog
++ fazt ssg serve [--port] [--drafts]    # Local preview server
++ fazt ssg build [--destination]        # Build to _site/
 ```
 
 ### HTTP API
@@ -348,6 +353,38 @@ need to do anything special - data ownership is handled by the kernel.
 + POST   /api/apps/{uuid}/invoke        # Trigger function
 + GET    /api/apps/{uuid}/logs
 + POST   /api/sandbox/exec              # Execute in sandbox
+```
+
+### .ejs Pages (PHP-style)
+
+```
+my-app/
+├── index.ejs         → /               # Homepage
+├── dashboard.ejs     → /dashboard      # Server-rendered page
+├── _layout.ejs       → (layout)        # Page wrapper
+├── _nav.ejs          → (partial)       # Reusable fragment
+└── blog/
+    └── post.ejs      → /blog/post      # Nested route
+```
+
+Frontmatter (optional YAML):
+```ejs
+---
+title: Dashboard
+layout: _layout.ejs
+auth: required
+cache: 5m
+---
+<h1><%= title %></h1>
+```
+
+Syntax (standard EJS, full editor support):
+```html
+<% code %>            Execute JS (no output)
+<%= expr %>           Output (HTML escaped)
+<%- expr %>           Output (raw, unescaped)
+<%# comment %>        Comment (not rendered)
+<%- include('_nav.ejs', { user }) %>    Partial with data
 ```
 
 ### JS Runtime
@@ -359,6 +396,8 @@ need to do anything special - data ownership is handled by the kernel.
 + require('uuid')                       // Stdlib: uuid
 + require('zod')                        // Stdlib: zod
 + require('marked')                     // Stdlib: marked
+
++ include(path, data?)                  // Include partial (.ejs files only)
 
 + fazt.schedule(delayMs, state)         // Schedule future execution
 + fazt.cron.next()                      // Next scheduled run time
@@ -377,6 +416,66 @@ need to do anything special - data ownership is handled by the kernel.
   ]
 }
 ```
+
+### Static Site Generator
+
+Built-in SSG for blogs and docs. Uses Jekyll-style conventions (battle-tested).
+
+```bash
+mkdir my-blog && cd my-blog
+fazt ssg init           # Scaffold minimal blog
+fazt ssg serve          # Preview at localhost:4000
+fazt ssg build          # Build to _site/
+fazt deploy ./_site     # Ship it
+```
+
+Directory structure:
+```
+my-blog/
+├── _config.yml           # Site config
+├── _posts/               # Blog posts (YYYY-MM-DD-slug.md)
+│   └── 2025-01-03-hello.md
+├── _layouts/             # Page templates
+│   └── post.html
+├── _includes/            # Reusable snippets
+├── _plugins/             # JS plugins (optional)
+├── assets/               # Static files
+└── index.md              # Homepage
+```
+
+Post format:
+```markdown
+---
+title: My Post
+description: Summary for SEO
+tags: [tech, tutorial]
+---
+Content in **markdown**.
+```
+
+Templating (Liquid-style):
+```html
+{{ page.title }}
+{{ page.date | date: "%B %d, %Y" }}
+{% for post in site.posts %}...{% endfor %}
+{% include nav.html %}
+```
+
+Built-in features:
+- RSS feed (`/feed.xml`)
+- Sitemap (`/sitemap.xml`)
+- SEO meta tags (`{% seo %}`)
+- Syntax highlighting
+
+JS plugins (`_plugins/*.js`):
+```javascript
+fazt.filter('reading_time', (content) => {
+  return Math.ceil(content.split(/\s+/).length / 200) + ' min';
+});
+```
+
+Powered by jekyll-lite - existing Jekyll sites deploy with zero changes.
+See `specs/v0.10-runtime/static-site.md` for full documentation.
 
 ### Kernel Primitives (Internal, not exposed to JS)
 
