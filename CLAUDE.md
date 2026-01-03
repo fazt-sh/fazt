@@ -45,5 +45,24 @@ api.InternalError(w, err)
 - Git credentials available
 - Deploy target: Ubuntu 24.04 x86
 
+## Markdown Style
+
+All markdown files must be readable in raw format (terminal, vim, cat):
+
+- **80 character width** - Wrap prose at 80 chars, code can extend
+- **Blank lines** - Before/after headings, between paragraphs, around code blocks
+- **Short lines** - One sentence per line when possible (helps diffs)
+- **No wide tables** - Prefer bullet lists or multiple smaller tables
+- **Minimal HTML** - Avoid inline HTML, use standard markdown
+
+```
+# Good: readable raw
+This is a paragraph that wraps at 80 characters for easy
+reading in any terminal or text editor.
+
+# Bad: unreadable raw
+This is a very long line that goes on and on and requires horizontal scrolling to read which makes it hard to review in pull requests or read in a terminal.
+```
+
 ## Current Work
 See `koder/NEXT_SESSION.md` for active task and context.
