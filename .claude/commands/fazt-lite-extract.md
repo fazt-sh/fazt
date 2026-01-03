@@ -13,11 +13,12 @@ Fazt has a pattern of **lite implementations**:
 | Full Thing | Fazt Lite | What's Kept | What's Dropped |
 |------------|-----------|-------------|----------------|
 | IPFS | ipfs-lite | CID addressing, dedup, gateway | DHT, Bitswap, p2p |
-| Pinecone/Weaviate | vector-lite | Similarity search, embeddings | HNSW, ANN indexes |
+| Pinecone/Weaviate | vector-lite | Similarity, embeddings | HNSW, ANN indexes |
 | Kernel WireGuard | wireguard-go | Full protocol | Kernel module |
-| LangChain | text/document | Splitting, Document format | Chains, agents, memory |
+| LangChain | text/document | Splitting, Document fmt | Chains, agents, memory |
 
-**The pattern**: Extract 5-20% of features that provide 80%+ of the value for personal-scale use cases.
+**The pattern**: Extract 5-20% of features that provide 80%+ of value
+for personal-scale use cases.
 
 ## Input
 
@@ -186,4 +187,5 @@ Present findings conversationally:
 4. **Verdict**: GO / NO-GO / DEFER with reasoning
 5. **If GO**: Proposed spec outline
 
-Be honest if something doesn't fit. "This is cool but doesn't belong in Fazt" is a valid conclusion.
+Be honest if something doesn't fit.
+"This is cool but doesn't belong in Fazt" is a valid conclusion.

@@ -19,11 +19,14 @@ First, load the philosophical and technical foundation:
    - Read `koder/ideas/ROADMAP.md` - Version progression
    - Read `koder/ideas/SURFACE.md` - Current API surface
 
-3. **Assume**: Everything up to v0.20 is implemented. Sensor/percept/effect architecture is planned.
+3. **Assume**: Everything up to v0.20 is implemented.
+   Sensor/percept/effect architecture is planned.
 
 ## Brainstorming Directions
 
-Each session, pick **2-3 directions** from below. Vary the selection to keep sessions fresh. Consider user's input/arguments if provided.
+Each session, pick **2-3 directions** from below.
+Vary the selection to keep sessions fresh.
+Consider user's input/arguments if provided.
 
 ### Direction A: Extend Primitives
 - What new kernel primitives would unlock significant capability?
