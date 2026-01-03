@@ -271,7 +271,13 @@ fazt.storage.vector.queryEmbedding(collection, embedding, options?)
 
 ## Similarity Search Algorithm
 
-Uses cosine similarity (same as chromem-go):
+Uses cosine similarity. Reference implementations:
+- **chromem-go**: Original inspiration for API
+- **LinGoose**: `index/vectordb/jsondb/jsondb.go:198-227` (~30 lines)
+  - MIT licensed, pure Go, handles edge cases
+  - See `koder/ideas/lite-extractions.md` (EXTRACT verdict)
+
+Core algorithm (same as chromem-go):
 
 ```go
 // Cosine similarity between two normalized vectors = dot product

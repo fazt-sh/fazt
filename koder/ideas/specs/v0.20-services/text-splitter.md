@@ -284,6 +284,16 @@ fazt text split docs/*.md --chunk-size 1000 > chunks.json
 | Max chunk size | 100,000 chars |
 | Max overlap    | chunkSize / 2 |
 
+## Reference Implementation
+
+LinGoose (MIT licensed) has a clean, tested Go implementation:
+- **File**: `textsplitter/recursiveTextSplitter.go` (~110 lines)
+- **Repo**: https://github.com/henomis/lingoose
+- **Evaluation**: See `koder/ideas/lite-extractions.md` (EXTRACT verdict)
+
+The algorithm is pure Go with stdlib-only dependencies. When implementing
+Fazt's text splitter, reference LinGoose's battle-tested logic.
+
 ## Comparison with LangChain
 
 This implementation is based on LangChain's `RecursiveCharacterTextSplitter`:

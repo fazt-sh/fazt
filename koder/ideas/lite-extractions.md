@@ -22,10 +22,65 @@ for personal-scale use cases. Examples: ipfs-lite, vector-lite, wireguard-go.
 
 ## Log
 
-| Date       | Project  | Verdict | Reason                           |
-|------------|----------|---------|----------------------------------|
-| 2026-01-03 | go-adk   | PATTERN | State prefix pattern worth study |
-| 2026-01-03 | go-eino  | NO-GO   | Framework vs library mismatch    |
+| Date       | Project     | Verdict | Reason                           |
+|------------|-------------|---------|----------------------------------|
+| 2026-01-03 | go-lingoose | EXTRACT | Text splitter + cosine algos    |
+| 2026-01-03 | go-adk      | PATTERN | State prefix pattern worth study |
+| 2026-01-03 | go-eino     | NO-GO   | Framework vs library mismatch    |
+
+---
+
+### go-lingoose
+
+- **URL**: https://github.com/henomis/lingoose
+- **What**: Modular Go framework for LLM applications
+- **Verdict**: EXTRACT
+- **License**: MIT
+
+**Why EXTRACT**: Unlike go-eino/go-adk, LinGoose is truly modular. Each
+package is standalone with minimal deps. Two algorithms directly match
+Fazt specs and are worth lifting.
+
+**Extracted algorithms:**
+
+1. **RecursiveCharacterTextSplitter** (~110 lines, stdlib only)
+   ```go
+   // Core algorithm:
+   // 1. Find first separator that exists in text
+   // 2. Split by that separator
+   // 3. For chunks > chunkSize: recursively split with next separator
+   // 4. For chunks <= chunkSize: merge with overlap
+   separators := []string{"\n\n", "\n", " ", ""}
+   ```
+   Location: `textsplitter/recursiveTextSplitter.go`
+   Use in: `text-splitter.md` implementation
+
+2. **Cosine Similarity** (~30 lines, stdlib only)
+   ```go
+   // cosine = (a·b) / (|a| * |b|)
+   // Handles mismatched vector lengths gracefully
+   ```
+   Location: `index/vectordb/jsondb/jsondb.go:198-227`
+   Use in: `vector.md` implementation
+
+**Pattern also extracted: VectorDB Interface**
+```go
+type VectorDB interface {
+    Insert(context.Context, []Data) error
+    Search(context.Context, []float64, *Options) (SearchResults, error)
+    Delete(ctx context.Context, ids []string) error
+}
+```
+Separates index orchestration from storage. Fazt's vector.md should
+adopt this pattern for pluggable backends.
+
+**What's dropped:**
+- Embedder implementations (Fazt has ai-shim)
+- JSON file storage (Fazt uses SQLite)
+- External loaders (PDF requires pdftotext binary)
+- Observer/tracing (Fazt has events)
+
+**Extraction ratio**: ~5% of LinGoose code, ~60% of RAG value
 
 ---
 
