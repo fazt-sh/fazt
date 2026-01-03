@@ -15,6 +15,13 @@ for personal-scale use cases. Examples: ipfs-lite, vector-lite, wireguard-go.
 
 ## Log
 
-| Date | Project | Verdict | Reason |
-|------|---------|---------|--------|
-| 2025-01-03 | [go-eino](https://github.com/cloudwego/eino) | NO-GO | Framework vs library mismatch. LangChain-for-Go wants to own execution model; Fazt uses simple imperative functions. |
+| Date       | Project  | Verdict | Reason                        |
+|------------|----------|---------|-------------------------------|
+| 2025-01-03 | go-eino  | NO-GO   | Framework vs library mismatch |
+
+### go-eino
+
+- **URL**: https://github.com/cloudwego/eino
+- **What**: LangChain-for-Go, LLM application framework
+- **Why NO-GO**: Wants to own execution model; Fazt uses simple
+  imperative functions. Framework, not extractable library.

@@ -10,12 +10,12 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Task, WebFetch, WebSearch
 
 Fazt has a pattern of **lite implementations**:
 
-| Full Thing | Fazt Lite | What's Kept | What's Dropped |
-|------------|-----------|-------------|----------------|
-| IPFS | ipfs-lite | CID addressing, dedup, gateway | DHT, Bitswap, p2p |
-| Pinecone/Weaviate | vector-lite | Similarity, embeddings | HNSW, ANN indexes |
-| Kernel WireGuard | wireguard-go | Full protocol | Kernel module |
-| LangChain | text/document | Splitting, Document fmt | Chains, agents, memory |
+| Full Thing        | Fazt Lite     | What's Kept            | What's Dropped         |
+|-------------------|---------------|------------------------|------------------------|
+| IPFS              | ipfs-lite     | CID, dedup, gateway    | DHT, Bitswap, p2p      |
+| Pinecone/Weaviate | vector-lite   | Similarity, embeddings | HNSW, ANN indexes      |
+| Kernel WireGuard  | wireguard-go  | Full protocol          | Kernel module          |
+| LangChain         | text/document | Splitting, Doc format  | Chains, agents, memory |
 
 **The pattern**: Extract 5-20% of features that provide 80%+ of value
 for personal-scale use cases.
