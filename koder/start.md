@@ -1,11 +1,13 @@
-# Fazt.sh - Session Bootstrap
+# Fazt - Session Bootstrap
 
-**Fazt**: Personal PaaS in one Go binary. Static sites + serverless on your own VPS.
+**Fazt**: Sovereign compute infrastructure in one Go binary. Runs on anything
+from phones to servers—your personal swarm of AI-native compute nodes.
 
 ## Initialize
-1. Read `koder/NEXT_SESSION.md` for current task
-2. Load the plan referenced there
-3. Execute
+1. Read `koder/philosophy/VISION.md` for strategic context (if new to Fazt)
+2. Read `koder/NEXT_SESSION.md` for current task
+3. Load the plan referenced there
+4. Execute
 
 ## Architecture (Reference)
 - **Binary**: `fazt` (Go, CGO_ENABLED=0)

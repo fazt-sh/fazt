@@ -10,16 +10,19 @@ allowed-tools: Read, Write, Edit, Glob, Grep
 
 First, load the philosophical and technical foundation:
 
-1. **Philosophy** (required):
+1. **Vision** (START HERE):
+   - Read `koder/philosophy/VISION.md` - Strategic vision, swarm model, 10-year goal
+
+2. **Philosophy** (required):
    - Read `koder/philosophy/CORE.md` - Foundational principles
    - Read `koder/philosophy/SENSORS.md` - Sensor-specific philosophy
    - Read `koder/philosophy/EVOLUTION.md` - How we got here
 
-2. **Technical Surface** (required):
+3. **Technical Surface** (required):
    - Read `koder/ideas/ROADMAP.md` - Version progression
    - Read `koder/ideas/SURFACE.md` - Current API surface
 
-3. **Assume**: Everything up to v0.20 is implemented.
+4. **Assume**: Everything up to v0.20 is implemented.
    Sensor/percept/effect architecture is planned.
 
 ## Brainstorming Directions

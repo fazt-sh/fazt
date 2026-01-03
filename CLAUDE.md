@@ -1,18 +1,22 @@
-# Fazt.sh Assistant Guide
+# Fazt Assistant Guide
 
-**Fazt** is a personal PaaS in a single Go binary - deploy static sites and serverless functions to your own VPS with zero dependencies.
+**Fazt** is sovereign compute infrastructure for individuals—a single Go binary
++ SQLite database that runs anywhere from phones to servers to IoT devices.
+
+**Read `koder/philosophy/VISION.md` first** to understand what Fazt is becoming.
 
 ## Quick Start
 ```
-read and execute koder/start.md
+read koder/philosophy/VISION.md   # Understand the vision
+read koder/start.md               # Then execute
 ```
 
 ## Core Philosophy
-- **Cartridge Architecture**: One Binary (`fazt`) + One SQLite DB (`data.db`)
-- **Zero Dependencies**: Pure Go + `modernc.org/sqlite`. NO CGO.
-- **VFS**: Sites/assets live in DB, not filesystem
-- **Admin SPA**: Embedded React 18 + Vite + Tailwind CSS app (`admin/`)
-- **Safety**: `CGO_ENABLED=0` always
+- **Cartridge Model**: One Binary (`fazt`) + One SQLite DB (`data.db`)
+- **Pure Go**: `modernc.org/sqlite`, NO CGO, runs everywhere
+- **Swarm Ready**: Multiple nodes mesh into personal cloud
+- **AI Native**: Lowers floor (anyone can use), raises ceiling (agents)
+- **Resilient**: Works when network is denied
 
 ## Build & Test
 ```bash
@@ -52,16 +56,22 @@ All markdown files must be readable in raw format (terminal, vim, cat):
 - **80 character width** - Wrap prose at 80 chars, code can extend
 - **Blank lines** - Before/after headings, between paragraphs, around code blocks
 - **Short lines** - One sentence per line when possible (helps diffs)
-- **No wide tables** - Prefer bullet lists or multiple smaller tables
+- **Tables** - Narrow tables OK with aligned columns; wide tables → bullets
 - **Minimal HTML** - Avoid inline HTML, use standard markdown
 
 ```
-# Good: readable raw
-This is a paragraph that wraps at 80 characters for easy
-reading in any terminal or text editor.
+# Good: narrow table with aligned columns
+| Before     | After              |
+|------------|--------------------|
+| Web server | Operating system   |
+| One VPS    | Swarm of devices   |
 
-# Bad: unreadable raw
-This is a very long line that goes on and on and requires horizontal scrolling to read which makes it hard to review in pull requests or read in a terminal.
+# Bad: wide table (convert to bullet list instead)
+| Device | Role | Long Description | Another Column | Too Wide |
+
+# Good: wide content as bullets
+- **Phone**: Mobile presence (notifications, location)
+- **Laptop**: Daily driver (apps, files, local AI)
 ```
 
 ## Current Work

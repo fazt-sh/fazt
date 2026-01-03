@@ -3,7 +3,9 @@
 ## Purpose
 
 This folder contains the **architectural vision** for Fazt's evolution from a
-static site host (v0.7) to a Personal Cloud OS (v0.16+).
+static site host (v0.7) to sovereign compute infrastructure (v0.20+).
+
+**Start with `koder/philosophy/VISION.md`** for the full strategic vision.
 
 Use this documentation to:
 - Understand the target architecture
@@ -13,11 +15,12 @@ Use this documentation to:
 
 ## Reading Order
 
-1. **ROADMAP.md** - Version progression with brief descriptions
-2. **SURFACE.md** - How the API/syscall surface evolves per version
-3. **specs/** - Detailed specifications organized by version
+1. **../philosophy/VISION.md** - Strategic vision (THE starting point)
+2. **ROADMAP.md** - Version progression with brief descriptions
+3. **SURFACE.md** - How the API/syscall surface evolves per version
+4. **specs/** - Detailed specifications organized by version
 
-## Current State: v0.7.x (Cartridge PaaS)
+## Current State: v0.7.x (Cartridge Foundation)
 
 Fazt today is a single Go binary + SQLite database that provides:
 - Static site hosting via VFS (files stored as BLOBs)
@@ -28,15 +31,15 @@ Fazt today is a single Go binary + SQLite database that provides:
 
 **Philosophy**: Binary is disposable. Database is precious.
 
-## Target State: v0.16 (Personal Cloud OS)
+## Target State: v0.20+ (Sovereign Compute Swarm)
 
-The vision is a **Sovereign Cloud Platform** in a single binary:
-- Full PaaS with intelligent runtime
-- OS-like architecture (kernel, syscalls, drivers)
-- AI-native capabilities
-- Hardware-bound identity
-- P2P mesh synchronization
-- Protocol support (ActivityPub, Nostr)
+The vision is **personal compute infrastructure**:
+- Universal compute substrate (not just PaaS)
+- Runs on anything: phones, laptops, Pis, VPS, appliances
+- Swarm of nodes meshing into personal cloud
+- AI-native: lowers floor, raises ceiling
+- Resilient even when network is denied
+- Sensors + perception + action for physical world
 
 ## How to Use This Documentation
 

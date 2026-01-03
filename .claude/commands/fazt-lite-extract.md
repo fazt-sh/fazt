@@ -6,6 +6,9 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Task, WebFetch, WebSearch
 
 # Lite Extraction Analysis
 
+**Context**: Read `koder/philosophy/VISION.md` to understand what Fazt is—
+sovereign compute infrastructure, not just a PaaS.
+
 ## The "Lite" Philosophy
 
 Fazt has a pattern of **lite implementations**:
