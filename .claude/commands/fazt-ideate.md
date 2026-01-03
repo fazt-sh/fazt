@@ -8,22 +8,47 @@ allowed-tools: Read, Write, Edit, Glob, Grep
 
 ## Context Loading
 
-First, load the philosophical and technical foundation:
+Load context in layers - philosophy first, then build capability surface:
 
-1. **Vision** (START HERE):
-   - Read `koder/philosophy/VISION.md` - Strategic vision, swarm model, 10-year goal
+### Layer 1: Philosophy (required)
 
-2. **Philosophy** (required):
-   - Read `koder/philosophy/CORE.md` - Foundational principles
-   - Read `koder/philosophy/SENSORS.md` - Sensor-specific philosophy
-   - Read `koder/philosophy/EVOLUTION.md` - How we got here
+1. Read `koder/philosophy/VISION.md` - Strategic vision, swarm model
+2. Read `koder/philosophy/CORE.md` - Foundational principles
+3. Read `koder/philosophy/SENSORS.md` - Sensor philosophy + Go libraries
+4. Read `koder/philosophy/EVOLUTION.md` - How we got here
 
-3. **Technical Surface** (required):
-   - Read `koder/ideas/ROADMAP.md` - Version progression
-   - Read `koder/ideas/SURFACE.md` - Current API surface
+### Layer 2: Roadmap Overview (required)
 
-4. **Assume**: Everything up to v0.20 is implemented.
-   Sensor/percept/effect architecture is planned.
+5. Read `koder/ideas/ROADMAP.md` - Version progression
+6. Read `koder/ideas/SURFACE.md` - API surface evolution
+
+### Layer 3: Capability Surface (required)
+
+Read specs progressively to build the full capability surface:
+
+```
+koder/ideas/specs/v0.8-kernel/     → Kernel primitives, events, devices
+koder/ideas/specs/v0.9-storage/    → Storage layer
+koder/ideas/specs/v0.10-runtime/   → Serverless, stdlib, sandbox
+koder/ideas/specs/v0.11-distribution/ → Marketplace, manifest
+koder/ideas/specs/v0.12-agentic/   → AI harness, MCP, ai-shim
+koder/ideas/specs/v0.13-network/   → Domains, VPN
+koder/ideas/specs/v0.14-security/  → RLS, notary, halt
+koder/ideas/specs/v0.15-identity/  → Persona, identity
+koder/ideas/specs/v0.16-mesh/      → P2P, protocols, discovery
+koder/ideas/specs/v0.17-realtime/  → WebSocket
+koder/ideas/specs/v0.18-email/     → Email sink
+koder/ideas/specs/v0.19-workers/   → Background jobs
+koder/ideas/specs/v0.20-services/  → Libraries (sanitize, markdown, etc.)
+```
+
+For each version directory:
+1. Read README.md first (if exists) for overview
+2. Scan *.md files to understand capabilities
+3. Note Go libraries specified (implementation decisions)
+
+**Assume**: Everything up to v0.20 is the planned capability surface.
+Ideation proposes extensions, simplifications, or new directions beyond this.
 
 ## Brainstorming Directions
 
