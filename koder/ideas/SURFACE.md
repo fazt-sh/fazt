@@ -756,6 +756,10 @@ need to do anything special - data ownership is handled by the kernel.
 + fazt hooks events|replay|stats          # Inbound
 + fazt hooks list|register|delete         # Outbound
 + fazt hooks deliveries|retry-delivery    # Delivery management
++ fazt rag list|create|show|delete           # Pipeline management
++ fazt rag ingest|sync|clear                 # Ingestion
++ fazt rag retrieve|ask                      # Querying
++ fazt rag stats                             # Pipeline stats
 + fazt notify send|list|history|preferences    # Notifications
 + fazt notify templates list|show              # Notification templates
 + fazt api list|add|show|test|remove           # API Profiles
@@ -785,6 +789,22 @@ need to do anything special - data ownership is handled by the kernel.
 + POST   /api/hooks                               # Register outbound hook
 + DELETE /api/hooks/{id}                          # Delete hook
 + GET    /api/hooks/deliveries                    # List deliveries
+
+# RAG Pipelines
++ GET    /api/rag/pipelines                       # List pipelines
++ POST   /api/rag/pipelines                       # Create pipeline
++ GET    /api/rag/pipelines/{name}                # Get pipeline
++ PUT    /api/rag/pipelines/{name}                # Update pipeline
++ DELETE /api/rag/pipelines/{name}                # Delete pipeline
++ POST   /api/rag/pipelines/{name}/ingest         # Index sources
++ POST   /api/rag/pipelines/{name}/ingest/text    # Index text
++ POST   /api/rag/pipelines/{name}/ingest/url     # Index URL
++ POST   /api/rag/pipelines/{name}/sync           # Incremental sync
++ DELETE /api/rag/pipelines/{name}/documents      # Clear indexed data
++ POST   /api/rag/pipelines/{name}/retrieve       # Get relevant chunks
++ POST   /api/rag/pipelines/{name}/ask            # Full RAG answer
++ POST   /api/rag/pipelines/{name}/chat           # Multi-turn RAG
++ GET    /api/rag/pipelines/{name}/stats          # Pipeline stats
 
 # Notifications
 + POST   /api/notify                              # Send notification
@@ -904,6 +924,24 @@ need to do anything special - data ownership is handled by the kernel.
 + fazt.services.hooks.emit(type, data)       // Trigger outbound
 + fazt.services.hooks.deliveries(options?)   // Query deliveries
 + fazt.services.hooks.retryDelivery(id)
+
+// RAG (Retrieval-Augmented Generation pipelines)
++ fazt.services.rag.create(name, options)    // Create pipeline
+// options: { sources, chunkSize, chunkOverlap, embedModel, systemPrompt }
++ fazt.services.rag.get(name)                // Get pipeline config & stats
++ fazt.services.rag.list()                   // List all pipelines
++ fazt.services.rag.update(name, options)    // Update pipeline config
++ fazt.services.rag.delete(name)             // Delete pipeline and data
++ fazt.services.rag.ingest(name, options?)   // Index all sources
++ fazt.services.rag.ingestText(name, text, options?)  // Index arbitrary text
++ fazt.services.rag.ingestUrl(name, url, options?)    // Fetch and index URL
++ fazt.services.rag.sync(name)               // Incremental sync
++ fazt.services.rag.clear(name)              // Remove indexed documents
++ fazt.services.rag.retrieve(name, query, options?)   // Get relevant chunks
+// options: { limit, threshold, filter }
++ fazt.services.rag.ask(name, question, options?)     // Full RAG answer
+// options: { limit, model, temperature, includeSources }
++ fazt.services.rag.chat(name, messages, options?)    // Multi-turn RAG
 
 // Notifications (unified multi-channel delivery)
 + fazt.services.notify.send(options)
@@ -1182,6 +1220,10 @@ fazt
 │   │   ├── events(), event(), replay(), replayFailed(), stats()
 │   │   ├── register(), list(), update(), delete(), emit()
 │   │   ├── deliveries(), retryDelivery()
+│   ├── rag                               # RAG pipelines
+│   │   ├── create(), get(), list(), update(), delete()
+│   │   ├── ingest(), ingestText(), ingestUrl(), sync(), clear()
+│   │   ├── retrieve(), ask(), chat()
 │   ├── notify                            # Unified notifications
 │   │   ├── send(), sendBulk(), sendTemplate()
 │   │   ├── history(), get(), markRead(), markAllRead(), delete()
@@ -1257,6 +1299,7 @@ fazt realtime   # WebSocket pub/sub
 fazt email      # SMTP sink
 fazt worker     # Background jobs
 fazt services   # Services (forms, image, pdf, markdown, search, qr)
+fazt rag        # RAG pipelines (create, ingest, ask)
 fazt pulse      # Cognitive observability (health, ask, insights)
 fazt dev        # External service devices (billing, sms, email, oauth, infra)
 fazt hooks      # Bidirectional webhooks (inbound, outbound)

@@ -25,6 +25,7 @@ the kernel (low-level primitives) and apps (user code).
 │                 Services                     │  ← Stateful
 │   forms | image | pdf | markdown | search    │
 │   qr | comments | shorturl | captcha | hooks │
+│   rag                                         │
 ├─────────────────────────────────────────────┤
 │                   Lib                        │  ← Pure functions
 │   money | humanize | timezone | sanitize     │
@@ -98,6 +99,7 @@ fazt/
 | `shorturl` | Shareable short links | Click tracking, expiration |
 | `captcha` | Spam protection | Math/text challenges |
 | `hooks` | Bidirectional webhooks | Inbound verification, outbound delivery |
+| `rag` | RAG pipelines | Ingest, retrieve, ask with grounded answers |
 
 ## Lib
 
@@ -141,6 +143,7 @@ fazt/
 - `shorturl.md` - Short URL generation
 - `captcha.md` - Spam protection challenges
 - `hooks.md` - Bidirectional webhook handling
+- `rag.md` - RAG pipeline service
 
 ### Lib
 - `money.md` - Decimal currency arithmetic
