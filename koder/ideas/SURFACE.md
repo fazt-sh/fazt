@@ -54,7 +54,8 @@ fazt service install [--domain] [--email] [--https]
 fazt service logs
 fazt client set-auth-token
 fazt client deploy <dir> [--name]
-fazt deploy <dir> [--name]              # Alias
+fazt deploy [dir] [--name]              # Alias: deploy source (server builds)
+fazt serve [--port] [--drafts]          # Alias: local preview (auto-detect)
 fazt backup create
 fazt backup restore
 ```
@@ -341,10 +342,12 @@ need to do anything special - data ownership is handled by the kernel.
 + fazt wasm stats <module>              # Module stats (admin)
 + fazt wasm cache clear                 # Clear module cache (admin)
 
-# Static Site Generator
-+ fazt ssg init                         # Scaffold minimal working blog
-+ fazt ssg serve [--port] [--drafts]    # Local preview server
-+ fazt ssg build [--destination]        # Build to _site/
+# Static Site Generator (profile-based auto-detection)
++ fazt ssg init                         # Scaffold minimal Jekyll blog
++ fazt ssg serve [--port] [--drafts]    # Local preview (explicit)
++ fazt ssg build [--destination]        # Build to local folder
++ fazt ssg profiles                     # List supported profiles
+# Note: `fazt serve` and `fazt deploy` are top-level aliases
 ```
 
 ### HTTP API
@@ -419,15 +422,22 @@ Syntax (standard EJS, full editor support):
 
 ### Static Site Generator
 
-Built-in SSG for blogs and docs. Uses Jekyll-style conventions (battle-tested).
+Profile-based SSG with auto-detection. Drop into any Jekyll, Docusaurus,
+VitePress, or Docsify project and run `fazt serve` - it just works.
 
 ```bash
-mkdir my-blog && cd my-blog
+# Any existing project
+cd my-docusaurus-docs
+fazt serve              # Auto-detects, serves locally
+fazt deploy             # Ship it (server builds, no local _site)
+
+# New Jekyll blog
 fazt ssg init           # Scaffold minimal blog
-fazt ssg serve          # Preview at localhost:4000
-fazt ssg build          # Build to _site/
-fazt deploy ./_site     # Ship it
+fazt serve              # Preview at localhost:4000
+fazt deploy             # Ship it
 ```
+
+Supported profiles: `jekyll`, `docusaurus`, `vitepress`, `docsify`, `static`
 
 Directory structure:
 ```

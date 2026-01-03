@@ -2,9 +2,9 @@
 
 ## Summary
 
-Built-in static site generator for blogs, documentation, and content sites.
-Uses battle-tested Jekyll-style conventions. Powered by jekyll-lite module
-for compatibility with existing Jekyll sites.
+Zero-config static site generator with profile-based detection. Drop into any
+Jekyll, Docusaurus, VitePress, or Docsify project and run `fazt serve` - it
+just works.
 
 ## Why
 
@@ -13,45 +13,41 @@ Static sites are the simplest deployment model:
 - Secure (no server-side code)
 - Cheap (just file serving)
 
-Fazt should make static sites trivial while supporting dynamic features when
-needed. The Jekyll convention is well-known, well-documented, and has thousands
-of existing themes and sites.
+But users have existing sites in different formats. Rather than force migration,
+Fazt detects the format and builds appropriately.
 
 **Philosophy alignment:**
-- Single binary: SSG is ~500KB additional, pure Go
-- Zero-build: No npm/bundler, just markdown files
-- Convention over configuration: Sensible defaults
+- Single binary: All profiles built-in (~500KB additional)
+- Zero-config: Auto-detect format, no setup needed
+- Convention over configuration: Sensible defaults per profile
 
 ## Quick Start
 
 ```bash
-mkdir my-blog && cd my-blog
-fazt ssg init           # Creates minimal working blog
-fazt ssg serve          # Preview at localhost:4000
+# Any existing project - just works
+cd my-docusaurus-docs
+fazt serve              # Auto-detects Docusaurus, serves locally
+
+cd my-jekyll-blog
+fazt serve              # Auto-detects Jekyll, serves locally
+
+cd my-plain-html
+fazt serve              # Auto-detects static, serves as-is
 ```
 
-Open http://localhost:4000 - you have a blog.
+Open http://localhost:4000 - you see your site with a beautiful theme.
 
 ```bash
-fazt ssg build          # Build to _site/
-fazt deploy ./_site     # Ship it
+fazt deploy             # Ship it (server builds, no local _site needed)
 ```
 
-### What `init` Creates
+### New Project
 
+```bash
+fazt ssg init           # Creates minimal Jekyll blog
+fazt serve              # Preview at localhost:4000
+fazt deploy             # Ship it
 ```
-my-blog/
-├── _config.yml         # Site title, URL
-├── _layouts/
-│   └── default.html    # Minimal layout
-├── _posts/
-│   └── 2025-01-03-welcome.md
-├── assets/
-│   └── favicon.svg     # Simple favicon
-└── index.html          # Post listing
-```
-
-Minimal, readable files. Learn by modifying them.
 
 **Note:** The welcome post and index page should be fun and delightful -
 something that makes users smile when they first run `serve`. Design TBD.
@@ -442,14 +438,65 @@ function hello() {
 ```
 ````
 
+## Profiles
+
+Fazt auto-detects your project type and applies the right build profile:
+
+| Profile     | Detection                        | Output        |
+|-------------|----------------------------------|---------------|
+| `jekyll`    | `_posts/` or `_config.yml`       | HTML          |
+| `docusaurus`| `docusaurus.config.js`           | HTML          |
+| `vitepress` | `.vitepress/config.*`            | HTML          |
+| `docsify`   | `index.html` with docsify script | Pass-through  |
+| `static`    | None of the above                | Pass-through  |
+
+**Server-side building**: You deploy the source - Fazt builds on the server.
+No local `_site` folder, no build step in CI.
+
+```bash
+cd my-docusaurus-project
+fazt deploy           # Server detects Docusaurus, builds, serves
+```
+
+### Profile Configuration (Optional)
+
+Override detection in `app.json`:
+
+```json
+{
+  "name": "my-docs",
+  "ssg": {
+    "profile": "jekyll",
+    "drafts": false
+  }
+}
+```
+
+### MDX Handling
+
+For Docusaurus/VitePress MDX files, Fazt gracefully degrades:
+- Strip JSX components (can't run React on server)
+- Render standard markdown
+- Show placeholder for custom components
+
+This means your docs work, even without the full JS framework.
+
 ## CLI Commands
 
 ```bash
-fazt ssg init                         # Scaffold minimal blog
-fazt ssg serve [--port 4000] [--drafts]  # Local preview
-fazt ssg build [--destination _site]  # Build static files
-fazt deploy ./_site                   # Deploy built output
+# Top-level aliases (most common)
+fazt serve                            # Auto-detect profile, serve locally
+fazt deploy                           # Deploy source, server builds
+
+# Namespaced commands (full control)
+fazt ssg init                         # Scaffold minimal Jekyll blog
+fazt ssg serve [--port] [--drafts]    # Local preview (explicit)
+fazt ssg build [--destination]        # Build to local folder
+fazt ssg profiles                     # List supported profiles
 ```
+
+`fazt serve` and `fazt deploy` are convenience aliases that auto-detect
+the profile. Use namespaced commands when you need explicit control.
 
 ## Example Apps & Plugins
 
