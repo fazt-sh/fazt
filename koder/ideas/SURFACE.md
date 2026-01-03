@@ -54,7 +54,11 @@ fazt service install [--domain] [--email] [--https]
 fazt service logs
 fazt client set-auth-token
 fazt client deploy <dir> [--name]
-fazt deploy [dir] [--name]              # Alias: deploy source (server builds)
+fazt deploy [dir] [--name]              # Alias: deploy source (auto-detect profile)
+fazt deploy [dir] --profile <name>      # Force specific profile
+fazt deploy [dir] --dry-run             # Show detected profile, don't deploy
+fazt deploy [dir] --no-build            # Skip build, deploy as-is
+fazt deploy [dir] --rebuild             # Force rebuild even if output exists
 fazt serve [--port] [--drafts]          # Alias: local preview (auto-detect)
 fazt backup create
 fazt backup restore
@@ -534,6 +538,13 @@ See `specs/v0.10-runtime/static-site.md` for full documentation.
 + fazt app update <name>
 + fazt app remove <name>
 + fazt app list [--source personal|git]
+
+# Deployment Profiles (auto-detection)
+# Profiles: static, jekyll, vite, astro, docusaurus, vitepress, hugo, etc.
++ fazt deploy --dry-run                 # Show detected profile
++ fazt deploy --profile <name>          # Force specific profile
++ fazt deploy --no-build                # Skip build step
++ fazt deploy --rebuild                 # Force fresh build
 ```
 
 ### HTTP API

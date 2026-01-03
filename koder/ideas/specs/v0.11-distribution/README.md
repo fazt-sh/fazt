@@ -17,18 +17,20 @@ updated, and removed like `apt-get` packages.
 
 ## Key Changes
 
-| Capability  | Description                 |
-| ----------- | --------------------------- |
-| Marketplace | Git-based app repositories  |
-| App Install | One-command installation    |
-| Manifest    | `app.json` with permissions |
-| Updates     | Check and apply app updates |
-| Sources     | Track origin of each app    |
+| Capability  | Description                       |
+| ----------- | --------------------------------- |
+| Marketplace | Git-based app repositories        |
+| App Install | One-command installation          |
+| Manifest    | `app.json` with permissions       |
+| Updates     | Check and apply app updates       |
+| Sources     | Track origin of each app          |
+| Profiles    | Auto-detect project type & deploy |
 
 ## Documents
 
 - `marketplace.md` - Git-based app distribution
 - `manifest.md` - The `app.json` specification
+- `profiles.md` - Deployment profiles (Vite, Astro, Jekyll, etc.)
 
 ## Dependencies
 
