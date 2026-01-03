@@ -23,17 +23,32 @@ for personal-scale use cases. Examples: ipfs-lite, vector-lite, wireguard-go.
 
 ## Log
 
-| Date       | Project     | Verdict    | Reason                           |
-|------------|-------------|------------|----------------------------------|
-| 2026-01-03 | bluemonday  | USE-AS-IS  | HTML sanitization, security-safe |
-| 2026-01-03 | gjson       | USE-AS-IS  | Zero-dep JSON path queries       |
-| 2026-01-03 | goldmark    | USE-AS-IS  | Zero-dep markdown parser         |
-| 2026-01-03 | go-expr     | USE-AS-IS  | Zero-dep expression engine       |
-| 2026-01-03 | go-redka    | PATTERN    | Redis-on-SQLite schema patterns  |
-| 2026-01-03 | go-crush    | PATTERN    | Skills, permissions, LSP routing |
-| 2026-01-03 | go-lingoose | EXTRACT    | Text splitter + cosine algos     |
-| 2026-01-03 | go-adk      | PATTERN    | State prefix pattern worth study |
-| 2026-01-03 | go-eino     | NO-GO      | Framework vs library mismatch    |
+| Date       | Project       | Verdict   | Reason                           |
+|------------|---------------|-----------|----------------------------------|
+| 2026-01-03 | backlite      | USE-AS-IS | SQLite task queues, perfect fit  |
+| 2026-01-03 | gortsplib     | USE-AS-IS | RTSP client/server for IP cameras|
+| 2026-01-03 | mochi-mqtt    | USE-AS-IS | Embeddable MQTT broker for IoT   |
+| 2026-01-03 | peerdiscovery | USE-AS-IS | UDP multicast LAN peer discovery |
+| 2026-01-03 | pion/webrtc   | USE-AS-IS | P2P, NAT traversal, data channels|
+| 2026-01-03 | bluemonday    | USE-AS-IS | HTML sanitization, security-safe |
+| 2026-01-03 | gjson         | USE-AS-IS | Zero-dep JSON path queries       |
+| 2026-01-03 | goldmark      | USE-AS-IS | Zero-dep markdown parser         |
+| 2026-01-03 | go-expr       | USE-AS-IS | Zero-dep expression engine       |
+| 2026-01-03 | go-redka      | PATTERN   | Redis-on-SQLite schema patterns  |
+| 2026-01-03 | go-crush      | PATTERN   | Skills, permissions, LSP routing |
+| 2026-01-03 | go-lingoose   | EXTRACT   | Text splitter + cosine algos     |
+| 2026-01-03 | go-adk        | PATTERN   | State prefix pattern worth study |
+| 2026-01-03 | go-eino       | NO-GO     | Framework vs library mismatch    |
+| 2026-01-03 | alice         | NO-GO     | ~40 lines, not needed            |
+| 2026-01-03 | atreugo       | NO-GO     | Fasthttp framework, use stdlib   |
+| 2026-01-03 | easyprobe     | NO-GO     | Standalone app, not library      |
+| 2026-01-03 | gorm          | NO-GO     | ORM overhead, Fazt uses raw SQL  |
+| 2026-01-03 | htmgo         | NO-GO     | Framework, Fazt has React admin  |
+| 2026-01-03 | langchaingo   | NO-GO     | Framework vs library mismatch    |
+| 2026-01-03 | localai       | NO-GO     | CGO deps (llama.cpp), not embed  |
+| 2026-01-03 | upper/db      | NO-GO     | Multi-DB abstraction, SQLite-only|
+| 2026-01-03 | periph.io     | SKIP      | Already in SENSORS.md spec       |
+| 2026-01-03 | mcp-go-sdk    | SKIP      | Already referenced, planned      |
 
 ## Note: Patterns vs Code
 
@@ -44,6 +59,217 @@ go-crush (FSL), we document patterns for independent implementation.
 If you find a **permissive Go project** with similar agentic patterns,
 evaluate it - reference code accelerates implementation even when patterns
 are already documented.
+
+---
+
+### backlite
+
+- **URL**: https://github.com/mikestefanello/backlite
+- **What**: Type-safe, persistent task queues with SQLite backend
+- **Verdict**: USE-AS-IS
+- **License**: MIT
+
+**Why USE-AS-IS**: Already perfectly designed for Fazt's cartridge model:
+- Pure Go core (CGO only in tests, driver-agnostic)
+- Designed specifically for SQLite embedding
+- ~1200 lines, minimal binary impact (~50KB)
+- Type-safe generics, worker pool, retry/backoff
+- Transaction support (add tasks in your app's transaction!)
+
+```go
+// Define task type
+type SendEmail struct {
+    To      string
+    Subject string
+}
+
+func (t SendEmail) Config() backlite.QueueConfig {
+    return backlite.QueueConfig{
+        Name:        "email",
+        MaxAttempts: 3,
+        Backoff:     5 * time.Second,
+    }
+}
+
+// Register and use
+queue := backlite.NewQueue[SendEmail](func(ctx context.Context, t SendEmail) error {
+    return email.Send(t.To, t.Subject)
+})
+client.Register(queue)
+
+// Add tasks (even in transactions!)
+client.Add(SendEmail{To: "user@example.com"}).Tx(tx).Wait(5 * time.Minute).Save()
+```
+
+**Schema** (2 tables, perfect for cartridge):
+```sql
+backlite_tasks (id, queue, task BLOB, wait_until, attempts, ...)
+backlite_tasks_completed (id, queue, succeeded, error, expires_at, ...)
+```
+
+**Key features**:
+- No database polling (notification pattern)
+- Graceful shutdown (wait for workers)
+- Panic recovery (auto-marks failed)
+- Retention policies (keep failed tasks for debugging)
+- Optional web UI (skip - Fazt has admin)
+
+**Fazt applicability**: HIGH - Runtime layer
+- Queue notification emails during deployments
+- Schedule background cleanup tasks
+- Process webhooks asynchronously
+- Any "do this later" pattern
+
+---
+
+### gortsplib
+
+- **URL**: https://github.com/bluenviron/gortsplib
+- **What**: Pure Go RTSP client/server for IP cameras
+- **Verdict**: USE-AS-IS
+- **License**: MIT
+
+**Why USE-AS-IS**: THE standard for RTSP in Go:
+- Pure Go (~23k lines, no CGO)
+- Written for MediaMTX (popular media server)
+- IP cameras speak RTSP natively
+- pion/* deps overlap with pion/webrtc (no extra cost)
+
+**Features**:
+- Client: read streams from IP cameras (UDP, TCP, multicast)
+- Server: re-stream to multiple clients
+- RTSPS/TLS, RTSP-over-HTTP, RTSP-over-WebSocket
+- Auto transport protocol switching
+
+**Binary impact**: ~800KB (with mediacommon codec lib)
+
+```go
+// Connect to IP camera
+client := gortsplib.Client{}
+client.Start("rtsp://camera.local:554/stream")
+
+// Read frames
+client.OnPacketRTP = func(medi *media.Media, pkt *rtp.Packet) {
+    // Decode frame, send to VLM for perception
+    fazt.events.Emit("sensor.camera.frame", frame)
+}
+```
+
+**Fazt applicability**: HIGH - Sensors layer
+- Read IP camera streams (RTSP is standard protocol)
+- Pipe frames to VLM for perception (Percept layer)
+- Re-stream to browsers via WebRTC
+- Events: `sensor.camera.frame`
+
+---
+
+### mochi-mqtt
+
+- **URL**: https://github.com/mochi-mqtt/server
+- **What**: Embeddable MQTT v5 broker for IoT/telemetry
+- **Verdict**: USE-AS-IS
+- **License**: MIT
+
+**Why USE-AS-IS**: Standard IoT protocol, designed for embedding:
+- Pure Go core (~11k lines, no CGO)
+- Full MQTT v5 + v3.1.1 compatibility
+- Heavy deps (badger, redis, etc.) are OPTIONAL hooks
+- Hook system allows custom SQLite persistence
+
+**Dependency architecture**:
+```
+Core (always):     stdlib + gorilla/websocket + rs/xid
+Optional hooks:    badger, bolt, pebble, redis (don't import = no deps)
+```
+
+**Binary impact**: ~500KB (core only)
+
+```go
+// Embed MQTT broker in Fazt
+server := mqtt.New(nil)
+server.AddHook(new(FaztSqliteHook), nil)  // Custom storage
+server.AddListener(listeners.NewTCP("tcp", ":1883", nil))
+server.Serve()
+
+// Sensors publish to: sensors/{node_id}/{type}
+// Payload: {"value": 22.5, "unit": "celsius"}
+```
+
+**Fazt applicability**: HIGH - Sensors layer
+- Standard MQTT protocol (sensors speak this)
+- Sensors publish readings, Fazt subscribes
+- Write SQLite storage hook for cartridge persistence
+- Events: `mqtt.message`, `mqtt.client.connected`
+
+---
+
+### peerdiscovery
+
+- **URL**: https://github.com/schollz/peerdiscovery
+- **What**: Pure-Go UDP multicast local peer discovery
+- **Verdict**: USE-AS-IS
+- **License**: MIT
+
+**Why USE-AS-IS**: Exactly what Fazt's Beacon needs for mesh discovery:
+- Pure Go (~450 lines, uses golang.org/x/net for multicast)
+- Custom payloads (for node identity, capabilities, load)
+- Callbacks: `Notify` (peer found), `NotifyLost` (peer gone)
+- IPv4 + IPv6 dual-stack support
+- Peer garbage collection built-in
+
+```go
+// Long-running discovery with callbacks
+pd, _ := peerdiscovery.NewPeerDiscovery(peerdiscovery.Settings{
+    Payload: []byte(`{"node":"fazt-abc123","caps":["hosting","ai"]}`),
+    Notify: func(d peerdiscovery.Discovered) {
+        fmt.Printf("Found: %s\n", d.Address)
+    },
+    NotifyLost: func(lp peerdiscovery.LostPeer) {
+        fmt.Printf("Lost: %s\n", lp.Address)
+    },
+})
+```
+
+**How it works**:
+1. Broadcast on UDP multicast (default 239.255.255.250:9999)
+2. Listen for other peers broadcasting
+3. Exchange custom payloads (JSON node info)
+4. GC removes peers not seen recently
+
+**Fazt applicability**: HIGH - Mesh layer (Beacon)
+- Discover other Fazt nodes on local network
+- Exchange node identity + capabilities
+- Feed discovered peers into mesh topology
+- Events: `beacon.peer.found`, `beacon.peer.lost`
+
+---
+
+### pion/webrtc
+
+- **URL**: https://github.com/pion/webrtc
+- **What**: Pure Go WebRTC implementation (P2P, NAT traversal)
+- **Verdict**: USE-AS-IS
+- **License**: MIT
+
+**Why USE-AS-IS**: THE standard for P2P in Go, essential for mesh vision:
+- Pure Go (~80k lines across pion/* ecosystem)
+- NAT traversal (ICE) - critical for WAN mesh
+- Browser ↔ Fazt node real-time communication
+- Encrypted P2P data channels
+- Audio/video streaming capability
+
+**Binary impact**: ~3-4MB (acceptable for platform scope)
+
+**Pion is modular** - can import pieces:
+- `pion/ice` (~500KB) - just NAT traversal
+- `pion/datachannel` - just data channels
+- `pion/stun` - just STUN protocol
+
+**Fazt applicability**: HIGH - Mesh + Sensors + Admin
+- Mesh: P2P connectivity across NAT boundaries
+- Sensors: Video streaming to browsers
+- Admin: Real-time browser ↔ node communication
+- Chirp: Audio data channel
 
 ---
 

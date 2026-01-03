@@ -9,6 +9,17 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Task, WebFetch, WebSearch
 **Context**: Read `koder/philosophy/VISION.md` to understand what Fazt is—
 sovereign compute infrastructure, not just a PaaS.
 
+## Critical Framing
+
+**Evaluate against Fazt's VISION, not current implementation state.**
+
+The roadmap versions (v0.7, v0.12, v0.16, etc.) are PLANNED capabilities.
+When analyzing a library, ask: "Does this align with where Fazt is going?"
+NOT: "Is Fazt ready for this yet?"
+
+DEFER is for libraries that don't fit Fazt's vision or have blockers.
+DEFER is NOT for "Fazt hasn't implemented that layer yet."
+
 ## The "Lite" Philosophy
 
 Fazt has a pattern of **lite implementations**:
@@ -131,7 +142,6 @@ VERDICT: EXTRACT
 Name: [fazt-compatible name]
 Type: primitive | service | lib
 Layer: kernel | runtime | services | lib
-Version: v0.X
 
 What: [one sentence]
 Why: [value proposition for Fazt users]
@@ -140,7 +150,7 @@ Extraction Ratio: [X% of original features]
 Value Ratio: [Y% of original value retained]
 
 Next Steps:
-1. Create spec at koder/ideas/specs/v0.X-*/[name].md
+1. Create spec at koder/ideas/specs/[name].md
 2. Update SURFACE.md
 3. [any prototype/POC suggestions]
 ```
@@ -166,16 +176,20 @@ Revisit If:
 ```
 
 ### DEFER Verdict
-If interesting but not ready:
+If library has genuine blockers (NOT "Fazt isn't there yet"):
 
 ```
 VERDICT: DEFER
 
-Reason: [why not now]
+Reason: [genuine blocker - e.g., "requires CGO rewrite", "API unstable"]
 
 Blocking On:
-- [prerequisite 1]
-- [prerequisite 2]
+- [technical prerequisite - e.g., "needs pure Go port"]
+- [external factor - e.g., "license unclear"]
+
+NOT valid reasons for DEFER:
+- "Fazt is at v0.7 and this is for v0.16" (WRONG)
+- "Mesh isn't implemented yet" (WRONG)
 
 Track In: [where to note this for future]
 ```
@@ -244,12 +258,16 @@ Next Steps:
 
 ## Important Guidelines
 
-1. **Be skeptical by default** - Most extractions don't make sense
-2. **Validate the need first** - Does Fazt actually need this capability?
-3. **Prefer composition** - Can existing primitives achieve this?
-4. **Check for prior art** - Is there already a pure Go implementation?
-5. **Size matters** - What's the binary size impact?
-6. **Never for the sake of it** - Only extract if there's clear value
+1. **Evaluate against VISION** - Does it align with Fazt's direction?
+2. **Be skeptical by default** - Most extractions don't make sense
+3. **Validate the need** - Does Fazt's vision need this capability?
+4. **Prefer composition** - Can existing primitives achieve this?
+5. **Check for prior art** - Is there already a pure Go implementation?
+6. **Size matters** - What's the binary size impact?
+7. **Never for the sake of it** - Only extract if there's clear value
+
+**Remember**: Roadmap versions are PLANS. Don't reject libraries because
+"Fazt isn't at that version yet."
 
 ## Anti-Patterns to Avoid
 
@@ -258,6 +276,8 @@ Next Steps:
 - Adding features Fazt users won't use
 - Breaking the single-binary promise
 - Introducing CGO "just for this one thing"
+- **Deferring because "Fazt is at v0.X"** - roadmap is a PLAN
+- Treating roadmap versions as current implementation state
 
 ## Output Format
 
