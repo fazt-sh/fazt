@@ -14,14 +14,40 @@ Prometheus, Datadog). Rather than replace them, integrate with them.
 
 **Philosophy alignment:**
 - Single binary: Metrics export is ~100 lines, no deps
-- JSON everywhere: `/api/metrics` is text, but `fazt.kernel.metrics()` returns JSON
+- JSON everywhere: `/api/metrics` returns JSON by default
 - Events as spine: Metrics are derived from event stream
 
-## Endpoint
+## Endpoints
 
 ```
-GET /api/metrics
+GET /api/metrics       # JSON (default)
+GET /api/metrics.text  # OpenMetrics/Prometheus format
 ```
+
+### JSON Response (default)
+
+```json
+{
+  "uptime_seconds": 86423,
+  "storage_bytes": 104857600,
+  "memory_bytes": { "heap": 52428800, "stack": 1048576 },
+  "goroutines": 42,
+  "apps_total": 12,
+  "requests": {
+    "blog": { "200": 12453, "404": 23 },
+    "api": { "200": 8901 }
+  },
+  "request_duration": {
+    "blog": { "p50": 0.005, "p95": 0.08, "p99": 0.15 }
+  },
+  "events": {
+    "http.request": 21354,
+    "deploy.complete": 47
+  }
+}
+```
+
+### OpenMetrics Response (.text)
 
 Returns OpenMetrics format (Prometheus-compatible):
 
@@ -143,12 +169,12 @@ scrape_configs:
     static_configs:
       - targets: ['fazt.example.com:443']
     scheme: https
-    metrics_path: /api/metrics
+    metrics_path: /api/metrics.text
 ```
 
 ## Authentication
 
-The `/api/metrics` endpoint requires authentication by default:
+Both endpoints require authentication by default:
 
 ```bash
 # Enable public metrics (not recommended for production)
@@ -156,11 +182,12 @@ fazt config set metrics.public true
 
 # Use bearer token
 curl -H "Authorization: Bearer $TOKEN" https://fazt.example.com/api/metrics
+curl -H "Authorization: Bearer $TOKEN" https://fazt.example.com/api/metrics.text
 ```
 
 ## Implementation Notes
 
-Uses Go's `expvar` pattern internally, formatted to OpenMetrics on output:
+Uses Go's `expvar` pattern internally:
 
 ```go
 type Metrics struct {
@@ -171,8 +198,13 @@ type Metrics struct {
 }
 
 func (m *Metrics) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-    w.Header().Set("Content-Type", "text/plain; version=0.0.4")
-    m.writeOpenMetrics(w)
+    if strings.HasSuffix(r.URL.Path, ".text") {
+        w.Header().Set("Content-Type", "text/plain; version=0.0.4")
+        m.writeOpenMetrics(w)
+    } else {
+        w.Header().Set("Content-Type", "application/json")
+        m.writeJSON(w)
+    }
 }
 ```
 
