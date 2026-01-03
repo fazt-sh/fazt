@@ -50,6 +50,18 @@ const sessions = await fazt.storage.kv.list('user:123:');
 
 **Implementation**: SQLite table with key/value/expiry columns.
 
+**State Prefix Convention** (pattern from Google ADK):
+```
+app:key    → shared across all users of an app
+user:key   → shared across a user's sessions
+temp:key   → in-memory only, auto-expires
+key        → session-scoped (default)
+```
+
+Single API (`kv.get/set`), automatic scoping via prefix. Useful for harness
+agents that need hierarchical state. See `koder/ideas/lite-extractions.md`
+(go-adk PATTERN verdict).
+
 ### 2. Document Store (`ds`)
 
 JSON document storage with query support.
@@ -186,3 +198,25 @@ For document store queries:
 | `$lt`       | Less than      | `{ age: { $lt: 65 } }`                |
 | `$in`       | In array       | `{ role: { $in: ['admin', 'mod'] } }` |
 | `$contains` | Array contains | `{ tags: { $contains: 'featured' } }` |
+
+## Advanced Schema Patterns
+
+Reference: [Redka](https://github.com/nalgeon/redka) (BSD-3, Redis-on-SQLite)
+demonstrates patterns for SQL-backed data structures. Key patterns for future
+extensions (see `koder/ideas/lite-extractions.md` PATTERN verdict):
+
+1. **Unified key metadata table**: Single `rkey` table tracks key existence,
+   type, TTL, length. Type-specific tables (string, list, set, hash) hold
+   values with foreign key to `rkey`. `ON DELETE CASCADE` handles cleanup.
+
+2. **Real-valued list positions**: Use `REAL` for position instead of `INTEGER`.
+   Insert between pos=1.0 and pos=2.0 → use pos=1.5. O(1) insertions anywhere.
+
+3. **View-based TTL filtering**: Create views that auto-filter expired keys:
+   `WHERE etime IS NULL OR etime > unixepoch('subsec')`. Background GC cleans.
+
+4. **Trigger-maintained consistency**: Database triggers update derived values
+   (e.g., list length) so application code stays simple.
+
+Adopt these patterns if extending KV to richer data structures (lists, sets,
+sorted sets, hashes) while maintaining SQLite-first architecture.

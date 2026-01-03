@@ -156,3 +156,68 @@ module.exports = async function(request) {
     }
 };
 ```
+
+## Implementation Patterns
+
+Reference: [Crush](https://github.com/charmbracelet/crush) (FSL license -
+patterns extractable, not code). See `koder/ideas/lite-extractions.md` for
+detailed pattern analysis.
+
+### Skills Discovery
+
+Extensible agent capabilities via filesystem:
+
+```
+~/.config/fazt/skills/      # Global skills
+./my-harness/skills/        # App-local skills
+
+skill-name/
+  SKILL.md                  # YAML frontmatter + instructions
+  helper.js                 # Optional supporting files
+```
+
+**Skill file format** (agentskills.io spec):
+```markdown
+---
+name: code-review
+description: Review code for security issues
+---
+When asked to review code, check for:
+1. SQL injection vulnerabilities
+2. XSS in user input handling
+...
+```
+
+Skills are discovered at startup, injected into system prompt as structured
+context. Enables project-specific agent customization without code changes.
+
+### Permission Request/Grant Flow
+
+Block tool execution until user approves (for interactive mode):
+
+```
+Agent calls tool → PermissionService blocks → UI prompts user → Grant/Deny
+```
+
+Optimization layers:
+1. **Allowlist**: Auto-approve safe operations (read, list, search)
+2. **Session memory**: Same tool+path → auto-approve for session
+3. **YOLO mode**: Skip all prompts (dangerous, opt-in)
+
+### Multi-LSP Routing
+
+Route files to correct language server by extension:
+
+```go
+type LSPRouter struct {
+    clients map[string]*LSPClient  // ".go" → gopls, ".ts" → tsserver
+}
+
+func (r *LSPRouter) GetClient(path string) *LSPClient {
+    ext := filepath.Ext(path)
+    return r.clients[ext]
+}
+```
+
+State per client: open files, cached diagnostics, server health.
+Use `modelcontextprotocol/go-sdk` (Apache 2.0) for MCP integration.
