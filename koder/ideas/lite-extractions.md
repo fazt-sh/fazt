@@ -49,6 +49,7 @@ for personal-scale use cases. Examples: ipfs-lite, vector-lite, wireguard-go.
 | 2026-01-03 | upper/db      | NO-GO     | Multi-DB abstraction, SQLite-only|
 | 2026-01-03 | periph.io     | SKIP      | Already in SENSORS.md spec       |
 | 2026-01-03 | mcp-go-sdk    | SKIP      | Already referenced, planned      |
+| 2026-01-03 | go-chi/chi    | PATTERN   | URL format extension middleware  |
 
 ## Note: Patterns vs Code
 
@@ -740,3 +741,82 @@ scratch data. 20% cost, 80% value.
 
 **Why NO-GO**: Wants to own execution model; Fazt uses simple
 imperative functions. Framework, not extractable library.
+
+---
+
+### go-chi/chi URLFormat
+
+- **URL**: https://github.com/go-chi/chi/blob/master/middleware/url_format.go
+- **What**: Middleware to extract format from URL extension
+- **Verdict**: PATTERN
+- **License**: MIT
+
+**Why PATTERN not USE-AS-IS**: chi is a full router framework. The
+pattern is ~30 lines and trivial to reimplement without the dependency.
+
+---
+
+#### The Pattern: URL Format Extension Middleware
+
+**Problem**: Support content negotiation via URL extensions (`.json`, `.txt`,
+`.csv`) without defining separate routes for each format.
+
+**Solution**:
+```go
+func URLFormat(next http.Handler) http.Handler {
+    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        ext := filepath.Ext(r.URL.Path)
+        if ext != "" && len(ext) < 6 { // sanity check
+            // Strip extension from routing path
+            r.URL.Path = strings.TrimSuffix(r.URL.Path, ext)
+            // Store format in context (without dot)
+            ctx := context.WithValue(r.Context(), FormatCtxKey, ext[1:])
+            r = r.WithContext(ctx)
+        }
+        next.ServeHTTP(w, r)
+    })
+}
+
+// Helper to retrieve format
+func GetFormat(r *http.Request) string {
+    if f, ok := r.Context().Value(FormatCtxKey).(string); ok {
+        return f
+    }
+    return "" // empty = default (JSON)
+}
+```
+
+**Usage in handler**:
+```go
+func MetricsHandler(w http.ResponseWriter, r *http.Request) {
+    metrics := collectMetrics()
+
+    switch GetFormat(r) {
+    case "txt":
+        w.Header().Set("Content-Type", "text/plain")
+        writeOpenMetrics(w, metrics)
+    default: // "", "json"
+        w.Header().Set("Content-Type", "application/json")
+        json.NewEncoder(w).Encode(metrics)
+    }
+}
+```
+
+**How it works**:
+1. Middleware intercepts request before routing
+2. Extracts extension (`.txt`, `.json`, `.csv`, etc.)
+3. Strips extension from `r.URL.Path` so routes match normally
+4. Stores format string in context for handlers to read
+5. Handler switches on format, defaults to JSON if empty
+
+**Benefits**:
+- Single route definition (`/api/metrics`) handles all formats
+- Clean URLs: `/api/metrics.txt` not `/api/metrics?format=txt`
+- Composable: add new formats without changing routes
+- ~30 lines, zero deps beyond stdlib
+
+**Fazt applicability**: HIGH
+- Enables "Format Extensions" convention documented in SURFACE.md
+- `/api/metrics` → JSON, `/api/metrics.txt` → OpenMetrics
+- Future: `/api/data.csv`, `/api/doc.md`, `/api/page.html`
+- Trivial cost (~30 lines), significant API elegance
