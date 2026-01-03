@@ -20,6 +20,21 @@ Fazt has a pattern of **lite implementations**:
 **The pattern**: Extract 5-20% of features that provide 80%+ of value
 for personal-scale use cases.
 
+## Beyond Code: Patterns & Conventions
+
+Not every extraction is code. Sometimes the value is in:
+
+| Extraction Type | Example | Output |
+|-----------------|---------|--------|
+| **Design pattern** | ADK's state prefix (`app:`, `user:`, `temp:`) | Convention to adopt |
+| **API shape** | How library X structures its interface | Inspiration for Fazt API |
+| **Schema design** | How project Y models relationships | SQLite schema pattern |
+| **Algorithm** | Core logic without the framework | Pseudocode/spec |
+| **Convention** | Naming, organization, defaults | Documentation |
+
+**Always ask**: Even if we can't extract code, is there a pattern,
+convention, or design decision worth learning from?
+
 ## Input
 
 The user will provide one of:
@@ -48,6 +63,8 @@ The user will provide one of:
 - What are the core primitives vs convenience wrappers?
 - What's the minimum viable subset?
 - What would break Fazt's constraints (CGO, external deps)?
+- **Beyond code**: What design patterns, conventions, or API shapes are
+  interesting even if the code itself isn't extractable?
 
 ## Phase 2: Extraction Analysis
 
@@ -160,6 +177,39 @@ Blocking On:
 Track In: [where to note this for future]
 ```
 
+### PATTERN Verdict
+If code extraction doesn't fit, but there's a valuable pattern:
+
+```
+VERDICT: PATTERN
+
+Pattern: [name of pattern]
+From: [source project/library]
+
+What It Solves:
+- [problem 1]
+- [problem 2]
+
+The Pattern:
+[Clear description of the design pattern, convention, or approach]
+
+Fazt Applicability:
+- Current relevance: [high/medium/low]
+- When it matters: [conditions where this becomes important]
+
+Adoption Options:
+1. [Full adoption - what it would look like]
+2. [Lighter version - 20% cost, 80% value]
+3. [Document only - reference for future]
+
+Recommendation: [which option and why]
+
+Next Steps:
+- [Document in philosophy/patterns]
+- [Add to future considerations]
+- [Prototype lighter version]
+```
+
 ## Important Guidelines
 
 1. **Be skeptical by default** - Most extractions don't make sense
@@ -184,8 +234,10 @@ Present findings conversationally:
 1. **What I Found**: Summary of the library/project
 2. **Core Capabilities**: What it actually does
 3. **Extraction Opportunity**: What subset makes sense (or doesn't)
-4. **Verdict**: GO / NO-GO / DEFER with reasoning
-5. **If GO**: Proposed spec outline
+4. **Patterns Worth Noting**: Design patterns, conventions, API shapes
+5. **Verdict**: EXTRACT / NO-GO / DEFER / PATTERN with reasoning
+6. **Next Steps**: Spec outline, pattern documentation, or future reference
 
 Be honest if something doesn't fit.
 "This is cool but doesn't belong in Fazt" is a valid conclusion.
+"No code to extract, but here's a pattern worth learning" is equally valid.
