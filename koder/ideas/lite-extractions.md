@@ -24,22 +24,20 @@ for personal-scale use cases. Examples: ipfs-lite, vector-lite, wireguard-go.
 
 | Date       | Project     | Verdict | Reason                           |
 |------------|-------------|---------|----------------------------------|
-| 2026-01-03 | go-crush    | NO-GO   | FSL license prohibits competing  |
+| 2026-01-03 | go-crush    | PATTERN | Skills, permissions, LSP routing |
 | 2026-01-03 | go-lingoose | EXTRACT | Text splitter + cosine algos    |
 | 2026-01-03 | go-adk      | PATTERN | State prefix pattern worth study |
 | 2026-01-03 | go-eino     | NO-GO   | Framework vs library mismatch    |
 
-## Wanted: Permissive Agentic Skills
+## Note: Patterns vs Code
 
-The **Agent Skills** pattern (agentskills.io) is interesting but go-crush's
-implementation is FSL-licensed. Looking for permissive alternatives:
+Patterns (architectural approaches, designs) are **always extractable** -
+ideas aren't copyrightable. Even from restrictively-licensed projects like
+go-crush (FSL), we document patterns for independent implementation.
 
-- Skills discovery from filesystem
-- SKILL.md parsing (YAML frontmatter + instructions)
-- Skill injection into system prompt
-- Permission request/grant flow
-
-If you find a permissive Go project with similar patterns, evaluate it!
+If you find a **permissive Go project** with similar agentic patterns,
+evaluate it - reference code accelerates implementation even when patterns
+are already documented.
 
 ---
 
@@ -47,45 +45,147 @@ If you find a permissive Go project with similar patterns, evaluate it!
 
 - **URL**: https://github.com/charmbracelet/crush
 - **What**: Charm's AI coding assistant CLI (like Claude Code)
-- **Verdict**: NO-GO
-- **License**: FSL-1.1-MIT (Functional Source License)
+- **Verdict**: PATTERN (code NO-GO due to license)
+- **License**: FSL-1.1-MIT (restricts competing use)
 
-**Why NO-GO**: License explicitly prohibits "Competing Use" - products
-offering "same or substantially similar functionality." Fazt's agentic
-features (v0.12 ai-shim, harness, mcp) would likely trigger this.
+**Why PATTERN not EXTRACT**: FSL license prohibits copying code for
+competing products. But patterns are ideas - not copyrightable. These
+architectural approaches can be implemented independently.
 
-**Interesting patterns observed** (implement independently, don't copy):
+---
 
-1. **Agent Skills** (spec at agentskills.io)
-   ```
-   SKILL.md with YAML frontmatter:
-   ---
-   name: skill-name
-   description: What it does
-   ---
-   Instructions for the agent...
-   ```
-   Discovery walks configured paths, finds SKILL.md, injects into prompt.
+#### Pattern 1: Agent Skills Discovery
 
-2. **Permission Request Flow**
-   ```
-   Request() blocks → pubsub notifies UI → user grants/denies → unblocks
-   GrantPersistent() remembers for session
-   ```
+**Problem**: Allow extensible agent capabilities via filesystem.
 
-3. **Multi-LSP Routing**
-   ```
-   Each LSP client declares fileTypes it handles
-   HandlesFile(path) routes by extension
-   ```
+**Solution**:
+```
+1. Define skill locations: ~/.config/app/skills/, ./project-skills/
+2. Walk directories, find SKILL.md files
+3. Parse: YAML frontmatter (metadata) + markdown body (instructions)
+4. Validate: name format, required fields, length limits
+5. Inject into system prompt as structured XML
+```
 
-**What to do instead:**
-- Agent Skills: Implement from open spec (agentskills.io)
-- LSP: Use `charmbracelet/x/powernap` directly (MIT)
-- MCP: Use `modelcontextprotocol/go-sdk` directly (Apache 2.0)
+**Skill file format** (agentskills.io spec):
+```markdown
+---
+name: skill-name           # alphanumeric + hyphens, matches dirname
+description: What it does  # Required, <1024 chars
+license: MIT               # Optional
+compatibility: "..."       # Optional, <500 chars
+metadata:                  # Optional key-value
+  author: someone
+---
+Instructions for the agent to follow when this skill is activated.
+Can reference files in the skill directory.
+```
 
-**Revisit if**: FSL converts to MIT (happens 2 years after release per FSL
-terms), or Charm releases packages separately under permissive license.
+**Prompt injection**:
+```xml
+<available_skills>
+  <skill>
+    <name>skill-name</name>
+    <description>What it does</description>
+    <location>/path/to/skill</location>
+  </skill>
+</available_skills>
+```
+
+**Fazt applicability**: HIGH - matches managed skills concept in harness.md
+
+---
+
+#### Pattern 2: Permission Request/Grant Flow
+
+**Problem**: Block tool execution until user approves, with memory.
+
+**Solution**:
+```
+┌─────────┐     ┌─────────┐     ┌─────────┐
+│  Agent  │────▶│ PermSvc │────▶│   UI    │
+│  calls  │     │ Request │     │ prompts │
+│  tool   │     │ blocks  │     │  user   │
+└─────────┘     └────┬────┘     └────┬────┘
+                     │               │
+                     │◀──────────────┘
+                     │  Grant/Deny
+                     ▼
+              ┌─────────────┐
+              │  Unblock    │
+              │  caller     │
+              └─────────────┘
+```
+
+**Key components**:
+```go
+type PermissionRequest struct {
+    ID          string
+    ToolName    string    // e.g., "bash", "edit"
+    Action      string    // e.g., "execute", "write"
+    Path        string    // affected path
+    Description string    // human-readable
+}
+
+type Service interface {
+    Request(req) bool           // Blocks until decision
+    Grant(req)                  // One-time approval
+    GrantPersistent(req)        // Remember for session
+    Deny(req)
+}
+```
+
+**Optimization layers**:
+1. Allowlist: `["view", "ls", "grep"]` - auto-approve
+2. Session memory: Same tool+action+path → auto-approve
+3. YOLO mode: Skip all prompts (dangerous)
+
+**Fazt applicability**: MEDIUM - relevant for interactive CLI mode
+
+---
+
+#### Pattern 3: Multi-LSP Routing
+
+**Problem**: Route files to correct LSP server by type.
+
+**Solution**:
+```go
+type LSPClient struct {
+    name      string      // "gopls", "typescript-language-server"
+    fileTypes []string    // [".go"], [".ts", ".tsx"]
+    // ...
+}
+
+func (c *LSPClient) HandlesFile(path string) bool {
+    ext := filepath.Ext(path)
+    return slices.Contains(c.fileTypes, ext)
+}
+
+// Router finds appropriate LSP for a file
+func (r *Router) GetClient(path string) *LSPClient {
+    for _, client := range r.clients {
+        if client.HandlesFile(path) {
+            return client
+        }
+    }
+    return nil
+}
+```
+
+**State management per client**:
+- `openFiles` map: track which files are open
+- `diagnostics` versioned map: cache diagnostics, detect changes
+- `serverState`: Starting → Ready → Error
+
+**Fazt applicability**: HIGH - needed for LSP integration in v0.12
+
+---
+
+**Implementation approach for Fazt**:
+- Skills: Implement from agentskills.io spec + this pattern
+- Permissions: Implement pattern with Fazt's event system
+- LSP: Use `charmbracelet/x/powernap` (MIT) + this routing pattern
+- MCP: Use `modelcontextprotocol/go-sdk` (Apache 2.0)
 
 ---
 
