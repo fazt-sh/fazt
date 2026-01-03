@@ -18,13 +18,13 @@ monitored from the dashboard.
 
 ## Key Capabilities
 
-| Capability | Description |
-|------------|-------------|
-| `fazt.worker.spawn()` | Create background job |
-| Progress reporting | `job.progress(percent)` |
-| Job queue | SQLite-backed, persistent |
-| Retry policies | Configurable per job |
-| Dead-letter queue | Failed jobs for inspection |
+| Capability            | Description                |
+| --------------------- | -------------------------- |
+| `fazt.worker.spawn()` | Create background job      |
+| Progress reporting    | `job.progress(percent)`    |
+| Job queue             | SQLite-backed, persistent  |
+| Retry policies        | Configurable per job       |
+| Dead-letter queue     | Failed jobs for inspection |
 
 ## Documents
 
@@ -37,9 +37,9 @@ monitored from the dashboard.
 
 ## Difference from Cron
 
-| Cron | Workers |
-|------|---------|
-| Scheduled, recurring | On-demand |
+| Cron                      | Workers                    |
+| ------------------------- | -------------------------- |
+| Scheduled, recurring      | On-demand                  |
 | Short-lived (30s default) | Long-running (30m default) |
-| Fire and forget | Track progress, get result |
-| No queue | Queued, persistent |
+| Fire and forget           | Track progress, get result |
+| No queue                  | Queued, persistent         |

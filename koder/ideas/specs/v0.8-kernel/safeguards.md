@@ -24,28 +24,28 @@ alive over serving requests. A degraded system is better than a dead system.
 
 ### RAM Limits
 
-| Resource | Limit | Rationale |
-|----------|-------|-----------|
-| VFS Cache | 128MB | LRU eviction |
-| Large Files | 5MB | Stream from disk, don't cache |
-| JS Runtime | 64MB per invocation | Terminate if exceeded |
-| Total Heap | 512MB | Leave room for OS |
+| Resource    | Limit               | Rationale                     |
+| ----------- | ------------------- | ----------------------------- |
+| VFS Cache   | 128MB               | LRU eviction                  |
+| Large Files | 5MB                 | Stream from disk, don't cache |
+| JS Runtime  | 64MB per invocation | Terminate if exceeded         |
+| Total Heap  | 512MB               | Leave room for OS             |
 
 ### Disk Limits
 
-| Resource | Limit | Rationale |
-|----------|-------|-----------|
-| DB Size | 80% of partition | Reject writes beyond |
-| Single Upload | 100MB | Prevent disk flood |
-| VFS Total | Configurable | Owner sets limit |
+| Resource      | Limit            | Rationale            |
+| ------------- | ---------------- | -------------------- |
+| DB Size       | 80% of partition | Reject writes beyond |
+| Single Upload | 100MB            | Prevent disk flood   |
+| VFS Total     | Configurable     | Owner sets limit     |
 
 ### Network Limits
 
-| Resource | Limit | Rationale |
-|----------|-------|-----------|
-| Concurrent Connections | 1000 | Prevent FD exhaustion |
-| Request Body | 10MB | Prevent memory flood |
-| Response Timeout | 30s | Prevent hung connections |
+| Resource               | Limit | Rationale                |
+| ---------------------- | ----- | ------------------------ |
+| Concurrent Connections | 1000  | Prevent FD exhaustion    |
+| Request Body           | 10MB  | Prevent memory flood     |
+| Response Timeout       | 30s   | Prevent hung connections |
 
 ## Circuit Breakers
 
@@ -121,13 +121,13 @@ func (k *Kernel) RequestGuard(r *http.Request) bool {
 
 ## Degradation Modes
 
-| Mode | Behavior |
-|------|----------|
-| **Normal** | Full functionality |
-| **Degraded** | VFS cache disabled, stream from disk |
-| **Read-Only** | No writes, analytics dropped |
-| **Cockpit-Only** | Only admin + auth work |
-| **Emergency** | Graceful shutdown initiated |
+| Mode             | Behavior                             |
+| ---------------- | ------------------------------------ |
+| **Normal**       | Full functionality                   |
+| **Degraded**     | VFS cache disabled, stream from disk |
+| **Read-Only**    | No writes, analytics dropped         |
+| **Cockpit-Only** | Only admin + auth work               |
+| **Emergency**    | Graceful shutdown initiated          |
 
 ## Monitoring Endpoints
 

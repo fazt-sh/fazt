@@ -226,25 +226,26 @@ fazt config set timekeeper.minPeers 1
 
 ## Limits
 
-| Limit | Default |
-|-------|---------|
-| `syncInterval` | 60s |
-| `peerTimeout` | 2s |
-| `maxPeers` | 10 (for consensus) |
-| `outlierThreshold` | 2.0 std dev |
-| `minConfidence` | 0.5 (below this, use system time) |
-| `maxDrift` | 1 hour (beyond this, warn user) |
+| Limit              | Default                           |
+| ------------------ | --------------------------------- |
+| `syncInterval`     | 60s                               |
+| `peerTimeout`      | 2s                                |
+| `maxPeers`         | 10 (for consensus)                |
+| `outlierThreshold` | 2.0 std dev                       |
+| `minConfidence`    | 0.5 (below this, use system time) |
+| `maxDrift`         | 1 hour (beyond this, warn user)   |
 
 ## Accuracy Expectations
 
-| Condition | Expected Accuracy |
-|-----------|-------------------|
-| NTP available | < 100ms (system handles) |
-| 3+ peers, no NTP | ± 30 seconds |
-| 1-2 peers, no NTP | ± 60 seconds |
-| No peers, no NTP | Degrading (system clock drift) |
+| Condition         | Expected Accuracy              |
+| ----------------- | ------------------------------ |
+| NTP available     | < 100ms (system handles)       |
+| 3+ peers, no NTP  | ± 30 seconds                   |
+| 1-2 peers, no NTP | ± 60 seconds                   |
+| No peers, no NTP  | Degrading (system clock drift) |
 
-This is intentionally coarse. Goal is preventing hours of drift, not millisecond precision.
+This is intentionally coarse. Goal is preventing hours of drift,
+not millisecond precision.
 
 ## Security Considerations
 

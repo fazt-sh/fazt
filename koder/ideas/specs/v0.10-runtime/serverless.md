@@ -183,12 +183,12 @@ module.exports = async function(request) {
 
 ## Resource Limits
 
-| Limit | Value | Rationale |
-|-------|-------|-----------|
-| Execution time | 30s | Prevent hung requests |
-| Memory | 64MB | Protect overall system |
-| File size | 1MB | Prevent giant scripts |
-| Require depth | 10 | Prevent circular imports |
+| Limit          | Value | Rationale                |
+| -------------- | ----- | ------------------------ |
+| Execution time | 30s   | Prevent hung requests    |
+| Memory         | 64MB  | Protect overall system   |
+| File size      | 1MB   | Prevent giant scripts    |
+| Require depth  | 10    | Prevent circular imports |
 
 ## Invocation Modes
 

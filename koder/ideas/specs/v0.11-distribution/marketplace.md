@@ -157,9 +157,9 @@ CREATE TABLE apps (
 
 ### Source Types
 
-| Type | Description | Example |
-|------|-------------|---------|
-| `personal` | Deployed via CLI | `fazt deploy ./my-site` |
+| Type          | Description         | Example                 |
+| ------------- | ------------------- | ----------------------- |
+| `personal`    | Deployed via CLI    | `fazt deploy ./my-site` |
 | `marketplace` | Installed from repo | `fazt app install blog` |
 
 ## Update Detection

@@ -71,15 +71,15 @@ Hooks is a convenience layer, not a core primitive:
 
 ### Supported Providers
 
-| Provider | Signature Method | Status |
-|----------|-----------------|--------|
-| Stripe | `Stripe-Signature` header (HMAC-SHA256) | Primary |
-| GitHub | `X-Hub-Signature-256` header (HMAC-SHA256) | Primary |
-| Shopify | `X-Shopify-Hmac-Sha256` header | Primary |
-| Paddle | `Paddle-Signature` header | Planned |
-| Twilio | Request validation | Planned |
-| Slack | `X-Slack-Signature` header | Planned |
-| Custom | Configurable or none | Primary |
+| Provider | Signature Method                           | Status  |
+| -------- | ------------------------------------------ | ------- |
+| Stripe   | `Stripe-Signature` header (HMAC-SHA256)    | Primary |
+| GitHub   | `X-Hub-Signature-256` header (HMAC-SHA256) | Primary |
+| Shopify  | `X-Shopify-Hmac-Sha256` header             | Primary |
+| Paddle   | `Paddle-Signature` header                  | Planned |
+| Twilio   | Request validation                         | Planned |
+| Slack    | `X-Slack-Signature` header                 | Planned |
+| Custom   | Configurable or none                       | Primary |
 
 ### Configuration
 
@@ -174,13 +174,13 @@ CREATE INDEX idx_hook_events_status ON hook_events(status);
 
 Failed handlers are retried with exponential backoff:
 
-| Attempt | Delay |
-|---------|-------|
-| 1 | Immediate |
-| 2 | 1 minute |
-| 3 | 5 minutes |
-| 4 | 30 minutes |
-| 5 | 2 hours |
+| Attempt | Delay      |
+| ------- | ---------- |
+| 1       | Immediate  |
+| 2       | 1 minute   |
+| 3       | 5 minutes  |
+| 4       | 30 minutes |
+| 5       | 2 hours    |
 
 After 5 failures, event is marked `failed` and owner is notified.
 
@@ -572,15 +572,15 @@ await fazt.services.hooks.emit('order.created', {
 
 ## Limits
 
-| Limit | Default |
-|-------|---------|
-| Max inbound payload size | 1 MB |
-| Max outbound payload size | 256 KB |
-| Event retention | 30 days |
-| Delivery retention | 7 days |
-| Max registered hooks per app | 50 |
-| Max retries | 5 |
-| Timeout per delivery | 30 seconds |
+| Limit                        | Default    |
+| ---------------------------- | ---------- |
+| Max inbound payload size     | 1 MB       |
+| Max outbound payload size    | 256 KB     |
+| Event retention              | 30 days    |
+| Delivery retention           | 7 days     |
+| Max registered hooks per app | 50         |
+| Max retries                  | 5          |
+| Timeout per delivery         | 30 seconds |
 
 ## Implementation Notes
 

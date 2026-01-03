@@ -8,13 +8,13 @@ be served as styled HTML pages.
 
 ## Capabilities
 
-| Feature | Description |
-|---------|-------------|
-| Compile | Markdown → HTML |
-| Syntax highlighting | Code blocks with Chroma |
-| Shortcodes | Embed components `{{name ...}}` |
-| Classless CSS | Optional styling (Pico, Water, etc.) |
-| Auto-serve | `.md` files served as HTML |
+| Feature             | Description                          |
+| ------------------- | ------------------------------------ |
+| Compile             | Markdown → HTML                      |
+| Syntax highlighting | Code blocks with Chroma              |
+| Shortcodes          | Embed components `{{name ...}}`      |
+| Classless CSS       | Optional styling (Pico, Water, etc.) |
+| Auto-serve          | `.md` files served as HTML           |
 
 ## Usage
 
@@ -61,12 +61,12 @@ To customize, add `_markdown.json` in the directory:
 
 Pre-bundled CSS that styles semantic HTML:
 
-| Theme | Description |
-|-------|-------------|
-| `pico` | Minimal, elegant (default) |
-| `water` | Lightweight, clean |
-| `simple` | Basic, readable |
-| `none` | No CSS, raw HTML |
+| Theme    | Description                |
+| -------- | -------------------------- |
+| `pico`   | Minimal, elegant (default) |
+| `water`  | Lightweight, clean         |
+| `simple` | Basic, readable            |
+| `none`   | No CSS, raw HTML           |
 
 ```javascript
 await fazt.services.markdown.render(content, { css: 'water' });
@@ -198,12 +198,12 @@ Wrap compiled Markdown in a layout:
 
 Template variables:
 
-| Variable | Description |
-|----------|-------------|
-| `{{title}}` | From frontmatter or first H1 |
-| `{{content}}` | Compiled HTML |
-| `{{toc}}` | Table of contents |
-| `{{css}}` | CSS link tag |
+| Variable      | Description                  |
+| ------------- | ---------------------------- |
+| `{{title}}`   | From frontmatter or first H1 |
+| `{{content}}` | Compiled HTML                |
+| `{{toc}}`     | Table of contents            |
+| `{{css}}`     | CSS link tag                 |
 
 ## Frontmatter
 
@@ -344,14 +344,14 @@ See the [API docs](./api.md).
 
 ## Comparison with Hugo
 
-| Feature | Hugo | Fazt Markdown |
-|---------|------|---------------|
-| Compile speed | Fast | Fast (Goldmark) |
-| Templates | Go templates | Simple `{{var}}` |
-| Shortcodes | Yes | Yes (simpler) |
-| Themes | Full theme system | Classless CSS only |
-| Build step | Required | None (on-request) |
-| Complexity | High | Low |
+| Feature       | Hugo              | Fazt Markdown      |
+| ------------- | ----------------- | ------------------ |
+| Compile speed | Fast              | Fast (Goldmark)    |
+| Templates     | Go templates      | Simple `{{var}}`   |
+| Shortcodes    | Yes               | Yes (simpler)      |
+| Themes        | Full theme system | Classless CSS only |
+| Build step    | Required          | None (on-request)  |
+| Complexity    | High              | Low                |
 
 Fazt Markdown is not a Hugo replacement. It's for simple sites that
 don't need a full static site generator.

@@ -543,11 +543,11 @@ await fazt.services.notify.send({
 
 ## Limits
 
-| Limit | Default |
-|-------|---------|
-| Max notifications per hour | 100 (per user) |
-| Max actions per notification | 4 |
-| Max title length | 100 chars |
-| Max body length | 1000 chars |
-| History retention | 30 days |
-| Digest batch size | 50 |
+| Limit                        | Default        |
+| ---------------------------- | -------------- |
+| Max notifications per hour   | 100 (per user) |
+| Max actions per notification | 4              |
+| Max title length             | 100 chars      |
+| Max body length              | 1000 chars     |
+| History retention            | 30 days        |
+| Digest batch size            | 50             |

@@ -112,22 +112,22 @@ GET /_services/barcode?data=HELLO&format=code39&width=300
 
 **QR Parameters:**
 
-| Param | Description | Default |
-|-------|-------------|---------|
-| `data` | Content to encode (required) | - |
-| `size` | Image size in pixels | 256 |
-| `level` | Error correction: L, M, Q, H | M |
-| `fmt` | Output format: png, svg | png |
+| Param   | Description                  | Default |
+| ------- | ---------------------------- | ------- |
+| `data`  | Content to encode (required) | ------- |
+| `size`  | Image size in pixels         | 256     |
+| `level` | Error correction: L, M, Q, H | M       |
+| `fmt`   | Output format: png, svg      | png     |
 
 **Barcode Parameters:**
 
-| Param | Description | Default |
-|-------|-------------|---------|
-| `data` | Content to encode (required) | - |
-| `format` | Barcode format (required) | - |
-| `width` | Image width | 200 |
-| `height` | Image height | 80 |
-| `text` | Show text below: 1/0 | 1 |
+| Param    | Description                  | Default |
+| -------- | ---------------------------- | ------- |
+| `data`   | Content to encode (required) | ------- |
+| `format` | Barcode format (required)    | ------- |
+| `width`  | Image width                  | 200     |
+| `height` | Image height                 | 80      |
+| `text`   | Show text below: 1/0         | 1       |
 
 ## JS API
 
@@ -180,11 +180,11 @@ VFS:
 
 ## Limits
 
-| Limit | Default |
-|-------|---------|
+| Limit           | Default    |
+| --------------- | ---------- |
 | `maxDataLength` | 2048 bytes |
-| `maxSize` | 1024 px |
-| `minSize` | 64 px |
+| `maxSize`       | 1024 px    |
+| `minSize`       | 64 px      |
 
 ## Use Cases
 

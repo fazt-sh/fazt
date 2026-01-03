@@ -93,10 +93,10 @@ Field is not stored.
 
 ### Automatic (No Setup)
 
-| Protection | How |
-|------------|-----|
-| **Origin check** | Rejects POST from different domains |
-| **Rate limit** | 10 submissions/minute per IP (configurable) |
+| Protection       | How                                         |
+| ---------------- | ------------------------------------------- |
+| **Origin check** | Rejects POST from different domains         |
+| **Rate limit**   | 10 submissions/minute per IP (configurable) |
 
 ### Optional Honeypot
 
@@ -118,12 +118,12 @@ Field is not stored.
 
 Fields starting with `_` are special:
 
-| Field | Purpose |
-|-------|---------|
-| `_next` | Redirect URL after submit |
-| `_hp` | Honeypot (reject if filled) |
-| `_submitted` | Auto-added timestamp |
-| `_ip` | Auto-added client IP |
+| Field        | Purpose                     |
+| ------------ | --------------------------- |
+| `_next`      | Redirect URL after submit   |
+| `_hp`        | Honeypot (reject if filled) |
+| `_submitted` | Auto-added timestamp        |
+| `_ip`        | Auto-added client IP        |
 
 ## HTTP Endpoint
 
@@ -152,10 +152,10 @@ Location: /thanks.html
 
 **Errors:**
 
-| Code | Reason |
-|------|--------|
-| 403 | Origin check failed |
-| 429 | Rate limit exceeded |
+| Code | Reason              |
+| ---- | ------------------- |
+| 403  | Origin check failed |
+| 429  | Rate limit exceeded |
 
 ## JS API
 
@@ -195,13 +195,13 @@ CREATE INDEX idx_forms_submitted ON svc_forms(submitted_at DESC);
 
 ## Limits
 
-| Limit | Default |
-|-------|---------|
-| `maxSubmissionsPerForm` | 10,000 |
-| `maxFieldSize` | 64 KB |
-| `maxFieldsPerSubmission` | 100 |
-| `ratePerMinutePerIP` | 10 |
-| `retentionDays` | 90 |
+| Limit                    | Default |
+| ------------------------ | ------- |
+| `maxSubmissionsPerForm`  | 10,000  |
+| `maxFieldSize`           | 64 KB   |
+| `maxFieldsPerSubmission` | 100     |
+| `ratePerMinutePerIP`     | 10      |
+| `retentionDays`          | 90      |
 
 ## CLI
 

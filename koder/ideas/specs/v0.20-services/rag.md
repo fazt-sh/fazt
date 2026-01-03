@@ -441,24 +441,24 @@ async function suggestResolution(newTicket) {
 
 ## Limits
 
-| Limit | Default |
-|-------|---------|
-| Max pipelines per app | 10 |
-| Max sources per pipeline | 100 |
-| Max chunks per pipeline | 100,000 |
-| Max chunk size | 2,000 chars |
-| Max question length | 1,000 chars |
-| Retrieve limit | 20 |
+| Limit                    | Default     |
+| ------------------------ | ----------- |
+| Max pipelines per app    | 10          |
+| Max sources per pipeline | 100         |
+| Max chunks per pipeline  | 100,000     |
+| Max chunk size           | 2,000 chars |
+| Max question length      | 1,000 chars |
+| Retrieve limit           | 20          |
 
 ## Cost Estimation
 
 RAG costs are primarily embedding API calls:
 
-| Operation | Cost (text-embedding-3-small) |
-|-----------|-------------------------------|
-| Ingest 1,000 docs (~500 chunks each) | ~$0.05 |
-| 1,000 questions | ~$0.02 |
-| LLM answers (GPT-4) | ~$0.03 per answer |
+| Operation                            | Cost (text-embedding-3-small) |
+| ------------------------------------ | ----------------------------- |
+| Ingest 1,000 docs (~500 chunks each) | ~$0.05                        |
+| 1,000 questions                      | ~$0.02                        |
+| LLM answers (GPT-4)                  | ~$0.03 per answer             |
 
 For personal use, expect <$1/month.
 

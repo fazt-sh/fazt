@@ -171,13 +171,13 @@ const result = await fazt.sandbox.exec({
 
 ### Available Capabilities
 
-| Capability | Grants |
-|------------|--------|
-| `net:fetch` | `fetch()` function (via proxy) |
-| `storage:kv` | `fazt.storage.kv.*` |
-| `storage:ds` | `fazt.storage.ds.*` |
-| `time:now` | Accurate `Date.now()` |
-| `crypto:random` | `crypto.getRandomValues()` |
+| Capability      | Grants                         |
+| --------------- | ------------------------------ |
+| `net:fetch`     | `fetch()` function (via proxy) |
+| `storage:kv`    | `fazt.storage.kv.*`            |
+| `storage:ds`    | `fazt.storage.ds.*`            |
+| `time:now`      | Accurate `Date.now()`          |
+| `crypto:random` | `crypto.getRandomValues()`     |
 
 ```javascript
 await fazt.sandbox.exec({
@@ -348,13 +348,13 @@ Patterns detected:
 
 ## Limits
 
-| Limit | Default | Max |
-|-------|---------|-----|
-| `timeout` | 5s | 60s |
-| `memoryLimit` | 64 MB | 256 MB |
-| `codeSize` | 100 KB | 1 MB |
-| `outputSize` | 1 MB | 10 MB |
-| `stackDepth` | 100 | 1000 |
+| Limit         | Default | Max    |
+| ------------- | ------- | ------ |
+| `timeout`     | 5s      | 60s    |
+| `memoryLimit` | 64 MB   | 256 MB |
+| `codeSize`    | 100 KB  | 1 MB   |
+| `outputSize`  | 1 MB    | 10 MB  |
+| `stackDepth`  | 100     | 1000   |
 
 ## CLI
 

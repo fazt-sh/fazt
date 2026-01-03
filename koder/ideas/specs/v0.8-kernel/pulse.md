@@ -118,7 +118,7 @@ You are the cognitive core of a Fazt personal cloud instance.
 - Avg latency: {{.AvgLatencyMs}}ms (p99: {{.P99LatencyMs}}ms)
 
 ## Trend Data (15-minute buckets, last 3 hours)
-| Time  | Requests | Errors | CPU  | Memory | Latency |
+| Time | Requests | Errors | CPU | Memory | Latency |
 {{range .History}}
 | {{.Time}} | {{.Requests}} | {{.Errors}} | {{.CPU}}% | {{.Memory}} | {{.Latency}}ms |
 {{end}}
@@ -278,14 +278,14 @@ const memory = fazt.pulse.trend('memory', 24);
 
 Pulse works without AI configured, but in reduced capacity:
 
-| Feature | With AI | Without AI |
-|---------|---------|------------|
-| Metrics collection | Yes | Yes |
-| Threshold alerts | Yes | Yes |
-| Pattern detection | LLM-powered | Rule-based |
-| Natural language queries | Yes | No |
-| Anomaly detection | LLM-powered | Statistical |
-| Recommendations | LLM-generated | Predefined |
+| Feature                  | With AI       | Without AI  |
+| ------------------------ | ------------- | ----------- |
+| Metrics collection       | Yes           | Yes         |
+| Threshold alerts         | Yes           | Yes         |
+| Pattern detection        | LLM-powered   | Rule-based  |
+| Natural language queries | Yes           | No          |
+| Anomaly detection        | LLM-powered   | Statistical |
+| Recommendations          | LLM-generated | Predefined  |
 
 Basic mode uses statistical anomaly detection:
 

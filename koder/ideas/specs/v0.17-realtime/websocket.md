@@ -239,15 +239,15 @@ Apps can require auth for specific channels via `app.json`:
 
 Configured in kernel limits system (v0.8):
 
-| Limit | Default | Description |
-|-------|---------|-------------|
-| `maxConnectionsTotal` | 5000 | All apps combined |
-| `maxConnectionsPerApp` | 500 | Per app |
-| `maxChannelsPerApp` | 100 | Channels per app |
-| `maxSubscriptionsPerClient` | 20 | Channels per connection |
-| `maxMessageSizeKB` | 64 | Single message |
-| `maxMessagesPerSecond` | 100 | Per connection |
-| `idleTimeoutSeconds` | 300 | Disconnect if no activity |
+| Limit                       | Default | Description               |
+| --------------------------- | ------- | ------------------------- |
+| `maxConnectionsTotal`       | 5000    | All apps combined         |
+| `maxConnectionsPerApp`      | 500     | Per app                   |
+| `maxChannelsPerApp`         | 100     | Channels per app          |
+| `maxSubscriptionsPerClient` | 20      | Channels per connection   |
+| `maxMessageSizeKB`          | 64      | Single message            |
+| `maxMessagesPerSecond`      | 100     | Per connection            |
+| `idleTimeoutSeconds`        | 300     | Disconnect if no activity |
 
 ### Limit Behavior
 

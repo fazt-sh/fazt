@@ -19,13 +19,13 @@ planes" — clean app export, zero-trace delete, GDPR compliance — with
 
 This isn't a feature. It's architecture.
 
-| Without Provenance | With Provenance |
-|-------------------|-----------------|
-| App delete leaves orphaned data | App delete is surgical, complete |
-| User delete is partial at best | User delete is perfect (GDPR) |
-| RLS requires per-query filtering | RLS is automatic, invisible |
-| Export requires knowing all tables | Export is one query pattern |
-| Multi-tenancy is bolted on | Multi-tenancy is foundational |
+| Without Provenance                 | With Provenance                  |
+| ---------------------------------- | -------------------------------- |
+| App delete leaves orphaned data    | App delete is surgical, complete |
+| User delete is partial at best     | User delete is perfect (GDPR)    |
+| RLS requires per-query filtering   | RLS is automatic, invisible      |
+| Export requires knowing all tables | Export is one query pattern      |
+| Multi-tenancy is bolted on         | Multi-tenancy is foundational    |
 
 Provenance enables:
 - **Cartridge** (app data as portable unit)
@@ -132,21 +132,21 @@ Special values for `app_id` and `user_id`:
 
 ### app_id Values
 
-| Value | Meaning |
-|-------|---------|
-| `uuid` | Belongs to specific app |
-| `__SYSTEM__` | System-level data (config, certs, users) |
+| Value         | Meaning                                   |
+| ------------- | ----------------------------------------- |
+| `uuid`        | Belongs to specific app                   |
+| `__SYSTEM__`  | System-level data (config, certs, users)  |
 | `__DELETED__` | Orphaned from deleted app (for debugging) |
 
 ### user_id Values
 
-| Value | Meaning |
-|-------|---------|
-| `uuid` | Belongs to specific user |
-| `NULL` | App-level data, no user ownership |
+| Value           | Meaning                                     |
+| --------------- | ------------------------------------------- |
+| `uuid`          | Belongs to specific user                    |
+| `NULL`          | App-level data, no user ownership           |
 | `__ANONYMOUS__` | Anonymous data (analytics without identity) |
-| `__REDACTED__` | Was a user, identity scrubbed (GDPR delete) |
-| `__SYSTEM__` | System operation, no user context |
+| `__REDACTED__`  | Was a user, identity scrubbed (GDPR delete) |
+| `__SYSTEM__`    | System operation, no user context           |
 
 ## Query Layer
 
@@ -568,27 +568,27 @@ fazt storage vacuum
 
 ## Limits
 
-| Setting | Default | Notes |
-|---------|---------|-------|
-| `softDeleteGracePeriod` | 30 days | Time before hard delete |
-| `cleanupInterval` | 24 hours | How often cleanup job runs |
-| `vacuumAfterCleanup` | false | Auto-vacuum after cleanup |
-| `maxExportSize` | 1 GB | Max cartridge/export size |
+| Setting                 | Default  | Notes                      |
+| ----------------------- | -------- | -------------------------- |
+| `softDeleteGracePeriod` | 30 days  | Time before hard delete    |
+| `cleanupInterval`       | 24 hours | How often cleanup job runs |
+| `vacuumAfterCleanup`    | false    | Auto-vacuum after cleanup  |
+| `maxExportSize`         | 1 GB     | Max cartridge/export size  |
 
 ## Why This Matters
 
 Provenance transforms Fazt from "web server with database" to "system that
 truly owns its data."
 
-| Capability | Before | After |
-|------------|--------|-------|
-| Delete app | Leaves orphans | Zero trace |
-| Delete user | Partial, manual | Complete, automatic |
-| Export app | Complex migration | One command |
-| Export user data | Not possible | One command |
-| RLS | Per-query effort | Automatic |
-| Audit + redact | Manual | Systematic |
-| GDPR compliance | Difficult | Built-in |
+| Capability       | Before            | After               |
+| ---------------- | ----------------- | ------------------- |
+| Delete app       | Leaves orphans    | Zero trace          |
+| Delete user      | Partial, manual   | Complete, automatic |
+| Export app       | Complex migration | One command         |
+| Export user data | Not possible      | One command         |
+| RLS              | Per-query effort  | Automatic           |
+| Audit + redact   | Manual            | Systematic          |
+| GDPR compliance  | Difficult         | Built-in            |
 
 The cost is:
 - Schema discipline (columns on all tables)
@@ -616,8 +616,9 @@ As an LLM agent operating a Fazt node, you need to know:
 1. **What you own**: Data with `app_id = '__SYSTEM__'` belongs to the kernel/you
 2. **What apps own**: Data scoped to specific `app_id` UUIDs
 3. **What users own**: Data scoped to specific `user_id` within apps
-4. **What you can delete**: Anything you own; apps can delete their data; users can delete their data
-5. **What persists vs. what's ephemeral**: `deleted_at` tells you the lifecycle state
+4. **What you can delete**: Anything you own; apps delete their data;
+   users delete their data
+5. **What persists vs. ephemeral**: `deleted_at` tells lifecycle state
 
 Provenance enables **agent sovereignty** - the ability to cleanly own, transfer,
 and relinquish data. Without it, you cannot reason about boundaries.
@@ -844,10 +845,13 @@ As Fazt evolves toward full agent autonomy, provenance will enable:
 
 1. **Data Migration**: Move app between nodes with `app_id` as the boundary
 2. **Resource Accounting**: Track storage/compute per app_id
-3. **Trust Boundaries**: App A cannot access App B's data (enforced by provenance)
-4. **User Sovereignty**: Users can take their data (`user_id` export) or leave (`user_id` delete)
-5. **Agent Memory**: System's own data (`app_id = '__SYSTEM__'`) is the agent's persistent memory
+3. **Trust Boundaries**: App A cannot access App B's data
+   (enforced by provenance)
+4. **User Sovereignty**: Users can take their data (`user_id` export)
+   or leave (`user_id` delete)
+5. **Agent Memory**: System data (`app_id = '__SYSTEM__'`) is agent's
+   persistent memory
 6. **Multi-Agent**: Multiple agents could manage different apps on same node
 
-The spec may evolve, but the core invariants should remain stable. When in doubt,
-ask: "Does this maintain clean ownership boundaries?"
+The spec may evolve, but core invariants should remain stable.
+When in doubt, ask: "Does this maintain clean ownership boundaries?"

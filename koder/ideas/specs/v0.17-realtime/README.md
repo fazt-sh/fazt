@@ -17,13 +17,13 @@ features—all with automatic app isolation.
 
 ## Key Capabilities
 
-| Capability | Description |
-|------------|-------------|
-| WebSocket endpoint | `wss://app.domain.com/_ws` |
-| Channels | Namespaced pub/sub rooms |
-| Presence | Track connected clients |
-| Server broadcast | Push from serverless handlers |
-| Rate limiting | Configurable per-app limits |
+| Capability         | Description                   |
+| ------------------ | ----------------------------- |
+| WebSocket endpoint | `wss://app.domain.com/_ws`    |
+| Channels           | Namespaced pub/sub rooms      |
+| Presence           | Track connected clients       |
+| Server broadcast   | Push from serverless handlers |
+| Rate limiting      | Configurable per-app limits   |
 
 ## Documents
 

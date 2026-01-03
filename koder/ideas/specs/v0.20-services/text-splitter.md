@@ -2,9 +2,9 @@
 
 ## Summary
 
-Pure functions for splitting text into chunks with configurable size and overlap.
-Essential for RAG pipelines, document indexing, and any application that needs
-to process large documents in smaller pieces.
+Pure functions for splitting text into chunks with configurable size
+and overlap. Essential for RAG pipelines, document indexing, and any
+application that needs to process large documents in smaller pieces.
 
 Inspired by LangChain's text splitters but implemented as pure Go with zero
 external dependencies.
@@ -149,13 +149,13 @@ fazt.lib.text.countChars(text)
 
 ## Options
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `chunkSize` | number | 4000 | Target chunk size in characters |
-| `chunkOverlap` | number | 200 | Overlap between chunks |
-| `separators` | string[] | `["\n\n", "\n", " ", ""]` | Split hierarchy |
-| `keepSeparator` | boolean | false | Include separator in output |
-| `lenFunc` | function | `countChars` | Custom length function |
+| Option          | Type     | Default                   | Description                     |
+| --------------- | -------- | ------------------------- | ------------------------------- |
+| `chunkSize`     | number   | 4000                      | Target chunk size in characters |
+| `chunkOverlap`  | number   | 200                       | Overlap between chunks          |
+| `separators`    | string[] | `["\n\n", "\n", " ", ""]` | Split hierarchy                 |
+| `keepSeparator` | boolean  | false                     | Include separator in output     |
+| `lenFunc`       | function | `countChars`              | Custom length function          |
 
 ## Examples
 
@@ -278,25 +278,25 @@ fazt text split docs/*.md --chunk-size 1000 > chunks.json
 
 ## Limits
 
-| Limit | Default |
-|-------|---------|
-| Max input size | 10 MB |
+| Limit          | Default       |
+| -------------- | ------------- |
+| Max input size | 10 MB         |
 | Max chunk size | 100,000 chars |
-| Max overlap | chunkSize / 2 |
+| Max overlap    | chunkSize / 2 |
 
 ## Comparison with LangChain
 
 This implementation is based on LangChain's `RecursiveCharacterTextSplitter`:
 
-| Feature | LangChain | Fazt |
-|---------|-----------|------|
-| Recursive splitting | ✓ | ✓ |
-| Custom separators | ✓ | ✓ |
-| Chunk overlap | ✓ | ✓ |
-| Keep separator | ✓ | ✓ |
-| Document metadata | ✓ | ✓ |
-| Token counting | ✓ | Future |
-| Markdown-aware | ✓ | Future (see STASH) |
+| Feature             | LangChain | Fazt               |
+| ------------------- | --------- | ------------------ |
+| Recursive splitting | ✓         | ✓                  |
+| Custom separators   | ✓         | ✓                  |
+| Chunk overlap       | ✓         | ✓                  |
+| Keep separator      | ✓         | ✓                  |
+| Document metadata   | ✓         | ✓                  |
+| Token counting      | ✓         | Future             |
+| Markdown-aware      | ✓         | Future (see STASH) |
 
 The API is intentionally compatible so code can be ported between LangChain
 and Fazt with minimal changes.

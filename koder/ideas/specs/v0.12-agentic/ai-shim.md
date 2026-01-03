@@ -66,12 +66,12 @@ App keys override system keys.
 
 ## Supported Providers
 
-| Provider | Models | Notes |
-|----------|--------|-------|
-| OpenAI | gpt-4, gpt-3.5-turbo | Default provider |
-| Anthropic | claude-3-opus, claude-3-sonnet | |
-| Google | gemini-pro, gemini-flash | |
-| Ollama | llama3, mistral, etc. | Local inference |
+| Provider  | Models                         | Notes            |
+| --------- | ------------------------------ | ---------------- |
+| OpenAI    | gpt-4, gpt-3.5-turbo           | Default provider |
+| Anthropic | claude-3-opus, claude-3-sonnet |                  |
+| Google    | gemini-pro, gemini-flash       |                  |
+| Ollama    | llama3, mistral, etc.          | Local inference  |
 
 ## Permissions
 

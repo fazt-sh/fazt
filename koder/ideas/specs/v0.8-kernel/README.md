@@ -17,14 +17,14 @@ and mental models throughout the codebase.
 
 ## Key Changes
 
-| Before (v0.7) | After (v0.8) |
-|---------------|--------------|
-| Sites | Apps |
-| Subdomain-based identity | UUID-based identity |
-| `internal/hosting/` | `pkg/kernel/fs/` |
-| `internal/config/` | `pkg/kernel/storage/` |
-| Destructive migrations | Append-only schema (EDD) |
-| No resource limits | Circuit breakers |
+| Before (v0.7)            | After (v0.8)             |
+| ------------------------ | ------------------------ |
+| Sites                    | Apps                     |
+| Subdomain-based identity | UUID-based identity      |
+| `internal/hosting/`      | `pkg/kernel/fs/`         |
+| `internal/config/`       | `pkg/kernel/storage/`    |
+| Destructive migrations   | Append-only schema (EDD) |
+| No resource limits       | Circuit breakers         |
 
 ## Documents
 

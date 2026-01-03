@@ -87,31 +87,31 @@ fazt/
 
 ## Services
 
-| Service | Purpose | Key Capability |
-|---------|---------|----------------|
-| `forms` | Collect form submissions | POST endpoint, zero config |
-| `image` | Image processing | Resize, thumbnail, blurhash |
-| `pdf` | Generate PDFs | HTML/CSS to PDF via WASM |
-| `markdown` | Compile markdown | Goldmark, shortcodes, CSS |
-| `search` | Full-text search | Bleve indexing |
-| `qr` | QR & barcode generation | PNG/SVG from text/URL |
-| `comments` | User feedback on entities | Threading, moderation |
-| `shorturl` | Shareable short links | Click tracking, expiration |
-| `captcha` | Spam protection | Math/text challenges |
-| `hooks` | Bidirectional webhooks | Inbound verification, outbound delivery |
-| `rag` | RAG pipelines | Ingest, retrieve, ask with grounded answers |
+| Service    | Purpose                   | Key Capability                              |
+| ---------- | ------------------------- | ------------------------------------------- |
+| `forms`    | Collect form submissions  | POST endpoint, zero config                  |
+| `image`    | Image processing          | Resize, thumbnail, blurhash                 |
+| `pdf`      | Generate PDFs             | HTML/CSS to PDF via WASM                    |
+| `markdown` | Compile markdown          | Goldmark, shortcodes, CSS                   |
+| `search`   | Full-text search          | Bleve indexing                              |
+| `qr`       | QR & barcode generation   | PNG/SVG from text/URL                       |
+| `comments` | User feedback on entities | Threading, moderation                       |
+| `shorturl` | Shareable short links     | Click tracking, expiration                  |
+| `captcha`  | Spam protection           | Math/text challenges                        |
+| `hooks`    | Bidirectional webhooks    | Inbound verification, outbound delivery     |
+| `rag`      | RAG pipelines             | Ingest, retrieve, ask with grounded answers |
 
 ## Lib
 
-| Library | Purpose | Key Capability |
-|---------|---------|----------------|
-| `money` | Decimal arithmetic | Integer cents, no float errors |
-| `humanize` | Human-readable formatting | Bytes, time, numbers, ordinals |
-| `timezone` | IANA timezone handling | Embedded tzdata, DST-aware |
-| `sanitize` | HTML/text sanitization | XSS protection, policy-based |
-| `password` | Secure credential hashing | Argon2id, timing-safe verify |
-| `geo` | Geographic primitives | Distance, IP geolocation, geofencing |
-| `mime` | Mimetype detection | File/buffer analysis |
+| Library    | Purpose                   | Key Capability                       |
+| ---------- | ------------------------- | ------------------------------------ |
+| `money`    | Decimal arithmetic        | Integer cents, no float errors       |
+| `humanize` | Human-readable formatting | Bytes, time, numbers, ordinals       |
+| `timezone` | IANA timezone handling    | Embedded tzdata, DST-aware           |
+| `sanitize` | HTML/text sanitization    | XSS protection, policy-based         |
+| `password` | Secure credential hashing | Argon2id, timing-safe verify         |
+| `geo`      | Geographic primitives     | Distance, IP geolocation, geofencing |
+| `mime`     | Mimetype detection        | File/buffer analysis                 |
 
 ## Common Properties
 

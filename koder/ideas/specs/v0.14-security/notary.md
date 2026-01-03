@@ -82,9 +82,9 @@ fazt security totp init
 
 ## Use Cases
 
-| App Type | Primitives Used |
-|----------|-----------------|
-| Notes App | Vaulting (encrypted notes) |
-| Wallet | Persona (signing), TOTP (transactions) |
-| Blog | Attestation (verify content integrity) |
-| AI Harness | TOTP (approve code changes) |
+| App Type   | Primitives Used                        |
+| ---------- | -------------------------------------- |
+| Notes App  | Vaulting (encrypted notes)             |
+| Wallet     | Persona (signing), TOTP (transactions) |
+| Blog       | Attestation (verify content integrity) |
+| AI Harness | TOTP (approve code changes)            |

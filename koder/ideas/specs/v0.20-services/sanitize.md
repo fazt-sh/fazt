@@ -16,12 +16,12 @@ Sanitization is:
 
 ## Capabilities
 
-| Operation | Description |
-|-----------|-------------|
-| `html` | Sanitize HTML, keep safe tags/attributes |
-| `text` | Strip all HTML, return plain text |
-| `markdown` | Sanitize markdown output |
-| `url` | Validate and sanitize URLs |
+| Operation  | Description                              |
+| ---------- | ---------------------------------------- |
+| `html`     | Sanitize HTML, keep safe tags/attributes |
+| `text`     | Strip all HTML, return plain text        |
+| `markdown` | Sanitize markdown output                 |
+| `url`      | Validate and sanitize URLs               |
 
 ## Usage
 
@@ -246,10 +246,10 @@ if (safeUrl) {
 
 ## Limits
 
-| Limit | Default |
-|-------|---------|
-| `maxInputSizeKB` | 512 |
-| `maxTagDepth` | 100 |
+| Limit            | Default |
+| ---------------- | ------- |
+| `maxInputSizeKB` | 512     |
+| `maxTagDepth`    | 100     |
 
 ## Implementation Notes
 

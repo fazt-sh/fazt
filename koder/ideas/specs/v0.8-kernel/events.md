@@ -95,10 +95,10 @@ Examples:
 
 ### Reserved Namespaces
 
-| Prefix | Owner |
-|--------|-------|
-| `system.*` | Kernel only |
-| `app:{name}.*` | Specific app |
+| Prefix           | Owner          |
+| ---------------- | -------------- |
+| `system.*`       | Kernel only    |
+| `app:{name}.*`   | Specific app   |
 | `agent:{name}.*` | Specific agent |
 
 Apps can only emit events in their own namespace.
@@ -107,16 +107,16 @@ Apps can only emit events in their own namespace.
 
 Kernel emits events for system happenings:
 
-| Event | When |
-|-------|------|
-| `system.app.deployed` | App deployment complete |
-| `system.app.started` | App started |
-| `system.app.stopped` | App stopped |
-| `system.app.error` | App runtime error |
-| `system.limit.warning` | Resource at 80% |
-| `system.limit.exceeded` | Resource at 100% |
-| `system.backup.completed` | Backup finished |
-| `system.email.received` | Email received (v0.18) |
+| Event                     | When                        |
+| ------------------------- | --------------------------- |
+| `system.app.deployed`     | App deployment complete     |
+| `system.app.started`      | App started                 |
+| `system.app.stopped`      | App stopped                 |
+| `system.app.error`        | App runtime error           |
+| `system.limit.warning`    | Resource at 80%             |
+| `system.limit.exceeded`   | Resource at 100%            |
+| `system.backup.completed` | Backup finished             |
+| `system.email.received`   | Email received (v0.18)      |
 | `system.worker.completed` | Background job done (v0.19) |
 
 ```javascript
@@ -164,10 +164,10 @@ const events = await fazt.events.query({
 
 ## Delivery Guarantees
 
-| Mode | Guarantee |
-|------|-----------|
+| Mode              | Guarantee              |
+| ----------------- | ---------------------- |
 | `fire-and-forget` | No guarantee (default) |
-| `at-least-once` | Retry until ack |
+| `at-least-once`   | Retry until ack        |
 
 ```javascript
 await fazt.events.emit('critical.action', data, {
@@ -278,9 +278,9 @@ fazt.events.on('system.app.error', async (event) => {
 
 ## Limits
 
-| Limit | Default |
-|-------|---------|
-| `maxEventSize` | 64 KB |
-| `maxEventsPerSecond` | 100 (per app) |
-| `maxSubscriptionsPerApp` | 50 |
-| `persistedEventRetention` | 7 days |
+| Limit                     | Default       |
+| ------------------------- | ------------- |
+| `maxEventSize`            | 64 KB         |
+| `maxEventsPerSecond`      | 100 (per app) |
+| `maxSubscriptionsPerApp`  | 50            |
+| `persistedEventRetention` | 7 days        |

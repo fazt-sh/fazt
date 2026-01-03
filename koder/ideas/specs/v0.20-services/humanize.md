@@ -329,10 +329,10 @@ function formatComment(comment) {
 
 ## Limits
 
-| Limit | Default |
-|-------|---------|
-| `maxNumber` | Number.MAX_SAFE_INTEGER |
-| `maxTextLength` | 10,000 chars |
+| Limit           | Default                 |
+| --------------- | ----------------------- |
+| `maxNumber`     | Number.MAX_SAFE_INTEGER |
+| `maxTextLength` | 10,000 chars            |
 
 ## Implementation Notes
 

@@ -84,10 +84,10 @@ const notes = await fazt.protocols.nostr.fetch({
 
 ## Benefits
 
-| Protocol | Benefit |
-|----------|---------|
+| Protocol    | Benefit                          |
+| ----------- | -------------------------------- |
 | ActivityPub | Federate with Mastodon ecosystem |
-| Nostr | Censorship-resistant identity |
+| Nostr       | Censorship-resistant identity    |
 
 ## Use Case: Personal Social Presence
 

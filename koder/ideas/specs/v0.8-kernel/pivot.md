@@ -28,13 +28,13 @@ There is **no tool** that lets you deploy a full-stack app (frontend + backend
 
 ### The New Framing
 
-| Web Server Thinking | OS Thinking |
-|---------------------|-------------|
-| "Host my website" | "Run my applications" |
-| Sites are content | Apps are processes |
-| Files on disk | Virtual filesystem |
-| Configuration files | System calls |
-| Admin panel | OS Shell |
+| Web Server Thinking | OS Thinking           |
+| ------------------- | --------------------- |
+| "Host my website"   | "Run my applications" |
+| Sites are content   | Apps are processes    |
+| Files on disk       | Virtual filesystem    |
+| Configuration files | System calls          |
+| Admin panel         | OS Shell              |
 
 ## What Changes
 

@@ -17,13 +17,13 @@ libraries without npm, and schedule background tasks.
 
 ## Key Changes
 
-| Capability | Description |
-|------------|-------------|
-| `api/` folder | Dedicated serverless code location |
-| `require()` | Local file imports |
-| Stdlib | Pre-bundled libraries in binary |
-| JS-Cron | Scheduled function execution |
-| Hibernate | Zero RAM when idle |
+| Capability     | Description                          |
+| -------------- | ------------------------------------ |
+| `api/` folder  | Dedicated serverless code location   |
+| `require()`    | Local file imports                   |
+| Stdlib         | Pre-bundled libraries in binary      |
+| JS-Cron        | Scheduled function execution         |
+| Hibernate      | Zero RAM when idle                   |
 | WASM primitive | Internal wazero runtime for services |
 
 ## Documents

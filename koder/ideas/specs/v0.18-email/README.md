@@ -17,13 +17,13 @@ trigger serverless handlers.
 
 ## Key Capabilities
 
-| Capability | Description |
-|------------|-------------|
-| SMTP sink | Receive on port 25 |
-| Address routing | Local part → app mapping |
-| Serverless trigger | `{ event: 'email', ... }` |
-| Email storage | Query inbox via API |
-| Attachments | Stored in `fazt.storage.s3` |
+| Capability         | Description                 |
+| ------------------ | --------------------------- |
+| SMTP sink          | Receive on port 25          |
+| Address routing    | Local part → app mapping    |
+| Serverless trigger | `{ event: 'email', ... }`   |
+| Email storage      | Query inbox via API         |
+| Attachments        | Stored in `fazt.storage.s3` |
 
 ## Documents
 

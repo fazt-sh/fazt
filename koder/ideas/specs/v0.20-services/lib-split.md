@@ -2,9 +2,9 @@
 
 ## Summary
 
-Refactor `fazt.services.*` by moving pure utility functions to a new `fazt.lib.*`
-namespace. Services remain for stateful/effectful operations. Libraries are pure
-functions with no state or side effects.
+Refactor `fazt.services.*` by moving pure utility functions to a new
+`fazt.lib.*` namespace. Services remain for stateful/effectful operations.
+Libraries are pure functions with no state or side effects.
 
 ## The Problem
 
@@ -35,30 +35,30 @@ fazt.lib.*         Pure functions (no state, no side effects)
 
 ## What Stays in Services
 
-| Service | Reason |
-|---------|--------|
-| `forms` | Stores form submissions |
-| `comments` | Stores threaded comments |
-| `shorturl` | Stores URLs, tracks clicks |
-| `search` | Maintains full-text index |
-| `hooks` | Stores events, manages delivery |
-| `captcha` | Tracks challenge state |
-| `image` | Transforms images, uses cache (renamed from `media`) |
-| `pdf` | Generates PDFs, WASM runtime |
-| `qr` | Generates QR/barcodes (consolidated) |
-| `markdown` | Renders markdown (borderline, but has shortcodes with side effects) |
+| Service    | Reason                                                      |
+| ---------- | ----------------------------------------------------------- |
+| `forms`    | Stores form submissions                                     |
+| `comments` | Stores threaded comments                                    |
+| `shorturl` | Stores URLs, tracks clicks                                  |
+| `search`   | Maintains full-text index                                   |
+| `hooks`    | Stores events, manages delivery                             |
+| `captcha`  | Tracks challenge state                                      |
+| `image`    | Transforms images, uses cache (renamed from `media`)        |
+| `pdf`      | Generates PDFs, WASM runtime                                |
+| `qr`       | Generates QR/barcodes (consolidated)                        |
+| `markdown` | Renders markdown (borderline, shortcodes have side effects) |
 
 ## What Moves to Lib
 
-| Library | Reason |
-|---------|--------|
-| `money` | Pure arithmetic |
-| `humanize` | Pure formatting |
-| `timezone` | Pure time math |
-| `sanitize` | Pure string operations |
-| `password` | Pure crypto (hash/verify) |
-| `geo` | Pure math + embedded data lookup |
-| `mime` | Pure mimetype detection (extracted from media) |
+| Library    | Reason                                         |
+| ---------- | ---------------------------------------------- |
+| `money`    | Pure arithmetic                                |
+| `humanize` | Pure formatting                                |
+| `timezone` | Pure time math                                 |
+| `sanitize` | Pure string operations                         |
+| `password` | Pure crypto (hash/verify)                      |
+| `geo`      | Pure math + embedded data lookup               |
+| `mime`     | Pure mimetype detection (extracted from media) |
 
 ## Additional Cleanups
 
@@ -219,12 +219,12 @@ Timeline:
 
 Considered alternatives:
 
-| Option | Pros | Cons |
-|--------|------|------|
-| `fazt.lib.*` | Short, mirrors OS concept | New namespace |
-| `fazt.util.*` | JS convention | Generic, overused |
-| `fazt.std.*` | "stdlib" feel | Unfamiliar |
-| Root level | No nesting | Crowds root (already 25+ items) |
+| Option        | Pros                      | Cons                            |
+| ------------- | ------------------------- | ------------------------------- |
+| `fazt.lib.*`  | Short, mirrors OS concept | New namespace                   |
+| `fazt.util.*` | JS convention             | Generic, overused               |
+| `fazt.std.*`  | "stdlib" feel             | Unfamiliar                      |
+| Root level    | No nesting                | Crowds root (already 25+ items) |
 
 `fazt.lib.*` wins:
 - Short (4 chars)

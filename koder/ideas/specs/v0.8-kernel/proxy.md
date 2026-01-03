@@ -75,12 +75,12 @@ await fazt.net.fetch('https://api.openai.com/v1/chat/completions', {
 
 ### Auth Modes
 
-| Mode | Header |
-|------|--------|
-| `bearer` | `Authorization: Bearer {secret}` (default) |
-| `basic` | `Authorization: Basic {base64}` |
-| `header:{name}` | Custom header: `{name}: {secret}` |
-| `query:{param}` | Query param: `?{param}={secret}` |
+| Mode            | Header                                     |
+| --------------- | ------------------------------------------ |
+| `bearer`        | `Authorization: Bearer {secret}` (default) |
+| `basic`         | `Authorization: Basic {base64}`            |
+| `header:{name}` | Custom header: `{name}: {secret}`          |
+| `query:{param}` | Query param: `?{param}={secret}`           |
 
 ```javascript
 await fazt.net.fetch(url, {
@@ -303,16 +303,16 @@ CREATE TABLE kernel_net_cache (
 
 ## Limits
 
-| Limit | Default |
-|-------|---------|
-| `maxRequestsPerMinute` | 100 (per app) |
-| `maxRequestsPerMinuteGlobal` | 500 |
-| `maxRequestBodySize` | 10 MB |
-| `maxResponseBodySize` | 50 MB |
-| `maxCacheSizeMB` | 100 |
-| `defaultTimeout` | 60s |
-| `maxTimeout` | 5m |
-| `logRetention` | 7d |
+| Limit                        | Default       |
+| ---------------------------- | ------------- |
+| `maxRequestsPerMinute`       | 100 (per app) |
+| `maxRequestsPerMinuteGlobal` | 500           |
+| `maxRequestBodySize`         | 10 MB         |
+| `maxResponseBodySize`        | 50 MB         |
+| `maxCacheSizeMB`             | 100           |
+| `defaultTimeout`             | 60s           |
+| `maxTimeout`                 | 5m            |
+| `logRetention`               | 7d            |
 
 ## Example: External API Integration
 

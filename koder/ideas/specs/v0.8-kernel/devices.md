@@ -43,14 +43,14 @@ Devices are fundamental infrastructure:
 
 ## Available Devices
 
-| Device | Purpose | Providers |
-|--------|---------|-----------|
-| `billing` | Payments, subscriptions | Stripe, Paddle, LemonSqueezy |
-| `sms` | Text messaging | Twilio, MessageBird, Vonage |
-| `email` | Transactional email | SendGrid, Postmark, AWS SES |
-| `oauth` | Social login | Google, GitHub, Apple, Discord |
-| `storage` | Object storage | (Already exists as `fazt.storage.s3`) |
-| `ai` | LLM inference | (Already exists as `fazt.ai`) |
+| Device    | Purpose                 | Providers                             |
+| --------- | ----------------------- | ------------------------------------- |
+| `billing` | Payments, subscriptions | Stripe, Paddle, LemonSqueezy          |
+| `sms`     | Text messaging          | Twilio, MessageBird, Vonage           |
+| `email`   | Transactional email     | SendGrid, Postmark, AWS SES           |
+| `oauth`   | Social login            | Google, GitHub, Apple, Discord        |
+| `storage` | Object storage          | (Already exists as `fazt.storage.s3`) |
+| `ai`      | LLM inference           | (Already exists as `fazt.ai`)         |
 
 Note: `storage` and `ai` are already implemented as top-level namespaces.
 They're conceptually devices but predate this spec.
@@ -91,11 +91,11 @@ Unified payment and subscription interface.
 
 ### Providers
 
-| Provider | Status | Notes |
-|----------|--------|-------|
-| Stripe | Primary | Full support |
-| Paddle | Planned | MoR (Merchant of Record) |
-| LemonSqueezy | Planned | MoR, simpler |
+| Provider     | Status  | Notes                    |
+| ------------ | ------- | ------------------------ |
+| Stripe       | Primary | Full support             |
+| Paddle       | Planned | MoR (Merchant of Record) |
+| LemonSqueezy | Planned | MoR, simpler             |
 
 ### Interface
 
@@ -173,16 +173,16 @@ module.exports = async (event) => {
 
 ### Normalized Event Types
 
-| Event | Description |
-|-------|-------------|
-| `customer.created` | New customer |
-| `subscription.created` | New subscription |
-| `subscription.updated` | Subscription changed |
-| `subscription.canceled` | Subscription ended |
-| `payment.succeeded` | Payment completed |
-| `payment.failed` | Payment failed |
-| `invoice.created` | Invoice generated |
-| `invoice.paid` | Invoice paid |
+| Event                   | Description          |
+| ----------------------- | -------------------- |
+| `customer.created`      | New customer         |
+| `subscription.created`  | New subscription     |
+| `subscription.updated`  | Subscription changed |
+| `subscription.canceled` | Subscription ended   |
+| `payment.succeeded`     | Payment completed    |
+| `payment.failed`        | Payment failed       |
+| `invoice.created`       | Invoice generated    |
+| `invoice.paid`          | Invoice paid         |
 
 ## Device: SMS
 
@@ -190,11 +190,11 @@ Text messaging interface.
 
 ### Providers
 
-| Provider | Status |
-|----------|--------|
-| Twilio | Primary |
+| Provider    | Status  |
+| ----------- | ------- |
+| Twilio      | Primary |
 | MessageBird | Planned |
-| Vonage | Planned |
+| Vonage      | Planned |
 
 ### Interface
 
@@ -245,11 +245,11 @@ Transactional email interface.
 
 ### Providers
 
-| Provider | Status |
-|----------|--------|
+| Provider | Status  |
+| -------- | ------- |
 | SendGrid | Primary |
 | Postmark | Planned |
-| AWS SES | Planned |
+| AWS SES  | Planned |
 
 ### Interface
 
@@ -300,12 +300,12 @@ Social login and OAuth integration.
 
 ### Providers
 
-| Provider | Status |
-|----------|--------|
-| Google | Primary |
-| GitHub | Primary |
-| Apple | Planned |
-| Discord | Planned |
+| Provider  | Status  |
+| --------- | ------- |
+| Google    | Primary |
+| GitHub    | Primary |
+| Apple     | Planned |
+| Discord   | Planned |
 | Twitter/X | Planned |
 
 ### Interface
@@ -513,13 +513,13 @@ fazt dev limits billing
 
 Potential additions:
 
-| Device | Purpose |
-|--------|---------|
-| `push` | Push notifications (FCM, APNs) |
-| `analytics` | Event tracking (Mixpanel, Amplitude) |
-| `maps` | Geocoding, directions (Google Maps, Mapbox) |
-| `cdn` | Asset delivery (Cloudflare, BunnyCDN) |
-| `search` | External search (Algolia, Typesense) |
+| Device      | Purpose                                     |
+| ----------- | ------------------------------------------- |
+| `push`      | Push notifications (FCM, APNs)              |
+| `analytics` | Event tracking (Mixpanel, Amplitude)        |
+| `maps`      | Geocoding, directions (Google Maps, Mapbox) |
+| `cdn`       | Asset delivery (Cloudflare, BunnyCDN)       |
+| `search`    | External search (Algolia, Typesense)        |
 
 ## Implementation Notes
 

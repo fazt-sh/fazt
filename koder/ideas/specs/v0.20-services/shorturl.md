@@ -179,13 +179,13 @@ CREATE INDEX idx_shorturls_code ON svc_shorturls(app_uuid, code);
 
 ## Limits
 
-| Limit | Default |
-|-------|---------|
-| `maxPerApp` | 10,000 |
-| `maxCodeLength` | 32 |
-| `minCodeLength` | 2 |
-| `maxTargetLength` | 2048 |
-| `clickRetentionDays` | 90 |
+| Limit                | Default |
+| -------------------- | ------- |
+| `maxPerApp`          | 10,000  |
+| `maxCodeLength`      | 32      |
+| `minCodeLength`      | 2       |
+| `maxTargetLength`    | 2048    |
+| `clickRetentionDays` | 90      |
 
 ## CLI
 

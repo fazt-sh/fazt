@@ -58,11 +58,11 @@ Output:      "river castle moon bright seven table..."
 
 ## Word Counts
 
-| Data Size | Words | Use Case |
-|-----------|-------|----------|
-| 16 bytes | 12 words | Short tokens, connection codes |
-| 32 bytes | 24 words | Keys, identities, secrets |
-| 64 bytes | 48 words | Extended data (practical limit) |
+| Data Size | Words    | Use Case                        |
+| --------- | -------- | ------------------------------- |
+| 16 bytes  | 12 words | Short tokens, connection codes  |
+| 32 bytes  | 24 words | Keys, identities, secrets       |
+| 64 bytes  | 48 words | Extended data (practical limit) |
 
 Beyond 48 words becomes unwieldy for human exchange.
 
@@ -204,7 +204,8 @@ fazt mnemonic decode "..." | fazt security vault import
 fazt beacon export | fazt mnemonic encode
 ```
 
-The pattern: `export | mnemonic encode` → human channel → `mnemonic decode | import`
+The pattern: `export | mnemonic encode` → human channel →
+`mnemonic decode | import`
 
 ## Wordlist
 
@@ -215,7 +216,8 @@ Uses standard BIP-39 English wordlist:
 - Phonetically distinct
 - No offensive words
 
-Example words: `abandon, ability, able, about, above, absent, absorb, abstract...`
+Example words: `abandon, ability, able, about, above, absent, absorb,
+abstract...`
 
 Full list: https://github.com/bitcoin/bips/blob/master/bip-0039/english.txt
 
@@ -235,13 +237,13 @@ func Validate(words string) error
 
 ## Limits
 
-| Limit | Value |
-|-------|-------|
-| `minWords` | 12 |
-| `maxWords` | 48 |
-| `minBytes` | 16 |
-| `maxBytes` | 64 |
-| `wordlistSize` | 2048 |
+| Limit          | Value |
+| -------------- | ----- |
+| `minWords`     | 12    |
+| `maxWords`     | 48    |
+| `minBytes`     | 16    |
+| `maxBytes`     | 64    |
+| `wordlistSize` | 2048  |
 
 ## Security Considerations
 
@@ -260,11 +262,11 @@ fazt security encrypt --file secret.json | fazt mnemonic encode
 
 ## Comparison with Other Methods
 
-| Method | Bandwidth | Hardware | Works Through |
-|--------|-----------|----------|---------------|
-| Chirp | 200 B/s | Speaker/Mic | Audio |
-| QR | 2 KB/scan | Display/Camera | Visual |
-| Mnemonic | ~3 B/s (speaking) | None | Any human channel |
+| Method   | Bandwidth         | Hardware       | Works Through     |
+| -------- | ----------------- | -------------- | ----------------- |
+| Chirp    | 200 B/s           | Speaker/Mic    | Audio             |
+| QR       | 2 KB/scan         | Display/Camera | Visual            |
+| Mnemonic | ~3 B/s (speaking) | None           | Any human channel |
 
 Mnemonic is slowest but most universal. Use it when:
 - No shared physical space (can't use Chirp)

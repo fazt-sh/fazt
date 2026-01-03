@@ -91,20 +91,20 @@ type App struct {
 
 ## Advantages
 
-| Benefit | Description |
-|---------|-------------|
-| **Perfect Rollbacks** | Old binaries always work with new DB |
-| **Zero Downtime** | No table locks for complex alterations |
-| **Solo-Friendly** | Reduces deployment risk |
-| **Backup Safety** | Any backup works with any binary version |
+| Benefit               | Description                              |
+| --------------------- | ---------------------------------------- |
+| **Perfect Rollbacks** | Old binaries always work with new DB     |
+| **Zero Downtime**     | No table locks for complex alterations   |
+| **Solo-Friendly**     | Reduces deployment risk                  |
+| **Backup Safety**     | Any backup works with any binary version |
 
 ## Disadvantages
 
-| Drawback | Mitigation |
-|----------|------------|
-| **Schema Bloat** | Unused columns persist (disk is cheap) |
-| **Data Integrity** | Must be managed in Go code |
-| **Messy Tables** | Use views or documentation |
+| Drawback           | Mitigation                             |
+| ------------------ | -------------------------------------- |
+| **Schema Bloat**   | Unused columns persist (disk is cheap) |
+| **Data Integrity** | Must be managed in Go code             |
+| **Messy Tables**   | Use views or documentation             |
 
 ## Implementation
 

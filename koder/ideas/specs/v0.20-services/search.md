@@ -7,13 +7,13 @@ query with relevance ranking. Uses Bleve (pure Go search library).
 
 ## Capabilities
 
-| Feature | Description |
-|---------|-------------|
-| Indexing | Index documents from ds collections or files |
-| Full-text | Tokenized, stemmed text search |
-| Relevance | Results ranked by match quality |
-| Facets | Filter by field values |
-| Highlight | Show matching snippets |
+| Feature   | Description                                  |
+| --------- | -------------------------------------------- |
+| Indexing  | Index documents from ds collections or files |
+| Full-text | Tokenized, stemmed text search               |
+| Relevance | Results ranked by match quality              |
+| Facets    | Filter by field values                       |
+| Highlight | Show matching snippets                       |
 
 ## Usage
 
@@ -303,12 +303,12 @@ Bleve index data stored as blobs or in VFS under `_search/`.
 
 ## Limits
 
-| Limit | Default |
-|-------|---------|
-| `maxIndexesPerApp` | 10 |
-| `maxDocsPerIndex` | 100,000 |
-| `maxIndexSizeMB` | 100 |
-| `maxQueryTime` | 5s |
+| Limit              | Default |
+| ------------------ | ------- |
+| `maxIndexesPerApp` | 10      |
+| `maxDocsPerIndex`  | 100,000 |
+| `maxIndexSizeMB`   | 100     |
+| `maxQueryTime`     | 5s      |
 
 ## CLI
 

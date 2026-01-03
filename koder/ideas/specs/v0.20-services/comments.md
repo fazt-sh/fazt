@@ -217,13 +217,13 @@ CREATE INDEX idx_comments_parent ON svc_comments(parent_id);
 
 ## Limits
 
-| Limit | Default |
-|-------|---------|
-| `maxBodyLength` | 10,000 chars |
-| `maxMetaSize` | 4 KB |
-| `maxPerTarget` | 10,000 |
-| `maxDepth` | 5 (threading levels) |
-| `ratePerMinutePerIP` | 5 |
+| Limit                | Default              |
+| -------------------- | -------------------- |
+| `maxBodyLength`      | 10,000 chars         |
+| `maxMetaSize`        | 4 KB                 |
+| `maxPerTarget`       | 10,000               |
+| `maxDepth`           | 5 (threading levels) |
+| `ratePerMinutePerIP` | 5                    |
 
 ## CLI
 

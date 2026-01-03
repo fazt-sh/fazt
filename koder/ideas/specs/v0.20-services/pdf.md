@@ -8,13 +8,13 @@ rendering. No JavaScript execution—static HTML/CSS only.
 
 ## Capabilities
 
-| Operation | Description |
-|-----------|-------------|
-| `fromHtml` | Render HTML string to PDF |
+| Operation  | Description                      |
+| ---------- | -------------------------------- |
+| `fromHtml` | Render HTML string to PDF        |
 | `fromFile` | Render HTML file from VFS to PDF |
-| `fromUrl` | Render internal app URL to PDF |
-| `merge` | Combine multiple PDFs into one |
-| `info` | Get PDF metadata (pages, size) |
+| `fromUrl`  | Render internal app URL to PDF   |
+| `merge`    | Combine multiple PDFs into one   |
+| `info`     | Get PDF metadata (pages, size)   |
 
 ## What It Can Render
 
@@ -135,14 +135,14 @@ const merged = await fazt.services.pdf.merge([
 
 ### Page Sizes
 
-| Size | Dimensions |
-|------|------------|
-| `A4` | 210mm x 297mm (default) |
-| `letter` | 8.5in x 11in |
-| `legal` | 8.5in x 14in |
-| `A3` | 297mm x 420mm |
-| `A5` | 148mm x 210mm |
-| Custom | `{ width: '8in', height: '10in' }` |
+| Size     | Dimensions                         |
+| -------- | ---------------------------------- |
+| `A4`     | 210mm x 297mm (default)            |
+| `letter` | 8.5in x 11in                       |
+| `legal`  | 8.5in x 14in                       |
+| `A3`     | 297mm x 420mm                      |
+| `A5`     | 148mm x 210mm                      |
+| Custom   | `{ width: '8in', height: '10in' }` |
 
 ### Margins
 
@@ -278,13 +278,13 @@ fazt.services.pdf.delete(path)
 
 ## Limits
 
-| Limit | Default |
-|-------|---------|
-| `maxHtmlSizeKB` | 500 |
-| `maxPdfSizeMB` | 50 |
-| `maxPages` | 200 |
-| `timeoutSeconds` | 30 |
-| `maxStorageMB` | 500 (per app) |
+| Limit            | Default       |
+| ---------------- | ------------- |
+| `maxHtmlSizeKB`  | 500           |
+| `maxPdfSizeMB`   | 50            |
+| `maxPages`       | 200           |
+| `timeoutSeconds` | 30            |
+| `maxStorageMB`   | 500 (per app) |
 
 ## CLI
 

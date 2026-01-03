@@ -2,8 +2,9 @@
 
 ## Summary
 
-Geographic primitives: distance calculations, point-in-polygon, and IP geolocation.
-Embedded geodata means location features work offline with zero API costs.
+Geographic primitives: distance calculations, point-in-polygon, and IP
+geolocation. Embedded geodata means location features work offline
+with zero API costs.
 
 ## The Problem
 
@@ -249,12 +250,12 @@ func Distance(lat1, lon1, lat2, lon2 float64) float64 {
 
 ## Embedded Data
 
-| Dataset | Size | Coverage |
-|---------|------|----------|
-| GeoLite2-Country | ~1.5MB | Country from IP |
-| GeoLite2-City | ~5MB | City-level from IP |
-| Timezone shapes | ~500KB | Timezone from coords |
-| Country borders | ~2MB | Country from coords |
+| Dataset          | Size   | Coverage             |
+| ---------------- | ------ | -------------------- |
+| GeoLite2-Country | ~1.5MB | Country from IP      |
+| GeoLite2-City    | ~5MB   | City-level from IP   |
+| Timezone shapes  | ~500KB | Timezone from coords |
+| Country borders  | ~2MB   | Country from coords  |
 
 **Total embedded: ~5-8MB** (configurable at build time)
 
@@ -376,7 +377,8 @@ async function checkCompliance(request) {
 
 ## Data Updates
 
-GeoLite2 database is updated monthly. Fazt releases will include updated geodata.
+GeoLite2 database is updated monthly. Fazt releases will include
+updated geodata.
 
 For self-hosted instances needing fresher data:
 ```bash
@@ -385,11 +387,11 @@ fazt services geo update  # Download latest GeoLite2
 
 ## Limits
 
-| Limit | Default |
-|-------|---------|
-| `maxPolygonPoints` | 10,000 |
-| `maxNearbyResults` | 1,000 |
-| `ipLookupCacheTTL` | 1 hour |
+| Limit              | Default |
+| ------------------ | ------- |
+| `maxPolygonPoints` | 10,000  |
+| `maxNearbyResults` | 1,000   |
+| `ipLookupCacheTTL` | 1 hour  |
 
 ## Implementation Notes
 

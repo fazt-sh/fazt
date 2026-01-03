@@ -191,12 +191,12 @@ Cache is advisory - stale entries are pruned, fresh discovery takes precedence.
 
 ## Limits
 
-| Limit | Default |
-|-------|---------|
-| `maxNodes` | 100 (cached) |
-| `announceInterval` | 30s |
-| `discoveryTimeout` | 5s |
-| `nodeExpiry` | 5 minutes (no announcement = removed) |
+| Limit              | Default                               |
+| ------------------ | ------------------------------------- |
+| `maxNodes`         | 100 (cached)                          |
+| `announceInterval` | 30s                                   |
+| `discoveryTimeout` | 5s                                    |
+| `nodeExpiry`       | 5 minutes (no announcement = removed) |
 
 ## Security Considerations
 

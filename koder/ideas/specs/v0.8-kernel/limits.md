@@ -115,8 +115,9 @@ workers:
 
 ## Rate Limiting
 
-Request rate limiting per client/app. Protects against abuse, brute force,
-and ensures fair access. Uses token bucket algorithm with per-key sliding windows.
+Request rate limiting per client/app. Protects against abuse, brute
+force, and ensures fair access. Uses token bucket algorithm with
+per-key sliding windows.
 
 ### Default Rates
 
@@ -199,13 +200,13 @@ const allowed = await fazt.limits.rate.consume('api-key-123', {
 
 Built-in key extraction:
 
-| Key | Description |
-|-----|-------------|
-| `ip` | Client IP address (default) |
-| `ip+endpoint` | IP + request path |
-| `user` | Authenticated user ID |
-| `apiKey` | API key from header |
-| `custom` | Custom key from header/cookie |
+| Key           | Description                   |
+| ------------- | ----------------------------- |
+| `ip`          | Client IP address (default)   |
+| `ip+endpoint` | IP + request path             |
+| `user`        | Authenticated user ID         |
+| `apiKey`      | API key from header           |
+| `custom`      | Custom key from header/cookie |
 
 Configure in `app.json`:
 
@@ -271,14 +272,14 @@ type bucket struct {
 
 ### At 100% (Enforcement)
 
-| Subsystem | Action |
-|-----------|--------|
-| VFS | Reject upload with 413 |
-| Runtime | Queue or reject with 503 |
-| Realtime | Reject connection with 503 |
-| Email | Reject with SMTP 452 |
-| Workers | Reject spawn, return error |
-| Storage | Reject write with 507 |
+| Subsystem | Action                     |
+| --------- | -------------------------- |
+| VFS       | Reject upload with 413     |
+| Runtime   | Queue or reject with 503   |
+| Realtime  | Reject connection with 503 |
+| Email     | Reject with SMTP 452       |
+| Workers   | Reject spawn, return error |
+| Storage   | Reject write with 507      |
 
 ### At 100% (Graceful Degradation)
 

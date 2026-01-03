@@ -15,12 +15,12 @@ make security a native capability rather than an afterthought.
 
 ## Key Primitives
 
-| Primitive | Description |
-|-----------|-------------|
-| **Persona** | Hardware-bound keypair per process |
-| **Attestation** | Code integrity verification |
-| **Vaulting** | Sealed memory for secrets |
-| **Temporal** | TOTP integration for sensitive ops |
+| Primitive       | Description                        |
+| --------------- | ---------------------------------- |
+| **Persona**     | Hardware-bound keypair per process |
+| **Attestation** | Code integrity verification        |
+| **Vaulting**    | Sealed memory for secrets          |
+| **Temporal**    | TOTP integration for sensitive ops |
 
 ## Dependencies
 

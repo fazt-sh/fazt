@@ -17,13 +17,13 @@ the underlying implementation, and files gain permanent, verifiable addresses.
 
 ## Key Changes
 
-| Capability | Description |
-|------------|-------------|
-| `fazt.storage.kv` | High-speed key-value store |
-| `fazt.storage.ds` | Document store (JSON) |
-| `fazt.storage.s3` | Blob storage for files |
-| Shards | Micro-document pattern for analytics |
-| IPFS Gateway | `/ipfs/<CID>` endpoint |
+| Capability        | Description                          |
+| ----------------- | ------------------------------------ |
+| `fazt.storage.kv` | High-speed key-value store           |
+| `fazt.storage.ds` | Document store (JSON)                |
+| `fazt.storage.s3` | Blob storage for files               |
+| Shards            | Micro-document pattern for analytics |
+| IPFS Gateway      | `/ipfs/<CID>` endpoint               |
 
 ## Documents
 

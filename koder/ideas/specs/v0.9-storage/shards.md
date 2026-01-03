@@ -168,12 +168,12 @@ await fazt.storage.ds.insert('events', { type: 'pageview', url: '/' });
 
 ## Performance Targets
 
-| Metric | Target | Notes |
-|--------|--------|-------|
-| Write throughput | 10k events/sec | With buffering |
-| Query by indexed field | <10ms | Functional index |
-| Query by non-indexed field | <1s | Full shard scan |
-| Storage per 1M events | ~500MB | With compression |
+| Metric                     | Target         | Notes            |
+| -------------------------- | -------------- | ---------------- |
+| Write throughput           | 10k events/sec | With buffering   |
+| Query by indexed field     | <10ms          | Functional index |
+| Query by non-indexed field | <1s            | Full shard scan  |
+| Storage per 1M events      | ~500MB         | With compression |
 
 ## Architect's Advice
 

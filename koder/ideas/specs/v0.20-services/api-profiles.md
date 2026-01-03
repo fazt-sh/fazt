@@ -591,11 +591,11 @@ fazt.events.on('hooks.strava.activity.created', async (event) => {
 
 ## Limits
 
-| Limit | Default |
-|-------|---------|
-| Max profiles per app | 50 |
-| Max endpoints per profile | 100 |
-| Request timeout | 30 seconds |
-| Max response size | 10 MB |
-| Log retention | 7 days |
-| Cache TTL max | 24 hours |
+| Limit                     | Default    |
+| ------------------------- | ---------- |
+| Max profiles per app      | 50         |
+| Max endpoints per profile | 100        |
+| Request timeout           | 30 seconds |
+| Max response size         | 10 MB      |
+| Log retention             | 7 days     |
+| Cache TTL max             | 24 hours   |

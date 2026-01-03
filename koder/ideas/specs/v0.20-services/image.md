@@ -11,14 +11,14 @@ to `fazt.lib.mime`.
 
 ## Capabilities
 
-| Operation | Description |
-|-----------|-------------|
-| `resize` | Scale image to dimensions |
-| `crop` | Extract region from image |
-| `thumbnail` | Generate square thumbnail |
-| `optimize` | Compress without resize |
-| `convert` | Change format (jpg, png, webp) |
-| `blurhash` | Generate blur placeholder hash |
+| Operation   | Description                    |
+| ----------- | ------------------------------ |
+| `resize`    | Scale image to dimensions      |
+| `crop`      | Extract region from image      |
+| `thumbnail` | Generate square thumbnail      |
+| `optimize`  | Compress without resize        |
+| `convert`   | Change format (jpg, png, webp) |
+| `blurhash`  | Generate blur placeholder hash |
 
 ## Usage
 
@@ -43,11 +43,11 @@ const exact = await fazt.services.image.resize(path, {
 
 ### Fit Modes
 
-| Mode | Behavior |
-|------|----------|
+| Mode      | Behavior                                     |
+| --------- | -------------------------------------------- |
 | `contain` | Fit within bounds, preserve aspect (default) |
-| `cover` | Fill bounds, crop excess |
-| `fill` | Stretch to exact dimensions |
+| `cover`   | Fill bounds, crop excess                     |
+| `fill`    | Stretch to exact dimensions                  |
 
 ### Thumbnail
 
@@ -118,13 +118,13 @@ await fazt.storage.ds.insert('images', {
 
 ## Supported Formats
 
-| Format | Read | Write |
-|--------|------|-------|
-| JPEG | Yes | Yes |
-| PNG | Yes | Yes |
-| GIF | Yes | Yes (first frame) |
-| WebP | Yes | Yes |
-| BMP | Yes | No |
+| Format | Read | Write             |
+| ------ | ---- | ----------------- |
+| JPEG   | Yes  | Yes               |
+| PNG    | Yes  | Yes               |
+| GIF    | Yes  | Yes (first frame) |
+| WebP   | Yes  | Yes               |
+| BMP    | Yes  | No                |
 
 ## HTTP Endpoint
 
@@ -140,14 +140,14 @@ GET /_services/image/{path}?blurhash=1
 
 **Parameters:**
 
-| Param | Description |
-|-------|-------------|
-| `w` | Width |
-| `h` | Height |
-| `fit` | Fit mode: cover, contain, fill |
-| `thumb` | Square thumbnail size |
-| `q` | Quality (1-100) |
-| `fmt` | Output format |
+| Param      | Description                             |
+| ---------- | --------------------------------------- |
+| `w`        | Width                                   |
+| `h`        | Height                                  |
+| `fit`      | Fit mode: cover, contain, fill          |
+| `thumb`    | Square thumbnail size                   |
+| `q`        | Quality (1-100)                         |
+| `fmt`      | Output format                           |
 | `blurhash` | Return blurhash string instead of image |
 
 **Example:**
@@ -240,12 +240,12 @@ import (
 
 ## Limits
 
-| Limit | Default |
-|-------|---------|
-| `maxSourceSizeMB` | 20 |
-| `maxDimension` | 8000 px |
-| `maxCacheSizeMB` | 500 (per app) |
-| `cacheRetentionDays` | 30 |
+| Limit                | Default       |
+| -------------------- | ------------- |
+| `maxSourceSizeMB`    | 20            |
+| `maxDimension`       | 8000 px       |
+| `maxCacheSizeMB`     | 500 (per app) |
+| `cacheRetentionDays` | 30            |
 
 ## CLI
 

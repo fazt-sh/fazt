@@ -7,11 +7,11 @@ no JavaScript required. Works with forms, APIs, and any user input.
 
 ## Challenge Types
 
-| Type | Description | Difficulty |
-|------|-------------|------------|
-| `math` | Simple arithmetic (3 + 7 = ?) | Easy |
-| `text` | Type distorted characters | Medium |
-| `honeypot` | Hidden field trap | Invisible |
+| Type       | Description                   | Difficulty |
+| ---------- | ----------------------------- | ---------- |
+| `math`     | Simple arithmetic (3 + 7 = ?) | Easy       |
+| `text`     | Type distorted characters     | Medium     |
+| `honeypot` | Hidden field trap             | Invisible  |
 
 Default: `math` (simple, accessible, no JS needed)
 
@@ -259,11 +259,11 @@ Expired captchas auto-cleaned.
 
 ## Limits
 
-| Limit | Default |
-|-------|---------|
-| `expiresIn` | 5 minutes |
-| `maxPendingPerIP` | 10 |
-| `ratePerMinutePerIP` | 20 |
+| Limit                | Default   |
+| -------------------- | --------- |
+| `expiresIn`          | 5 minutes |
+| `maxPendingPerIP`    | 10        |
+| `ratePerMinutePerIP` | 20        |
 
 ## CLI
 

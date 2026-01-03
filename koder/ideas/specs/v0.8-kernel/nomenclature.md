@@ -29,15 +29,15 @@ fazt storage backup
 
 ### pkg/kernel/ Structure
 
-| Directory | OS Concept | Responsibility |
-|-----------|------------|----------------|
-| `proc/` | Process | Binary lifecycle, systemd, upgrades |
-| `fs/` | File System | VFS, blob storage, file serving |
-| `net/` | Network | SSL, routing, domain management |
-| `storage/` | Block Storage | SQLite engine, EDD migrations |
-| `security/` | Access Control | JWT, auth, permissions |
-| `driver/` | Device Drivers | Litestream, external integrations |
-| `syscall/` | System Calls | API bridge between apps and kernel |
+| Directory   | OS Concept     | Responsibility                      |
+| ----------- | -------------- | ----------------------------------- |
+| `proc/`     | Process        | Binary lifecycle, systemd, upgrades |
+| `fs/`       | File System    | VFS, blob storage, file serving     |
+| `net/`      | Network        | SSL, routing, domain management     |
+| `storage/`  | Block Storage  | SQLite engine, EDD migrations       |
+| `security/` | Access Control | JWT, auth, permissions              |
+| `driver/`   | Device Drivers | Litestream, external integrations   |
+| `syscall/`  | System Calls   | API bridge between apps and kernel  |
 
 ### Syscall Pattern
 
@@ -65,23 +65,23 @@ kernel.FS.Read(path)
 
 ### Command Groups
 
-| Group | Commands | Kernel Module |
-|-------|----------|---------------|
-| `proc` | start, stop, restart, upgrade, status | `proc/` |
-| `fs` | ls, mount, unmount, cat, rm | `fs/` |
-| `net` | route add/rm, domain map, vpn | `net/` |
-| `storage` | migrate, backup, restore, gc | `storage/` |
-| `security` | init, sign, verify, totp | `security/` |
-| `app` | deploy, install, remove, list | (uses syscall) |
+| Group      | Commands                              | Kernel Module  |
+| ---------- | ------------------------------------- | -------------- |
+| `proc`     | start, stop, restart, upgrade, status | `proc/`        |
+| `fs`       | ls, mount, unmount, cat, rm           | `fs/`          |
+| `net`      | route add/rm, domain map, vpn         | `net/`         |
+| `storage`  | migrate, backup, restore, gc          | `storage/`     |
+| `security` | init, sign, verify, totp              | `security/`    |
+| `app`      | deploy, install, remove, list         | (uses syscall) |
 
 ### Migration from v0.7
 
-| v0.7 Command | v0.8 Command |
-|--------------|--------------|
-| `fazt server start` | `fazt proc start` |
-| `fazt server init` | `fazt proc init` |
-| `fazt server status` | `fazt proc status` |
-| `fazt deploy` | `fazt app deploy` |
+| v0.7 Command         | v0.8 Command          |
+| -------------------- | --------------------- |
+| `fazt server start`  | `fazt proc start`     |
+| `fazt server init`   | `fazt proc init`      |
+| `fazt server status` | `fazt proc status`    |
+| `fazt deploy`        | `fazt app deploy`     |
 | `fazt backup create` | `fazt storage backup` |
 
 ## Internal API

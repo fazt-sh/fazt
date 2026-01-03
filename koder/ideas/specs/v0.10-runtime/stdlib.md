@@ -27,15 +27,15 @@ const { v4: uuid } = require('uuid');
 
 ## Included Libraries
 
-| Library | Version | Use Case |
-|---------|---------|----------|
-| `lodash` | 4.x | Array/object manipulation |
-| `cheerio` | 1.x | HTML parsing and manipulation |
-| `uuid` | 9.x | Generate unique identifiers |
-| `zod` | 3.x | Schema validation |
-| `marked` | 9.x | Markdown to HTML |
-| `dayjs` | 1.x | Date manipulation |
-| `validator` | 13.x | String validation |
+| Library     | Version | Use Case                      |
+| ----------- | ------- | ----------------------------- |
+| `lodash`    | 4.x     | Array/object manipulation     |
+| `cheerio`   | 1.x     | HTML parsing and manipulation |
+| `uuid`      | 9.x     | Generate unique identifiers   |
+| `zod`       | 3.x     | Schema validation             |
+| `marked`    | 9.x     | Markdown to HTML              |
+| `dayjs`     | 1.x     | Date manipulation             |
+| `validator` | 13.x    | String validation             |
 
 ## Usage
 
@@ -182,10 +182,10 @@ If a stdlib library has a vulnerability:
 
 Stdlib versions are tied to Fazt versions:
 
-| Fazt | lodash | cheerio | uuid |
-|------|--------|---------|------|
-| 0.10 | 4.17.21 | 1.0.0 | 9.0.0 |
-| 0.11 | 4.17.22 | 1.0.1 | 9.0.1 |
+| Fazt | lodash  | cheerio | uuid  |
+| ---- | ------- | ------- | ----- |
+| 0.10 | 4.17.21 | 1.0.0   | 9.0.0 |
+| 0.11 | 4.17.22 | 1.0.1   | 9.0.1 |
 
 ## Limitations
 

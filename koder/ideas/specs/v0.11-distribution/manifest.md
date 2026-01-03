@@ -66,14 +66,14 @@ my-app/
 
 ### Metadata
 
-| Field | Required | Description |
-|-------|----------|-------------|
-| `name` | Yes | App identifier (alphanumeric + hyphen) |
-| `version` | Yes | Semver version string |
-| `description` | No | Short description (max 200 chars) |
-| `author` | No | Author name and email |
-| `license` | No | SPDX license identifier |
-| `homepage` | No | Project URL |
+| Field         | Required | Description                            |
+| ------------- | -------- | -------------------------------------- |
+| `name`        | Yes      | App identifier (alphanumeric + hyphen) |
+| `version`     | Yes      | Semver version string                  |
+| `description` | No       | Short description (max 200 chars)      |
+| `author`      | No       | Author name and email                  |
+| `license`     | No       | SPDX license identifier                |
+| `homepage`    | No       | Project URL                            |
 
 ### Fazt Requirements
 
@@ -92,17 +92,17 @@ Installation fails if Fazt version is outside range.
 
 Permissions follow a `category:action` pattern:
 
-| Permission | Description |
-|------------|-------------|
-| `storage:kv` | Key-value storage |
-| `storage:ds` | Document storage |
-| `storage:s3` | Blob storage |
-| `net:fetch` | HTTP requests to external URLs |
-| `net:vpn` | Access VPN status (v0.13+) |
-| `kernel:deploy` | Deploy other apps (v0.12+) |
-| `kernel:status` | Read system status |
-| `security:sign` | Use kernel signing (v0.14+) |
-| `ai:complete` | Use AI completions (v0.12+) |
+| Permission      | Description                    |
+| --------------- | ------------------------------ |
+| `storage:kv`    | Key-value storage              |
+| `storage:ds`    | Document storage               |
+| `storage:s3`    | Blob storage                   |
+| `net:fetch`     | HTTP requests to external URLs |
+| `net:vpn`       | Access VPN status (v0.13+)     |
+| `kernel:deploy` | Deploy other apps (v0.12+)     |
+| `kernel:status` | Read system status             |
+| `security:sign` | Use kernel signing (v0.14+)    |
+| `ai:complete`   | Use AI completions (v0.12+)    |
 
 ### Permission Enforcement
 
@@ -159,11 +159,11 @@ See `v0.10-runtime/cron.md` for details.
 
 ### Visibility
 
-| Value | Description |
-|-------|-------------|
-| `public` | Accessible from internet (default) |
-| `vpn-only` | Only via VPN tunnel (v0.13+) |
-| `internal` | Only via kernel IPC |
+| Value      | Description                        |
+| ---------- | ---------------------------------- |
+| `public`   | Accessible from internet (default) |
+| `vpn-only` | Only via VPN tunnel (v0.13+)       |
+| `internal` | Only via kernel IPC                |
 
 ## Validation
 

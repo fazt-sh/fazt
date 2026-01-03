@@ -97,11 +97,11 @@ Derive sensitive endpoints from UUID:
 
 The kernel itself provides apps:
 
-| App | UUID | Subdomain | Purpose |
-|-----|------|-----------|---------|
-| Admin | `app_system_admin` | `admin.*` | Dashboard |
-| Root | `app_system_root` | `root.*` | Landing page |
-| 404 | `app_system_404` | `404.*` | Error page |
+| App   | UUID               | Subdomain | Purpose      |
+| ----- | ------------------ | --------- | ------------ |
+| Admin | `app_system_admin` | `admin.*` | Dashboard    |
+| Root  | `app_system_root`  | `root.*`  | Landing page |
+| 404   | `app_system_404`   | `404.*`   | Error page   |
 
 System apps cannot be deleted. They can be customized by replacing their VFS
 contents.

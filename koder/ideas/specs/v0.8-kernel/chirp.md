@@ -63,11 +63,11 @@ Audio Frame:
 
 Intentionally slow for reliability:
 
-| Mode | Speed | Best For |
-|------|-------|----------|
-| `robust` | ~50 bytes/sec | Noisy environments |
+| Mode       | Speed          | Best For                    |
+| ---------- | -------------- | --------------------------- |
+| `robust`   | ~50 bytes/sec  | Noisy environments          |
 | `standard` | ~200 bytes/sec | Normal conditions (default) |
-| `fast` | ~500 bytes/sec | Quiet, close range |
+| `fast`     | ~500 bytes/sec | Quiet, close range          |
 
 A 256-byte key takes ~1-5 seconds depending on mode.
 
@@ -152,12 +152,12 @@ fazt chirp listen --timeout 30s --mode robust
 
 ## Audio Characteristics
 
-| Parameter | Value |
-|-----------|-------|
-| Sample rate | 44100 Hz |
-| Frequencies | 1200 Hz (0), 2400 Hz (1) |
-| Bit duration | 5-20ms (mode dependent) |
-| Preamble | 500ms sync tone |
+| Parameter        | Value                                |
+| ---------------- | ------------------------------------ |
+| Sample rate      | 44100 Hz                             |
+| Frequencies      | 1200 Hz (0), 2400 Hz (1)             |
+| Bit duration     | 5-20ms (mode dependent)              |
+| Preamble         | 500ms sync tone                      |
 | Error correction | Reed-Solomon (can recover ~10% loss) |
 
 Designed to survive:
@@ -189,13 +189,13 @@ fazt chirp decode --file recording.wav
 
 ## Limits
 
-| Limit | Default |
-|-------|---------|
-| `maxPayloadSize` | 4 KB |
-| `defaultTimeout` | 30s |
-| `maxTimeout` | 5 minutes |
-| `minFrequency` | 1000 Hz |
-| `maxFrequency` | 4000 Hz |
+| Limit            | Default   |
+| ---------------- | --------- |
+| `maxPayloadSize` | 4 KB      |
+| `defaultTimeout` | 30s       |
+| `maxTimeout`     | 5 minutes |
+| `minFrequency`   | 1000 Hz   |
+| `maxFrequency`   | 4000 Hz   |
 
 ## Security Considerations
 
@@ -210,11 +210,11 @@ fazt chirp decode --file recording.wav
 
 ## Why Not Bluetooth/NFC/QR?
 
-| Method | Problem |
-|--------|---------|
-| Bluetooth | Requires pairing, not universal |
-| NFC | Requires hardware, very short range |
-| QR | Camera required, size limited |
+| Method    | Problem                                   |
+| --------- | ----------------------------------------- |
+| Bluetooth | Requires pairing, not universal           |
+| NFC       | Requires hardware, very short range       |
+| QR        | Camera required, size limited             |
 | **Chirp** | Universal: all devices have speakers/mics |
 
 Chirp is the lowest common denominator. It works between a Pi with
@@ -235,4 +235,5 @@ fazt security vault export mykey | fazt chirp send
 fazt mesh export-identity | fazt chirp send
 ```
 
-The pattern: export from one primitive → chirp send → chirp listen → import to other device.
+The pattern: export from one primitive → chirp send → chirp listen →
+import to other device.

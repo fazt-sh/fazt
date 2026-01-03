@@ -179,13 +179,13 @@ interface ChromemDocument {
 
 ## Format Comparison
 
-| Field | LangChain | chromem-go | Fazt |
-|-------|-----------|------------|------|
-| Content | `pageContent` | `Content` | `pageContent` |
+| Field         | LangChain        | chromem-go          | Fazt             |
+| ------------- | ---------------- | ------------------- | ---------------- |
+| Content       | `pageContent`    | `Content`           | `pageContent`    |
 | Metadata type | `map[string]any` | `map[string]string` | `map[string]any` |
-| ID | in metadata | `ID` | in metadata |
-| Score | `score` | `Similarity` | `score` |
-| Embedding | separate | `Embedding` | separate |
+| ID            | in metadata      | `ID`                | in metadata      |
+| Score         | `score`          | `Similarity`        | `score`          |
+| Embedding     | separate         | `Embedding`         | separate         |
 
 **Fazt follows LangChain exactly.** Conversion to/from chromem-go is handled
 by the `fromChromem`/`toChromem` functions.

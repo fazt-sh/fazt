@@ -292,24 +292,24 @@ function prorateSubscription(monthlyPriceCents, daysRemaining, totalDays) {
 
 ISO 4217 currencies with correct decimal places:
 
-| Currency | Code | Symbol | Decimals |
-|----------|------|--------|----------|
-| US Dollar | USD | $ | 2 |
-| Euro | EUR | € | 2 |
-| British Pound | GBP | £ | 2 |
-| Japanese Yen | JPY | ¥ | 0 |
-| Swiss Franc | CHF | CHF | 2 |
-| Canadian Dollar | CAD | $ | 2 |
-| Australian Dollar | AUD | $ | 2 |
-| ... | ... | ... | ... |
+| Currency          | Code | Symbol | Decimals |
+| ----------------- | ---- | ------ | -------- |
+| US Dollar         | USD  | $      | 2        |
+| Euro              | EUR  | €      | 2        |
+| British Pound     | GBP  | £      | 2        |
+| Japanese Yen      | JPY  | ¥      | 0        |
+| Swiss Franc       | CHF  | CHF    | 2        |
+| Canadian Dollar   | CAD  | $      | 2        |
+| Australian Dollar | AUD  | $      | 2        |
+| ...               | ...  | ...    | ...      |
 
 Full list: ~150 currencies with correct decimal handling.
 
 ## Limits
 
-| Limit | Default |
-|-------|---------|
-| `maxValue` | 9,223,372,036,854,775,807 (int64 max) |
+| Limit      | Default                                |
+| ---------- | -------------------------------------- |
+| `maxValue` | 9,223,372,036,854,775,807 (int64 max)  |
 | `minValue` | -9,223,372,036,854,775,808 (int64 min) |
 
 ## Implementation Notes

@@ -2,9 +2,10 @@
 
 ## Summary
 
-Infrastructure (`dev.infra.*`) provides a unified interface to cloud infrastructure
-providers. Like devices abstract third-party APIs, infra abstracts the substrate
-that Fazt runs ON - VPS servers, DNS records, and domain registration.
+Infrastructure (`dev.infra.*`) provides a unified interface to cloud
+infrastructure providers. Like devices abstract third-party APIs, infra
+abstracts the substrate that Fazt runs ON - VPS servers, DNS records,
+and domain registration.
 
 This enables full app lifecycle automation via natural language:
 "Create a photography site at photos.example.com" becomes actionable.
@@ -21,7 +22,8 @@ The distinction from other devices:
 - **infra**: Where Fazt RUNS (substrate)
 - **billing, sms, etc**: What Fazt USES (operational)
 
-Both are "devices" in the OS sense - external interfaces abstracted by the kernel.
+Both are "devices" in the OS sense - external interfaces abstracted
+by the kernel.
 
 ## Philosophy
 
@@ -57,11 +59,11 @@ Both are "devices" in the OS sense - external interfaces abstracted by the kerne
 
 ## Available Infrastructure Types
 
-| Type | Purpose | Providers |
-|------|---------|-----------|
-| `vps` | Virtual private servers | Hetzner, DigitalOcean, Vultr |
-| `dns` | DNS record management | Cloudflare, Hetzner DNS, DO DNS |
-| `domain` | Domain registration | Cloudflare Registrar |
+| Type     | Purpose                 | Providers                       |
+| -------- | ----------------------- | ------------------------------- |
+| `vps`    | Virtual private servers | Hetzner, DigitalOcean, Vultr    |
+| `dns`    | DNS record management   | Cloudflare, Hetzner DNS, DO DNS |
+| `domain` | Domain registration     | Cloudflare Registrar            |
 
 ## Configuration
 
@@ -95,11 +97,11 @@ Virtual private server provisioning and management.
 
 ### Providers
 
-| Provider | Status | API Quality | Pricing |
-|----------|--------|-------------|---------|
-| Hetzner | Primary | Excellent | Best EU value |
-| DigitalOcean | Primary | Excellent | Popular, good docs |
-| Vultr | Planned | Good | Global coverage |
+| Provider     | Status  | API Quality | Pricing            |
+| ------------ | ------- | ----------- | ------------------ |
+| Hetzner      | Primary | Excellent   | Best EU value      |
+| DigitalOcean | Primary | Excellent   | Popular, good docs |
+| Vultr        | Planned | Good        | Global coverage    |
 
 ### Interface
 
@@ -228,11 +230,11 @@ DNS record management for managed zones.
 
 ### Providers
 
-| Provider | Status | Free Tier | Notes |
-|----------|--------|-----------|-------|
-| Cloudflare | Primary | Unlimited | Best choice, fast propagation |
-| Hetzner DNS | Primary | Yes | Good if using Hetzner VPS |
-| DigitalOcean | Planned | Yes | Good if using DO |
+| Provider     | Status  | Free Tier | Notes                         |
+| ------------ | ------- | --------- | ----------------------------- |
+| Cloudflare   | Primary | Unlimited | Best choice, fast propagation |
+| Hetzner DNS  | Primary | Yes       | Good if using Hetzner VPS     |
+| DigitalOcean | Planned | Yes       | Good if using DO              |
 
 ### Prerequisite: DNS Delegation
 
@@ -327,15 +329,15 @@ const propagation = await fazt.dev.infra.dns.checkPropagation('blog.example.com'
 
 ### Record Types
 
-| Type | Purpose | Example |
-|------|---------|---------|
-| `A` | IPv4 address | `blog.example.com → 123.45.67.89` |
-| `AAAA` | IPv6 address | `blog.example.com → 2001:db8::1` |
-| `CNAME` | Alias | `www.example.com → example.com` |
-| `MX` | Mail server | `example.com → mail.example.com` |
-| `TXT` | Text data | SPF, DKIM, DMARC, verification |
-| `NS` | Nameserver | Usually managed by provider |
-| `CAA` | Certificate authority | Restrict who can issue SSL |
+| Type    | Purpose               | Example                           |
+| ------- | --------------------- | --------------------------------- |
+| `A`     | IPv4 address          | `blog.example.com → 123.45.67.89` |
+| `AAAA`  | IPv6 address          | `blog.example.com → 2001:db8::1`  |
+| `CNAME` | Alias                 | `www.example.com → example.com`   |
+| `MX`    | Mail server           | `example.com → mail.example.com`  |
+| `TXT`   | Text data             | SPF, DKIM, DMARC, verification    |
+| `NS`    | Nameserver            | Usually managed by provider       |
+| `CAA`   | Certificate authority | Restrict who can issue SSL        |
 
 ## Infrastructure: Domain
 
@@ -343,8 +345,8 @@ Domain registration (optional, for end-to-end automation).
 
 ### Providers
 
-| Provider | Status | Notes |
-|----------|--------|-------|
+| Provider   | Status  | Notes                          |
+| ---------- | ------- | ------------------------------ |
 | Cloudflare | Primary | At-cost pricing, excellent API |
 
 ### Interface
@@ -652,12 +654,12 @@ Infra appears in the unified External Services dashboard:
 
 ## Binary Size Impact
 
-| Dependency | Size | Notes |
-|------------|------|-------|
-| hcloud-go | ~200KB | Hetzner SDK |
-| cloudflare-go | ~400KB | Cloudflare SDK |
-| godo | ~300KB | DigitalOcean SDK |
-| govultr | ~200KB | Vultr SDK |
+| Dependency    | Size   | Notes            |
+| ------------- | ------ | ---------------- |
+| hcloud-go     | ~200KB | Hetzner SDK      |
+| cloudflare-go | ~400KB | Cloudflare SDK   |
+| godo          | ~300KB | DigitalOcean SDK |
+| govultr       | ~200KB | Vultr SDK        |
 
 Total: ~1.1MB additional binary size (with all providers).
 

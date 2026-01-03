@@ -233,14 +233,14 @@ Stored via `fazt.storage.s3` (internal or external):
 
 ## Limits
 
-| Limit | Default | Description |
-|-------|---------|-------------|
-| `maxInboundPerHour` | 1000 | Emails per hour (all apps) |
-| `maxInboundPerAppPerHour` | 100 | Per app |
-| `maxMessageSizeMB` | 10 | Including attachments |
-| `maxAttachmentSizeMB` | 25 | Single attachment |
-| `maxAttachmentsPerEmail` | 20 | |
-| `retentionDays` | 30 | Auto-delete after |
+| Limit                     | Default | Description                |
+| ------------------------- | ------- | -------------------------- |
+| `maxInboundPerHour`       | 1000    | Emails per hour (all apps) |
+| `maxInboundPerAppPerHour` | 100     | Per app                    |
+| `maxMessageSizeMB`        | 10      | Including attachments      |
+| `maxAttachmentSizeMB`     | 25      | Single attachment          |
+| `maxAttachmentsPerEmail`  | 20      |                            |
+| `retentionDays`           | 30      | Auto-delete after          |
 
 ### Limit Behavior
 
@@ -304,16 +304,16 @@ NOOP
 
 ### Response Codes
 
-| Code | Meaning |
-|------|---------|
-| 250 | OK |
-| 354 | Start mail input |
-| 421 | Service not available |
-| 450 | Mailbox unavailable (temp) |
-| 452 | Insufficient storage |
-| 500 | Syntax error |
-| 550 | Mailbox not found |
-| 552 | Message too large |
+| Code | Meaning                    |
+| ---- | -------------------------- |
+| 250  | OK                         |
+| 354  | Start mail input           |
+| 421  | Service not available      |
+| 450  | Mailbox unavailable (temp) |
+| 452  | Insufficient storage       |
+| 500  | Syntax error               |
+| 550  | Mailbox not found          |
+| 552  | Message too large          |
 
 ## CLI
 

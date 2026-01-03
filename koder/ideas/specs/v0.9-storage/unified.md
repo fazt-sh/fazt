@@ -178,11 +178,11 @@ fazt storage migrate app_x9z2k --from internal --to s3://bucket
 
 For document store queries:
 
-| Operator | Description | Example |
-|----------|-------------|---------|
-| `$eq` | Equals | `{ status: { $eq: 'active' } }` |
-| `$ne` | Not equals | `{ status: { $ne: 'deleted' } }` |
-| `$gt` | Greater than | `{ age: { $gt: 18 } }` |
-| `$lt` | Less than | `{ age: { $lt: 65 } }` |
-| `$in` | In array | `{ role: { $in: ['admin', 'mod'] } }` |
+| Operator    | Description    | Example                               |
+| ----------- | -------------- | ------------------------------------- |
+| `$eq`       | Equals         | `{ status: { $eq: 'active' } }`       |
+| `$ne`       | Not equals     | `{ status: { $ne: 'deleted' } }`      |
+| `$gt`       | Greater than   | `{ age: { $gt: 18 } }`                |
+| `$lt`       | Less than      | `{ age: { $lt: 65 } }`                |
+| `$in`       | In array       | `{ role: { $in: ['admin', 'mod'] } }` |
 | `$contains` | Array contains | `{ tags: { $contains: 'featured' } }` |

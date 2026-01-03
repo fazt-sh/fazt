@@ -87,14 +87,14 @@ Extended detection covers formats not in stdlib:
 
 Common types with reliable detection:
 
-| Category | Types |
-|----------|-------|
-| Images | jpeg, png, gif, webp, svg, avif, heic, ico, bmp |
-| Documents | pdf, docx, xlsx, pptx |
-| Audio | mp3, ogg, wav, flac, aac |
-| Video | mp4, webm, avi, mov |
-| Archives | zip, gzip, tar, rar, 7z |
-| Code | wasm, sqlite |
+| Category  | Types                                           |
+| --------- | ----------------------------------------------- |
+| Images    | jpeg, png, gif, webp, svg, avif, heic, ico, bmp |
+| Documents | pdf, docx, xlsx, pptx                           |
+| Audio     | mp3, ogg, wav, flac, aac                        |
+| Video     | mp4, webm, avi, mov                             |
+| Archives  | zip, gzip, tar, rar, 7z                         |
+| Code      | wasm, sqlite                                    |
 
 ## Implementation Notes
 

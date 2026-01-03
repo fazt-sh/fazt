@@ -78,14 +78,14 @@ Timeline:
 
 Standard cron format: `minute hour day month weekday`
 
-| Pattern | Meaning |
-|---------|---------|
-| `* * * * *` | Every minute |
-| `*/5 * * * *` | Every 5 minutes |
-| `0 * * * *` | Every hour |
-| `0 0 * * *` | Every day at midnight |
-| `0 9 * * 1` | Every Monday at 9am |
-| `0 0 1 * *` | First of every month |
+| Pattern       | Meaning               |
+| ------------- | --------------------- |
+| `* * * * *`   | Every minute          |
+| `*/5 * * * *` | Every 5 minutes       |
+| `0 * * * *`   | Every hour            |
+| `0 0 * * *`   | Every day at midnight |
+| `0 9 * * 1`   | Every Monday at 9am   |
+| `0 0 1 * *`   | First of every month  |
 
 ## Handler Pattern
 
@@ -203,12 +203,12 @@ POST /api/apps/{uuid}/cron/trigger
 
 ## Resource Limits
 
-| Limit | Value | Rationale |
-|-------|-------|-----------|
-| Max cron jobs per app | 10 | Prevent scheduler flood |
-| Min interval | 1 minute | Prevent tight loops |
-| Execution timeout | 5 minutes | Prevent hung jobs |
-| Retry on failure | 3 times | Handle transient errors |
+| Limit                 | Value     | Rationale               |
+| --------------------- | --------- | ----------------------- |
+| Max cron jobs per app | 10        | Prevent scheduler flood |
+| Min interval          | 1 minute  | Prevent tight loops     |
+| Execution timeout     | 5 minutes | Prevent hung jobs       |
+| Retry on failure      | 3 times   | Handle transient errors |
 
 ## Failure Handling
 

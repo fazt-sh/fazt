@@ -346,11 +346,11 @@ func Query(collectionID, queryEmbedding []float32, limit int) []ScoredDocument {
 
 ### Performance Characteristics
 
-| Documents | Query Time | Memory |
-|-----------|-----------|--------|
-| 1,000 | ~1ms | ~6 MB |
-| 10,000 | ~10ms | ~60 MB |
-| 100,000 | ~100ms | ~600 MB |
+| Documents | Query Time | Memory  |
+| --------- | ---------- | ------- |
+| 1,000     | ~1ms       | ~6 MB   |
+| 10,000    | ~10ms      | ~60 MB  |
+| 100,000   | ~100ms     | ~600 MB |
 
 For most personal/small team use cases (<100k documents), this is sufficient.
 
@@ -375,13 +375,13 @@ await fazt.storage.vector.query('articles', 'search query');
 
 ### Supported Embedding Models
 
-| Model | Provider | Dimensions | Cost |
-|-------|----------|------------|------|
-| `text-embedding-3-small` | OpenAI | 1536 | $0.02/1M tokens |
-| `text-embedding-3-large` | OpenAI | 3072 | $0.13/1M tokens |
-| `text-embedding-ada-002` | OpenAI | 1536 | $0.10/1M tokens |
-| `nomic-embed-text` | Ollama | 768 | Free (local) |
-| `mxbai-embed-large` | Ollama | 1024 | Free (local) |
+| Model                    | Provider | Dimensions | Cost            |
+| ------------------------ | -------- | ---------- | --------------- |
+| `text-embedding-3-small` | OpenAI   | 1536       | $0.02/1M tokens |
+| `text-embedding-3-large` | OpenAI   | 3072       | $0.13/1M tokens |
+| `text-embedding-ada-002` | OpenAI   | 1536       | $0.10/1M tokens |
+| `nomic-embed-text`       | Ollama   | 768        | Free (local)    |
+| `mxbai-embed-large`      | Ollama   | 1024       | Free (local)    |
 
 ## Complete RAG Example
 
@@ -523,14 +523,14 @@ DELETE /api/vector/collections/{name}/clear
 
 ## Limits
 
-| Limit | Default |
-|-------|---------|
-| Max collections per app | 100 |
-| Max documents per collection | 1,000,000 |
-| Max document content size | 100 KB |
-| Max metadata size | 10 KB |
-| Max embedding dimensions | 4096 |
-| Query timeout | 30 seconds |
+| Limit                        | Default    |
+| ---------------------------- | ---------- |
+| Max collections per app      | 100        |
+| Max documents per collection | 1,000,000  |
+| Max document content size    | 100 KB     |
+| Max metadata size            | 10 KB      |
+| Max embedding dimensions     | 4096       |
+| Query timeout                | 30 seconds |
 
 ## Future Enhancements
 

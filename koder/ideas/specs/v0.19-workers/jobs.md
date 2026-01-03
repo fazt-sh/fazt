@@ -257,14 +257,14 @@ fazt config set limits.workers.resultRetentionDays 7
 
 ## Limits
 
-| Limit | Default | Description |
-|-------|---------|-------------|
-| `maxConcurrentTotal` | 20 | All apps combined |
-| `maxConcurrentPerApp` | 5 | Per app |
-| `maxQueueDepth` | 100 | Queued jobs per app |
-| `maxRuntimeMinutes` | 30 | Single job |
-| `maxDataSizeKB` | 1024 | Job data payload |
-| `resultRetentionDays` | 7 | Keep completed jobs |
+| Limit                 | Default | Description         |
+| --------------------- | ------- | ------------------- |
+| `maxConcurrentTotal`  | 20      | All apps combined   |
+| `maxConcurrentPerApp` | 5       | Per app             |
+| `maxQueueDepth`       | 100     | Queued jobs per app |
+| `maxRuntimeMinutes`   | 30      | Single job          |
+| `maxDataSizeKB`       | 1024    | Job data payload    |
+| `resultRetentionDays` | 7       | Keep completed jobs |
 
 ### Limit Behavior
 

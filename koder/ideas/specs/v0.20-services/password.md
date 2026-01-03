@@ -94,13 +94,13 @@ const hash = await fazt.lib.password.hash('password', {
 
 ## Security Properties
 
-| Property | Argon2id |
-|----------|----------|
-| Memory-hard | Yes (resists GPU/ASIC attacks) |
-| Time-hard | Yes (configurable iterations) |
-| Salt | Automatic (16 bytes random) |
-| Side-channel resistant | Yes (id variant) |
-| Output | 32 bytes (256 bits) |
+| Property               | Argon2id                       |
+| ---------------------- | ------------------------------ |
+| Memory-hard            | Yes (resists GPU/ASIC attacks) |
+| Time-hard              | Yes (configurable iterations)  |
+| Salt                   | Automatic (16 bytes random)    |
+| Side-channel resistant | Yes (id variant)               |
+| Output                 | 32 bytes (256 bits)            |
 
 ## Why Argon2id?
 
@@ -253,24 +253,24 @@ async function changePassword(userId, currentPassword, newPassword) {
 
 OWASP 2024 recommendations:
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `memory` | 65536 (64MB) | Memory cost in KB |
-| `time` | 3 | Number of iterations |
-| `parallelism` | 4 | Number of threads |
-| `hashLength` | 32 | Output length in bytes |
-| `saltLength` | 16 | Salt length in bytes |
+| Parameter     | Default      | Description            |
+| ------------- | ------------ | ---------------------- |
+| `memory`      | 65536 (64MB) | Memory cost in KB      |
+| `time`        | 3            | Number of iterations   |
+| `parallelism` | 4            | Number of threads      |
+| `hashLength`  | 32           | Output length in bytes |
+| `saltLength`  | 16           | Salt length in bytes   |
 
 These defaults result in ~300ms hash time on typical server hardware.
 
 ## Limits
 
-| Limit | Default |
-|-------|---------|
+| Limit               | Default                     |
+| ------------------- | --------------------------- |
 | `maxPasswordLength` | 72 bytes (longer truncated) |
-| `maxMemoryMB` | 256 |
-| `maxTime` | 10 |
-| `maxParallelism` | 16 |
+| `maxMemoryMB`       | 256                         |
+| `maxTime`           | 10                          |
+| `maxParallelism`    | 16                          |
 
 ## Implementation Notes
 

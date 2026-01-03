@@ -5,7 +5,8 @@
 A cartridge is a portable, self-contained SQLite file containing all data
 for a single app. Export an app, copy the file, import elsewhere.
 
-Built on [Provenance](./provenance.md) - the `app_id` column makes clean cuts possible.
+Built on [Provenance](./provenance.md) - the `app_id` column makes
+clean cuts possible.
 
 ## What's in a Cartridge
 
@@ -71,20 +72,20 @@ fazt app import my-app.cart [--mode overwrite|skip|merge] [--name new-name]
 
 ### Modes
 
-| Mode | Behavior |
-|------|----------|
-| `skip` (default) | Fail if app exists |
-| `overwrite` | Delete existing app, import fresh |
-| `merge` | Add new rows, skip existing (by id) |
+| Mode             | Behavior                            |
+| ---------------- | ----------------------------------- |
+| `skip` (default) | Fail if app exists                  |
+| `overwrite`      | Delete existing app, import fresh   |
+| `merge`          | Add new rows, skip existing (by id) |
 
 ### App ID Handling
 
-| Scenario | Behavior |
-|----------|----------|
-| App doesn't exist | Create with original UUID |
-| App exists, different node | Create with original UUID |
+| Scenario                              | Behavior                      |
+| ------------------------------------- | ----------------------------- |
+| App doesn't exist                     | Create with original UUID     |
+| App exists, different node            | Create with original UUID     |
 | App exists, same node, `--name` given | Create with new UUID and name |
-| App exists, same node, no `--name` | Fail (or use mode) |
+| App exists, same node, no `--name`    | Fail (or use mode)            |
 
 ```bash
 # Import as new app with different name

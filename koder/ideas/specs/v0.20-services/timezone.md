@@ -406,22 +406,22 @@ function getTimezoneOptions() {
 
 The embedded database includes all 400+ IANA timezones:
 
-| Region | Count | Examples |
-|--------|-------|----------|
-| Africa | 50+ | Africa/Cairo, Africa/Johannesburg |
-| America | 140+ | America/New_York, America/Los_Angeles |
-| Asia | 80+ | Asia/Tokyo, Asia/Shanghai |
-| Australia | 15+ | Australia/Sydney, Australia/Perth |
-| Europe | 60+ | Europe/London, Europe/Paris |
-| Pacific | 40+ | Pacific/Auckland, Pacific/Honolulu |
+| Region    | Count | Examples                              |
+| --------- | ----- | ------------------------------------- |
+| Africa    | 50+   | Africa/Cairo, Africa/Johannesburg     |
+| America   | 140+  | America/New_York, America/Los_Angeles |
+| Asia      | 80+   | Asia/Tokyo, Asia/Shanghai             |
+| Australia | 15+   | Australia/Sydney, Australia/Perth     |
+| Europe    | 60+   | Europe/London, Europe/Paris           |
+| Pacific   | 40+   | Pacific/Auckland, Pacific/Honolulu    |
 
 Updated with each Go release (IANA updates ~10x/year).
 
 ## Limits
 
-| Limit | Default |
-|-------|---------|
-| `listMax` | 500 (all timezones fit) |
+| Limit       | Default                   |
+| ----------- | ------------------------- |
+| `listMax`   | 500 (all timezones fit)   |
 | `yearRange` | 1970-2100 for transitions |
 
 ## Implementation Notes

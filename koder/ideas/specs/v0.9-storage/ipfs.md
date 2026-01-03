@@ -190,12 +190,12 @@ New CIDs are automatically sent to the pinning service.
 
 ## Benefits
 
-| Feature | Description |
-|---------|-------------|
-| **Verifiability** | CID proves content integrity |
-| **De-duplication** | Same file stored once |
-| **Permanent Links** | CIDs never change |
-| **Cache-Friendly** | Immutable = infinite cache |
+| Feature              | Description                         |
+| -------------------- | ----------------------------------- |
+| **Verifiability**    | CID proves content integrity        |
+| **De-duplication**   | Same file stored once               |
+| **Permanent Links**  | CIDs never change                   |
+| **Cache-Friendly**   | Immutable = infinite cache          |
 | **Interoperability** | Compatible with global IPFS network |
 
 ## Open Questions

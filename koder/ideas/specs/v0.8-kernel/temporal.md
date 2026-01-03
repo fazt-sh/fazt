@@ -424,10 +424,10 @@ fazt.events.sequence([
 
 ## Limits
 
-| Limit | Default |
-|-------|---------|
+| Limit                  | Default        |
+| ---------------------- | -------------- |
 | Max concurrent windows | 1000 (per app) |
-| Max events per window | 10000 |
-| Max window duration | 24 hours |
-| Max sequence length | 10 |
-| Checkpoint interval | 30 seconds |
+| Max events per window  | 10000          |
+| Max window duration    | 24 hours       |
+| Max sequence length    | 10             |
+| Checkpoint interval    | 30 seconds     |
