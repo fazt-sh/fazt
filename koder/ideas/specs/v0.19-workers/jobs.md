@@ -401,3 +401,47 @@ module.exports = async function(job) {
     return { url, records: data.length };
 };
 ```
+
+## Go Implementation
+
+Uses [backlite](https://github.com/mikestefanello/backlite) - type-safe SQLite
+task queues designed for embedding:
+
+```go
+import "github.com/mikestefanello/backlite"
+
+// Define task type with queue config
+type ResizeImage struct {
+    ImageURL string   `json:"imageUrl"`
+    Sizes    []int    `json:"sizes"`
+}
+
+func (t ResizeImage) Config() backlite.QueueConfig {
+    return backlite.QueueConfig{
+        Name:        "resize",
+        MaxAttempts: 3,
+        Backoff:     time.Minute,
+    }
+}
+
+// Register handler
+queue := backlite.NewQueue[ResizeImage](func(ctx context.Context, task ResizeImage) error {
+    // Process resize...
+    return nil
+})
+client.Register(queue)
+
+// Spawn from serverless (via internal API)
+client.Add(ResizeImage{ImageURL: url, Sizes: sizes}).
+    Wait(10 * time.Second).  // Delay
+    Tx(tx).                   // In transaction
+    Save()
+```
+
+**Why backlite**:
+- Pure Go (CGO only in tests, driver-agnostic)
+- SQLite-native (fits cartridge model)
+- Type-safe generics
+- Transaction support (spawn in app's transaction)
+- No polling (notification pattern)
+- ~50KB binary impact

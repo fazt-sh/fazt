@@ -86,3 +86,58 @@ Uses CRDTs (Conflict-free Replicated Data Types):
 - All sync traffic is encrypted
 - Peers authenticate via Persona keypairs
 - Changes are signed by origin node
+
+## Go Implementation
+
+### LAN Discovery
+
+Uses [peerdiscovery](https://github.com/schollz/peerdiscovery) for UDP
+multicast peer discovery on local networks:
+
+```go
+import "github.com/schollz/peerdiscovery"
+
+pd, _ := peerdiscovery.NewPeerDiscovery(peerdiscovery.Settings{
+    Payload: []byte(`{"node":"fazt-abc123","caps":["hosting","ai"]}`),
+    Notify: func(d peerdiscovery.Discovered) {
+        // Peer found on LAN
+        fazt.events.Emit("beacon.peer.found", d.Address, d.Payload)
+    },
+    NotifyLost: func(lp peerdiscovery.LostPeer) {
+        // Peer disappeared
+        fazt.events.Emit("beacon.peer.lost", lp.Address)
+    },
+})
+```
+
+**Why peerdiscovery**: Pure Go (~450 lines), dual-stack IPv4/IPv6, peer GC.
+
+### WAN P2P Connectivity
+
+Uses [pion/webrtc](https://github.com/pion/webrtc) for NAT traversal and
+encrypted P2P connections across the internet:
+
+```go
+import "github.com/pion/webrtc/v4"
+
+// Create peer connection with ICE (NAT traversal)
+pc, _ := webrtc.NewPeerConnection(webrtc.Configuration{
+    ICEServers: []webrtc.ICEServer{
+        {URLs: []string{"stun:stun.l.google.com:19302"}},
+    },
+})
+
+// Create data channel for mesh sync
+dc, _ := pc.CreateDataChannel("mesh-sync", nil)
+dc.OnMessage(func(msg webrtc.DataChannelMessage) {
+    // Handle sync data from peer
+})
+```
+
+**Pion modules used**:
+- `pion/webrtc` - Full WebRTC stack (~3MB)
+- `pion/ice` - Just NAT traversal (~500KB)
+- `pion/datachannel` - Just data channels
+
+**Why pion**: Pure Go, MIT license, NAT traversal (ICE), encrypted channels,
+browser-compatible (Admin SPA can connect directly to nodes).

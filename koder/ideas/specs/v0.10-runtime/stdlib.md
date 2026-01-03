@@ -194,6 +194,68 @@ Stdlib versions are tied to Fazt versions:
 3. **Curated List**: Only included libraries available
 4. **Version Lock**: Can't pick specific versions
 
+## Go-Backed Utilities
+
+Some utilities are implemented in Go for performance and exposed to JS:
+
+### fazt.json.get (gjson)
+
+Fast JSON path queries without full unmarshal. Uses
+[gjson](https://github.com/tidwall/gjson) - zero deps, ~2k lines.
+
+```javascript
+const data = '{"user":{"name":"Alice","tags":["admin","active"]}}';
+
+// Path query
+fazt.json.get(data, "user.name");           // "Alice"
+fazt.json.get(data, "user.tags.0");         // "admin"
+fazt.json.get(data, "user.tags.#");         // 2 (array length)
+
+// Wildcards and filters
+fazt.json.get(data, "user.tags.#(=admin)"); // "admin"
+
+// Multi-path
+fazt.json.getMany(data, ["user.name", "user.tags.#"]);
+// ["Alice", 2]
+```
+
+**Use case**: Query large JSON blobs stored in SQLite without loading entire
+document into JS memory. Path expressions evaluate in Go, only matched values
+cross the boundary.
+
+### fazt.expr (go-expr)
+
+Safe expression evaluation for dynamic rules. Uses
+[expr-lang/expr](https://github.com/expr-lang/expr) - zero deps, ~200KB.
+
+```javascript
+// Compile once at config load, evaluate per-request
+const rule = fazt.expr.compile('user.Role in ["admin", "mod"]');
+
+// Evaluate with context
+const allowed = fazt.expr.run(rule, {
+    user: { Role: "admin", Plan: "pro" }
+});  // true
+
+// One-shot evaluation (compiles each time)
+fazt.expr.eval('len(items) > 0 && total >= 100', {
+    items: [1, 2, 3],
+    total: 150
+});  // true
+```
+
+**Built-in functions**: `len`, `all`, `any`, `filter`, `map`, `max`, `min`,
+`upper`, `lower`, `trim`, `now`, `duration`
+
+**Use cases**:
+- Dynamic routing: `{"path": "/admin/*", "expr": "user.Role == 'admin'"}`
+- Webhook filters: `{"event": "push", "expr": "branch == 'main'"}`
+- Access control: `{"resource": "billing", "expr": "user.Plan in ['pro']"}`
+- Cron conditions: `{"expr": "hour(now()) >= 9 && hour(now()) < 17"}`
+
+**Why expr**: Type-safe compilation catches errors before runtime. Bytecode
+VM is fast for repeated evaluation. No arbitrary code execution risk.
+
 ## Open Questions
 
 1. **Which libraries to include?** Start with 7, add based on demand

@@ -335,6 +335,59 @@ We own the protocol specification. We provide reference implementations. We don'
 
 ---
 
+## Go Libraries
+
+Pure Go libraries for sensor protocols:
+
+### IP Cameras (RTSP)
+
+Uses [gortsplib](https://github.com/bluenviron/gortsplib) - THE standard for
+RTSP in Go (~23k lines, MIT license):
+
+```go
+import "github.com/bluenviron/gortsplib/v5"
+
+client := gortsplib.Client{}
+client.Start("rtsp://camera.local:554/stream")
+
+client.OnPacketRTP = func(medi *media.Media, pkt *rtp.Packet) {
+    // Decode frame, emit as sensor reading
+    fazt.events.Emit("sensor.camera.frame", frame)
+}
+```
+
+Features: UDP/TCP/multicast, RTSPS/TLS, auto transport switching.
+Binary impact: ~800KB (with mediacommon codec lib).
+
+### MQTT Sensors
+
+Uses [mochi-mqtt](https://github.com/mochi-mqtt/server) - embeddable MQTT v5
+broker (~11k lines, MIT license):
+
+```go
+import mqtt "github.com/mochi-mqtt/server/v2"
+
+server := mqtt.New(nil)
+server.AddHook(new(FaztSQLiteHook), nil)  // Custom persistence
+server.AddListener(listeners.NewTCP("tcp", ":1883", nil))
+
+// Subscribe to sensor topics
+server.Subscribe("sensors/+/+", func(cl *mqtt.Client, sub mqtt.Subscription, pk packets.Packet) {
+    // Parse reading, emit event
+    fazt.events.Emit("sensor.mqtt.reading", pk.Payload)
+})
+```
+
+Heavy deps (badger, redis) are OPTIONAL hooks - core is stdlib + websocket.
+Binary impact: ~500KB (core only).
+
+### I2C Sensors (Temperature, Humidity, Pressure)
+
+Uses [periph.io](https://periph.io) - referenced in Principle 1 above.
+Syscalls for I2C, no CGO. See periph.io/x/devices for BME280, SHT4x, etc.
+
+---
+
 ## Mock Generators
 
 Every sensor type MUST have a mock implementation.
