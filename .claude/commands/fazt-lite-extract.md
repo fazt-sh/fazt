@@ -210,6 +210,35 @@ Next Steps:
 - [Prototype lighter version]
 ```
 
+### USE-AS-IS Verdict
+If the library is already perfectly designed for embedding:
+
+```
+VERDICT: USE-AS-IS
+
+Library: [name]
+URL: [github url]
+License: [must be permissive: MIT, BSD, Apache 2.0]
+
+Why Not Extract:
+- [reason 1 - e.g., "zero deps, already optimal"]
+- [reason 2 - e.g., "selective feature disabling built-in"]
+
+Why Not Pattern-Only:
+- [reason - e.g., "value is in implementation, not just design"]
+
+Binary Impact: [estimated size increase]
+Dependencies: [should be zero or minimal]
+
+Fazt Integration:
+- [how it would be used]
+- [which Fazt layer/service benefits]
+
+Next Steps:
+- Add to go.mod
+- Create wrapper in fazt.lib or relevant service
+```
+
 ## Important Guidelines
 
 1. **Be skeptical by default** - Most extractions don't make sense
@@ -235,7 +264,7 @@ Present findings conversationally:
 2. **Core Capabilities**: What it actually does
 3. **Extraction Opportunity**: What subset makes sense (or doesn't)
 4. **Patterns Worth Noting**: Design patterns, conventions, API shapes
-5. **Verdict**: EXTRACT / NO-GO / DEFER / PATTERN with reasoning
+5. **Verdict**: EXTRACT / USE-AS-IS / NO-GO / DEFER / PATTERN with reasoning
 6. **Next Steps**: Spec outline, pattern documentation, or future reference
 
 Be honest if something doesn't fit.
