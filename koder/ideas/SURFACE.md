@@ -125,6 +125,17 @@ console.log()                   // Logging
 + fazt dev infra dns zones|records|set|delete|check       # DNS management
 + fazt dev infra domain check|search|register|list        # Domain management
 + fazt dev infra ssh-keys list|add|remove                 # SSH key management
+
+# Build Service (external build compute)
++ fazt dev config build.github --token xxx                # Configure GitHub Actions
++ fazt dev config build.modal --token xxx                 # Configure Modal
++ fazt dev config build.default github                    # Set default provider
++ fazt build [--app] [--watch]                            # Trigger build
++ fazt build logs <build-id>                              # View build logs
++ fazt build list                                         # List recent builds
++ fazt build cancel <build-id>                            # Cancel running build
++ fazt deploy ./app --rebuild                             # Force rebuild on deploy
+
 + fazt beacon status|scan|set-name      # Local network discovery
 + fazt time status|sync|peers           # Local time consensus
 + fazt chirp send|listen|encode|decode  # Audio data transfer
@@ -257,6 +268,13 @@ need to do anything special - data ownership is handled by the kernel.
 + fazt.dev.infra.domain.list()             // List owned domains
 + fazt.dev.infra.domain.get(domain)        // Get domain details
 + fazt.dev.infra.domain.update(domain, options)
+
+// Build Service (external build compute)
++ fazt.dev.build.trigger(options)      // Trigger build (provider, repo, ref, etc.)
++ fazt.dev.build.status(buildId)       // Check build status
++ fazt.dev.build.logs(buildId)         // Get build logs
++ fazt.dev.build.list(options?)        // List recent builds
++ fazt.dev.build.cancel(buildId)       // Cancel running build
 
 // Beacon (local discovery - usually automatic, explicit use optional)
 + fazt.beacon.discover(options?)      // Find nearby Fazt nodes

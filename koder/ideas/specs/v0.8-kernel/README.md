@@ -41,6 +41,7 @@ and mental models throughout the codebase.
 - `pulse.md` - Cognitive observability (system self-awareness)
 - `devices.md` - External service abstraction (/dev/*)
 - `infra.md` - Cloud infrastructure abstraction (VPS, DNS, Domain)
+- `build.md` - External build service abstraction (GitHub Actions, Modal)
 - `beacon.md` - Local network discovery (mDNS)
 - `timekeeper.md` - Local time consensus (without NTP)
 - `chirp.md` - Audio-based data transfer
