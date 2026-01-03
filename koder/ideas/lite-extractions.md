@@ -24,9 +24,68 @@ for personal-scale use cases. Examples: ipfs-lite, vector-lite, wireguard-go.
 
 | Date       | Project     | Verdict | Reason                           |
 |------------|-------------|---------|----------------------------------|
+| 2026-01-03 | go-crush    | NO-GO   | FSL license prohibits competing  |
 | 2026-01-03 | go-lingoose | EXTRACT | Text splitter + cosine algos    |
 | 2026-01-03 | go-adk      | PATTERN | State prefix pattern worth study |
 | 2026-01-03 | go-eino     | NO-GO   | Framework vs library mismatch    |
+
+## Wanted: Permissive Agentic Skills
+
+The **Agent Skills** pattern (agentskills.io) is interesting but go-crush's
+implementation is FSL-licensed. Looking for permissive alternatives:
+
+- Skills discovery from filesystem
+- SKILL.md parsing (YAML frontmatter + instructions)
+- Skill injection into system prompt
+- Permission request/grant flow
+
+If you find a permissive Go project with similar patterns, evaluate it!
+
+---
+
+### go-crush
+
+- **URL**: https://github.com/charmbracelet/crush
+- **What**: Charm's AI coding assistant CLI (like Claude Code)
+- **Verdict**: NO-GO
+- **License**: FSL-1.1-MIT (Functional Source License)
+
+**Why NO-GO**: License explicitly prohibits "Competing Use" - products
+offering "same or substantially similar functionality." Fazt's agentic
+features (v0.12 ai-shim, harness, mcp) would likely trigger this.
+
+**Interesting patterns observed** (implement independently, don't copy):
+
+1. **Agent Skills** (spec at agentskills.io)
+   ```
+   SKILL.md with YAML frontmatter:
+   ---
+   name: skill-name
+   description: What it does
+   ---
+   Instructions for the agent...
+   ```
+   Discovery walks configured paths, finds SKILL.md, injects into prompt.
+
+2. **Permission Request Flow**
+   ```
+   Request() blocks → pubsub notifies UI → user grants/denies → unblocks
+   GrantPersistent() remembers for session
+   ```
+
+3. **Multi-LSP Routing**
+   ```
+   Each LSP client declares fileTypes it handles
+   HandlesFile(path) routes by extension
+   ```
+
+**What to do instead:**
+- Agent Skills: Implement from open spec (agentskills.io)
+- LSP: Use `charmbracelet/x/powernap` directly (MIT)
+- MCP: Use `modelcontextprotocol/go-sdk` directly (Apache 2.0)
+
+**Revisit if**: FSL converts to MIT (happens 2 years after release per FSL
+terms), or Charm releases packages separately under permissive license.
 
 ---
 
