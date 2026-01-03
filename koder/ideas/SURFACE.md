@@ -129,6 +129,7 @@ console.log()                   // Logging
 + fazt chirp send|listen|encode|decode  # Audio data transfer
 + fazt mnemonic encode|decode           # Human-channel exchange
 + fazt metrics [--json] [--watch]       # OpenMetrics export
++ fazt limits show|list|reset           # Rate limiting
 ~ fazt server *                         # Deprecated, use fazt proc
 ```
 
@@ -206,6 +207,12 @@ need to do anything special - data ownership is handled by the kernel.
 // Metrics (OpenMetrics/Prometheus)
 + fazt.kernel.metrics()            // All metrics as JSON
 + fazt.kernel.metric(name)         // Single metric value
+
+// Rate Limiting
++ fazt.limits.check(key, options)  // Check if allowed (doesn't consume)
++ fazt.limits.consume(key, options) // Check and consume quota
++ fazt.limits.status(key)          // Current status
++ fazt.limits.reset(key)           // Reset quota (admin)
 
 // Devices (external service abstraction)
 + fazt.dev.billing.customers.create|get|update|list
@@ -1116,6 +1123,13 @@ need to do anything special - data ownership is handled by the kernel.
 + fazt.lib.document.validate(obj)
 + fazt.lib.document.fromChromem(chromemDoc)
 + fazt.lib.document.toChromem(doc, id)
+
+// Template (Mustache-style templating)
++ fazt.lib.template.render(template, data, options?)
++ fazt.lib.template.compile(template)
++ fazt.lib.template.renderCompiled(compiled, data)
++ fazt.lib.template.escape(value, context)
+// context: 'html' | 'url' | 'json'
 ```
 
 ---
@@ -1220,8 +1234,7 @@ fazt
 │   ├── deadLetter
 │       ├── list(), get(), retry(), delete()
 ├── limits
-│   ├── rate
-│       ├── status(), check(), consume()
+│   ├── check(), consume(), status(), reset()
 ├── services                              # Stateful services
 │   ├── forms
 │   │   ├── list(), get(), delete(), count(), clear()
@@ -1297,11 +1310,14 @@ fazt
     ├── text                              # LangChain-compatible text splitting
     │   ├── split(), splitDocuments(), createDocuments()
     │   ├── countChars()
-    └── document                          # LangChain Document format
-        ├── create(), fromJSON(), toJSON()
-        ├── fromJSONArray(), toJSONArray()
-        ├── withScore(), isValid(), validate()
-        ├── fromChromem(), toChromem()
+    ├── document                          # LangChain Document format
+    │   ├── create(), fromJSON(), toJSON()
+    │   ├── fromJSONArray(), toJSONArray()
+    │   ├── withScore(), isValid(), validate()
+    │   ├── fromChromem(), toChromem()
+    └── template                          # Mustache-style templating
+        ├── render(), compile(), renderCompiled()
+        ├── escape()
 ```
 
 ### CLI Command Groups
