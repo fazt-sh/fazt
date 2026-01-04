@@ -355,9 +355,51 @@ Or build locally first:
 
 ## Relationship to Other Specs
 
-- `build.md`: Profiles use build service for external builds
-- `static-site.md`: SSG profiles (jekyll, docusaurus, etc.) defined there
-- `marketplace.md`: Installed apps can specify profiles
+- `v0.8-kernel/build.md`: External build providers (GitHub Actions, Modal)
+- `v0.10-runtime/static-site.md`: Jekyll-specific conventions and templating
+- `modules/jekyll-lite.md`: The internal Jekyll-compatible SSG engine
+- `v0.11-distribution/marketplace.md`: Installed apps can specify profiles
+
+---
+
+**Note: UX Flow Modeling Needed**
+
+The deployment flow spans multiple specs and needs unified UX design:
+
+```
+User runs: fazt deploy ./my-project
+                │
+                ▼
+        ┌───────────────┐
+        │ Which spec    │
+        │ governs this? │
+        └───────────────┘
+                │
+    ┌───────────┼───────────┐
+    ▼           ▼           ▼
+profiles.md  build.md   static-site.md
+(detection)  (external) (jekyll-lite)
+```
+
+**Questions requiring UX flow diagrams:**
+
+1. **First-time experience**: User with no `app.json`, no build provider
+   configured. What's the minimal-friction path?
+
+2. **Serve vs Deploy**: Do they share detection logic? `serve` is local-only,
+   `deploy` may need external builds.
+
+3. **Progressive disclosure**: When to show advanced options? When to just
+   "do the right thing"?
+
+4. **Error recovery**: Build fails → clear next steps. Unsupported framework
+   → helpful alternatives.
+
+5. **Configuration sources**: CLI flags > app.json > auto-detection? Or
+   different precedence?
+
+These specs describe WHAT the system does. A separate UX spec should describe
+HOW users experience it.
 
 ## Open Questions
 

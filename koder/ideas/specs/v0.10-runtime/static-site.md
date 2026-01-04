@@ -440,46 +440,66 @@ function hello() {
 
 ## Profiles
 
-Fazt auto-detects your project type and applies the right build profile:
+> **See `specs/v0.11-distribution/profiles.md`** for the complete deployment
+> profile system. This section covers SSG-specific aspects only.
 
-| Profile     | Detection                        | Output        |
-|-------------|----------------------------------|---------------|
-| `jekyll`    | `_posts/` or `_config.yml`       | HTML          |
-| `docusaurus`| `docusaurus.config.js`           | HTML          |
-| `vitepress` | `.vitepress/config.*`            | HTML          |
-| `docsify`   | `index.html` with docsify script | Pass-through  |
-| `static`    | None of the above                | Pass-through  |
+SSG profiles are a subset of the broader deployment profile system:
 
-**Server-side building**: You deploy the source - Fazt builds on the server.
-No local `_site` folder, no build step in CI.
+| Profile     | Build Method    | Notes                        |
+|-------------|-----------------|------------------------------|
+| `jekyll`    | Internal        | Built by Fazt (jekyll-lite)  |
+| `docusaurus`| External        | Built by GitHub Actions/Modal|
+| `vitepress` | External        | Built by GitHub Actions/Modal|
+| `docsify`   | None            | Client-side rendering        |
+| `static`    | None            | Serve as-is                  |
 
-```bash
-cd my-docusaurus-project
-fazt deploy           # Server detects Docusaurus, builds, serves
-```
+**Internal vs External builds:**
+- `jekyll`: Fazt builds using embedded jekyll-lite (pure Go)
+- `docusaurus/vitepress`: Require npm, built externally via `dev.build`
 
-### Profile Configuration (Optional)
-
-Override detection in `app.json`:
+### SSG Configuration (app.json)
 
 ```json
 {
   "name": "my-docs",
+  "profile": "jekyll",
   "ssg": {
-    "profile": "jekyll",
-    "drafts": false
+    "drafts": false,
+    "future": false
   }
 }
 ```
 
-### MDX Handling
+### MDX Graceful Degradation
 
 For Docusaurus/VitePress MDX files, Fazt gracefully degrades:
 - Strip JSX components (can't run React on server)
 - Render standard markdown
 - Show placeholder for custom components
 
-This means your docs work, even without the full JS framework.
+---
+
+**Note: UX Flow Modeling Needed**
+
+The interaction between these specs needs deeper design work:
+
+1. **Detection priority**: When does profile detection happen? At `deploy` time?
+   At `serve` time? Both?
+
+2. **Build triggering**: If external build needed, when is user prompted? Can it
+   be fully automatic?
+
+3. **Local vs remote**: `fazt serve` runs locally. Does it also trigger external
+   builds? Or only use local artifacts?
+
+4. **Error states**: What happens when detection is ambiguous? When build fails?
+   When profile is unsupported?
+
+5. **Configuration cascade**: `app.json` profile vs auto-detection vs CLI flag -
+   what wins?
+
+These questions need UX flow diagrams and user journey mapping before
+implementation.
 
 ## CLI Commands
 
