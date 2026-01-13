@@ -2,6 +2,14 @@
 
 All notable changes to fazt.sh will be documented in this file.
 
+## [0.8.4] - 2026-01-14
+
+### Fixed
+- **Remote Upgrade Compatibility**: Fixed upgrade API failing due to `ProtectSystem=full`
+  - Changed systemd service to use `ProtectSystem=strict` with `ReadWritePaths=/usr/local/bin`
+  - Backup now uses temp directory instead of alongside binary
+  - Existing installations need to update service file manually or reinstall
+
 ## [0.8.3] - 2026-01-14
 
 ### Fixed

@@ -25,7 +25,8 @@ Restart=always
 LimitNOFILE=4096
 Environment=FAZT_ENV=production
 # Security hardening
-ProtectSystem=full
+ProtectSystem=strict
+ReadWritePaths=/usr/local/bin
 PrivateTmp=true
 
 [Install]

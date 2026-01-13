@@ -112,12 +112,20 @@ func UpgradeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	currentBinary, _ = filepath.EvalSymlinks(currentBinary)
 
-	// Backup current binary
-	backupPath := currentBinary + ".old"
+	// Backup current binary to temp (system may have ProtectSystem=full)
+	backupFile, err := os.CreateTemp("", "fazt-backup-*")
+	if err != nil {
+		api.ErrorResponse(w, http.StatusInternalServerError, "BACKUP_ERROR", "Failed to create backup file: "+err.Error(), "")
+		return
+	}
+	backupPath := backupFile.Name()
+	backupFile.Close()
+
 	if err := copyFile(currentBinary, backupPath); err != nil {
 		api.ErrorResponse(w, http.StatusInternalServerError, "BACKUP_ERROR", "Failed to backup current binary: "+err.Error(), "")
 		return
 	}
+	defer os.Remove(backupPath) // Clean up backup after upgrade
 
 	// Replace binary
 	if err := copyFile(newBinaryPath, currentBinary); err != nil {
