@@ -124,3 +124,6 @@ None currently
 | 2026-01-14 | 5.5 | Pushed v0.8.0 tag to GitHub | Release #23 building |
 | 2026-01-14 | 5.5 | v0.8.0 release complete | 4 binaries available |
 | 2026-01-14 | 6 | Upgraded zyt.app to v0.8.0 | Server running |
+| 2026-01-14 | 7 | Local fazt working | Deploy test OK |
+| 2026-01-14 | 8 | Added MCP routes | v0.8.1 |
+| 2026-01-14 | 8 | Added /api/upgrade | v0.8.2 |

@@ -2,6 +2,56 @@
 
 All notable changes to fazt.sh will be documented in this file.
 
+## [0.8.2] - 2026-01-14
+
+### Added
+- **Remote Upgrade API**: `POST /api/upgrade` endpoint for remote server upgrades
+  - Check for updates: `POST /api/upgrade?check=true`
+  - Perform upgrade: `POST /api/upgrade` (requires API key auth)
+  - Auto-restarts service after successful upgrade
+
+## [0.8.1] - 2026-01-14
+
+### Added
+- **MCP Routes**: Wired up Model Context Protocol HTTP endpoints
+  - `POST /mcp/initialize` - MCP handshake
+  - `POST /mcp/tools/list` - List available tools
+  - `POST /mcp/tools/call` - Execute MCP tools
+
+### Fixed
+- **Install Script**: Fixed version detection regex to use portable `-oE` instead of `-oP`
+  - Fixes "vunknown" display on systems without Perl regex support
+
+## [0.8.0] - 2026-01-13
+
+### Added
+- **Multi-Server Client Config**: New `~/.fazt/config.json` for client-side configuration
+  - `fazt servers add/list/default/remove/ping` commands
+  - Smart defaults: single server auto-selects, multiple requires `--to`
+- **MCP Server Package**: Model Context Protocol implementation (`internal/mcp/`)
+  - Tools: `fazt_servers_list`, `fazt_apps_list`, `fazt_deploy`, `fazt_app_delete`, `fazt_system_status`
+  - `fazt server create-key` for headless API key creation
+- **Serverless Runtime**: JavaScript execution via Goja (`internal/runtime/`)
+  - VM pooling for performance
+  - Request/response injection for `/api/*` routes
+  - `require()` shim with caching for module loading
+  - `fazt.*` namespace: `fazt.app`, `fazt.env`, `fazt.log`
+- **Analytics Dashboard**: Built into admin panel with real-time stats
+  - Stats cards (today/week/month/all-time)
+  - Timeline chart, top domains/tags, source type breakdown
+- **Apps API**: New `/api/apps` endpoints (replaces `/api/sites`)
+  - `GET /api/apps` - List all apps with metadata
+  - `GET /api/apps/{id}` - App details
+  - `DELETE /api/apps/{id}` - Delete app
+  - `GET /api/apps/{id}/files` - App file tree
+- **CLI**: `fazt client apps` command using new config system
+
+### Changed
+- **Sites to Apps Migration**: Database migration (`007_apps.sql`)
+  - New `apps` table with id, name, source, manifest
+  - New `domains` table for custom domain mapping
+  - Backwards compatible: `/api/sites` still works
+
 ## [0.7.2] - 2025-12-08
 
 ### Added

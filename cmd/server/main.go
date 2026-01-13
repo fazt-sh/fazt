@@ -2062,6 +2062,9 @@ func handleStartCommand() {
 	dashboardMux.HandleFunc("/api/envvars", handlers.EnvVarsHandler)
 	dashboardMux.HandleFunc("/api/logs", handlers.LogsHandler)
 
+	// System upgrade endpoint (requires API key auth)
+	dashboardMux.HandleFunc("POST /api/upgrade", handlers.UpgradeHandler)
+
 	// MCP (Model Context Protocol) routes
 	mcpServer, err := mcp.NewServer()
 	if err != nil {
