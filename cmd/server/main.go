@@ -30,6 +30,7 @@ import (
 	"github.com/fazt-sh/fazt/internal/database"
 	"github.com/fazt-sh/fazt/internal/handlers"
 	"github.com/fazt-sh/fazt/internal/hosting"
+	"github.com/fazt-sh/fazt/internal/mcp"
 	"github.com/fazt-sh/fazt/internal/middleware"
 	"github.com/fazt-sh/fazt/internal/provision"
 	"github.com/fazt-sh/fazt/internal/security"
@@ -2060,6 +2061,16 @@ func handleStartCommand() {
 	dashboardMux.HandleFunc("/api/deployments", handlers.DeploymentsHandler)
 	dashboardMux.HandleFunc("/api/envvars", handlers.EnvVarsHandler)
 	dashboardMux.HandleFunc("/api/logs", handlers.LogsHandler)
+
+	// MCP (Model Context Protocol) routes
+	mcpServer, err := mcp.NewServer()
+	if err != nil {
+		log.Printf("Warning: MCP server not initialized: %v", err)
+	} else {
+		dashboardMux.HandleFunc("POST /mcp/initialize", mcpServer.HandleInitialize)
+		dashboardMux.HandleFunc("POST /mcp/tools/list", mcpServer.HandleToolsList)
+		dashboardMux.HandleFunc("POST /mcp/tools/call", mcpServer.HandleToolsCall)
+	}
 
 	// Dashboard (Admin VFS Site)
 	dashboardMux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {

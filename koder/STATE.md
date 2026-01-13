@@ -1,14 +1,14 @@
 # Fazt Implementation State
 
-**Last Updated**: 2026-01-13
+**Last Updated**: 2026-01-14
 **Plan Document**: `koder/plans/16_implementation-roadmap.md`
 
 ## Current Phase
 
 ```
-Phase: 5
-Name: Release
-Status: not_started
+Phase: 6
+Name: Deploy to Production
+Status: in_progress
 ```
 
 ## Progress Tracker
@@ -48,20 +48,20 @@ Status: not_started
   - [x] 4.4: All tests pass
 
 ### Release & Deploy
-- [x] **Phase 5**: Release (partial - awaiting push)
+- [x] **Phase 5**: Release ✓
   - [x] 5.1: All tests pass
   - [x] 5.2: Tag release (v0.8.0)
-  - [ ] 5.3: Push to GitHub (user action)
-  - [ ] 5.4: Wait for CI to build
-  - [ ] 5.5: Verify release available
-- [ ] **Phase 6**: Deploy to Production
-  - [ ] 6.1: Provide upgrade steps for zyt.app
-  - [ ] 6.2: User runs upgrade on server
-  - [ ] 6.3: Verify server upgraded
-- [ ] **Phase 7**: Local Setup
-  - [ ] 7.1: User creates API key on server
-  - [ ] 7.2: Configure local fazt (`fazt servers add`)
-  - [ ] 7.3: Test deploy from local
+  - [x] 5.3: Push to GitHub
+  - [x] 5.4: CI build (Release #23)
+  - [x] 5.5: Release available (4 binaries)
+- [x] **Phase 6**: Deploy to Production ✓
+  - [x] 6.1: Provide upgrade steps for zyt.app
+  - [x] 6.2: User runs upgrade on server
+  - [x] 6.3: Verify server upgraded (HTTP 200)
+- [x] **Phase 7**: Local Setup ✓
+  - [x] 7.1: Server already configured (zyt)
+  - [x] 7.2: Token already present
+  - [x] 7.3: Test deploy (hello-test.zyt.app)
 - [ ] **Phase 8**: MCP Setup
   - [ ] 8.1: Configure Claude Code MCP
   - [ ] 8.2: Test MCP tools work
@@ -70,16 +70,14 @@ Status: not_started
 ## Current Task
 
 ```
-Task: Phase 5 - Release
+Task: Phase 7 - Local Setup
 ```
 
 ## Next Actions
 
-1. Verify all tests pass
-2. Update version in cmd/server/main.go
-3. Tag release v0.8.0
-4. Push to GitHub
-5. Wait for CI to build
+1. Create API key on zyt.app server
+2. Configure local fazt client
+3. Test deploy from local machine
 
 ## Blockers
 
@@ -123,3 +121,6 @@ None currently
 | 2026-01-13 | 5.2 | Updated version to 0.8.0 | config.go |
 | 2026-01-13 | 5.3 | Created release commit | 20 files, 4044+ lines |
 | 2026-01-13 | 5.4 | Tagged v0.8.0 | Ready to push |
+| 2026-01-14 | 5.5 | Pushed v0.8.0 tag to GitHub | Release #23 building |
+| 2026-01-14 | 5.5 | v0.8.0 release complete | 4 binaries available |
+| 2026-01-14 | 6 | Upgraded zyt.app to v0.8.0 | Server running |
