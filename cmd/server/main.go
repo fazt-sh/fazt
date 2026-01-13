@@ -25,6 +25,7 @@ import (
 	"github.com/fazt-sh/fazt/internal/analytics"
 	"github.com/fazt-sh/fazt/internal/audit"
 	"github.com/fazt-sh/fazt/internal/auth"
+	"github.com/fazt-sh/fazt/internal/clientconfig"
 	"github.com/fazt-sh/fazt/internal/config"
 	"github.com/fazt-sh/fazt/internal/database"
 	"github.com/fazt-sh/fazt/internal/handlers"
@@ -67,6 +68,8 @@ func main() {
 	switch command {
 	case "server":
 		handleServerCommand(os.Args[2:])
+	case "servers":
+		handleServersCommand(os.Args[2:])
 	case "service":
 		handleServiceCommand(os.Args[2:])
 	case "client":
@@ -299,6 +302,8 @@ func handleServerCommand(args []string) {
 		handleStartCommand()
 	case "reset-admin":
 		handleResetAdminCommand()
+	case "create-key":
+		handleCreateKeyCommand()
 	case "--help", "-h", "help":
 		printServerHelp()
 	default:
@@ -306,6 +311,227 @@ func handleServerCommand(args []string) {
 		printServerHelp()
 		os.Exit(1)
 	}
+}
+
+// handleServersCommand handles multi-server configuration commands
+func handleServersCommand(args []string) {
+	if len(args) < 1 {
+		handleServersList()
+		return
+	}
+
+	subcommand := args[0]
+	switch subcommand {
+	case "add":
+		handleServersAdd(args[1:])
+	case "list":
+		handleServersList()
+	case "default":
+		handleServersDefault(args[1:])
+	case "remove":
+		handleServersRemove(args[1:])
+	case "ping":
+		handleServersPing(args[1:])
+	case "--help", "-h", "help":
+		printServersHelp()
+	default:
+		fmt.Printf("Unknown servers command: %s\n\n", subcommand)
+		printServersHelp()
+		os.Exit(1)
+	}
+}
+
+func handleServersAdd(args []string) {
+	// Support: fazt servers add <name> --url <url> --token <token>
+	// The name comes first, then flags
+	if len(args) < 1 {
+		fmt.Println("Error: server name is required")
+		fmt.Println("Usage: fazt servers add <name> --url <url> --token <token>")
+		os.Exit(1)
+	}
+
+	name := args[0]
+	flagArgs := args[1:]
+
+	flags := flag.NewFlagSet("servers add", flag.ExitOnError)
+	urlFlag := flags.String("url", "", "Server URL (required)")
+	tokenFlag := flags.String("token", "", "API token (required)")
+	flags.Parse(flagArgs)
+
+	if *urlFlag == "" || *tokenFlag == "" {
+		fmt.Println("Error: --url and --token are required")
+		fmt.Println("Usage: fazt servers add <name> --url <url> --token <token>")
+		os.Exit(1)
+	}
+
+	cfg, err := clientconfig.Load()
+	if err != nil {
+		fmt.Printf("Error loading config: %v\n", err)
+		os.Exit(1)
+	}
+
+	if err := cfg.AddServer(name, *urlFlag, *tokenFlag); err != nil {
+		fmt.Printf("Error adding server: %v\n", err)
+		os.Exit(1)
+	}
+
+	if err := cfg.Save(); err != nil {
+		fmt.Printf("Error saving config: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("Server '%s' added successfully!\n", name)
+	if cfg.DefaultServer == name {
+		fmt.Printf("  (set as default)\n")
+	}
+}
+
+func handleServersList() {
+	cfg, err := clientconfig.Load()
+	if err != nil {
+		fmt.Printf("Error loading config: %v\n", err)
+		os.Exit(1)
+	}
+
+	servers := cfg.ListServers()
+	if len(servers) == 0 {
+		fmt.Println("No servers configured.")
+		fmt.Println("Run: fazt servers add <name> --url <url> --token <token>")
+		return
+	}
+
+	fmt.Println("NAME\t\tURL\t\t\t\tDEFAULT")
+	fmt.Println("----\t\t---\t\t\t\t-------")
+	for _, srv := range servers {
+		defaultMarker := ""
+		if srv.IsDefault {
+			defaultMarker = "*"
+		}
+		// Truncate URL for display if too long
+		displayURL := srv.URL
+		if len(displayURL) > 30 {
+			displayURL = displayURL[:27] + "..."
+		}
+		fmt.Printf("%s\t\t%s\t\t%s\n", srv.Name, displayURL, defaultMarker)
+	}
+}
+
+func handleServersDefault(args []string) {
+	if len(args) < 1 {
+		fmt.Println("Error: server name is required")
+		fmt.Println("Usage: fazt servers default <name>")
+		os.Exit(1)
+	}
+
+	name := args[0]
+
+	cfg, err := clientconfig.Load()
+	if err != nil {
+		fmt.Printf("Error loading config: %v\n", err)
+		os.Exit(1)
+	}
+
+	if err := cfg.SetDefault(name); err != nil {
+		fmt.Printf("Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	if err := cfg.Save(); err != nil {
+		fmt.Printf("Error saving config: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("Default server set to '%s'\n", name)
+}
+
+func handleServersRemove(args []string) {
+	if len(args) < 1 {
+		fmt.Println("Error: server name is required")
+		fmt.Println("Usage: fazt servers remove <name>")
+		os.Exit(1)
+	}
+
+	name := args[0]
+
+	cfg, err := clientconfig.Load()
+	if err != nil {
+		fmt.Printf("Error loading config: %v\n", err)
+		os.Exit(1)
+	}
+
+	if err := cfg.RemoveServer(name); err != nil {
+		fmt.Printf("Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	if err := cfg.Save(); err != nil {
+		fmt.Printf("Error saving config: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("Server '%s' removed\n", name)
+}
+
+func handleServersPing(args []string) {
+	var serverName string
+	if len(args) > 0 {
+		serverName = args[0]
+	}
+
+	cfg, err := clientconfig.Load()
+	if err != nil {
+		fmt.Printf("Error loading config: %v\n", err)
+		os.Exit(1)
+	}
+
+	srv, name, err := cfg.GetServer(serverName)
+	if err != nil {
+		fmt.Printf("Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("Pinging %s (%s)...\n", name, srv.URL)
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Get(srv.URL + "/health")
+	if err != nil {
+		fmt.Printf("Error: %v\n", err)
+		os.Exit(1)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusOK {
+		fmt.Printf("Server '%s' is healthy!\n", name)
+	} else {
+		fmt.Printf("Server '%s' returned status %d\n", name, resp.StatusCode)
+	}
+}
+
+func printServersHelp() {
+	fmt.Println(`Fazt.sh - Server Management
+
+USAGE:
+  fazt servers <command> [options]
+
+COMMANDS:
+  add <name>     Add a new server configuration
+  list           List configured servers
+  default <name> Set the default server
+  remove <name>  Remove a server configuration
+  ping [name]    Test connection to a server
+
+EXAMPLES:
+  # Add a server
+  fazt servers add prod --url https://zyt.app --token fzt_abc123...
+
+  # List servers
+  fazt servers list
+
+  # Set default server
+  fazt servers default prod
+
+  # Test connection
+  fazt servers ping prod`)
 }
 
 // handleServiceCommand handles service-related subcommands
@@ -371,6 +597,8 @@ func handleClientCommand(args []string) {
 		handleLogsCommand()
 	case "sites":
 		handleSitesCommand()
+	case "apps":
+		handleAppsCommand()
 	case "delete":
 		handleDeleteCommand()
 	case "--help", "-h", "help":
@@ -1070,19 +1298,20 @@ func handleDeployCommand() {
 	flags := flag.NewFlagSet("deploy", flag.ExitOnError)
 	path := flags.String("path", "", "Directory to deploy (required)")
 	domain := flags.String("domain", "", "Domain/subdomain for the site (required)")
-	server := flags.String("server", "", "fazt.sh server URL (default: http://localhost:4698 or from config)")
+	toServer := flags.String("to", "", "Target server name (from 'fazt servers list')")
+	server := flags.String("server", "", "Server URL override (deprecated, use --to)")
 
 	flags.Usage = func() {
-		fmt.Println("Usage: fazt client deploy --path <PATH> --domain <SUBDOMAIN>")
+		fmt.Println("Usage: fazt deploy --path <PATH> --domain <SUBDOMAIN> [--to <SERVER>]")
 		fmt.Println()
 		fmt.Println("Deploys a directory to a fazt.sh server.")
 		fmt.Println()
 		flags.PrintDefaults()
 		fmt.Println()
 		fmt.Println("Examples:")
-		fmt.Println("  fazt client deploy --path . --domain my-site")
-		fmt.Println("  fazt client deploy --path ~/Desktop/site --domain example --server https://fazt.example.com")
-		fmt.Println("  fazt client deploy --domain my-site --path .")
+		fmt.Println("  fazt deploy --path . --domain my-site")
+		fmt.Println("  fazt deploy --path . --domain my-site --to prod")
+		fmt.Println("  fazt client deploy --path ~/Desktop/site --domain example")
 	}
 
 	// Determine args offset based on whether this is "deploy" or "client deploy"
@@ -1114,36 +1343,49 @@ func handleDeployCommand() {
 		os.Exit(1)
 	}
 
-	// Resolve DB Path
-	dbPath := "./data.db"
-	if envPath := os.Getenv("FAZT_DB_PATH"); envPath != "" {
-		dbPath = envPath
+	// Try new config first (~/.fazt/config.json)
+	var serverURL, token string
+	cfg, err := clientconfig.Load()
+	if err == nil && cfg.ServerCount() > 0 {
+		// Use new config system
+		srv, _, err := cfg.GetServer(*toServer)
+		if err != nil {
+			fmt.Printf("Error: %v\n", err)
+			os.Exit(1)
+		}
+		serverURL = srv.URL
+		token = srv.Token
+	} else {
+		// Fall back to old data.db config for backwards compatibility
+		dbPath := "./data.db"
+		if envPath := os.Getenv("FAZT_DB_PATH"); envPath != "" {
+			dbPath = envPath
+		}
+
+		if err := database.Init(dbPath); err != nil {
+			fmt.Println("Error: No servers configured")
+			fmt.Println("Run: fazt servers add <name> --url <url> --token <token>")
+			os.Exit(1)
+		}
+		defer database.Close()
+
+		store := config.NewDBConfigStore(database.GetDB())
+		dbMap, _ := store.Load()
+		token = dbMap["api_key.token"]
+
+		if token == "" {
+			fmt.Println("Error: No API key found in configuration")
+			fmt.Println("Run: fazt servers add <name> --url <url> --token <token>")
+			os.Exit(1)
+		}
+
+		serverURL = "http://localhost:4698"
+		if dbURL, ok := dbMap["client.server_url"]; ok && dbURL != "" {
+			serverURL = dbURL
+		}
 	}
 
-	// Initialize DB to get token
-	if err := database.Init(dbPath); err != nil {
-		fmt.Printf("Error: Failed to init database at %s: %v\n", dbPath, err)
-		fmt.Println("Run 'fazt client set-auth-token' to configure your client.")
-		os.Exit(1)
-	}
-	defer database.Close()
-
-	store := config.NewDBConfigStore(database.GetDB())
-	dbMap, _ := store.Load()
-	token := dbMap["api_key.token"]
-
-	if token == "" {
-		fmt.Println("Error: No API key found in configuration")
-		fmt.Printf("Database: %s\n", dbPath)
-		fmt.Println("Please run: fazt client set-auth-token --token <YOUR_TOKEN>")
-		os.Exit(1)
-	}
-
-	// Resolve Server URL
-	serverURL := "http://localhost:4698"
-	if dbURL, ok := dbMap["client.server_url"]; ok && dbURL != "" {
-		serverURL = dbURL
-	}
+	// Allow --server flag to override (for backwards compat)
 	if *server != "" {
 		serverURL = *server
 	}
@@ -1443,6 +1685,92 @@ func handleSitesCommand() {
 	}
 }
 
+// handleAppsCommand handles the apps list subcommand (new API)
+func handleAppsCommand() {
+	flags := flag.NewFlagSet("apps", flag.ExitOnError)
+	toServer := flags.String("to", "", "Target server (or default)")
+
+	flags.Usage = func() {
+		fmt.Println("Usage: fazt client apps [options]")
+		fmt.Println()
+		fmt.Println("List all deployed apps.")
+		fmt.Println()
+		flags.PrintDefaults()
+	}
+
+	if err := flags.Parse(os.Args[3:]); err != nil {
+		os.Exit(1)
+	}
+
+	// Load client config
+	cfg, err := clientconfig.Load()
+	if err != nil {
+		fmt.Printf("Error loading config: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Get target server
+	srv, serverName, err := cfg.GetServer(*toServer)
+	if err != nil {
+		fmt.Printf("Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	req, err := http.NewRequest("GET", srv.URL+"/api/apps", nil)
+	if err != nil {
+		fmt.Printf("Error creating request: %v\n", err)
+		os.Exit(1)
+	}
+	req.Header.Set("Authorization", "Bearer "+srv.Token)
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Printf("Error fetching apps: %v\n", err)
+		os.Exit(1)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		fmt.Printf("Error: %s\n", string(body))
+		os.Exit(1)
+	}
+
+	var result struct {
+		Data []struct {
+			ID        string `json:"id"`
+			Name      string `json:"name"`
+			Source    string `json:"source"`
+			FileCount int    `json:"file_count"`
+			SizeBytes int64  `json:"size_bytes"`
+			CreatedAt string `json:"created_at"`
+		} `json:"data"`
+		Error interface{} `json:"error"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		fmt.Printf("Error parsing response: %v\n", err)
+		os.Exit(1)
+	}
+
+	if result.Error != nil {
+		fmt.Printf("API Error: %v\n", result.Error)
+		os.Exit(1)
+	}
+
+	fmt.Printf("Apps on %s:\n\n", serverName)
+	fmt.Printf("%-20s %-10s %-10s %-10s\n", "NAME", "SOURCE", "FILES", "SIZE")
+	fmt.Println("────────────────────────────────────────────────────")
+	for _, app := range result.Data {
+		source := app.Source
+		if source == "" {
+			source = "deploy"
+		}
+		fmt.Printf("%-20s %-10s %-10d %-10d\n", app.Name, source, app.FileCount, app.SizeBytes)
+	}
+}
+
 // handleDeleteCommand handles the delete site subcommand
 func handleDeleteCommand() {
 	flags := flag.NewFlagSet("delete", flag.ExitOnError)
@@ -1721,6 +2049,13 @@ func handleStartCommand() {
 	dashboardMux.HandleFunc("GET /api/sites/{id}", handlers.SiteDetailHandler)
 	dashboardMux.HandleFunc("GET /api/sites/{id}/files", handlers.SiteFilesHandler)
 	dashboardMux.HandleFunc("GET /api/sites/{id}/files/{path...}", handlers.SiteFileContentHandler)
+
+	// Apps API (new - replaces sites)
+	dashboardMux.HandleFunc("GET /api/apps", handlers.AppsListHandler)
+	dashboardMux.HandleFunc("GET /api/apps/{id}", handlers.AppDetailHandler)
+	dashboardMux.HandleFunc("DELETE /api/apps/{id}", handlers.AppDeleteHandler)
+	dashboardMux.HandleFunc("GET /api/apps/{id}/files", handlers.AppFilesHandler)
+
 	dashboardMux.HandleFunc("/api/keys", handlers.APIKeysHandler)
 	dashboardMux.HandleFunc("/api/deployments", handlers.DeploymentsHandler)
 	dashboardMux.HandleFunc("/api/envvars", handlers.EnvVarsHandler)
@@ -1983,6 +2318,8 @@ func printServerHelp() {
 	fmt.Println("  status           Show configuration and server status")
 	fmt.Println("  set-credentials  Update admin credentials (password reset)")
 	fmt.Println("  set-config       Update settings (domain, port, env)")
+	fmt.Println("  create-key       Create an API key for deployments")
+	fmt.Println("  reset-admin      Reset admin dashboard to embedded version")
 	fmt.Println("  --help, -h       Show this help")
 	fmt.Println()
 	fmt.Println("EXAMPLES:")
@@ -1991,6 +2328,9 @@ func printServerHelp() {
 	fmt.Println()
 	fmt.Println("  # Start server manually (debugging)")
 	fmt.Println("  fazt server start")
+	fmt.Println()
+	fmt.Println("  # Create API key for client deployment")
+	fmt.Println("  fazt server create-key --name my-laptop")
 	fmt.Println()
 	fmt.Println("  # Reset Admin Password")
 	fmt.Println("  fazt server set-credentials --username admin --password newsecret")
@@ -2071,4 +2411,72 @@ func handleResetAdminCommand() {
 	}
 
 	fmt.Println("✓ Admin dashboard reset successfully.")
+}
+
+// handleCreateKeyCommand creates a new API key for deployment.
+// This is meant to be run on the server (e.g., via SSH) to generate tokens
+// for clients to use when deploying.
+func handleCreateKeyCommand() {
+	flags := flag.NewFlagSet("create-key", flag.ExitOnError)
+	name := flags.String("name", "", "Key name (required)")
+	scopes := flags.String("scopes", "deploy", "Key scopes (default: deploy)")
+	db := flags.String("db", "", "Database file path")
+
+	flags.Usage = func() {
+		fmt.Println("Usage: fazt server create-key --name <NAME> [flags]")
+		fmt.Println()
+		fmt.Println("Create a new API key for deploying apps to this server.")
+		fmt.Println("Run this on your server, then use the token with 'fazt servers add' on your client.")
+		fmt.Println()
+		flags.PrintDefaults()
+		fmt.Println()
+		fmt.Println("Example:")
+		fmt.Println("  fazt server create-key --name my-laptop")
+		fmt.Println("  # Then on your laptop:")
+		fmt.Println("  fazt servers add prod --url https://your-server.com --token <TOKEN>")
+	}
+
+	if err := flags.Parse(os.Args[3:]); err != nil {
+		os.Exit(1)
+	}
+
+	if *name == "" {
+		fmt.Println("Error: --name is required")
+		flags.Usage()
+		os.Exit(1)
+	}
+
+	// Resolve DB Path
+	dbPath := "./data.db"
+	if envPath := os.Getenv("FAZT_DB_PATH"); envPath != "" {
+		dbPath = envPath
+	}
+	if *db != "" {
+		dbPath = config.ExpandPath(*db)
+	}
+
+	// Initialize DB
+	if err := database.Init(dbPath); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to init database: %v\n", err)
+		os.Exit(1)
+	}
+	defer database.Close()
+
+	// Create API key
+	token, err := hosting.CreateAPIKey(database.GetDB(), *name, *scopes)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to create API key: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Println("API Key created successfully!")
+	fmt.Println()
+	fmt.Printf("  Name:   %s\n", *name)
+	fmt.Printf("  Scopes: %s\n", *scopes)
+	fmt.Printf("  Token:  %s\n", token)
+	fmt.Println()
+	fmt.Println("Save this token - it won't be shown again!")
+	fmt.Println()
+	fmt.Println("To configure your client:")
+	fmt.Printf("  fazt servers add <name> --url <YOUR_SERVER_URL> --token %s\n", token)
 }

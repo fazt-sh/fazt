@@ -4,7 +4,7 @@ go 1.24.7
 
 require (
 	github.com/caddyserver/certmagic v0.25.0
-	github.com/dop251/goja v0.0.0-20251121114222-56b1242a5f86
+	github.com/dop251/goja v0.0.0-20260106131823-651366fbe6e3
 	github.com/gorilla/websocket v1.5.3
 	golang.org/x/crypto v0.43.0
 	modernc.org/sqlite v1.40.1

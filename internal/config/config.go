@@ -13,7 +13,7 @@ import (
 )
 
 // Version holds the current application version
-var Version = "dev"
+var Version = "0.8.0"
 
 // Config holds all configuration for the application
 type Config struct {

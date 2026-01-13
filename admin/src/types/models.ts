@@ -24,6 +24,35 @@ export interface AnalyticsStats {
   total_sites: number;
 }
 
+// Backend stats response types
+export interface DomainStat {
+  domain: string;
+  count: number;
+}
+
+export interface TagStat {
+  tag: string;
+  count: number;
+}
+
+export interface TimelineStat {
+  timestamp: string;
+  count: number;
+}
+
+export interface StatsResponse {
+  total_events_today: number;
+  total_events_week: number;
+  total_events_month: number;
+  total_events_all_time: number;
+  events_by_source_type: Record<string, number>;
+  top_domains: DomainStat[];
+  top_tags: TagStat[];
+  events_timeline: TimelineStat[];
+  total_unique_domains: number;
+  total_redirect_clicks: number;
+}
+
 export interface Event {
   id: string;
   site_id: string;
