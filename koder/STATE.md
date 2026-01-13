@@ -62,22 +62,26 @@ Status: in_progress
   - [x] 7.1: Server already configured (zyt)
   - [x] 7.2: Token already present
   - [x] 7.3: Test deploy (hello-test.zyt.app)
-- [ ] **Phase 8**: MCP Setup
-  - [ ] 8.1: Configure Claude Code MCP
-  - [ ] 8.2: Test MCP tools work
-  - [ ] 8.3: Done!
+- [x] **Phase 8**: MCP Setup ✓
+  - [x] 8.1: Configure Claude Code MCP (.mcp.json)
+  - [x] 8.2: Test MCP tools work (5 tools available)
+  - [x] 8.3: Done!
 
 ## Current Task
 
 ```
-Task: Phase 7 - Local Setup
+Task: COMPLETE - All phases done!
 ```
 
 ## Next Actions
 
-1. Create API key on zyt.app server
-2. Configure local fazt client
-3. Test deploy from local machine
+None - Implementation complete! 🎉
+
+**Remote Upgrade Command:**
+```bash
+curl -X POST https://admin.zyt.app/api/upgrade \
+  -H "Authorization: Bearer 2d7df296e741c8e324684392e46640cb546f0dc4e7b20d1389952eb074f2bd3a"
+```
 
 ## Blockers
 
@@ -127,3 +131,6 @@ None currently
 | 2026-01-14 | 7 | Local fazt working | Deploy test OK |
 | 2026-01-14 | 8 | Added MCP routes | v0.8.1 |
 | 2026-01-14 | 8 | Added /api/upgrade | v0.8.2 |
+| 2026-01-14 | 8 | Upgraded zyt.app to v0.8.2 | Remote upgrade ready |
+| 2026-01-14 | 8 | Configured MCP | 5 tools working |
+| 2026-01-14 | 8 | ALL PHASES COMPLETE | Plan 16 done! |

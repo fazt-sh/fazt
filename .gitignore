@@ -58,3 +58,4 @@ cookies.txt
 /internal/assets/system/admin/
 /admin/node_modules/
 /admin/dist/
+.mcp.json

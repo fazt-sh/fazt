@@ -186,7 +186,7 @@ func (s *Server) HandleInitialize(w http.ResponseWriter, r *http.Request) {
 		},
 		ServerInfo: ServerInfo{
 			Name:    ServerName,
-			Version: "0.8.2",
+			Version: "0.8.3",
 		},
 	}
 

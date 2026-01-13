@@ -2460,14 +2460,14 @@ func handleCreateKeyCommand() {
 		os.Exit(1)
 	}
 
-	// Resolve DB Path
-	dbPath := "./data.db"
-	if envPath := os.Getenv("FAZT_DB_PATH"); envPath != "" {
-		dbPath = envPath
-	}
+	// Resolve DB Path (auto-detect from service if not specified)
+	dbPath := provision.GetEffectiveDBPath(*db)
 	if *db != "" {
 		dbPath = config.ExpandPath(*db)
 	}
+
+	// Show which database we're using
+	fmt.Printf("Using database: %s\n", dbPath)
 
 	// Initialize DB
 	if err := database.Init(dbPath); err != nil {

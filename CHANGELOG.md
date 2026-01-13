@@ -2,6 +2,15 @@
 
 All notable changes to fazt.sh will be documented in this file.
 
+## [0.8.3] - 2026-01-14
+
+### Fixed
+- **Auto-detect Service Database**: `fazt server create-key` now automatically finds the correct database
+  - Reads systemd service file to find `WorkingDirectory`
+  - No more `--db` flag needed when service is installed
+  - Shows which database is being used for transparency
+  - Priority: explicit `--db` flag > `FAZT_DB_PATH` env > service path > `./data.db`
+
 ## [0.8.2] - 2026-01-14
 
 ### Added
