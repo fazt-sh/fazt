@@ -38,17 +38,16 @@ An **app** in fazt is a website with optional serverless capabilities.
 
 ```
 servers/                 # gitignored - NOT part of fazt source
-├── zyt/                 # Apps for zyt.app instance
-│   ├── config.json      # Legacy (now in client DB)
-│   ├── xray/            # An app
-│   └── my-new-app/      # Another app
-└── local/               # Apps for local testing
+└── zyt/                 # Apps for zyt.app
+    ├── xray/            # An app
+    └── my-new-app/      # Another app
 ```
 
 **Why gitignored?**
-- Contains API tokens (security)
 - Apps are instance-specific, not fazt source code
 - Each developer has different instances/apps
+
+Develop in `servers/zyt/`, test locally, deploy to zyt when ready.
 
 ### App Structure
 
@@ -71,19 +70,20 @@ Check peers: `fazt remote list`
 
 ### Development Workflow
 
-1. **Create app locally**:
+1. **Create app**:
    ```bash
-   mkdir my-app && cd my-app
+   mkdir -p servers/zyt/my-app && cd servers/zyt/my-app
    echo '{"name":"my-app"}' > manifest.json
    echo '<h1>Hello</h1>' > index.html
    ```
 
 2. **Test locally** (optional):
    ```bash
-   # Start local fazt server (needs init first time)
+   # Terminal 1: Start local fazt server
    fazt server start --port 8080
-   # Deploy to local
-   fazt deploy . --to http://localhost:8080
+
+   # Terminal 2: Deploy to local server
+   fazt deploy servers/zyt/my-app --to http://localhost:8080
    # Access at http://my-app.localhost:8080
    ```
 
