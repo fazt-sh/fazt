@@ -16,12 +16,18 @@
 
 | What | Path |
 |------|------|
-| Binary | `~/.local/bin/fazt` |
+| Binary | `~/.local/bin/fazt` (in PATH) |
 | Client DB | `~/.config/fazt/data.db` |
 | Peers | Stored in client DB (peers table) |
-| Servers | `servers/` (gitignored, legacy) |
+| Apps | `servers/zyt/` (gitignored) |
 
-The client DB stores peer configurations (url, token). Moving DB moves config.
+The `fazt` command is available in PATH. Use `fazt --help` to explore commands:
+
+```bash
+fazt --help              # All commands
+fazt remote --help       # Remote/peer commands
+fazt server --help       # Server commands
+```
 
 ## Quick Start
 
