@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -33,6 +34,7 @@ import (
 	"github.com/fazt-sh/fazt/internal/mcp"
 	"github.com/fazt-sh/fazt/internal/middleware"
 	"github.com/fazt-sh/fazt/internal/provision"
+	"github.com/fazt-sh/fazt/internal/remote"
 	"github.com/fazt-sh/fazt/internal/security"
 	"github.com/fazt-sh/fazt/internal/term"
 	"golang.org/x/crypto/bcrypt"
@@ -71,6 +73,8 @@ func main() {
 		handleServerCommand(os.Args[2:])
 	case "servers":
 		handleServersCommand(os.Args[2:])
+	case "remote":
+		handleRemoteCommand(os.Args[2:])
 	case "service":
 		handleServiceCommand(os.Args[2:])
 	case "client":
@@ -533,6 +537,469 @@ EXAMPLES:
 
   # Test connection
   fazt servers ping prod`)
+}
+
+// ===================================================================================
+// Remote Commands (v0.9.0) - fazt-to-fazt communication
+// ===================================================================================
+
+// handleRemoteCommand handles remote peer commands
+func handleRemoteCommand(args []string) {
+	if len(args) < 1 {
+		handleRemoteList()
+		return
+	}
+
+	subcommand := args[0]
+	switch subcommand {
+	case "add":
+		handleRemoteAdd(args[1:])
+	case "list":
+		handleRemoteList()
+	case "remove":
+		handleRemoteRemove(args[1:])
+	case "default":
+		handleRemoteDefault(args[1:])
+	case "status":
+		handleRemoteStatus(args[1:])
+	case "apps":
+		handleRemoteApps(args[1:])
+	case "upgrade":
+		handleRemoteUpgrade(args[1:])
+	case "deploy":
+		handleRemoteDeploy(args[1:])
+	case "--help", "-h", "help":
+		printRemoteHelp()
+	default:
+		fmt.Printf("Unknown remote command: %s\n\n", subcommand)
+		printRemoteHelp()
+		os.Exit(1)
+	}
+}
+
+func getClientDB() *sql.DB {
+	// Use XDG config path for client database
+	configDir := os.Getenv("XDG_CONFIG_HOME")
+	if configDir == "" {
+		configDir = filepath.Join(os.Getenv("HOME"), ".config")
+	}
+	dbPath := filepath.Join(configDir, "fazt", "data.db")
+
+	if err := database.Init(dbPath); err != nil {
+		fmt.Printf("Error initializing database: %v\n", err)
+		os.Exit(1)
+	}
+	return database.GetDB()
+}
+
+func handleRemoteAdd(args []string) {
+	if len(args) < 1 {
+		fmt.Println("Error: peer name is required")
+		fmt.Println("Usage: fazt remote add <name> --url <url> --token <token>")
+		os.Exit(1)
+	}
+
+	name := args[0]
+	flagArgs := args[1:]
+
+	flags := flag.NewFlagSet("remote add", flag.ExitOnError)
+	urlFlag := flags.String("url", "", "Peer URL (required)")
+	tokenFlag := flags.String("token", "", "API token (required)")
+	descFlag := flags.String("desc", "", "Description")
+	flags.Parse(flagArgs)
+
+	if *urlFlag == "" || *tokenFlag == "" {
+		fmt.Println("Error: --url and --token are required")
+		fmt.Println("Usage: fazt remote add <name> --url <url> --token <token>")
+		os.Exit(1)
+	}
+
+	db := getClientDB()
+	defer database.Close()
+
+	if err := remote.AddPeer(db, name, *urlFlag, *tokenFlag, *descFlag); err != nil {
+		if err == remote.ErrPeerAlreadyExists {
+			fmt.Printf("Error: peer '%s' already exists\n", name)
+		} else {
+			fmt.Printf("Error adding peer: %v\n", err)
+		}
+		os.Exit(1)
+	}
+
+	// Set as default if it's the first peer
+	peers, _ := remote.ListPeers(db)
+	if len(peers) == 1 {
+		remote.SetDefaultPeer(db, name)
+		fmt.Printf("Peer '%s' added and set as default.\n", name)
+	} else {
+		fmt.Printf("Peer '%s' added.\n", name)
+	}
+}
+
+func handleRemoteList() {
+	db := getClientDB()
+	defer database.Close()
+
+	peers, err := remote.ListPeers(db)
+	if err != nil {
+		fmt.Printf("Error listing peers: %v\n", err)
+		os.Exit(1)
+	}
+
+	if len(peers) == 0 {
+		fmt.Println("No peers configured.")
+		fmt.Println("Run: fazt remote add <name> --url <url> --token <token>")
+		return
+	}
+
+	fmt.Printf("%-12s %-30s %-10s %-10s\n", "NAME", "URL", "STATUS", "DEFAULT")
+	fmt.Println("────────────────────────────────────────────────────────────────")
+	for _, p := range peers {
+		defaultMark := ""
+		if p.IsDefault {
+			defaultMark = "*"
+		}
+		status := p.LastStatus
+		if status == "" {
+			status = "-"
+		}
+		// Truncate URL if too long
+		displayURL := p.URL
+		if len(displayURL) > 28 {
+			displayURL = displayURL[:25] + "..."
+		}
+		fmt.Printf("%-12s %-30s %-10s %-10s\n", p.Name, displayURL, status, defaultMark)
+	}
+}
+
+func handleRemoteRemove(args []string) {
+	if len(args) < 1 {
+		fmt.Println("Error: peer name is required")
+		fmt.Println("Usage: fazt remote remove <name>")
+		os.Exit(1)
+	}
+
+	name := args[0]
+	db := getClientDB()
+	defer database.Close()
+
+	if err := remote.RemovePeer(db, name); err != nil {
+		if err == remote.ErrPeerNotFound {
+			fmt.Printf("Error: peer '%s' not found\n", name)
+		} else {
+			fmt.Printf("Error removing peer: %v\n", err)
+		}
+		os.Exit(1)
+	}
+
+	fmt.Printf("Peer '%s' removed.\n", name)
+}
+
+func handleRemoteDefault(args []string) {
+	if len(args) < 1 {
+		fmt.Println("Error: peer name is required")
+		fmt.Println("Usage: fazt remote default <name>")
+		os.Exit(1)
+	}
+
+	name := args[0]
+	db := getClientDB()
+	defer database.Close()
+
+	if err := remote.SetDefaultPeer(db, name); err != nil {
+		if err == remote.ErrPeerNotFound {
+			fmt.Printf("Error: peer '%s' not found\n", name)
+		} else {
+			fmt.Printf("Error: %v\n", err)
+		}
+		os.Exit(1)
+	}
+
+	fmt.Printf("Default peer set to '%s'.\n", name)
+}
+
+func handleRemoteStatus(args []string) {
+	var peerName string
+	if len(args) > 0 && !strings.HasPrefix(args[0], "-") {
+		peerName = args[0]
+	}
+
+	db := getClientDB()
+	defer database.Close()
+
+	peer, err := remote.ResolvePeer(db, peerName)
+	if err != nil {
+		if err == remote.ErrNoPeers {
+			fmt.Println("No peers configured.")
+			fmt.Println("Run: fazt remote add <name> --url <url> --token <token>")
+		} else if err == remote.ErrNoDefaultPeer {
+			fmt.Println("Multiple peers configured. Specify which peer:")
+			fmt.Println("  fazt remote status <name>")
+		} else {
+			fmt.Printf("Error: %v\n", err)
+		}
+		os.Exit(1)
+	}
+
+	client := remote.NewClient(peer)
+
+	// Health check first
+	healthy, err := client.HealthCheck()
+	if err != nil || !healthy {
+		fmt.Printf("Server: %s (%s)\n", peer.Name, peer.URL)
+		fmt.Printf("Status: UNREACHABLE\n")
+		if err != nil {
+			fmt.Printf("Error: %v\n", err)
+		}
+		remote.UpdatePeerStatus(db, peer.Name, "unreachable", "")
+		os.Exit(1)
+	}
+
+	// Get full status
+	status, err := client.Status()
+	if err != nil {
+		fmt.Printf("Server: %s (%s)\n", peer.Name, peer.URL)
+		fmt.Printf("Health: OK (HTTP 200)\n")
+		fmt.Printf("Status: Auth required or error: %v\n", err)
+		remote.UpdatePeerStatus(db, peer.Name, "healthy", "")
+		return
+	}
+
+	// Update peer status in DB
+	remote.UpdatePeerStatus(db, peer.Name, status.Status, status.Version)
+
+	// Display status
+	fmt.Printf("Server: %s\n", peer.Name)
+	fmt.Printf("URL:    %s\n", peer.URL)
+	fmt.Println()
+	fmt.Printf("Health:\n")
+	fmt.Printf("  Status:     %s\n", status.Status)
+	fmt.Printf("  Version:    %s\n", status.Version)
+	fmt.Printf("  Mode:       %s\n", status.Mode)
+	fmt.Printf("  Uptime:     %s\n", formatDuration(status.Uptime))
+	fmt.Println()
+	fmt.Printf("Resources:\n")
+	fmt.Printf("  Memory:     %.1f MB / %.0f MB\n", status.Memory.UsedMB, status.Memory.LimitMB)
+	fmt.Printf("  Goroutines: %d\n", status.Runtime.Goroutines)
+	fmt.Printf("  DB Conns:   %d open, %d in use\n", status.Database.OpenConnections, status.Database.InUse)
+}
+
+func handleRemoteApps(args []string) {
+	var peerName string
+	if len(args) > 0 && !strings.HasPrefix(args[0], "-") {
+		peerName = args[0]
+	}
+
+	db := getClientDB()
+	defer database.Close()
+
+	peer, err := remote.ResolvePeer(db, peerName)
+	if err != nil {
+		fmt.Printf("Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	client := remote.NewClient(peer)
+	apps, err := client.Apps()
+	if err != nil {
+		fmt.Printf("Error fetching apps: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("Apps on %s:\n\n", peer.Name)
+	fmt.Printf("%-20s %-10s %-10s %-12s\n", "NAME", "FILES", "SIZE", "UPDATED")
+	fmt.Println("──────────────────────────────────────────────────────")
+	for _, app := range apps {
+		updated := app.UpdatedAt
+		if len(updated) > 10 {
+			updated = updated[:10]
+		}
+		fmt.Printf("%-20s %-10d %-10s %-12s\n", app.Name, app.FileCount, formatSize(app.SizeBytes), updated)
+	}
+}
+
+func handleRemoteUpgrade(args []string) {
+	checkOnly := false
+	var peerName string
+
+	for _, arg := range args {
+		if arg == "check" || arg == "--check" {
+			checkOnly = true
+		} else if !strings.HasPrefix(arg, "-") {
+			peerName = arg
+		}
+	}
+
+	db := getClientDB()
+	defer database.Close()
+
+	peer, err := remote.ResolvePeer(db, peerName)
+	if err != nil {
+		fmt.Printf("Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	client := remote.NewClient(peer)
+	result, err := client.Upgrade(checkOnly)
+	if err != nil {
+		fmt.Printf("Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("Server:  %s (%s)\n", peer.Name, peer.URL)
+	fmt.Printf("Current: v%s\n", result.CurrentVersion)
+	fmt.Printf("Latest:  v%s\n", result.NewVersion)
+	fmt.Println()
+
+	switch result.Action {
+	case "already_latest":
+		fmt.Println("Already running the latest version.")
+	case "check_only":
+		fmt.Println("Update available!")
+		fmt.Println("Run: fazt remote upgrade", peer.Name)
+	case "upgraded":
+		fmt.Println("Upgraded! Server is restarting...")
+	}
+}
+
+func handleRemoteDeploy(args []string) {
+	flags := flag.NewFlagSet("remote deploy", flag.ExitOnError)
+	siteName := flags.String("name", "", "Site name (defaults to directory name)")
+	peerFlag := flags.String("to", "", "Target peer name")
+
+	flags.Usage = func() {
+		fmt.Println("Usage: fazt remote deploy <directory> [--name <site>] [--to <peer>]")
+		fmt.Println()
+		flags.PrintDefaults()
+	}
+
+	// Find directory arg (first non-flag arg)
+	var dir string
+	var flagArgs []string
+	for i, arg := range args {
+		if !strings.HasPrefix(arg, "-") && dir == "" {
+			dir = arg
+			flagArgs = args[i+1:]
+			break
+		}
+	}
+
+	if dir == "" {
+		fmt.Println("Error: directory is required")
+		flags.Usage()
+		os.Exit(1)
+	}
+
+	flags.Parse(flagArgs)
+
+	// Validate directory exists
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		fmt.Printf("Error: directory '%s' does not exist\n", dir)
+		os.Exit(1)
+	}
+
+	// Determine site name
+	name := *siteName
+	if name == "" {
+		name = filepath.Base(dir)
+		if name == "." {
+			wd, _ := os.Getwd()
+			name = filepath.Base(wd)
+		}
+	}
+
+	db := getClientDB()
+	defer database.Close()
+
+	peer, err := remote.ResolvePeer(db, *peerFlag)
+	if err != nil {
+		fmt.Printf("Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("Deploying '%s' to %s as '%s'...\n", dir, peer.Name, name)
+
+	// Create ZIP
+	zipBuffer, fileCount, err := createDeployZip(dir)
+	if err != nil {
+		fmt.Printf("Error creating ZIP: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Write to temp file (client expects file path)
+	tmpFile, err := os.CreateTemp("", "deploy-*.zip")
+	if err != nil {
+		fmt.Printf("Error creating temp file: %v\n", err)
+		os.Exit(1)
+	}
+	defer os.Remove(tmpFile.Name())
+
+	if _, err := tmpFile.Write(zipBuffer.Bytes()); err != nil {
+		fmt.Printf("Error writing ZIP: %v\n", err)
+		os.Exit(1)
+	}
+	tmpFile.Close()
+
+	fmt.Printf("Zipped %d files (%s)\n", fileCount, formatSize(int64(zipBuffer.Len())))
+
+	client := remote.NewClient(peer)
+	result, err := client.Deploy(tmpFile.Name(), name)
+	if err != nil {
+		fmt.Printf("Error deploying: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Println()
+	fmt.Printf("Deployed: %s\n", result.Site)
+	fmt.Printf("Files:    %d\n", result.FileCount)
+	fmt.Printf("Size:     %s\n", formatSize(result.SizeBytes))
+}
+
+func formatDuration(seconds float64) string {
+	d := time.Duration(seconds) * time.Second
+	h := d / time.Hour
+	d -= h * time.Hour
+	m := d / time.Minute
+	if h > 0 {
+		return fmt.Sprintf("%dh %dm", h, m)
+	}
+	return fmt.Sprintf("%dm", m)
+}
+
+func printRemoteHelp() {
+	fmt.Println(`Fazt.sh - Remote Peer Management
+
+USAGE:
+  fazt remote <command> [options]
+
+COMMANDS:
+  add <name>       Add a remote peer
+  list             List configured peers
+  remove <name>    Remove a peer
+  default <name>   Set the default peer
+  status [name]    Check peer health and status
+  apps [name]      List apps on a peer
+  upgrade [name]   Check/perform upgrade on peer
+  deploy <dir>     Deploy directory to peer
+
+EXAMPLES:
+  # Add a peer
+  fazt remote add zyt --url https://admin.zyt.app --token xxx
+
+  # Check status (uses default if only one peer)
+  fazt remote status
+
+  # List apps on specific peer
+  fazt remote apps zyt
+
+  # Deploy to default peer
+  fazt remote deploy ./my-site --name blog
+
+  # Check for upgrades
+  fazt remote upgrade check
+
+  # Perform upgrade
+  fazt remote upgrade zyt`)
 }
 
 // handleServiceCommand handles service-related subcommands

@@ -2,6 +2,35 @@
 
 All notable changes to fazt.sh will be documented in this file.
 
+## [0.9.0] - 2026-01-14
+
+### Added
+- **Peers Table**: All peer configuration stored in SQLite (`peers` table)
+  - Migration 009 creates the peers table
+  - No external config files - move DB, everything works
+  - Future-ready: `node_id`, `public_key` fields for mesh (v0.16)
+- **`fazt remote` Commands**: Native fazt-to-fazt communication
+  - `fazt remote add <name> --url <url> --token <token>` - Add peer
+  - `fazt remote list` - List configured peers
+  - `fazt remote remove <name>` - Remove peer
+  - `fazt remote default <name>` - Set default peer
+  - `fazt remote status [name]` - Check peer health and version
+  - `fazt remote apps [name]` - List apps on peer
+  - `fazt remote upgrade [name]` - Check/perform upgrades
+  - `fazt remote deploy <dir>` - Deploy to peer
+- **Auto-Migration**: Imports `~/.fazt/config.json` into peers table on first run
+- **Claude Skills**: Management commands via Claude Code
+  - `/fazt-status`, `/fazt-deploy`, `/fazt-apps`, `/fazt-upgrade`
+- **CLAUDE.md Enhancements**: Environment context, capability matrix, MCP vs Skills
+
+### Changed
+- **Client DB Location**: `~/.config/fazt/data.db` (XDG compliant)
+- Peer status (last_seen, version) tracked in database
+
+### Migration
+- Old `~/.fazt/config.json` automatically imported to peers table
+- File renamed to `config.json.migrated` after import
+
 ## [0.8.4] - 2026-01-14
 
 ### Fixed

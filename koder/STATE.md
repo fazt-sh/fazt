@@ -6,9 +6,9 @@
 ## Current Phase
 
 ```
-Phase: 6
-Name: Deploy to Production
-Status: in_progress
+Phase: Post-Plan 16
+Name: Tooling & Documentation
+Status: ongoing
 ```
 
 ## Progress Tracker
@@ -70,12 +70,14 @@ Status: in_progress
 ## Current Task
 
 ```
-Task: COMPLETE - All phases done!
+Task: Tooling improvements
 ```
 
 ## Next Actions
 
-None - Implementation complete! 🎉
+- Test Claude skills with zyt.app (add token to config.json first)
+- Evaluate MCP vs Skills for day-to-day management
+- Continue with v0.9 storage layer when ready
 
 **Remote Upgrade Command:**
 ```bash
@@ -134,3 +136,6 @@ None currently
 | 2026-01-14 | 8 | Upgraded zyt.app to v0.8.2 | Remote upgrade ready |
 | 2026-01-14 | 8 | Configured MCP | 5 tools working |
 | 2026-01-14 | 8 | ALL PHASES COMPLETE | Plan 16 done! |
+| 2026-01-14 | - | Added Claude skills | fazt-status/deploy/apps/upgrade |
+| 2026-01-14 | - | Updated CLAUDE.md | Full environment context |
+| 2026-01-14 | - | Added servers/ pattern | Multi-instance config |
