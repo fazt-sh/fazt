@@ -2,6 +2,18 @@
 
 All notable changes to fazt.sh will be documented in this file.
 
+## [0.9.1] - 2026-01-14
+
+### Fixed
+- **Install Script Upgrades**: Service file now updated during upgrades
+  - Extracts existing user from service file
+  - Regenerates with latest template (includes ProtectSystem fixes)
+  - Runs `systemctl daemon-reload` automatically
+  - Future upgrades via `fazt remote upgrade` will work without manual SSH
+
+### Added
+- **Release Skill**: `.claude/commands/fazt-release.md` for consistent releases
+
 ## [0.9.0] - 2026-01-14
 
 ### Added
