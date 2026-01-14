@@ -34,6 +34,22 @@ read koder/STATE.md    # Current progress
 
 An **app** in fazt is a website with optional serverless capabilities.
 
+### Where to Store Apps (This Repo)
+
+```
+servers/                 # gitignored - NOT part of fazt source
+├── zyt/                 # Apps for zyt.app instance
+│   ├── config.json      # Legacy (now in client DB)
+│   ├── xray/            # An app
+│   └── my-new-app/      # Another app
+└── local/               # Apps for local testing
+```
+
+**Why gitignored?**
+- Contains API tokens (security)
+- Apps are instance-specific, not fazt source code
+- Each developer has different instances/apps
+
 ### App Structure
 
 ```
@@ -73,8 +89,7 @@ Check peers: `fazt remote list`
 
 3. **Deploy to zyt**:
    ```bash
-   fazt remote deploy . zyt
-   # Or: fazt remote deploy my-app/ zyt
+   fazt remote deploy servers/zyt/my-app zyt
    ```
    App available at: `https://my-app.zyt.app`
 
