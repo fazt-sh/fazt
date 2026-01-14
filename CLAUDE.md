@@ -3,16 +3,25 @@
 **Fazt** is sovereign compute infrastructure for individuals—a single Go binary
 + SQLite database that runs anywhere from phones to servers to IoT devices.
 
-**Current Version**: 0.9.0
+**Current Version**: 0.9.1
 **This Repo**: Source code for fazt development
 
 ## Environment Context
 
 - **Location**: VM (headless) at `192.168.64.3`
 - **OS**: Ubuntu (development machine)
-- **Fazt Binary**: Should be built locally (`go build -o fazt ./cmd/server`)
 - **Live Instance**: zyt.app (personal fazt server, test bed for development)
-- **Servers Dir**: `servers/` (gitignored) holds instance configs
+
+### Local Paths
+
+| What | Path |
+|------|------|
+| Binary | `~/.local/bin/fazt` |
+| Client DB | `~/.config/fazt/data.db` |
+| Peers | Stored in client DB (peers table) |
+| Servers | `servers/` (gitignored, legacy) |
+
+The client DB stores peer configurations (url, token). Moving DB moves config.
 
 ## Quick Start
 
@@ -90,6 +99,7 @@ servers/                  # gitignored
 | `/fazt-apps` | List/manage apps |
 | `/fazt-deploy` | Deploy site/app |
 | `/fazt-upgrade` | Check/perform upgrades |
+| `/fazt-release` | Release new version (full workflow) |
 
 ### API Endpoints
 

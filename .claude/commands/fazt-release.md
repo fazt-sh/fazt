@@ -49,12 +49,13 @@ git tag vX.Y.Z
 ### 4. Build and Install Locally
 
 ```bash
-go build -ldflags "-X github.com/fazt-sh/fazt/internal/config.Version=X.Y.Z" -o fazt ./cmd/server
-sudo cp fazt /usr/local/bin/fazt
-sudo setcap CAP_NET_BIND_SERVICE=+eip /usr/local/bin/fazt
+go build -ldflags "-X github.com/fazt-sh/fazt/internal/config.Version=X.Y.Z" -o ~/.local/bin/fazt ./cmd/server
 ```
 
 Verify: `fazt --version`
+
+Note: `~/.local/bin` is in PATH and doesn't require sudo. The `setcap` for
+binding ports 80/443 is only needed for local servers, not CLI usage.
 
 ### 5. Push to GitHub
 
@@ -103,3 +104,13 @@ NOT from fazt.sh (domain not purchased yet).
 1. Verify release on GitHub: https://github.com/fazt-sh/fazt/releases
 2. Test install script: `curl -fsSL https://raw.githubusercontent.com/fazt-sh/fazt/master/install.sh | bash`
 3. Verify remote server versions: `fazt remote status`
+
+## Local Paths (Dev VM)
+
+| What | Path |
+|------|------|
+| Binary | `~/.local/bin/fazt` |
+| Client DB | `~/.config/fazt/data.db` |
+| Peers | Stored in client DB (peers table) |
+
+The client DB contains peer configurations. Moving the DB moves everything.
