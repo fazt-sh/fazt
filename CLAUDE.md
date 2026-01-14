@@ -3,7 +3,7 @@
 **Fazt** is sovereign compute infrastructure for individuals—a single Go binary
 + SQLite database that runs anywhere from phones to servers to IoT devices.
 
-**Current Version**: 0.9.1
+**Current Version**: 0.9.4
 **This Repo**: Source code for fazt development
 
 ## Environment Context

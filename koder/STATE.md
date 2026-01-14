@@ -7,50 +7,61 @@
 
 ```
 State: CLEAN
-Remote upgrades now work fully via `fazt remote upgrade zyt`
+All systems operational. Remote upgrades fully working.
 ```
 
-## Recent Fixes (v0.9.3 + v0.9.4)
+## Recent Session (2026-01-14)
 
-### v0.9.3: Binary Ownership
-Binary chowned to service user during install/upgrade. Enables write access.
+### Completed
 
-### v0.9.4: Atomic Rename
-Uses `os.Rename` instead of `copyFile` to replace running binary. Avoids "text file busy".
+1. **Tetris Game** - 3D Three.js game at https://tetris.zyt.app
+   - Pixar-style soft colors, zen UI
+   - 5 color themes, light/dark mode
+   - Touch controls, settings modal
 
-**Result**: `fazt remote upgrade` now works without SSH.
+2. **zyt.app Homepage** - https://zyt.app
+   - Editorial design with Georgia serif
+   - Apps gallery (JSON-driven via `apps.json`)
+   - Light/dark mode
 
----
+3. **CSP Fix (v0.9.2)** - Apps can fetch from sibling subdomains
+   - `connect-src` includes `https://*.{domain}`
 
-## Completed Today
+4. **Self-Upgrade Fix (v0.9.3)** - Binary owned by service user
+   - Enables remote upgrade without sudo
 
-### Tetris Game
-- **Location**: `servers/zyt/tetris/`
-- **Live**: https://tetris.zyt.app
-- 3D Three.js, Pixar-style colors, zen UI
-- Light/dark mode, 5 themes, ghost toggle
-- Touch controls, responsive, settings modal
+5. **Atomic Upgrade (v0.9.4)** - Uses `os.Rename` instead of copy
+   - Fixes "text file busy" on running binary
 
-### zyt.app Homepage
-- **Location**: `servers/zyt/home/`
-- **Live**: https://zyt.app
-- Editorial design, Georgia serif
-- Hero, About (powered by fazt), Apps gallery
-- Light/dark mode
+### Result
 
----
+`fazt remote upgrade zyt` now works without SSH. Full dev lifecycle via Claude.
+
+## Apps on zyt.app
+
+| App | URL | Description |
+|-----|-----|-------------|
+| tetris | https://tetris.zyt.app | 3D Tetris game |
+| xray | https://xray.zyt.app | Fazt internals visualizer |
+| home | https://zyt.app | Homepage |
+
+To update app list on homepage: edit `servers/zyt/home/apps.json`, redeploy.
 
 ## Quick Reference
 
-- **Primary context**: `CLAUDE.md` (root)
-- **Deep implementation**: `koder/start.md`
-- **Future specs**: `koder/ideas/specs/`
+| Doc | Purpose |
+|-----|---------|
+| `CLAUDE.md` | Primary context for Claude |
+| `koder/STATE.md` | Current implementation state (this file) |
+| `koder/start.md` | Deep implementation protocol |
+| `koder/ideas/specs/` | Future feature specifications |
 
-## Completed Plans
+## Version History (Recent)
 
-| Plan | Version | Date | Summary |
-|------|---------|------|---------|
-| 16 | v0.8.0 | 2026-01-13 | MCP, Serverless, Apps migration |
-| 17 | v0.9.0 | 2026-01-14 | Peers table, `fazt remote` commands |
-| 18 | v0.9.2 | 2026-01-14 | CSP subdomain fix |
-| 19 | v0.9.3 | 2026-01-14 | Binary ownership fix for self-upgrade |
+| Version | Date | Summary |
+|---------|------|---------|
+| v0.9.4 | 2026-01-14 | Atomic binary replacement |
+| v0.9.3 | 2026-01-14 | Binary ownership fix |
+| v0.9.2 | 2026-01-14 | CSP subdomain fix |
+| v0.9.1 | 2026-01-14 | Install script service file updates |
+| v0.9.0 | 2026-01-14 | Peers table, `fazt remote` commands |
