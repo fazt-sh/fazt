@@ -164,6 +164,45 @@ if [ "$IS_UPGRADE" = true ]; then
 
     echo -e "${GREEN}✓ Binary updated${NC}"
 
+    # Update service file if it exists (applies config fixes from new versions)
+    if [ -f "$SERVICE_FILE" ]; then
+        echo -e "${BLUE}ℹ${NC} Updating service file..."
+        # Extract user from existing service file
+        SERVICE_USER=$(grep -oE '^User=[^ ]+' "$SERVICE_FILE" 2>/dev/null | sed 's/User=//' || echo "fazt")
+
+        # Generate updated service file with latest template
+        SERVICE_CONTENT="[Unit]
+Description=Fazt PaaS
+After=network.target
+
+[Service]
+Type=simple
+User=${SERVICE_USER}
+WorkingDirectory=/home/${SERVICE_USER}/.config/fazt
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+ExecStart=/usr/local/bin/fazt server start
+Restart=always
+LimitNOFILE=4096
+Environment=FAZT_ENV=production
+# Security hardening
+ProtectSystem=strict
+ReadWritePaths=/usr/local/bin
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target"
+
+        if [ "$EUID" -ne 0 ]; then
+            echo "$SERVICE_CONTENT" | sudo tee "$SERVICE_FILE" > /dev/null
+            sudo systemctl daemon-reload
+        else
+            echo "$SERVICE_CONTENT" > "$SERVICE_FILE"
+            systemctl daemon-reload
+        fi
+        echo -e "${GREEN}✓ Service file updated${NC}"
+    fi
+
     # Restart service if it was running
     if [ "$SERVICE_WAS_ACTIVE" = true ]; then
         echo -e "${BLUE}ℹ${NC} Restarting service..."
