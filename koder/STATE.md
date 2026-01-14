@@ -10,58 +10,65 @@ State: CLEAN
 All systems operational. Remote upgrades fully working.
 ```
 
-## Recent Session (2026-01-14)
+## Session Summary (2026-01-14)
 
 ### Completed
 
-1. **Tetris Game** - 3D Three.js game at https://tetris.zyt.app
-   - Pixar-style soft colors, zen UI
-   - 5 color themes, light/dark mode
-   - Touch controls, settings modal
+1. **Tetris Game** - https://tetris.zyt.app
+   - 3D Three.js, Pixar-style colors, zen UI
+   - 5 themes, light/dark mode, touch controls
 
 2. **zyt.app Homepage** - https://zyt.app
-   - Editorial design with Georgia serif
-   - Apps gallery (JSON-driven via `apps.json`)
-   - Light/dark mode
+   - Editorial design, Georgia serif
+   - JSON-driven apps gallery (`servers/zyt/home/apps.json`)
 
-3. **CSP Fix (v0.9.2)** - Apps can fetch from sibling subdomains
-   - `connect-src` includes `https://*.{domain}`
+3. **Remote Upgrade Fixes**
+   - v0.9.2: CSP allows subdomain communication
+   - v0.9.3: Binary owned by service user
+   - v0.9.4: Atomic rename (fixes "text file busy")
 
-4. **Self-Upgrade Fix (v0.9.3)** - Binary owned by service user
-   - Enables remote upgrade without sudo
+4. **Claude Skills Cleanup**
+   - Added: `/fazt-start`, `/fazt-stop`
+   - Updated: `/fazt-release` (idempotent)
+   - Removed: `/fazt-upgrade`, `/fazt-status`, `/fazt-apps`, `/fazt-deploy`
+     (simple CLI commands, documented in CLAUDE.md)
 
-5. **Atomic Upgrade (v0.9.4)** - Uses `os.Rename` instead of copy
-   - Fixes "text file busy" on running binary
+### Current Skills
 
-### Result
+| Skill | Purpose |
+|-------|---------|
+| `/fazt-start` | Session context loading |
+| `/fazt-stop` | Session documentation |
+| `/fazt-release` | Full release workflow (idempotent) |
+| `/fazt-ideate` | Brainstorm ideas |
+| `/fazt-lite-extract` | Evaluate library extraction |
 
-`fazt remote upgrade zyt` now works without SSH. Full dev lifecycle via Claude.
+### CLI Commands (no skill needed)
+
+```bash
+fazt remote status zyt      # Health, version
+fazt remote apps zyt        # List apps
+fazt remote deploy <dir> zyt # Deploy app
+fazt remote upgrade zyt     # Upgrade server
+```
 
 ## Apps on zyt.app
 
-| App | URL | Description |
-|-----|-----|-------------|
-| tetris | https://tetris.zyt.app | 3D Tetris game |
-| xray | https://xray.zyt.app | Fazt internals visualizer |
-| home | https://zyt.app | Homepage |
-
-To update app list on homepage: edit `servers/zyt/home/apps.json`, redeploy.
+| App | URL |
+|-----|-----|
+| home | https://zyt.app |
+| tetris | https://tetris.zyt.app |
+| xray | https://xray.zyt.app |
 
 ## Quick Reference
 
 | Doc | Purpose |
 |-----|---------|
-| `CLAUDE.md` | Primary context for Claude |
-| `koder/STATE.md` | Current implementation state (this file) |
+| `CLAUDE.md` | Primary context |
+| `koder/STATE.md` | Current state (this file) |
 | `koder/start.md` | Deep implementation protocol |
-| `koder/ideas/specs/` | Future feature specifications |
+| `koder/ideas/specs/` | Future feature specs |
 
-## Version History (Recent)
+## Next Session
 
-| Version | Date | Summary |
-|---------|------|---------|
-| v0.9.4 | 2026-01-14 | Atomic binary replacement |
-| v0.9.3 | 2026-01-14 | Binary ownership fix |
-| v0.9.2 | 2026-01-14 | CSP subdomain fix |
-| v0.9.1 | 2026-01-14 | Install script service file updates |
-| v0.9.0 | 2026-01-14 | Peers table, `fazt remote` commands |
+Run `/fazt-start` or read this file to get context.
