@@ -33,7 +33,21 @@ Add entry at top (after header):
 - ...
 ```
 
-### 3. Commit and Tag
+### 3. Update Website Changelog
+
+Add entry at top of `docs/changelog.json`:
+```json
+{
+    "version": "vX.Y.Z",
+    "title": "Short Title",
+    "description": "One-line summary of changes.",
+    "created_at": "YYYY-MM-DD"
+}
+```
+
+This powers the changelog on the GitHub Pages website.
+
+### 4. Commit and Tag
 
 ```bash
 git add -A
@@ -46,7 +60,7 @@ Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
 git tag vX.Y.Z
 ```
 
-### 4. Build and Install Locally
+### 5. Build and Install Locally
 
 ```bash
 go build -ldflags "-X github.com/fazt-sh/fazt/internal/config.Version=X.Y.Z" -o ~/.local/bin/fazt ./cmd/server
@@ -57,13 +71,13 @@ Verify: `fazt --version`
 Note: `~/.local/bin` is in PATH and doesn't require sudo. The `setcap` for
 binding ports 80/443 is only needed for local servers, not CLI usage.
 
-### 5. Push to GitHub
+### 6. Push to GitHub
 
 ```bash
 git push origin master --tags
 ```
 
-### 6. Wait for CI
+### 7. Wait for CI
 
 Poll until complete:
 ```bash
@@ -72,7 +86,7 @@ curl -s "https://api.github.com/repos/fazt-sh/fazt/actions/runs?per_page=1" | jq
 
 Wait until `status: completed` and `conclusion: success`.
 
-### 7. Upgrade Remote Servers
+### 8. Upgrade Remote Servers
 
 For each configured peer:
 ```bash

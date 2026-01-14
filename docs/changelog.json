@@ -1,5 +1,47 @@
 [
     {
+        "version": "v0.9.1",
+        "title": "Install Script Fix",
+        "description": "Service file now updated during upgrades. Future remote upgrades work without manual SSH.",
+        "created_at": "2026-01-14"
+    },
+    {
+        "version": "v0.9.0",
+        "title": "Peers & Remote Commands",
+        "description": "All peer config in SQLite. New `fazt remote` commands for native node-to-node communication. Auto-migration from old config.",
+        "created_at": "2026-01-14"
+    },
+    {
+        "version": "v0.8.4",
+        "title": "Remote Upgrade Fix",
+        "description": "Fixed upgrade API failing due to ProtectSystem. Service file now allows /usr/local/bin writes.",
+        "created_at": "2026-01-14"
+    },
+    {
+        "version": "v0.8.3",
+        "title": "Auto-detect Service DB",
+        "description": "create-key command now auto-finds database from systemd service file.",
+        "created_at": "2026-01-14"
+    },
+    {
+        "version": "v0.8.2",
+        "title": "Remote Upgrade API",
+        "description": "POST /api/upgrade endpoint for remote server upgrades with auto-restart.",
+        "created_at": "2026-01-14"
+    },
+    {
+        "version": "v0.8.1",
+        "title": "MCP Routes",
+        "description": "Wired up Model Context Protocol HTTP endpoints. Fixed install script version detection.",
+        "created_at": "2026-01-14"
+    },
+    {
+        "version": "v0.8.0",
+        "title": "MCP & Serverless",
+        "description": "Multi-server client config, MCP server with 5 tools, JavaScript serverless runtime via Goja, analytics dashboard, sites-to-apps migration.",
+        "created_at": "2026-01-13"
+    },
+    {
         "version": "v0.7.2",
         "title": "Observability & Performance",
         "description": "Added system health APIs, analytics buffering for 97% fewer DB writes, site file browsing, and complete traffic config CRUD. Fixed Bearer token auth for CLI.",
