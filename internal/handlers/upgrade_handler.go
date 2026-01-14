@@ -112,31 +112,31 @@ func UpgradeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	currentBinary, _ = filepath.EvalSymlinks(currentBinary)
 
-	// Backup current binary to temp (system may have ProtectSystem=full)
-	backupFile, err := os.CreateTemp("", "fazt-backup-*")
-	if err != nil {
-		api.ErrorResponse(w, http.StatusInternalServerError, "BACKUP_ERROR", "Failed to create backup file: "+err.Error(), "")
+	// Stage new binary in same directory as target (required for atomic rename)
+	// This avoids "text file busy" error when replacing a running binary
+	targetDir := filepath.Dir(currentBinary)
+	stagingPath := filepath.Join(targetDir, ".fazt.new")
+
+	if err := copyFile(newBinaryPath, stagingPath); err != nil {
+		api.ErrorResponse(w, http.StatusInternalServerError, "STAGING_ERROR", "Failed to stage new binary: "+err.Error(), "")
 		return
 	}
-	backupPath := backupFile.Name()
-	backupFile.Close()
 
-	if err := copyFile(currentBinary, backupPath); err != nil {
-		api.ErrorResponse(w, http.StatusInternalServerError, "BACKUP_ERROR", "Failed to backup current binary: "+err.Error(), "")
+	// Set permissions before rename
+	if err := os.Chmod(stagingPath, 0755); err != nil {
+		os.Remove(stagingPath)
+		api.ErrorResponse(w, http.StatusInternalServerError, "CHMOD_ERROR", "Failed to set permissions: "+err.Error(), "")
 		return
 	}
-	defer os.Remove(backupPath) // Clean up backup after upgrade
 
-	// Replace binary
-	if err := copyFile(newBinaryPath, currentBinary); err != nil {
-		// Try to restore backup
-		copyFile(backupPath, currentBinary)
+	// Atomic rename - this works on running binaries because it replaces
+	// the directory entry, not the file. The old binary keeps running from
+	// its inode until the process exits.
+	if err := os.Rename(stagingPath, currentBinary); err != nil {
+		os.Remove(stagingPath)
 		api.ErrorResponse(w, http.StatusInternalServerError, "REPLACE_ERROR", "Failed to replace binary: "+err.Error(), "")
 		return
 	}
-
-	// Make executable
-	os.Chmod(currentBinary, 0755)
 
 	// Set capabilities for port binding (Linux only)
 	if runtime.GOOS == "linux" {

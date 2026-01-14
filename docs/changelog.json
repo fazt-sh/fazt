@@ -1,5 +1,11 @@
 [
     {
+        "version": "v0.9.4",
+        "title": "Atomic Upgrade",
+        "description": "Remote upgrade uses atomic rename, fixing 'text file busy' error on running binaries.",
+        "created_at": "2026-01-14"
+    },
+    {
         "version": "v0.9.3",
         "title": "Self-Upgrade Fix",
         "description": "Binary now owned by service user. Remote upgrades work without sudo after initial setup.",

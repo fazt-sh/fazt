@@ -2,6 +2,15 @@
 
 All notable changes to fazt.sh will be documented in this file.
 
+## [0.9.4] - 2026-01-14
+
+### Fixed
+- **Atomic Binary Replacement**: Remote upgrade now uses atomic rename instead of
+  copy, fixing "text file busy" error when upgrading a running binary
+  - New binary staged to `.fazt.new` in same directory
+  - `os.Rename` atomically replaces running binary (works because it replaces
+    directory entry, not file content)
+
 ## [0.9.3] - 2026-01-14
 
 ### Fixed
