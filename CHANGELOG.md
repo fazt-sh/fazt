@@ -2,6 +2,14 @@
 
 All notable changes to fazt.sh will be documented in this file.
 
+## [0.9.2] - 2026-01-14
+
+### Fixed
+- **CSP Subdomain Communication**: Apps on same fazt server can now fetch from
+  each other (e.g., root site fetching manifests from app subdomains)
+  - `connect-src` now includes `https://*.{domain}` dynamically
+  - Enables cross-app data sharing without CSP violations
+
 ## [0.9.1] - 2026-01-14
 
 ### Fixed

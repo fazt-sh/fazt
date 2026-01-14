@@ -1,5 +1,11 @@
 [
     {
+        "version": "v0.9.2",
+        "title": "CSP Subdomain Fix",
+        "description": "Apps on same server can now communicate. Enables cross-app data sharing like manifest fetching.",
+        "created_at": "2026-01-14"
+    },
+    {
         "version": "v0.9.1",
         "title": "Install Script Fix",
         "description": "Service file now updated during upgrades. Future remote upgrades work without manual SSH.",
