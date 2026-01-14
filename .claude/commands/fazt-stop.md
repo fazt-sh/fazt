@@ -1,4 +1,4 @@
-# Session Stop Routine
+# Fazt Session Stop
 
 Run this before ending a work session to ensure clean handoff to the next session.
 

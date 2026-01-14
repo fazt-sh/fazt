@@ -1,4 +1,4 @@
-# Session Start Routine
+# Fazt Session Start
 
 Run this at the beginning of a work session to get up to speed quickly.
 
