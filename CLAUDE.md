@@ -30,6 +30,73 @@ read koder/start.md    # Bootstrap instructions
 read koder/STATE.md    # Current progress
 ```
 
+## App Development
+
+An **app** in fazt is a website with optional serverless capabilities.
+
+### App Structure
+
+```
+my-app/
+├── manifest.json      # Required: { "name": "my-app" }
+├── index.html         # Entry point
+├── static/            # Assets (css, js, images)
+└── api/               # Serverless functions (*.js)
+    └── hello.js       # → GET /api/hello
+```
+
+### Configured Peers
+
+| Name | URL | Description |
+|------|-----|-------------|
+| zyt | https://zyt.app | Personal production instance |
+
+Check peers: `fazt remote list`
+
+### Development Workflow
+
+1. **Create app locally**:
+   ```bash
+   mkdir my-app && cd my-app
+   echo '{"name":"my-app"}' > manifest.json
+   echo '<h1>Hello</h1>' > index.html
+   ```
+
+2. **Test locally** (optional):
+   ```bash
+   # Start local fazt server (needs init first time)
+   fazt server start --port 8080
+   # Deploy to local
+   fazt deploy . --to http://localhost:8080
+   # Access at http://my-app.localhost:8080
+   ```
+
+3. **Deploy to zyt**:
+   ```bash
+   fazt remote deploy . zyt
+   # Or: fazt remote deploy my-app/ zyt
+   ```
+   App available at: `https://my-app.zyt.app`
+
+### Serverless (Current)
+
+JavaScript files in `api/` are executed server-side via Goja:
+
+```javascript
+// api/hello.js
+function handler(req) {
+  return {
+    status: 200,
+    body: JSON.stringify({ message: "Hello", time: Date.now() })
+  };
+}
+```
+
+Access: `https://my-app.zyt.app/api/hello`
+
+**Limitations**: Basic JS only, no npm modules, no async/await yet.
+See `koder/ideas/specs/v0.10-runtime/` for future enhancements.
+
 ## Current Capabilities (v0.9.x)
 
 | Feature | Status | Description |
