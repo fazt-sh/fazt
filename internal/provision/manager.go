@@ -68,7 +68,13 @@ func RunInstall(opts InstallOptions) error {
 		return err
 	}
 
-	// 4. Configure
+	// 4. Chown binary to service user (enables remote self-upgrade without sudo)
+	if err := os.Chown(targetBin, uid, gid); err != nil {
+		return fmt.Errorf("failed to chown binary: %w", err)
+	}
+	term.Success("Binary ownership set to %s", opts.User)
+
+	// 5. Configure
 	configDir := filepath.Join(targetUser.HomeDir, ".config", "fazt")
 	configPath := filepath.Join(configDir, "config.json")
 	

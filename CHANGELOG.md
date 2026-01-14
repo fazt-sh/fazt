@@ -2,6 +2,15 @@
 
 All notable changes to fazt.sh will be documented in this file.
 
+## [0.9.3] - 2026-01-14
+
+### Fixed
+- **Binary Ownership for Self-Upgrade**: Binary now owned by service user, not root
+  - Enables `fazt remote upgrade` to work without sudo
+  - Install script chowns binary to SERVICE_USER during upgrades
+  - Fresh installs chown binary to service user after SetCapabilities
+  - **Existing installs**: Run `sudo chown fazt:fazt /usr/local/bin/fazt` once
+
 ## [0.9.2] - 2026-01-14
 
 ### Fixed

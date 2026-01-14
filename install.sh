@@ -170,6 +170,14 @@ if [ "$IS_UPGRADE" = true ]; then
         # Extract user from existing service file
         SERVICE_USER=$(grep -oE '^User=[^ ]+' "$SERVICE_FILE" 2>/dev/null | sed 's/User=//' || echo "fazt")
 
+        # Chown binary to service user (enables remote self-upgrade without sudo)
+        if [ "$EUID" -ne 0 ]; then
+            sudo chown "${SERVICE_USER}:${SERVICE_USER}" "$EXISTING_BINARY"
+        else
+            chown "${SERVICE_USER}:${SERVICE_USER}" "$EXISTING_BINARY"
+        fi
+        echo -e "${GREEN}✓ Binary ownership set to ${SERVICE_USER}${NC}"
+
         # Generate updated service file with latest template
         SERVICE_CONTENT="[Unit]
 Description=Fazt PaaS
