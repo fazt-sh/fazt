@@ -19,15 +19,20 @@ This is the **primary handoff document** from the previous session. It contains:
 ### 2. Verify Environment
 
 ```bash
-# Check local version
+# Installed binary version
 fazt --version
 
-# Check remote server
-fazt remote status zyt
+# Source code version
+grep "var Version" internal/config/config.go
 
-# Check git status
-git status
+# Remote server version
+fazt remote status zyt | grep -E "Version|Status"
+
+# Git status
+git status --short
 ```
+
+**Verify versions match**: installed = source = remote. If not, may need to build/release.
 
 ### 3. Review Recent Changes (if needed)
 

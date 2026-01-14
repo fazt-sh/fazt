@@ -7,15 +7,20 @@ Run this before ending a work session to ensure clean handoff to the next sessio
 ### 1. Gather Current State
 
 ```bash
-# Get current version
+# Source code version
 grep "var Version" internal/config/config.go
 
-# Check git status
-git status
+# Installed binary version
+fazt --version
 
-# Check remote server version
-fazt remote status zyt
+# Remote server version
+fazt remote status zyt | grep -E "Version|Status"
+
+# Git status
+git status --short
 ```
+
+**Verify versions match**: source = installed = remote. If not, may need to build/release.
 
 ### 2. Update koder/STATE.md
 
