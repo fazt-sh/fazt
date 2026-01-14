@@ -31,9 +31,11 @@ fazt server --help       # Server commands
 
 ## Quick Start
 
+This file (`CLAUDE.md`) is the primary context. For deep implementation work:
+
 ```
-read koder/start.md    # Bootstrap instructions
-read koder/STATE.md    # Current progress
+read koder/STATE.md    # Check if a plan is active
+read koder/start.md    # Deep implementation protocol
 ```
 
 ## App Development
