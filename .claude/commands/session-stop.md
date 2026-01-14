@@ -1,4 +1,4 @@
-# Session Close Routine
+# Session Stop Routine
 
 Run this before ending a work session to ensure clean handoff to the next session.
 
