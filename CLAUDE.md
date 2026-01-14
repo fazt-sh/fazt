@@ -72,7 +72,14 @@ my-app/
 |------|-----|-------------|
 | zyt | https://zyt.app | Personal production instance |
 
-Check peers: `fazt remote list`
+**Managing zyt:**
+```bash
+fazt remote list                    # List all peers
+fazt remote status zyt              # Health, version, uptime
+fazt remote apps zyt                # List deployed apps
+fazt remote deploy <dir> zyt        # Deploy app
+fazt remote upgrade zyt             # Upgrade to latest version
+```
 
 ### Development Workflow
 
