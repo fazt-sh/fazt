@@ -2,129 +2,138 @@
 
 Release a new version of fazt with proper versioning, documentation, and deployment.
 
+**Idempotent**: Safe to run multiple times - checks state before each step.
+
 ## Pre-flight Checks
 
-1. **Verify clean state**: `git status` should be clean (no uncommitted changes)
-2. **Run tests**: `go test ./...` must pass
-3. **Check current version**: Read `internal/config/config.go` for `Version`
+```bash
+# 1. Check git status
+git status
+
+# 2. Run tests
+go test ./...
+
+# 3. Get current version
+grep "var Version" internal/config/config.go
+```
 
 ## Release Steps
 
-### 1. Update Version
+### 1. Determine Version
 
-Edit `internal/config/config.go`:
-```go
-var Version = "X.Y.Z"  // Update to new version
+Check what version to release:
+```bash
+# Current version in code
+grep "var Version" internal/config/config.go
+
+# Latest git tag
+git describe --tags --abbrev=0 2>/dev/null || echo "no tags"
+
+# Pending changes since last tag
+git log $(git describe --tags --abbrev=0)..HEAD --oneline
 ```
 
-### 2. Update CHANGELOG.md
+If code version matches latest tag and no pending changes, **nothing to release**.
 
-Add entry at top (after header):
+### 2. Update Version (if needed)
+
+Only if version needs bumping:
+```go
+var Version = "X.Y.Z"  // in internal/config/config.go
+```
+
+### 3. Update CHANGELOG.md (if needed)
+
+Check if entry exists:
+```bash
+grep "## \[X.Y.Z\]" CHANGELOG.md
+```
+
+If not, add at top (after header):
 ```markdown
 ## [X.Y.Z] - YYYY-MM-DD
 
-### Added
-- ...
-
-### Changed
-- ...
-
-### Fixed
+### Added/Changed/Fixed
 - ...
 ```
 
-### 3. Update Website Changelog
+### 4. Update docs/changelog.json (if needed)
 
-Add entry at top of `docs/changelog.json`:
-```json
-{
-    "version": "vX.Y.Z",
-    "title": "Short Title",
-    "description": "One-line summary of changes.",
-    "created_at": "YYYY-MM-DD"
-}
+Check if entry exists:
+```bash
+grep '"vX.Y.Z"' docs/changelog.json
 ```
 
-This powers the changelog on the GitHub Pages website.
+If not, add at top of array.
 
-### 4. Commit and Tag
+### 5. Commit (if needed)
 
 ```bash
-git add -A
-git commit -m "release: vX.Y.Z
+# Check if there are changes to commit
+git status --porcelain
 
-<summary of changes>
+# Only commit if there are changes
+git add -A
+git diff --cached --quiet || git commit -m "release: vX.Y.Z
+
+<summary>
 
 Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
-
-git tag vX.Y.Z
 ```
 
-### 5. Build and Install Locally
+### 6. Tag (if needed)
+
+```bash
+# Check if tag exists
+git tag -l "vX.Y.Z"
+
+# Only create if doesn't exist
+git tag -l "vX.Y.Z" | grep -q . || git tag vX.Y.Z
+```
+
+### 7. Build and Install Locally
 
 ```bash
 go build -ldflags "-X github.com/fazt-sh/fazt/internal/config.Version=X.Y.Z" -o ~/.local/bin/fazt ./cmd/server
+fazt --version
 ```
 
-Verify: `fazt --version`
-
-Note: `~/.local/bin` is in PATH and doesn't require sudo. The `setcap` for
-binding ports 80/443 is only needed for local servers, not CLI usage.
-
-### 6. Push to GitHub
+### 8. Push (if needed)
 
 ```bash
-git push origin master --tags
+# Check if we need to push
+git status -sb | grep -q "ahead" && git push origin master --tags || echo "Already pushed"
 ```
 
-### 7. Wait for CI
+### 9. Wait for CI
 
-Poll until complete:
 ```bash
+# Poll until complete
 curl -s "https://api.github.com/repos/fazt-sh/fazt/actions/runs?per_page=1" | jq '.workflow_runs[0] | {status, conclusion}'
 ```
 
-Wait until `status: completed` and `conclusion: success`.
+Wait for `status: completed` and `conclusion: success`.
 
-### 8. Upgrade Remote Servers
+### 10. Upgrade Remote Servers
 
-For each configured peer:
 ```bash
-fazt remote upgrade <peer-name>
+fazt remote upgrade zyt
 ```
 
-If upgrade fails due to service file issues, user needs to SSH and run:
-```bash
-curl -fsSL https://raw.githubusercontent.com/fazt-sh/fazt/master/install.sh | sudo bash
-```
+Returns "already latest" if already upgraded (idempotent).
 
-## Install Script URL
+## Quick Reference
 
-The install script should be fetched from:
-```
-https://raw.githubusercontent.com/fazt-sh/fazt/master/install.sh
-```
-
-NOT from fazt.sh (domain not purchased yet).
+| Check | Command |
+|-------|---------|
+| Current version | `grep "var Version" internal/config/config.go` |
+| Latest tag | `git describe --tags --abbrev=0` |
+| Tag exists? | `git tag -l "vX.Y.Z"` |
+| Need to push? | `git status -sb` (shows "ahead") |
+| Remote version | `fazt remote status zyt` |
 
 ## Version Numbering
 
-- **Patch** (0.9.1): Bug fixes, no new features
+- **Patch** (0.9.5): Bug fixes
 - **Minor** (0.10.0): New features, backwards compatible
 - **Major** (1.0.0): Breaking changes
-
-## Post-Release
-
-1. Verify release on GitHub: https://github.com/fazt-sh/fazt/releases
-2. Test install script: `curl -fsSL https://raw.githubusercontent.com/fazt-sh/fazt/master/install.sh | bash`
-3. Verify remote server versions: `fazt remote status`
-
-## Local Paths (Dev VM)
-
-| What | Path |
-|------|------|
-| Binary | `~/.local/bin/fazt` |
-| Client DB | `~/.config/fazt/data.db` |
-| Peers | Stored in client DB (peers table) |
-
-The client DB contains peer configurations. Moving the DB moves everything.
