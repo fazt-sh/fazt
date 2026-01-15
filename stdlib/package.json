@@ -1,0 +1,30 @@
+{
+  "name": "fazt-stdlib",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Standard library bundles for fazt serverless runtime",
+  "scripts": {
+    "build": "npm run clean && npm run build:all",
+    "build:all": "npm run build:lodash && npm run build:uuid && npm run build:dayjs && npm run build:validator && npm run build:marked && npm run build:zod && npm run build:cheerio",
+    "build:lodash": "LIB_NAME=lodash vite build",
+    "build:uuid": "LIB_NAME=uuid vite build",
+    "build:dayjs": "LIB_NAME=dayjs vite build",
+    "build:validator": "LIB_NAME=validator vite build",
+    "build:marked": "LIB_NAME=marked vite build",
+    "build:zod": "LIB_NAME=zod vite build",
+    "build:cheerio": "LIB_NAME=cheerio vite build",
+    "clean": "rm -rf dist && mkdir -p dist"
+  },
+  "dependencies": {
+    "lodash": "^4.17.21",
+    "uuid": "^9.0.1",
+    "dayjs": "^1.11.13",
+    "validator": "^13.12.0",
+    "marked": "^9.1.6",
+    "zod": "^3.23.8",
+    "cheerio": "^1.0.0"
+  },
+  "devDependencies": {
+    "vite": "^5.4.0"
+  }
+}

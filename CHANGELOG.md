@@ -2,6 +2,28 @@
 
 All notable changes to fazt.sh will be documented in this file.
 
+## [0.9.5] - 2026-01-16
+
+### Added
+- **Storage Primitives**: App-scoped storage via `fazt.storage.*` JS API
+  - `fazt.storage.kv`: Key-value store with TTL support
+    - `set(key, value, ttlMs?)`, `get(key)`, `delete(key)`, `list(prefix)`
+  - `fazt.storage.ds`: Document store with MongoDB-style queries
+    - `insert(collection, doc)`, `find(collection, query)`, `findOne(collection, id)`
+    - `update(collection, query, update)`, `delete(collection, query)`
+    - Query operators: `$eq`, `$ne`, `$gt`, `$lt`, `$gte`, `$lte`, `$in`, `$contains`
+  - `fazt.storage.s3`: Blob storage with SHA256 hashing
+    - `put(path, data, mimeType)`, `get(path)`, `delete(path)`, `list(prefix)`
+  - Migration 010: `app_kv`, `app_docs`, `app_blobs` tables
+- **Stdlib Embedding**: CommonJS modules available via `require()`
+  - lodash, uuid, dayjs, validator, marked, zod, cheerio
+  - Vite-built IIFE bundles embedded in binary
+  - `require('lodash')` resolves to embedded stdlib before local files
+
+### Changed
+- Serverless runtime now supports `require()` for code splitting
+- Apps isolated by `app_id` - cannot access other apps' storage
+
 ## [0.9.4] - 2026-01-14
 
 ### Fixed

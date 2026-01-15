@@ -7,12 +7,16 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/dop251/goja"
+	"github.com/fazt-sh/fazt/internal/storage"
 )
 
 // ServerlessHandler handles requests to /api/* paths by executing JavaScript.
 type ServerlessHandler struct {
 	runtime *Runtime
 	db      *sql.DB
+	storage *storage.Storage
 }
 
 // NewServerlessHandler creates a new serverless handler.
@@ -20,6 +24,7 @@ func NewServerlessHandler(db *sql.DB) *ServerlessHandler {
 	return &ServerlessHandler{
 		runtime: NewRuntime(MaxPoolSize, DefaultTimeout),
 		db:      db,
+		storage: storage.New(db),
 	}
 }
 
@@ -28,6 +33,7 @@ func NewServerlessHandlerWithRuntime(db *sql.DB, rt *Runtime) *ServerlessHandler
 	return &ServerlessHandler{
 		runtime: rt,
 		db:      db,
+		storage: storage.New(db),
 	}
 }
 
@@ -106,9 +112,21 @@ func (h *ServerlessHandler) HandleRequest(w http.ResponseWriter, r *http.Request
 
 // executeWithFazt executes code with the fazt namespace injected.
 func (h *ServerlessHandler) executeWithFazt(ctx context.Context, code string, req *Request, loader FileLoader, app *AppContext, env EnvVars) *ExecuteResult {
-	// For now, use ExecuteWithFiles which has the core functionality
-	// The fazt namespace needs to be added to the runtime
-	return h.runtime.ExecuteWithFiles(ctx, code, req, loader)
+	// Create injectors for fazt namespace and storage
+	result := &ExecuteResult{Logs: make([]LogEntry, 0)}
+
+	faztInjector := func(vm *goja.Runtime) error {
+		return InjectFaztNamespace(vm, app, env, result)
+	}
+
+	storageInjector := func(vm *goja.Runtime) error {
+		if app != nil && app.ID != "" {
+			return storage.InjectStorageNamespace(vm, h.storage, app.ID)
+		}
+		return nil
+	}
+
+	return h.runtime.ExecuteWithInjectors(ctx, code, req, loader, faztInjector, storageInjector)
 }
 
 // loadFile loads a file from the VFS for a given app.

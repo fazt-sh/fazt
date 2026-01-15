@@ -377,7 +377,35 @@ func (r *Runtime) injectRequire(vm *goja.Runtime, loader FileLoader, basePath st
 
 		path := call.Argument(0).String()
 
-		// Resolve the path
+		// 1. Check stdlib first for bare specifiers (not relative paths)
+		if !isRelativePath(path) {
+			if source, ok := GetStdlibModule(path); ok {
+				cacheKey := "stdlib:" + path
+				if cached, ok := cache[cacheKey]; ok {
+					return cached
+				}
+
+				// Wrap in module pattern
+				moduleCode := fmt.Sprintf(`
+(function() {
+    var module = { exports: {} };
+    var exports = module.exports;
+    %s
+    return module.exports;
+})()
+`, source)
+
+				result, err := vm.RunString(moduleCode)
+				if err != nil {
+					panic(vm.NewGoError(fmt.Errorf("stdlib %s error: %w", path, err)))
+				}
+
+				cache[cacheKey] = result
+				return result
+			}
+		}
+
+		// 2. Fall back to local file resolution
 		resolved := resolvePath(basePath, path)
 
 		// Check cache
@@ -413,6 +441,11 @@ func (r *Runtime) injectRequire(vm *goja.Runtime, loader FileLoader, basePath st
 	})
 }
 
+// isRelativePath checks if a path starts with ./ or ../
+func isRelativePath(path string) bool {
+	return len(path) >= 2 && (path[:2] == "./" || (len(path) >= 3 && path[:3] == "../"))
+}
+
 // resolvePath resolves a relative require path.
 func resolvePath(basePath, requirePath string) string {
 	// Handle relative paths
@@ -439,4 +472,81 @@ func toInterfaceSlice(ss []string) []interface{} {
 // ResponseToJSON converts a Response to JSON bytes.
 func ResponseToJSON(resp *Response) ([]byte, error) {
 	return json.Marshal(resp.Body)
+}
+
+// VMInjector is a function that injects additional globals into a VM.
+type VMInjector func(vm *goja.Runtime) error
+
+// ExecuteWithInjectors runs JavaScript with file loading and custom injectors.
+func (r *Runtime) ExecuteWithInjectors(ctx context.Context, mainCode string, req *Request, fileLoader FileLoader, injectors ...VMInjector) *ExecuteResult {
+	start := time.Now()
+	result := &ExecuteResult{
+		Logs: make([]LogEntry, 0),
+	}
+
+	vm := r.getVM()
+	defer r.returnVM(vm)
+
+	// Set up timeout
+	done := make(chan struct{})
+	var timeoutCtx context.Context
+	var cancel context.CancelFunc
+
+	if r.timeout > 0 {
+		timeoutCtx, cancel = context.WithTimeout(ctx, r.timeout)
+		defer cancel()
+	} else {
+		timeoutCtx = ctx
+	}
+
+	// Interrupt handler for timeout
+	go func() {
+		select {
+		case <-timeoutCtx.Done():
+			vm.Interrupt("execution timeout")
+		case <-done:
+		}
+	}()
+
+	defer func() {
+		close(done)
+		vm.ClearInterrupt()
+	}()
+
+	// Inject globals
+	if err := r.injectGlobals(vm, req, result); err != nil {
+		result.Error = fmt.Errorf("failed to inject globals: %w", err)
+		result.Duration = time.Since(start)
+		return result
+	}
+
+	// Inject require with file loading
+	moduleCache := make(map[string]goja.Value)
+	r.injectRequire(vm, fileLoader, "api", moduleCache)
+
+	// Run custom injectors
+	for _, injector := range injectors {
+		if err := injector(vm); err != nil {
+			result.Error = fmt.Errorf("failed to inject: %w", err)
+			result.Duration = time.Since(start)
+			return result
+		}
+	}
+
+	// Execute the code
+	value, err := vm.RunString(mainCode)
+	result.Duration = time.Since(start)
+
+	if err != nil {
+		if jserr, ok := err.(*goja.InterruptedError); ok {
+			result.Error = fmt.Errorf("execution timeout: %v", jserr.Value())
+		} else {
+			result.Error = fmt.Errorf("javascript error: %w", err)
+		}
+		return result
+	}
+
+	// Process the return value
+	result.Response = r.extractResponse(vm, value)
+	return result
 }
