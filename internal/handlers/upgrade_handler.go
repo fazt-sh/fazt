@@ -162,7 +162,8 @@ func UpgradeHandler(w http.ResponseWriter, r *http.Request) {
 	// ensuring the restart happens even if the Go process is interrupted.
 	// The sudoers.d/fazt file grants NOPASSWD access for /bin/systemctl restart fazt.
 	// Must use full path /bin/systemctl to match sudoers rule exactly.
-	exec.Command("sh", "-c", "sleep 1 && sudo /bin/systemctl restart fazt").Start()
+	// nohup and & ensure the process is fully detached from Go's process management.
+	exec.Command("sh", "-c", "nohup sh -c 'sleep 1 && sudo /bin/systemctl restart fazt' >/dev/null 2>&1 &").Run()
 }
 
 func getLatestRelease() (*GitHubRelease, error) {
