@@ -1,14 +1,14 @@
 # Fazt Implementation State
 
 **Last Updated**: 2026-01-16
-**Current Version**: v0.9.22 (all: source, local, zyt)
+**Current Version**: v0.9.23 (all: source, local, zyt)
 
 ## Status
 
 ```
 State: CLEAN
-Remote upgrade auto-restart fix deployed. v0.9.22 running on zyt.
-Next upgrade will verify the fix works end-to-end.
+Auto-restart fix VERIFIED. v0.9.22 → v0.9.23 upgrade restarted without SSH.
+Remote upgrades now work fully autonomously.
 ```
 
 ---
@@ -186,6 +186,7 @@ These were considered before the systemd-run solution was found:
 
 | Version | Date | Summary |
 |---------|------|---------|
+| v0.9.23 | 2026-01-16 | Verification: auto-restart confirmed working |
 | v0.9.22 | 2026-01-16 | **FIX**: systemd-run + os.Exit for restart |
 | v0.9.21 | 2026-01-16 | Debug logging for restart tracing |
 | v0.9.20 | 2026-01-16 | Test version for upgrade flow |
@@ -236,6 +237,8 @@ ssh root@165.227.11.46   # Direct IP - domain proxied via Cloudflare
 
 ## Next Steps
 
-1. **Test auto-restart** on next release - v0.9.23 upgrade should restart without SSH
-2. **Clean up debug logging** from v0.9.21 if desired (optional)
-3. **Remove sudoers rule** if no longer needed (optional, keep for safety)
+No blockers. Ready for new feature work.
+
+Optional cleanup:
+- Remove debug logging from v0.9.21 (in upgrade handler)
+- Sudoers rule can stay (belt-and-suspenders for restart)
