@@ -12,7 +12,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"time"
 
 	"github.com/fazt-sh/fazt/internal/api"
 	"github.com/fazt-sh/fazt/internal/config"
@@ -158,31 +157,11 @@ func UpgradeHandler(w http.ResponseWriter, r *http.Request) {
 		f.Flush()
 	}
 
-	// Restart the service (in background so response is sent first)
-	// Uses sudo because the fazt user needs elevated privileges to restart the service
-	// The sudoers.d/fazt file grants NOPASSWD access for this specific command
-	go func() {
-		// Give time for response to be fully sent to client
-		time.Sleep(500 * time.Millisecond)
-
-		// Log that we're attempting restart (helps debug)
-		os.WriteFile("/tmp/fazt-restart-attempt.log",
-			[]byte(fmt.Sprintf("Restart attempt at %s\n", time.Now().Format(time.RFC3339))), 0644)
-
-		// Use sh -c with & to fully background the restart command.
-		// setsid creates a new session, nohup ignores SIGHUP, and & detaches.
-		// This ensures the restart survives even when systemctl kills our process.
-		cmd := exec.Command("sh", "-c", "nohup setsid sudo systemctl restart fazt >/dev/null 2>&1 &")
-		err := cmd.Run()
-
-		// Log result
-		result := "success"
-		if err != nil {
-			result = err.Error()
-		}
-		os.WriteFile("/tmp/fazt-restart-result.log",
-			[]byte(fmt.Sprintf("Restart result at %s: %s\n", time.Now().Format(time.RFC3339), result)), 0644)
-	}()
+	// Restart the service after a short delay to allow response to be sent.
+	// Uses an external shell process with sleep so the delay happens outside Go,
+	// ensuring the restart happens even if the Go process is interrupted.
+	// The sudoers.d/fazt file grants NOPASSWD access for systemctl restart.
+	exec.Command("sh", "-c", "sleep 1 && sudo systemctl restart fazt").Start()
 }
 
 func getLatestRelease() (*GitHubRelease, error) {
