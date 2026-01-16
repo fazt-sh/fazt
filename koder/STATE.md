@@ -1,14 +1,14 @@
 # Fazt Implementation State
 
 **Last Updated**: 2026-01-16
-**Current Version**: v0.9.22 (source, pending release)
+**Current Version**: v0.9.22 (all: source, local, zyt)
 
 ## Status
 
 ```
-State: FIX IMPLEMENTED - Ready for release and testing
-Remote upgrade auto-restart fix applied using systemd-run solution from
-kitten project. Needs version bump, release, and verification on zyt.
+State: CLEAN
+Remote upgrade auto-restart fix deployed. v0.9.22 running on zyt.
+Next upgrade will verify the fix works end-to-end.
 ```
 
 ---
@@ -236,8 +236,6 @@ ssh root@165.227.11.46   # Direct IP - domain proxied via Cloudflare
 
 ## Next Steps
 
-1. **Bump version to 0.9.22** in `internal/config/config.go`
-2. **Release v0.9.22** via `/fazt-release` or manual workflow
-3. **Test upgrade on zyt** - `fazt remote upgrade zyt`
-4. **Verify auto-restart works** - service should restart without SSH
-5. **Clean up debug logging** from previous versions if desired
+1. **Test auto-restart** on next release - v0.9.23 upgrade should restart without SSH
+2. **Clean up debug logging** from v0.9.21 if desired (optional)
+3. **Remove sudoers rule** if no longer needed (optional, keep for safety)
