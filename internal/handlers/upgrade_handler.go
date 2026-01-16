@@ -161,7 +161,10 @@ func UpgradeHandler(w http.ResponseWriter, r *http.Request) {
 	// Uses an external shell process with sleep so the delay happens outside Go,
 	// ensuring the restart happens even if the Go process is interrupted.
 	// The sudoers.d/fazt file grants NOPASSWD access for systemctl restart.
-	exec.Command("sh", "-c", "sleep 1 && sudo systemctl restart fazt").Start()
+	cmd := exec.Command("sh", "-c", "echo 'Starting restart' >> /tmp/fazt-restart.log && sleep 1 && echo 'Executing restart' >> /tmp/fazt-restart.log && sudo systemctl restart fazt && echo 'Restart done' >> /tmp/fazt-restart.log")
+	if err := cmd.Start(); err != nil {
+		os.WriteFile("/tmp/fazt-restart-error.log", []byte(err.Error()), 0644)
+	}
 }
 
 func getLatestRelease() (*GitHubRelease, error) {
