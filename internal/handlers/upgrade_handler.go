@@ -164,7 +164,12 @@ func UpgradeHandler(w http.ResponseWriter, r *http.Request) {
 	go func() {
 		// Give time for response to be fully sent to client
 		time.Sleep(500 * time.Millisecond)
-		exec.Command("sudo", "systemctl", "restart", "fazt").Run()
+
+		// Use setsid to create a new session, detaching from this process group.
+		// This prevents the restart command from being killed when systemctl
+		// sends SIGTERM to the fazt process group.
+		cmd := exec.Command("setsid", "sudo", "systemctl", "restart", "fazt")
+		cmd.Start() // Don't wait - let it run independently
 	}()
 }
 
