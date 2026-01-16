@@ -1,5 +1,11 @@
 [
     {
+        "version": "v0.9.23",
+        "title": "Auto-Restart Verification",
+        "description": "Verification release to confirm v0.9.22 auto-restart fix works end-to-end.",
+        "created_at": "2026-01-16"
+    },
+    {
         "version": "v0.9.22",
         "title": "Auto-Restart Fix",
         "description": "Remote upgrade now auto-restarts without SSH. Uses systemd-run to escape cgroup, os.Exit(0) lets Restart=always bring service back with new binary.",

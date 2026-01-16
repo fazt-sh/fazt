@@ -2,6 +2,11 @@
 
 All notable changes to fazt.sh will be documented in this file.
 
+## [0.9.23] - 2026-01-16
+
+### Changed
+- Verification release to test auto-restart fix from v0.9.22
+
 ## [0.9.22] - 2026-01-16
 
 ### Fixed
