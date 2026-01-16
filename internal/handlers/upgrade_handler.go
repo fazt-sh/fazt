@@ -165,11 +165,10 @@ func UpgradeHandler(w http.ResponseWriter, r *http.Request) {
 		// Give time for response to be fully sent to client
 		time.Sleep(500 * time.Millisecond)
 
-		// Use setsid to create a new session, detaching from this process group.
-		// This prevents the restart command from being killed when systemctl
-		// sends SIGTERM to the fazt process group.
-		cmd := exec.Command("setsid", "sudo", "systemctl", "restart", "fazt")
-		cmd.Start() // Don't wait - let it run independently
+		// Use sh -c with & to fully background the restart command.
+		// setsid creates a new session, nohup ignores SIGHUP, and & detaches.
+		// This ensures the restart survives even when systemctl kills our process.
+		exec.Command("sh", "-c", "nohup setsid sudo systemctl restart fazt >/dev/null 2>&1 &").Run()
 	}()
 }
 
