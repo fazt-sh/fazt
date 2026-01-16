@@ -178,6 +178,30 @@ if [ "$IS_UPGRADE" = true ]; then
         fi
         echo -e "${GREEN}✓ Binary ownership set to ${SERVICE_USER}${NC}"
 
+        # Grant service user write access to /usr/local/bin (enables atomic binary replacement)
+        # ReadWritePaths in systemd only affects namespace, not actual filesystem permissions
+        BIN_DIR="$(dirname "$EXISTING_BINARY")"
+        if [ "$EUID" -ne 0 ]; then
+            sudo chgrp "${SERVICE_USER}" "$BIN_DIR"
+            sudo chmod g+w "$BIN_DIR"
+        else
+            chgrp "${SERVICE_USER}" "$BIN_DIR"
+            chmod g+w "$BIN_DIR"
+        fi
+        echo -e "${GREEN}✓ Directory permissions set for self-upgrade${NC}"
+
+        # Allow service user to restart fazt service (enables remote upgrade auto-restart)
+        SUDOERS_FILE="/etc/sudoers.d/fazt"
+        SUDOERS_CONTENT="${SERVICE_USER} ALL=(ALL) NOPASSWD: /bin/systemctl restart fazt, /bin/systemctl start fazt, /bin/systemctl stop fazt"
+        if [ "$EUID" -ne 0 ]; then
+            echo "$SUDOERS_CONTENT" | sudo tee "$SUDOERS_FILE" > /dev/null
+            sudo chmod 440 "$SUDOERS_FILE"
+        else
+            echo "$SUDOERS_CONTENT" > "$SUDOERS_FILE"
+            chmod 440 "$SUDOERS_FILE"
+        fi
+        echo -e "${GREEN}✓ Sudoers rule created for service restart${NC}"
+
         # Generate updated service file with latest template
         SERVICE_CONTENT="[Unit]
 Description=Fazt PaaS

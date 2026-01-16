@@ -158,9 +158,11 @@ func UpgradeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Restart the service (in background so response is sent first)
+	// Uses sudo because the fazt user needs elevated privileges to restart the service
+	// The sudoers.d/fazt file grants NOPASSWD access for this specific command
 	go func() {
 		// Give time for response to be sent
-		exec.Command("systemctl", "restart", "fazt").Run()
+		exec.Command("sudo", "systemctl", "restart", "fazt").Run()
 	}()
 }
 

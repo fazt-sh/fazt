@@ -74,6 +74,31 @@ func RunInstall(opts InstallOptions) error {
 	}
 	term.Success("Binary ownership set to %s", opts.User)
 
+	// 4b. Grant service user write access to binary directory (enables atomic binary replacement)
+	// Note: ReadWritePaths in systemd only affects namespace, not actual filesystem permissions
+	binDir := filepath.Dir(targetBin)
+	if err := os.Chown(binDir, 0, gid); err != nil { // Keep root as owner, set group to service user
+		term.Warn("Could not set binary directory group: %v", err)
+	} else {
+		// Add group write permission
+		if info, err := os.Stat(binDir); err == nil {
+			if err := os.Chmod(binDir, info.Mode()|0020); err != nil { // Add group write
+				term.Warn("Could not set binary directory permissions: %v", err)
+			} else {
+				term.Success("Directory permissions set for self-upgrade")
+			}
+		}
+	}
+
+	// 4c. Allow service user to restart fazt service (enables remote upgrade auto-restart)
+	sudoersPath := "/etc/sudoers.d/fazt"
+	sudoersContent := fmt.Sprintf("%s ALL=(ALL) NOPASSWD: /bin/systemctl restart fazt, /bin/systemctl start fazt, /bin/systemctl stop fazt\n", opts.User)
+	if err := os.WriteFile(sudoersPath, []byte(sudoersContent), 0440); err != nil {
+		term.Warn("Could not create sudoers file: %v", err)
+	} else {
+		term.Success("Sudoers rule created for service restart")
+	}
+
 	// 5. Configure
 	configDir := filepath.Join(targetUser.HomeDir, ".config", "fazt")
 	configPath := filepath.Join(configDir, "config.json")

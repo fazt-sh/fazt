@@ -1,5 +1,11 @@
 [
     {
+        "version": "v0.9.6",
+        "title": "Remote Upgrade Fix",
+        "description": "Fixed remote upgrade: service now auto-restarts after upgrade. Added sudoers rule and directory permissions for seamless self-upgrades.",
+        "created_at": "2026-01-16"
+    },
+    {
         "version": "v0.9.5",
         "title": "Storage & Stdlib",
         "description": "App-scoped storage primitives (kv, ds, s3) via fazt.storage.* JS API. Embedded stdlib with require() support: lodash, uuid, dayjs, validator, marked, zod, cheerio.",

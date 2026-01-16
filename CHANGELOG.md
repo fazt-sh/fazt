@@ -2,6 +2,18 @@
 
 All notable changes to fazt.sh will be documented in this file.
 
+## [0.9.6] - 2026-01-16
+
+### Fixed
+- **Remote Upgrade Self-Restart**: Fixed upgrade handler not restarting the service
+  - Added sudoers rule to allow fazt user to run `systemctl restart fazt`
+  - Upgrade handler now uses `sudo systemctl restart fazt`
+  - Install script creates `/etc/sudoers.d/fazt` with NOPASSWD rules
+- **Remote Upgrade Directory Permissions**: Fixed "permission denied" on binary staging
+  - `/usr/local/bin` now has group write permission for fazt user
+  - `ReadWritePaths` in systemd only affects namespace, not filesystem permissions
+  - Install script sets directory group to fazt with g+w permission
+
 ## [0.9.5] - 2026-01-16
 
 ### Added
