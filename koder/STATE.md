@@ -145,7 +145,16 @@ ReadWritePaths=/usr/local/bin
 | `fazt remote status zyt` | Check health/version |
 | `fazt remote upgrade zyt` | Upgrade server |
 | `fazt remote deploy <dir> zyt` | Deploy app |
-| `ssh root@165.227.11.46` | Direct SSH to zyt |
+
+### SSH Access (Testing Only)
+
+```bash
+ssh root@165.227.11.46   # Direct IP - domain proxied via Cloudflare
+```
+
+**IMPORTANT**: SSH is provided for debugging only. The goal is to eliminate
+the need for SSH entirely. Users should never need to SSH into their servers
+to complete an upgrade. Test fixes until `fazt remote upgrade` works end-to-end.
 
 ## Next Steps
 
