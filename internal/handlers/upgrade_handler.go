@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/fazt-sh/fazt/internal/api"
 	"github.com/fazt-sh/fazt/internal/config"
@@ -138,11 +139,6 @@ func UpgradeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Set capabilities for port binding (Linux only)
-	if runtime.GOOS == "linux" {
-		exec.Command("setcap", "CAP_NET_BIND_SERVICE=+eip", currentBinary).Run()
-	}
-
 	// Send success response before restarting
 	api.Success(w, http.StatusOK, UpgradeResponse{
 		Success:        true,
@@ -157,16 +153,16 @@ func UpgradeHandler(w http.ResponseWriter, r *http.Request) {
 		f.Flush()
 	}
 
-	// Restart the service after a short delay to allow response to be sent.
-	// Uses an external shell process with sleep so the delay happens outside Go,
-	// ensuring the restart happens even if the Go process is interrupted.
-	// The sudoers.d/fazt file grants NOPASSWD access for /bin/systemctl restart fazt.
-	// Must use full path /bin/systemctl to match sudoers rule exactly.
-	// nohup and & ensure the process is fully detached from Go's process management.
-	restartCmd := "echo 'restart-start' >> /tmp/fazt-restart.log; nohup sh -c 'sleep 1 && echo restart-exec >> /tmp/fazt-restart.log && sudo /bin/systemctl restart fazt && echo restart-done >> /tmp/fazt-restart.log' >/dev/null 2>&1 &; echo 'restart-scheduled' >> /tmp/fazt-restart.log"
-	if err := exec.Command("sh", "-c", restartCmd).Run(); err != nil {
-		os.WriteFile("/tmp/fazt-restart-error.log", []byte(err.Error()), 0644)
-	}
+	// Trigger restart using systemd-run to spawn a transient scope unit.
+	// This escapes our process's cgroup, surviving our termination.
+	// The os.Exit(0) combined with Restart=always ensures the service
+	// comes back up with the new binary even if systemd-run fails.
+	go func() {
+		time.Sleep(100 * time.Millisecond) // Allow response to fully transmit
+		exec.Command("systemd-run", "--scope", "--",
+			"sudo", "/bin/systemctl", "restart", "fazt").Start()
+		os.Exit(0)
+	}()
 }
 
 func getLatestRelease() (*GitHubRelease, error) {

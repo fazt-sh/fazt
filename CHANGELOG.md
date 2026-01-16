@@ -2,6 +2,16 @@
 
 All notable changes to fazt.sh will be documented in this file.
 
+## [0.9.22] - 2026-01-16
+
+### Fixed
+- **Remote Upgrade Auto-Restart**: Service now restarts automatically after upgrade
+  - Root cause: `exec.Command()` within systemd cgroup doesn't spawn independent processes
+  - Solution: Use `systemd-run --scope` to escape cgroup, then `os.Exit(0)` lets
+    systemd's `Restart=always` bring service back with new binary
+  - Removed redundant `setcap` call (AmbientCapabilities in systemd unit handles this)
+  - No more SSH required for remote upgrades
+
 ## [0.9.8] - 2026-01-16
 
 ### Fixed

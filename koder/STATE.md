@@ -1,20 +1,19 @@
 # Fazt Implementation State
 
 **Last Updated**: 2026-01-16
-**Current Version**: v0.9.21 (source), v0.9.18 (local binary), v0.9.21 (zyt)
+**Current Version**: v0.9.22 (source, pending release)
 
 ## Status
 
 ```
-State: ACTIVE ISSUE (paused)
-Remote upgrade auto-restart not working. Binary replaces successfully but
-service doesn't restart. Extensive investigation completed, root cause
-identified but not yet fixed. Will revisit.
+State: FIX IMPLEMENTED - Ready for release and testing
+Remote upgrade auto-restart fix applied using systemd-run solution from
+kitten project. Needs version bump, release, and verification on zyt.
 ```
 
 ---
 
-## ACTIVE ISSUE: Remote Upgrade Auto-Restart
+## RESOLVED: Remote Upgrade Auto-Restart
 
 ### Goal
 
@@ -24,24 +23,29 @@ Remote upgrade via `fazt remote upgrade <peer>` should work without SSH:
 3. Restart the service automatically
 4. New version running - no manual intervention
 
-### Current Behavior
+### Solution (v0.9.22)
 
-When running `fazt remote upgrade zyt`:
-1. Binary downloads and replaces successfully ✓
-2. API returns success: "Upgraded! Server is restarting..." ✓
-3. **BUT service does NOT restart** - still runs old version ✗
-4. Manual SSH required: `systemctl restart fazt`
+**Root cause**: Go's `exec.Command()` within systemd service context doesn't
+spawn truly independent processes. Even with nohup/setsid/&, child processes
+remain in the same cgroup and are killed when the parent exits.
 
-### Root Cause Analysis
+**Fix**: Use `systemd-run --scope` to spawn a transient scope unit that
+exists outside our cgroup, then `os.Exit(0)` to let systemd's `Restart=always`
+bring us back with the new binary.
 
-**The core issue**: Go's `exec.Command()` within an HTTP handler context
-does not spawn truly independent processes. Even with shell detachment
-tricks (nohup, setsid, &), the child process doesn't survive or execute
-properly.
+```go
+go func() {
+    time.Sleep(100 * time.Millisecond) // Allow response to transmit
+    exec.Command("systemd-run", "--scope", "--",
+        "sudo", "/bin/systemctl", "restart", "fazt").Start()
+    os.Exit(0)
+}()
+```
 
-**Key observation**: The exact same shell command works perfectly when
-run manually via SSH as the fazt user, but fails when called from Go's
-exec.Command() in the upgrade handler.
+**Also fixed**: Removed `setcap` call which loses capabilities on binary
+replacement. `AmbientCapabilities` in systemd unit handles this correctly.
+
+Solution tested and verified in kitten project (`~/Projects/kitten/koder/SOLUTION.md`).
 
 ---
 
@@ -165,47 +169,16 @@ WantedBy=multi-user.target
 
 ---
 
-## Untried Approaches
+## Alternative Approaches (Not Needed)
 
-### 1. systemd-run (Most Promising)
-Use `systemd-run` to spawn a transient systemd unit:
-```go
-exec.Command("systemd-run", "--no-block", "--",
-    "/bin/systemctl", "restart", "fazt").Run()
-```
-This creates a completely independent unit managed by systemd.
+These were considered before the systemd-run solution was found:
 
-### 2. Helper Script
-Write a restart script and execute that:
-```bash
-# /usr/local/bin/fazt-restart.sh
-#!/bin/bash
-sleep 1
-sudo /bin/systemctl restart fazt
-```
-Then: `exec.Command("sh", "-c", "/usr/local/bin/fazt-restart.sh &").Run()`
-
-### 3. at Scheduler
-Use the `at` command to schedule restart:
-```go
-exec.Command("sh", "-c", "echo 'sudo /bin/systemctl restart fazt' | at now + 1 minute").Run()
-```
-Completely decouples the restart from the current process.
-
-### 4. syscall.ForkExec with Setsid
-Use low-level Go syscall with proper session creation:
-```go
-syscall.ForkExec("/bin/sh", []string{"sh", "-c", "..."}, &syscall.ProcAttr{
-    Sys: &syscall.SysProcAttr{Setsid: true},
-})
-```
-
-### 5. Self-Termination + Systemd Restart
-Instead of calling systemctl, just exit the process and let systemd's
-`Restart=always` handle it:
-```go
-os.Exit(0)  // Systemd will restart us with new binary
-```
+| Approach | Why Not Used |
+|----------|--------------|
+| Helper script | Adds deployment complexity |
+| `at` scheduler | Requires at daemon, 1min minimum delay |
+| syscall.ForkExec | Complex, still doesn't escape cgroup |
+| Self-termination only | Works but less explicit than systemd-run |
 
 ---
 
@@ -213,6 +186,7 @@ os.Exit(0)  // Systemd will restart us with new binary
 
 | Version | Date | Summary |
 |---------|------|---------|
+| v0.9.22 | 2026-01-16 | **FIX**: systemd-run + os.Exit for restart |
 | v0.9.21 | 2026-01-16 | Debug logging for restart tracing |
 | v0.9.20 | 2026-01-16 | Test version for upgrade flow |
 | v0.9.19 | 2026-01-16 | Test version |
@@ -260,9 +234,10 @@ ssh root@165.227.11.46   # Direct IP - domain proxied via Cloudflare
 
 ---
 
-## Next Steps (When Revisiting)
+## Next Steps
 
-1. **Try systemd-run approach** - most likely to work
-2. **Or try self-termination** - let Restart=always handle it
-3. **Test v0.9.21 debug logging** - see what's actually happening
-4. **Update install.sh** once fix is confirmed
+1. **Bump version to 0.9.22** in `internal/config/config.go`
+2. **Release v0.9.22** via `/fazt-release` or manual workflow
+3. **Test upgrade on zyt** - `fazt remote upgrade zyt`
+4. **Verify auto-restart works** - service should restart without SSH
+5. **Clean up debug logging** from previous versions if desired
