@@ -2,6 +2,12 @@
 
 All notable changes to fazt.sh will be documented in this file.
 
+## [0.9.8] - 2026-01-16
+
+### Fixed
+- **Upgrade Auto-Restart Timing**: Added 500ms delay before restart command to ensure
+  HTTP response is fully sent to client before service restarts
+
 ## [0.9.7] - 2026-01-16
 
 ### Fixed

@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/fazt-sh/fazt/internal/api"
 	"github.com/fazt-sh/fazt/internal/config"
@@ -161,7 +162,8 @@ func UpgradeHandler(w http.ResponseWriter, r *http.Request) {
 	// Uses sudo because the fazt user needs elevated privileges to restart the service
 	// The sudoers.d/fazt file grants NOPASSWD access for this specific command
 	go func() {
-		// Give time for response to be sent
+		// Give time for response to be fully sent to client
+		time.Sleep(500 * time.Millisecond)
 		exec.Command("sudo", "systemctl", "restart", "fazt").Run()
 	}()
 }
