@@ -1,5 +1,11 @@
 [
     {
+        "version": "v0.9.7",
+        "title": "API Routing Fix",
+        "description": "Fixed /api endpoint routing to use new serverless handler with storage support. Apps can now use fazt.storage.* APIs.",
+        "created_at": "2026-01-16"
+    },
+    {
         "version": "v0.9.6",
         "title": "Remote Upgrade Fix",
         "description": "Fixed remote upgrade: service now auto-restarts after upgrade. Added sudoers rule and directory permissions for seamless self-upgrades.",

@@ -2,6 +2,15 @@
 
 All notable changes to fazt.sh will be documented in this file.
 
+## [0.9.7] - 2026-01-16
+
+### Fixed
+- **API Endpoint Routing**: Fixed `/api` and `/api/*` paths not reaching serverless
+  handler with storage support
+  - Site handler now routes API paths to the new `ServerlessHandler`
+  - Apps can now use `fazt.storage.kv`, `fazt.storage.ds`, `fazt.storage.s3`
+  - `api/main.js` is the entry point for API handlers (not root `main.js`)
+
 ## [0.9.6] - 2026-01-16
 
 ### Fixed

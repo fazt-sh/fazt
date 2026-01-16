@@ -35,6 +35,7 @@ import (
 	"github.com/fazt-sh/fazt/internal/middleware"
 	"github.com/fazt-sh/fazt/internal/provision"
 	"github.com/fazt-sh/fazt/internal/remote"
+	jsruntime "github.com/fazt-sh/fazt/internal/runtime"
 	"github.com/fazt-sh/fazt/internal/security"
 	"github.com/fazt-sh/fazt/internal/term"
 	"golang.org/x/crypto/bcrypt"
@@ -48,6 +49,9 @@ var (
 	verbose     = flag.Bool("verbose", false, "Enable verbose logging")
 	quiet       = flag.Bool("quiet", false, "Quiet mode (errors only)")
 )
+
+// serverlessHandler is the global serverless handler with storage support
+var serverlessHandler *jsruntime.ServerlessHandler
 
 func main() {
 	if len(os.Args) < 2 {
@@ -1313,6 +1317,7 @@ func extractSubdomain(host, mainDomain string) string {
 // Serves files from VFS
 // If main.js exists, executes serverless JavaScript instead
 // WebSocket connections at /ws are handled by the WebSocket hub
+// API paths (/api or /api/*) are handled by the serverless handler with storage
 func siteHandler(w http.ResponseWriter, r *http.Request, subdomain string) {
 	// Check if site exists
 	if !hosting.SiteExists(subdomain) {
@@ -1328,7 +1333,22 @@ func siteHandler(w http.ResponseWriter, r *http.Request, subdomain string) {
 	// Log analytics event for site visits
 	logSiteVisit(r, subdomain)
 
-	// Check for serverless (main.js)
+	// Check for API paths (/api or /api/*)
+	// These are handled by the serverless handler with storage support
+	if r.URL.Path == "/api" || strings.HasPrefix(r.URL.Path, "/api/") {
+		// Get app ID from database (site_id in files table)
+		fs := hosting.GetFileSystem()
+		hasAPI, _ := fs.Exists(subdomain, "api/main.js")
+		if hasAPI && serverlessHandler != nil {
+			serverlessHandler.HandleRequest(w, r, subdomain, subdomain)
+			return
+		}
+		// No api/main.js found
+		http.Error(w, "404 page not found", http.StatusNotFound)
+		return
+	}
+
+	// Check for serverless (main.js) - legacy support for root-level handlers
 	// We check directly in VFS now
 	fs := hosting.GetFileSystem()
 	hasServerless, _ := fs.Exists(subdomain, "main.js")
@@ -2461,6 +2481,9 @@ func handleStartCommand() {
 		log.Fatalf("Failed to initialize hosting: %v", err)
 	}
 	log.Printf("Hosting initialized (VFS Mode)")
+
+	// Initialize serverless handler with storage support
+	serverlessHandler = jsruntime.NewServerlessHandler(database.GetDB())
 
 	// Generate mock data in development mode
 	if cfg.IsDevelopment() {
