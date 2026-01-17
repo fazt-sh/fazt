@@ -31,15 +31,16 @@ my-app/
 ├── components/        # Vue components (plain JS)
 ├── api/               # Serverless functions
 │   └── data.js        # → GET/POST /api/data
-└── assets/            # REQUESTED FROM USER
-    ├── favicon.svg
+└── assets/            # Copied from defaults or user-provided
+    ├── favicon.png
+    ├── logo.png
     ├── logo.svg
     ├── apple-touch-icon.png
-    └── social-preview.png
+    └── social_preview.png
 ```
 
-**IMPORTANT:** Always ask the user to provide assets (favicon, logo, icons).
-Create placeholder references but note that user should supply actual files.
+**Default Assets**: Copy from `.claude/fazt-assets/` unless user provides custom ones.
+Only request custom assets if the user wants app-specific branding.
 
 ---
 
@@ -65,11 +66,11 @@ Create placeholder references but note that user should supply actual files.
   <meta name="description" content="App description here">
   <meta property="og:title" content="App Name">
   <meta property="og:description" content="App description here">
-  <meta property="og:image" content="/assets/social-preview.png">
+  <meta property="og:image" content="/assets/social_preview.png">
   <meta property="og:type" content="website">
 
   <!-- Icons -->
-  <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+  <link rel="icon" type="image/png" href="/assets/favicon.png">
   <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
 
   <!-- Fonts -->
@@ -583,19 +584,21 @@ function handler(req) {
 
 ---
 
-## Required Assets
+## Default Assets
 
-When creating an app, always request these from the user:
+Fazt default assets are located in `.claude/fazt-assets/`:
 
-| Asset | Size | Purpose |
-|-------|------|---------|
-| `favicon.svg` | any | Browser tab icon |
+| File | Size | Purpose |
+|------|------|---------|
+| `favicon.png` | 32x32 | Browser tab icon |
 | `apple-touch-icon.png` | 180x180 | iOS home screen |
-| `logo.svg` | any | In-app branding |
-| `social-preview.png` | 1200x630 | Open Graph sharing |
+| `logo.png` | 256x256 | In-app branding |
+| `logo.svg` | vector | Scalable logo |
+| `logo-transparent.png` | 256x256 | Logo without background |
+| `social_preview.png` | 1200x630 | Open Graph sharing |
 
-Create placeholder references in HTML but note: **"Please provide your app
-icons and social preview image for the assets/ folder."**
+**Behavior**: Copy these defaults to `assets/` for every new app.
+Only ask for custom assets if the user explicitly wants app-specific branding.
 
 ---
 
@@ -634,7 +637,7 @@ When the user invokes `/fazt-app`:
    - `main.js` with Vue app, settings panel, proper structure
    - `components/` for any needed components
    - `api/` endpoints if persistence needed
-   - `assets/` folder (note user should provide actual icons)
-4. Request assets from user: favicon, logo, apple-touch-icon, social-preview
-5. Deploy: `fazt app deploy <folder> --to local`
-6. Report URL with session: `http://{name}.192.168.64.3:8080?s=cat-apple-tree`
+   - `assets/` folder with defaults copied from `.claude/fazt-assets/`
+4. Copy default assets: `cp .claude/fazt-assets/* <app>/assets/`
+5. Deploy: `fazt app deploy <folder> --to zyt`
+6. Report URL with session: `https://{name}.zyt.app?s=cat-apple-tree`
