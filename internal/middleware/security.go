@@ -54,6 +54,92 @@ func generateRequestID() string {
 	return hex.EncodeToString(bytes)
 }
 
+// Comprehensive CDN whitelist for CSP
+// Organized by category for easy maintenance
+var (
+	// JavaScript CDNs and ES module hosts
+	scriptCDNs = []string{
+		"https://cdn.jsdelivr.net",
+		"https://unpkg.com",
+		"https://cdnjs.cloudflare.com",
+		"https://cdn.tailwindcss.com",
+		"https://esm.sh",
+		"https://esm.run",
+		"https://cdn.skypack.dev",
+		"https://ga.jspm.io",
+		"https://ajax.googleapis.com",
+		"https://ajax.aspnetcdn.com",
+		"https://code.jquery.com",
+		"https://stackpath.bootstrapcdn.com",
+		"https://cdn.bootcdn.net",
+		"https://lib.baomitu.com",
+		"https://polyfill.io",
+		"https://kit.fontawesome.com",
+		"https://cdn.statically.io",
+		"https://rawcdn.githack.com",
+		"https://raw.githubusercontent.com",
+	}
+
+	// Style/CSS CDNs
+	styleCDNs = []string{
+		"https://cdn.jsdelivr.net",
+		"https://unpkg.com",
+		"https://cdnjs.cloudflare.com",
+		"https://fonts.googleapis.com",
+		"https://fonts.bunny.net",
+		"https://cdn.fontshare.com",
+		"https://use.typekit.net",
+		"https://stackpath.bootstrapcdn.com",
+		"https://cdn.statically.io",
+	}
+
+	// Font hosts
+	fontCDNs = []string{
+		"https://cdn.jsdelivr.net",
+		"https://fonts.gstatic.com",
+		"https://fonts.bunny.net",
+		"https://cdn.fontshare.com",
+		"https://use.typekit.net",
+		"https://kit.fontawesome.com",
+	}
+
+	// Connect sources (fetch/XHR/WebSocket)
+	connectCDNs = []string{
+		"https://cdn.jsdelivr.net",
+		"https://unpkg.com",
+		"https://esm.sh",
+		"https://esm.run",
+		"https://cdn.skypack.dev",
+		"https://ga.jspm.io",
+		"https://api.github.com",
+	}
+)
+
+// buildCSP constructs the Content-Security-Policy header
+func buildCSP(domain string) string {
+	return "default-src 'self'; " +
+		"script-src 'self' 'unsafe-inline' 'unsafe-eval' " + joinSources(scriptCDNs) + "; " +
+		"style-src 'self' 'unsafe-inline' " + joinSources(styleCDNs) + "; " +
+		"img-src 'self' data: blob: https:; " +
+		"font-src 'self' data: " + joinSources(fontCDNs) + "; " +
+		"connect-src 'self' " + joinSources(connectCDNs) + " https://*." + domain + "; " +
+		"media-src 'self' blob: https:; " +
+		"object-src 'none'; " +
+		"frame-ancestors 'none'"
+}
+
+// joinSources joins CDN sources with spaces
+func joinSources(sources []string) string {
+	result := ""
+	for i, src := range sources {
+		if i > 0 {
+			result += " "
+		}
+		result += src
+	}
+	return result
+}
+
 // SecurityHeaders adds security-related HTTP headers
 func SecurityHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -65,15 +151,8 @@ func SecurityHeaders(next http.Handler) http.Handler {
 		w.Header().Set("Referrer-Policy", "no-referrer")
 		w.Header().Set("X-XSS-Protection", "1; mode=block")
 
-		// Content Security Policy - allow same-domain subdomains to communicate
-		domain := cfg.Server.Domain
-		csp := "default-src 'self'; " +
-			"script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; " +
-			"style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; " +
-			"img-src 'self' data: https:; " +
-			"font-src 'self' data: https://cdn.jsdelivr.net; " +
-			"connect-src 'self' https://cdn.jsdelivr.net https://*." + domain
-		w.Header().Set("Content-Security-Policy", csp)
+		// Content Security Policy with comprehensive CDN whitelist
+		w.Header().Set("Content-Security-Policy", buildCSP(cfg.Server.Domain))
 
 		// HSTS in production
 		if cfg.IsProduction() {

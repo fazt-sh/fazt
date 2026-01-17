@@ -2,6 +2,20 @@
 
 All notable changes to fazt.sh will be documented in this file.
 
+## [0.9.25] - 2026-01-18
+
+### Changed
+- **Comprehensive CSP Whitelist**: Expanded Content-Security-Policy to allow
+  common CDNs for easier app development
+  - Script CDNs: jsdelivr, unpkg, cdnjs, tailwindcss, esm.sh, skypack, jspm,
+    googleapis, jquery, bootstrapcdn, fontawesome, statically, githubusercontent
+  - Style CDNs: jsdelivr, unpkg, cdnjs, Google Fonts, Bunny Fonts, Fontshare,
+    Adobe Fonts (Typekit), bootstrapcdn
+  - Font hosts: Google Fonts, Bunny Fonts, Fontshare, Adobe Fonts, FontAwesome
+  - Connect sources: jsdelivr, unpkg, esm.sh, skypack, jspm, GitHub API
+  - Added media-src for audio/video support
+  - Added object-src 'none' and frame-ancestors 'none' for security
+
 ## [0.9.24] - 2026-01-17
 
 ### Added
