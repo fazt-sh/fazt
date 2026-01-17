@@ -60,4 +60,5 @@ cookies.txt
 /admin/dist/
 .mcp.json
 servers/
+system/
 stdlib/node_modules

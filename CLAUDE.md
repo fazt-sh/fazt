@@ -3,10 +3,8 @@
 **Fazt** is sovereign compute infrastructure for individuals—a single Go binary
 + SQLite database that runs anywhere from phones to servers to IoT devices.
 
-**Current Version**: 0.9.8
+**Current Version**: 0.9.23
 **This Repo**: Source code for fazt development
-
-> **ACTIVE ISSUE**: Remote upgrade auto-restart not working. See `koder/STATE.md`.
 
 ## Environment Context
 
@@ -75,8 +73,9 @@ my-app/
 | Name | URL | Description |
 |------|-----|-------------|
 | zyt | https://zyt.app | Personal production instance |
+| local | http://192.168.64.3:8080 | Local dev server (when running) |
 
-**Managing zyt:**
+**Managing peers:**
 ```bash
 fazt remote list                    # List all peers
 fazt remote status zyt              # Health, version, uptime
@@ -87,28 +86,84 @@ fazt remote upgrade zyt             # Upgrade to latest version
 
 ### Development Workflow
 
-1. **Create app**:
-   ```bash
-   mkdir -p servers/zyt/my-app && cd servers/zyt/my-app
-   echo '{"name":"my-app"}' > manifest.json
-   echo '<h1>Hello</h1>' > index.html
-   ```
+#### Quick Deploy (Static Only)
 
-2. **Test locally** (optional):
-   ```bash
-   # Terminal 1: Start local fazt server
-   fazt server start --port 8080
+For apps without serverless (`/api`) endpoints, use a simple HTTP server:
 
-   # Terminal 2: Deploy to local server
-   fazt deploy servers/zyt/my-app --to http://localhost:8080
-   # Access at http://my-app.localhost:8080
-   ```
+```bash
+python3 -m http.server 7780 --directory servers/zyt/my-app
+# Access at http://192.168.64.3:7780
+```
 
-3. **Deploy to zyt**:
-   ```bash
-   fazt remote deploy servers/zyt/my-app zyt
-   ```
-   App available at: `https://my-app.zyt.app`
+#### Full Local Server (With Serverless)
+
+To test `/api` endpoints locally, run a local fazt server. This requires
+building the binary with embedded system sites.
+
+**1. Build fazt with embedded admin:**
+```bash
+# Build admin dashboard first
+npm run build --prefix admin
+
+# Copy to embed location
+cp -r admin/dist internal/assets/system/admin
+
+# Build fazt binary
+go build -o fazt ./cmd/server
+```
+
+**2. Initialize local server (first time only):**
+```bash
+# Creates DB at /tmp/fazt-dev.db with auth configured
+fazt server init \
+  --username dev \
+  --password dev \
+  --domain 192.168.64.3 \
+  --db /tmp/fazt-dev.db
+```
+
+**3. Create API key and add as peer:**
+```bash
+# Generate API key
+fazt server create-key --db /tmp/fazt-dev.db
+# Save the token output
+
+# Add local peer (if not already added)
+fazt remote add local \
+  --url http://192.168.64.3:8080 \
+  --token <API_KEY>
+```
+
+**4. Start local server:**
+```bash
+fazt server start \
+  --port 8080 \
+  --domain 192.168.64.3 \
+  --db /tmp/fazt-dev.db
+```
+
+**5. Deploy and test:**
+```bash
+fazt remote deploy servers/zyt/my-app local
+# Access at http://my-app.192.168.64.3:8080
+# Or use curl with Host header:
+curl -H "Host: my-app.192.168.64.3" http://192.168.64.3:8080/api/hello
+```
+
+#### Deploy to Production
+
+```bash
+fazt remote deploy servers/zyt/my-app zyt
+```
+App available at: `https://my-app.zyt.app`
+
+#### Create New App
+
+```bash
+mkdir -p servers/zyt/my-app && cd servers/zyt/my-app
+echo '{"name":"my-app"}' > manifest.json
+echo '<h1>Hello</h1>' > index.html
+```
 
 ### Serverless (Current)
 
@@ -213,9 +268,15 @@ servers/                  # gitignored
 ## Build & Test
 
 ```bash
-go build -o fazt ./cmd/server           # Build
+go build -o fazt ./cmd/server           # Build (basic)
 go test -v -cover ./...                  # Test all with coverage
-go run ./cmd/server server start --port 8080  # Run dev
+```
+
+**Build with embedded admin** (required for local server):
+```bash
+npm run build --prefix admin
+cp -r admin/dist internal/assets/system/admin
+go build -o fazt ./cmd/server
 ```
 
 **Always run tests before starting new work.**
