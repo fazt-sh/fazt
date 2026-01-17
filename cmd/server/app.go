@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/fazt-sh/fazt/internal/build"
 	"github.com/fazt-sh/fazt/internal/database"
 	"github.com/fazt-sh/fazt/internal/git"
 	"github.com/fazt-sh/fazt/internal/remote"
@@ -25,6 +26,8 @@ func handleAppCommand(args []string) {
 	switch subcommand {
 	case "list":
 		handleAppList(args[1:])
+	case "create":
+		handleAppCreate(args[1:])
 	case "deploy":
 		handleAppDeploy(args[1:])
 	case "install":
@@ -94,9 +97,10 @@ func handleAppDeploy(args []string) {
 	flags := flag.NewFlagSet("app deploy", flag.ExitOnError)
 	siteName := flags.String("name", "", "App name (defaults to directory name)")
 	peerFlag := flags.String("to", "", "Target peer name")
+	noBuild := flags.Bool("no-build", false, "Skip build step")
 
 	flags.Usage = func() {
-		fmt.Println("Usage: fazt app deploy <directory> [--name <app>] [--to <peer>]")
+		fmt.Println("Usage: fazt app deploy <directory> [--name <app>] [--to <peer>] [--no-build]")
 		fmt.Println()
 		flags.PrintDefaults()
 	}
@@ -126,13 +130,37 @@ func handleAppDeploy(args []string) {
 		os.Exit(1)
 	}
 
-	// Determine app name
+	// Determine app name from source dir (before build)
 	name := *siteName
 	if name == "" {
 		name = filepath.Base(dir)
 		if name == "." {
 			wd, _ := os.Getwd()
 			name = filepath.Base(wd)
+		}
+	}
+
+	// Build step
+	deployDir := dir
+	if *noBuild {
+		fmt.Println("Skipping build (--no-build)")
+	} else {
+		buildResult, err := build.Build(dir, &build.Options{Verbose: true})
+		if err != nil {
+			if err == build.ErrBuildRequired {
+				fmt.Println("Error: app requires building but no package manager available")
+				fmt.Println("Options:")
+				fmt.Println("  1. Install npm, pnpm, yarn, or bun")
+				fmt.Println("  2. Build locally and commit dist/ to the project")
+				fmt.Println("  3. Use --no-build to deploy source files directly")
+			} else {
+				fmt.Printf("Error: build failed: %v\n", err)
+			}
+			os.Exit(1)
+		}
+		deployDir = buildResult.OutputDir
+		if buildResult.Method != "source" {
+			fmt.Printf("Build: %s (%d files via %s)\n", deployDir, buildResult.Files, buildResult.Method)
 		}
 	}
 
@@ -153,10 +181,10 @@ func handleAppDeploy(args []string) {
 		os.Exit(1)
 	}
 
-	fmt.Printf("Deploying '%s' to %s as '%s'...\n", dir, peer.Name, name)
+	fmt.Printf("Deploying '%s' to %s as '%s'...\n", deployDir, peer.Name, name)
 
-	// Create ZIP
-	zipBuffer, fileCount, err := createDeployZip(dir)
+	// Create ZIP from build output
+	zipBuffer, fileCount, err := createDeployZip(deployDir)
 	if err != nil {
 		fmt.Printf("Error creating ZIP: %v\n", err)
 		os.Exit(1)
@@ -346,7 +374,7 @@ func handleAppInstall(args []string) {
 
 	fmt.Printf("Cloned %d files (commit: %s)\n", result.Files, result.CommitSHA[:7])
 
-	// Read manifest to get app name
+	// Read manifest to get app name (from source, before build)
 	appName := *nameFlag
 	if appName == "" {
 		manifest, err := readManifest(tmpDir)
@@ -358,6 +386,52 @@ func handleAppInstall(args []string) {
 			}
 		} else {
 			appName = manifest.Name
+		}
+	}
+
+	// Build step
+	deployDir := tmpDir
+	buildResult, err := build.Build(tmpDir, &build.Options{Verbose: true})
+	if err != nil {
+		if err == build.ErrBuildRequired {
+			// Try pre-built branch
+			prebuilt := git.FindPrebuiltBranch(ref.FullURL())
+			if prebuilt != "" {
+				fmt.Printf("Build required but no package manager. Trying pre-built branch '%s'...\n", prebuilt)
+
+				// Re-clone from pre-built branch
+				os.RemoveAll(tmpDir)
+				tmpDir, _ = os.MkdirTemp("", "fazt-install-*")
+				result, err = git.Clone(git.CloneOptions{
+					URL:       ref.FullURL(),
+					Path:      ref.Path,
+					Ref:       prebuilt,
+					TargetDir: tmpDir,
+				})
+				if err != nil {
+					fmt.Printf("Error cloning pre-built branch: %v\n", err)
+					os.Exit(1)
+				}
+				ref.Ref = prebuilt
+				deployDir = tmpDir
+				fmt.Printf("Using pre-built branch '%s' (%d files)\n", prebuilt, result.Files)
+			} else {
+				fmt.Println("Error: app requires building but no package manager available")
+				fmt.Println("and no pre-built branch found (checked: fazt-dist, dist, release, gh-pages)")
+				fmt.Println()
+				fmt.Println("Options:")
+				fmt.Println("  1. Install npm, pnpm, yarn, or bun on this machine")
+				fmt.Println("  2. Have the repo maintainer add a 'fazt-dist' branch with built files")
+				os.Exit(1)
+			}
+		} else {
+			fmt.Printf("Error: build failed: %v\n", err)
+			os.Exit(1)
+		}
+	} else {
+		deployDir = buildResult.OutputDir
+		if buildResult.Method != "source" {
+			fmt.Printf("Build: %d files via %s\n", buildResult.Files, buildResult.Method)
 		}
 	}
 
@@ -380,8 +454,8 @@ func handleAppInstall(args []string) {
 
 	fmt.Printf("Deploying '%s' to %s...\n", appName, peer.Name)
 
-	// Create ZIP from cloned files
-	zipBuffer, fileCount, err := createDeployZip(tmpDir)
+	// Create ZIP from build output
+	zipBuffer, fileCount, err := createDeployZip(deployDir)
 	if err != nil {
 		fmt.Printf("Error creating ZIP: %v\n", err)
 		os.Exit(1)
@@ -611,6 +685,7 @@ USAGE:
   fazt app <command> [options]
 
 COMMANDS:
+  create <name>      Create new app from template
   list [peer]        List apps on a peer
   deploy <dir>       Deploy directory to peer
   install <url>      Install app from git repository
@@ -620,12 +695,17 @@ COMMANDS:
   remove <app>       Remove an app from peer
 
 OPTIONS:
+  --template <name>  Template for create (minimal, vite)
   --to <peer>        Target peer for deploy/install
   --from <peer>      Source peer for pull/remove/upgrade
   --name <name>      Override app name
   --check            Check for updates only (upgrade)
 
 EXAMPLES:
+  # Create new app
+  fazt app create myapp
+  fazt app create myapp --template vite
+
   # List apps
   fazt app list zyt
 

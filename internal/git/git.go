@@ -166,6 +166,45 @@ func GetLatestCommit(repoURL string, ref string) (string, error) {
 	return "", fmt.Errorf("ref not found: %s", ref)
 }
 
+// PrebuiltBranches are common branch names for pre-built output
+var PrebuiltBranches = []string{
+	"fazt-dist", // Recommended convention
+	"dist",
+	"release",
+	"gh-pages",
+}
+
+// FindPrebuiltBranch checks if a repo has a pre-built branch
+// Returns the branch name if found, empty string otherwise
+func FindPrebuiltBranch(repoURL string) string {
+	remote := git.NewRemote(nil, &config.RemoteConfig{
+		Name: "origin",
+		URLs: []string{repoURL},
+	})
+
+	refs, err := remote.List(&git.ListOptions{})
+	if err != nil {
+		return ""
+	}
+
+	// Build a set of available branches
+	branches := make(map[string]bool)
+	for _, r := range refs {
+		if r.Name().IsBranch() {
+			branches[r.Name().Short()] = true
+		}
+	}
+
+	// Check for pre-built branches in priority order
+	for _, branch := range PrebuiltBranches {
+		if branches[branch] {
+			return branch
+		}
+	}
+
+	return ""
+}
+
 // copyDir copies a directory recursively, excluding .git
 func copyDir(src, dst string) (int, error) {
 	fileCount := 0

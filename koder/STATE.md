@@ -1,48 +1,70 @@
 # Fazt Implementation State
 
 **Last Updated**: 2026-01-17
-**Current Version**: v0.9.23 (local), v0.9.23 (zyt)
+**Current Version**: v0.9.24 (local), pending release to zyt
 
 ## Status
 
 ```
-State: CLEAN
-All work committed. Plan 19 drafted, ready for implementation.
+State: IN_PROGRESS
+Plan 19 (Vite Dev Enhancement) implemented, pending release.
 ```
 
 ---
 
-## Next Up: Plan 19 - Vite Dev Enhancement
+## Just Completed: Plan 19 - Vite Dev Enhancement
 
 **Plan**: `koder/plans/19_vite-dev-enhancement.md`
 
-Unified build/deploy model with progressive enhancement:
+Implemented unified build/deploy model with:
 
-- `fazt app create --template vite` scaffolds Vite-ready apps
-- Embedded templates (minimal, vite) in binary
-- Multi-package-manager support (bun, pnpm, yarn, npm)
-- Build step integrated into deploy (or graceful fallback)
-- Pre-built branch detection for git installs
-- API endpoints for LLM harness integration
+### Features Added
 
-**Key constraint**: Complex apps that require building MUST have either:
-- A package manager available, OR
-- A pre-built dist/ folder, OR
-- A pre-built branch (fazt-dist)
+1. **Embedded Templates** (`internal/assets/templates/`)
+   - `minimal` - Basic HTML app with Tailwind
+   - `vite` - Full Vite setup with HMR, serverless API
 
-Otherwise → clear error (not broken deployment).
+2. **CLI Create Command** (`fazt app create`)
+   - `fazt app create myapp` - Uses minimal template
+   - `fazt app create myapp --template vite` - Uses vite template
+   - `fazt app create --list-templates` - Shows available templates
 
----
+3. **Build Package** (`internal/build/`)
+   - Package manager detection (bun, pnpm, yarn, npm)
+   - Lockfile-aware selection
+   - Build execution with install step
+   - Fallback to existing dist/ or source
 
-## Recent Changes (Plan 18)
+4. **Updated Deploy** (uses build package)
+   - Auto-builds when package.json has build script
+   - `--no-build` flag to skip
+   - Clear error messages when build required but impossible
 
-App Ecosystem implementation completed:
+5. **Pre-built Branch Detection**
+   - Checks: fazt-dist, dist, release, gh-pages
+   - Falls back automatically during `fazt app install`
 
-- `fazt app` CLI namespace (list, deploy, install, upgrade, pull, info, remove)
-- Git integration via go-git for `fazt app install`
-- Source tracking in DB for upgrade detection
-- `/fazt-app` skill for Claude-driven app development
-- API endpoints for source info and file content
+6. **API Endpoints**
+   - `POST /api/apps/install` - Install from GitHub
+   - `POST /api/apps/create` - Create from template
+   - `GET /api/templates` - List templates
+
+### Files Created/Modified
+
+| File | Status |
+|------|--------|
+| `internal/assets/templates/minimal/*` | Created |
+| `internal/assets/templates/vite/*` | Created |
+| `internal/assets/templates.go` | Created |
+| `internal/assets/templates_test.go` | Created |
+| `internal/build/build.go` | Created |
+| `internal/build/pkgmgr.go` | Created |
+| `internal/build/build_test.go` | Created |
+| `cmd/server/app.go` | Modified (added create, build integration) |
+| `cmd/server/app_create.go` | Created |
+| `internal/git/git.go` | Modified (FindPrebuiltBranch) |
+| `internal/handlers/apps_handler.go` | Modified (install, create endpoints) |
+| `cmd/server/main.go` | Modified (new routes) |
 
 ---
 
@@ -50,10 +72,12 @@ App Ecosystem implementation completed:
 
 | Command | Purpose |
 |---------|---------|
+| `fazt app create myapp` | Create minimal app |
+| `fazt app create myapp --template vite` | Create Vite app |
 | `fazt app list zyt` | List apps |
-| `fazt app deploy ./dir --to zyt` | Deploy from local |
+| `fazt app deploy ./dir --to zyt` | Deploy (with auto-build) |
+| `fazt app deploy ./dir --to zyt --no-build` | Deploy without build |
 | `fazt app install github:user/repo` | Install from GitHub |
-| `fazt app upgrade myapp` | Upgrade git-sourced app |
 | `fazt remote status zyt` | Check health/version |
 
 ---

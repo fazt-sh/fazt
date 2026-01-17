@@ -8,3 +8,6 @@ var SystemFS embed.FS
 //go:embed stdlib/*.js
 var StdlibFS embed.FS
 
+//go:embed templates/**/*
+var TemplatesFS embed.FS
+

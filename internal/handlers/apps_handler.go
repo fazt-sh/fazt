@@ -1,12 +1,23 @@
 package handlers
 
 import (
+	"archive/zip"
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
+	"io/fs"
 	"net/http"
+	"os"
+	"path/filepath"
+	"text/template"
 
 	"github.com/fazt-sh/fazt/internal/api"
+	"github.com/fazt-sh/fazt/internal/assets"
+	"github.com/fazt-sh/fazt/internal/build"
+	"github.com/fazt-sh/fazt/internal/config"
 	"github.com/fazt-sh/fazt/internal/database"
+	"github.com/fazt-sh/fazt/internal/git"
 	"github.com/fazt-sh/fazt/internal/hosting"
 )
 
@@ -340,4 +351,353 @@ func AppFileContentHandler(w http.ResponseWriter, r *http.Request) {
 	buf := make([]byte, file.Size)
 	file.Content.Read(buf)
 	w.Write(buf)
+}
+
+// InstallRequest is the request body for POST /api/apps/install
+type InstallRequest struct {
+	URL  string `json:"url"`  // GitHub URL
+	Name string `json:"name"` // Optional name override
+}
+
+// AppInstallHandler installs an app from a git repository
+func AppInstallHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		api.ErrorResponse(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Method not allowed", "")
+		return
+	}
+
+	var req InstallRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		api.BadRequest(w, "invalid request body")
+		return
+	}
+
+	if req.URL == "" {
+		api.BadRequest(w, "url is required")
+		return
+	}
+
+	// Parse git URL
+	ref, err := git.ParseURL(req.URL)
+	if err != nil {
+		api.BadRequest(w, "invalid GitHub URL: "+err.Error())
+		return
+	}
+
+	// Clone to temp directory
+	tmpDir, err := os.MkdirTemp("", "fazt-install-*")
+	if err != nil {
+		api.InternalError(w, err)
+		return
+	}
+	defer os.RemoveAll(tmpDir)
+
+	result, err := git.Clone(git.CloneOptions{
+		URL:       ref.FullURL(),
+		Path:      ref.Path,
+		Ref:       ref.Ref,
+		TargetDir: tmpDir,
+	})
+	if err != nil {
+		api.BadRequest(w, "clone failed: "+err.Error())
+		return
+	}
+
+	// Determine app name
+	appName := req.Name
+	if appName == "" {
+		manifest, err := readManifestFile(tmpDir)
+		if err != nil {
+			appName = ref.Repo
+			if ref.Path != "" {
+				appName = filepath.Base(ref.Path)
+			}
+		} else {
+			appName = manifest.Name
+		}
+	}
+
+	// Build step (server likely has no npm - will use existing or source)
+	deployDir := tmpDir
+	buildResult, err := build.Build(tmpDir, nil)
+	if err != nil {
+		if err == build.ErrBuildRequired {
+			// Try pre-built branch
+			prebuilt := git.FindPrebuiltBranch(ref.FullURL())
+			if prebuilt != "" {
+				os.RemoveAll(tmpDir)
+				tmpDir, _ = os.MkdirTemp("", "fazt-install-*")
+				result, err = git.Clone(git.CloneOptions{
+					URL:       ref.FullURL(),
+					Path:      ref.Path,
+					Ref:       prebuilt,
+					TargetDir: tmpDir,
+				})
+				if err != nil {
+					api.BadRequest(w, "clone of pre-built branch failed: "+err.Error())
+					return
+				}
+				ref.Ref = prebuilt
+				deployDir = tmpDir
+			} else {
+				api.BadRequest(w, "app requires building; no package manager available and no pre-built branch found")
+				return
+			}
+		} else {
+			api.BadRequest(w, "build failed: "+err.Error())
+			return
+		}
+	} else {
+		deployDir = buildResult.OutputDir
+	}
+
+	// Create zip from directory
+	zipData, err := createZipFromDir(deployDir)
+	if err != nil {
+		api.InternalError(w, err)
+		return
+	}
+
+	zipReader, err := zip.NewReader(bytes.NewReader(zipData), int64(len(zipData)))
+	if err != nil {
+		api.InternalError(w, err)
+		return
+	}
+
+	// Deploy locally
+	sourceInfo := &hosting.SourceInfo{
+		Type:   "git",
+		URL:    req.URL,
+		Ref:    ref.Ref,
+		Commit: result.CommitSHA,
+	}
+
+	_, err = hosting.DeploySiteWithSource(zipReader, appName, sourceInfo)
+	if err != nil {
+		api.InternalError(w, err)
+		return
+	}
+
+	cfg := config.Get()
+	api.Success(w, http.StatusCreated, map[string]interface{}{
+		"name":   appName,
+		"url":    fmt.Sprintf("https://%s.%s", appName, cfg.Server.Domain),
+		"source": req.URL,
+		"commit": result.CommitSHA[:7],
+	})
+}
+
+// CreateRequest is the request body for POST /api/apps/create
+type CreateRequest struct {
+	Name     string `json:"name"`
+	Template string `json:"template"` // "minimal" or "vite"
+}
+
+// AppCreateHandler creates a new app from a template
+func AppCreateHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		api.ErrorResponse(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Method not allowed", "")
+		return
+	}
+
+	var req CreateRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		api.BadRequest(w, "invalid request body")
+		return
+	}
+
+	if req.Name == "" {
+		api.BadRequest(w, "name is required")
+		return
+	}
+
+	// Validate app name
+	if !isValidAppName(req.Name) {
+		api.BadRequest(w, "invalid app name: use lowercase letters, numbers, and hyphens only")
+		return
+	}
+
+	// Default template
+	if req.Template == "" {
+		req.Template = "minimal"
+	}
+
+	// Get template
+	tmplFS, err := assets.GetTemplate(req.Template)
+	if err != nil {
+		api.BadRequest(w, "unknown template: "+req.Template)
+		return
+	}
+
+	// Create in temp directory
+	tmpDir, err := os.MkdirTemp("", "fazt-create-*")
+	if err != nil {
+		api.InternalError(w, err)
+		return
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// Copy template with substitution
+	data := map[string]string{"Name": req.Name}
+	if err := copyTemplateFiles(tmplFS, tmpDir, data); err != nil {
+		api.InternalError(w, err)
+		return
+	}
+
+	// Create zip from directory
+	zipData, err := createZipFromDir(tmpDir)
+	if err != nil {
+		api.InternalError(w, err)
+		return
+	}
+
+	zipReader, err := zip.NewReader(bytes.NewReader(zipData), int64(len(zipData)))
+	if err != nil {
+		api.InternalError(w, err)
+		return
+	}
+
+	// Deploy locally
+	sourceInfo := &hosting.SourceInfo{
+		Type: "template",
+		URL:  req.Template,
+	}
+
+	_, err = hosting.DeploySiteWithSource(zipReader, req.Name, sourceInfo)
+	if err != nil {
+		api.InternalError(w, err)
+		return
+	}
+
+	cfg := config.Get()
+	api.Success(w, http.StatusCreated, map[string]interface{}{
+		"name":     req.Name,
+		"template": req.Template,
+		"url":      fmt.Sprintf("https://%s.%s", req.Name, cfg.Server.Domain),
+	})
+}
+
+// TemplatesListHandler returns available templates
+func TemplatesListHandler(w http.ResponseWriter, r *http.Request) {
+	templates := assets.ListTemplates()
+	api.Success(w, http.StatusOK, templates)
+}
+
+// Manifest for reading manifest.json
+type manifestFile struct {
+	Name string `json:"name"`
+}
+
+func readManifestFile(dir string) (*manifestFile, error) {
+	data, err := os.ReadFile(filepath.Join(dir, "manifest.json"))
+	if err != nil {
+		return nil, err
+	}
+	var m manifestFile
+	if err := json.Unmarshal(data, &m); err != nil {
+		return nil, err
+	}
+	if m.Name == "" {
+		return nil, fmt.Errorf("manifest missing 'name' field")
+	}
+	return &m, nil
+}
+
+func isValidAppName(name string) bool {
+	if len(name) == 0 || len(name) > 63 {
+		return false
+	}
+	if name[0] == '-' || name[len(name)-1] == '-' {
+		return false
+	}
+	for _, c := range name {
+		if !((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '-') {
+			return false
+		}
+	}
+	return true
+}
+
+func copyTemplateFiles(tmplFS fs.FS, destDir string, data map[string]string) error {
+	return fs.WalkDir(tmplFS, ".", func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if path == "." {
+			return nil
+		}
+
+		destPath := filepath.Join(destDir, path)
+
+		if d.IsDir() {
+			return os.MkdirAll(destPath, 0755)
+		}
+
+		content, err := fs.ReadFile(tmplFS, path)
+		if err != nil {
+			return err
+		}
+
+		// Apply template substitution
+		tmpl, err := template.New(path).Parse(string(content))
+		if err != nil {
+			return os.WriteFile(destPath, content, 0644)
+		}
+
+		var buf bytes.Buffer
+		if err := tmpl.Execute(&buf, data); err != nil {
+			return os.WriteFile(destPath, content, 0644)
+		}
+
+		return os.WriteFile(destPath, buf.Bytes(), 0644)
+	})
+}
+
+// createZipFromDir creates a zip file from a directory
+func createZipFromDir(srcDir string) ([]byte, error) {
+	var buf bytes.Buffer
+	zipWriter := zip.NewWriter(&buf)
+
+	err := filepath.Walk(srcDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		// Skip directories and hidden files
+		if info.IsDir() || info.Name()[0] == '.' {
+			return nil
+		}
+
+		// Skip node_modules
+		relPath, _ := filepath.Rel(srcDir, path)
+		if len(relPath) > 12 && relPath[:12] == "node_modules" {
+			return nil
+		}
+
+		// Create zip entry
+		writer, err := zipWriter.Create(relPath)
+		if err != nil {
+			return err
+		}
+
+		// Read and write file content
+		file, err := os.Open(path)
+		if err != nil {
+			return err
+		}
+		defer file.Close()
+
+		_, err = io.Copy(writer, file)
+		return err
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	if err := zipWriter.Close(); err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
 }

@@ -2549,6 +2549,9 @@ func handleStartCommand() {
 
 	// Apps API (new - replaces sites)
 	dashboardMux.HandleFunc("GET /api/apps", handlers.AppsListHandler)
+	dashboardMux.HandleFunc("POST /api/apps/install", handlers.AppInstallHandler)
+	dashboardMux.HandleFunc("POST /api/apps/create", handlers.AppCreateHandler)
+	dashboardMux.HandleFunc("GET /api/templates", handlers.TemplatesListHandler)
 	dashboardMux.HandleFunc("GET /api/apps/{id}", handlers.AppDetailHandler)
 	dashboardMux.HandleFunc("DELETE /api/apps/{id}", handlers.AppDeleteHandler)
 	dashboardMux.HandleFunc("GET /api/apps/{id}/files", handlers.AppFilesHandler)

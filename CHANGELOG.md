@@ -2,6 +2,40 @@
 
 All notable changes to fazt.sh will be documented in this file.
 
+## [0.9.24] - 2026-01-17
+
+### Added
+- **App Templates**: `fazt app create` scaffolds apps from embedded templates
+  - `fazt app create myapp` - Creates minimal HTML app
+  - `fazt app create myapp --template vite` - Creates Vite-ready app with HMR support
+  - `fazt app create --list-templates` - Shows available templates
+- **Unified Build Model**: Deploy automatically builds when needed
+  - Detects package.json with build script
+  - Supports bun, pnpm, yarn, npm (in priority order)
+  - Respects lockfiles to match project's preferred package manager
+  - Falls back to existing dist/ if no package manager available
+  - `--no-build` flag to skip build step
+- **Pre-built Branch Detection**: For apps requiring build without local npm
+  - Checks for fazt-dist, dist, release, gh-pages branches
+  - Automatically uses pre-built branch when build fails
+- **API Endpoints**: For GUI and LLM harness integration
+  - `POST /api/apps/install` - Install from GitHub URL
+  - `POST /api/apps/create` - Create from template
+  - `GET /api/templates` - List available templates
+
+### Templates
+- `minimal` - Basic HTML app with Tailwind CDN
+- `vite` - Full Vite setup with HMR, Tailwind, importmaps, serverless API
+
+### Build Behavior
+| Has npm | Has build script | Result |
+|---------|-----------------|--------|
+| Yes | Yes | Runs build, deploys dist/ |
+| Yes | No | Deploys source |
+| No | Yes + dist/ exists | Deploys existing dist/ |
+| No | Yes + no dist/ | **Error** (clear message) |
+| No | No | Deploys source |
+
 ## [0.9.23] - 2026-01-16
 
 ### Changed
