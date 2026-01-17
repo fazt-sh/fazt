@@ -167,19 +167,35 @@ fazt app deploy servers/zyt/myapp/ --to zyt
 - Dark mode support (respect prefers-color-scheme)
 - Mobile-first responsive design
 - Minimal dependencies (prefer native APIs)
-- No build step required
+- No build step required (zero-build approach)
+
+## Templates vs Zero-Build
+
+| Approach | When to Use |
+|----------|-------------|
+| Zero-build (this skill) | Quick apps, simple UI, no tooling needed |
+| `--template vite` | Want HMR during dev, will use npm/bun |
+
+The zero-build approach (CDN imports, no package.json) is preferred for most
+fazt apps - they work everywhere without tooling. Use Vite template only if
+you specifically need HMR or complex bundling.
 
 ## CLI Reference
 
 | Command | Purpose | Example |
 |---------|---------|---------|
+| `fazt app create <name>` | Scaffold from template | `fazt app create myapp` |
+| `fazt app create <name> --template vite` | Scaffold Vite app | `fazt app create myapp --template vite` |
 | `fazt app list [peer]` | See deployed apps | `fazt app list zyt` |
 | `fazt app deploy <dir> --to <peer>` | Push local folder | `fazt app deploy ./myapp --to zyt` |
+| `fazt app deploy <dir> --to <peer> --no-build` | Deploy without building | `fazt app deploy ./myapp --to zyt --no-build` |
 | `fazt app install <url> --to <peer>` | Install from GitHub | `fazt app install github:user/repo --to zyt` |
 | `fazt app upgrade <app>` | Update git-sourced app | `fazt app upgrade myapp` |
 | `fazt app pull <app> --to <dir>` | Download app locally | `fazt app pull myapp --to ./local` |
 | `fazt app info <app>` | View app details | `fazt app info myapp` |
 | `fazt app remove <app> --from <peer>` | Delete an app | `fazt app remove myapp --from zyt` |
+
+**Note:** Deploy auto-builds if package.json has a build script. Use `--no-build` to skip.
 
 ### Typical Workflows
 
