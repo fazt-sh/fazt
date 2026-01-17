@@ -1,6 +1,6 @@
 ---
 id: f-7dd4
-status: in_progress
+status: closed
 deps: []
 links: []
 created: 2026-01-17T19:14:26Z
