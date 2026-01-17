@@ -1,20 +1,20 @@
 # Fazt Implementation State
 
 **Last Updated**: 2026-01-17
-**Current Version**: v0.9.23 (Plan 18 implemented, not yet released)
+**Current Version**: v0.9.23 (local), v0.9.23 (zyt)
 
 ## Status
 
 ```
-State: READY
-Plan 18 complete. Uncommitted changes ready for review/commit.
+State: CLEAN
+All work committed and deployed. No active development.
 ```
 
 ---
 
-## Uncommitted Work
+## Recent Changes (Plan 18)
 
-Plan 18 (App Ecosystem) is fully implemented but not committed:
+App Ecosystem implementation completed and committed:
 
 - `fazt app` CLI namespace (list, deploy, install, upgrade, pull, info, remove)
 - Git integration via go-git for `fazt app install`
@@ -22,40 +22,26 @@ Plan 18 (App Ecosystem) is fully implemented but not committed:
 - `/fazt-app` skill for Claude-driven app development
 - API endpoints for source info and file content
 
-Run `git status` to see changed files. Ready for commit or testing.
-
 ---
 
-## Next: Vite Dev Enhancement
+## Next Steps (Ideas)
 
-**Idea**: Optional Vite integration for better DX during app development.
+### Vite Dev Enhancement
 
-### Goals
+Optional Vite integration for better DX during app development:
 
 - Error catching during development
 - HMR (Hot Module Replacement) for faster iteration
 - Optional build step for performance (tree-shaking, minification)
 - Apps must still work WITHOUT Vite (zero-build fallback)
 
-### Approach
+### Other Ideas
 
-- If npm available locally, use Vite transparently
-- Only adds `vite.config.js` to app folder
-- If npm unavailable, config file sits inert
-- Graceful degradation: always works without build tools
+See `koder/ideas/ROADMAP.md` for future specs:
 
-### Considerations
-
-- HMR needs API proxy for serverless endpoints
-- VM IP (192.168.64.3) - can we avoid hardcoding?
-- Keep it elegant: detect environment, adapt automatically
-
-### Questions to Resolve
-
-1. How to detect npm availability and use Vite conditionally?
-2. Proxy config for `/api/*` routes to fazt server?
-3. Environment variable or auto-detect for VM IP?
-4. vite.config.js template that works for fazt apps?
+- v0.9: Storage layer (blobs, documents)
+- v0.10: Runtime enhancements (stdlib, sandbox)
+- v0.11: Distribution (marketplace, manifest)
 
 ---
 
