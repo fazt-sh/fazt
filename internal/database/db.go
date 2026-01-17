@@ -88,6 +88,7 @@ func runMigrations() error {
 		{7, "apps", "migrations/007_apps.sql"},
 		{9, "peers", "migrations/009_peers.sql"},
 		{10, "storage", "migrations/010_storage.sql"},
+		{11, "source_tracking", "migrations/011_source_tracking.sql"},
 	}
 
 	// Run each migration if not already applied

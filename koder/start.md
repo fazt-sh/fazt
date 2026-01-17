@@ -25,16 +25,17 @@ zyt), `CLAUDE.md` has everything needed.
 Read: koder/STATE.md
 ```
 
-If state is "Clean" with no active plan, create one first:
-1. Create `koder/plans/XX_plan-name.md`
-2. Update STATE.md with plan reference
+State will tell you:
+- **READY**: No active work, check for uncommitted changes or next ideas
+- **IN PROGRESS**: Active plan, continue where left off
+- **BLOCKED**: Something needs resolution first
 
 ### Step 2: Load Context
 
 ```
 Read: CLAUDE.md                    # Always (environment, capabilities)
 Read: koder/STATE.md               # Current progress
-Read: koder/plans/<active-plan>    # Implementation details
+Read: koder/plans/<active-plan>    # Implementation details (if any)
 ```
 
 ### Step 3: Verify Tests Pass
@@ -67,17 +68,20 @@ After EVERY significant step, update `koder/STATE.md`:
 
 ```
 fazt (binary)
-├── cmd/server/main.go      # Entry point, CLI
+├── cmd/server/
+│   ├── main.go           # Entry point, CLI router
+│   └── app.go            # fazt app commands
 ├── internal/
-│   ├── handlers/           # HTTP handlers
-│   ├── hosting/            # VFS, deploy logic
-│   ├── database/           # SQLite init, migrations
-│   ├── config/             # Server config
-│   ├── remote/             # Peer management, client
-│   ├── mcp/                # MCP server
-│   ├── runtime/            # JS serverless runtime
-│   └── api/                # Response helpers
-├── admin/                  # React SPA (Vite + Tailwind)
+│   ├── handlers/         # HTTP handlers
+│   ├── hosting/          # VFS, deploy logic
+│   ├── database/         # SQLite init, migrations
+│   ├── config/           # Server config
+│   ├── remote/           # Peer management, client
+│   ├── git/              # go-git integration
+│   ├── mcp/              # MCP server
+│   ├── runtime/          # JS serverless runtime
+│   └── api/              # Response helpers
+├── admin/                # React SPA (Vite + Tailwind)
 └── ~/.config/fazt/data.db  # Client database (peers, config)
 ```
 
@@ -93,9 +97,15 @@ go test -v -cover ./...
 # Run locally
 fazt server start --port 8080
 
-# Manage remote
+# App management (new)
+fazt app list zyt
+fazt app deploy <dir> --to zyt
+fazt app install github:user/repo --to zyt
+fazt app upgrade <app>
+
+# Peer management
 fazt remote status zyt
-fazt remote deploy <dir> zyt
+fazt remote upgrade zyt
 ```
 
 ---
@@ -105,14 +115,14 @@ fazt remote deploy <dir> zyt
 Future features are spec'd in `koder/ideas/specs/`:
 
 ```
-v0.9-storage/     # Blobs, documents
-v0.10-runtime/    # Stdlib, sandbox
+v0.9-storage/        # Blobs, documents
+v0.10-runtime/       # Stdlib, sandbox
 v0.11-distribution/  # Marketplace
-v0.12-agentic/    # AI harness
-v0.13-network/    # Domains, VPN
-v0.14-security/   # RLS, notary
-v0.15-identity/   # Persona
-v0.16-mesh/       # P2P protocols
+v0.12-agentic/       # AI harness
+v0.13-network/       # Domains, VPN
+v0.14-security/      # RLS, notary
+v0.15-identity/      # Persona
+v0.16-mesh/          # P2P protocols
 ```
 
 Pick a spec, create a plan, update STATE.md, execute.

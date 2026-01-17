@@ -118,8 +118,20 @@ func DeployHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Deploy the site
-	result, err := hosting.DeploySite(zipReader, siteName)
+	// Check for source tracking info
+	var source *hosting.SourceInfo
+	sourceType := r.FormValue("source_type")
+	if sourceType != "" {
+		source = &hosting.SourceInfo{
+			Type:   sourceType,
+			URL:    r.FormValue("source_url"),
+			Ref:    r.FormValue("source_ref"),
+			Commit: r.FormValue("source_commit"),
+		}
+	}
+
+	// Deploy the site with source tracking
+	result, err := hosting.DeploySiteWithSource(zipReader, siteName, source)
 	if err != nil {
 		api.InternalError(w, err)
 		return

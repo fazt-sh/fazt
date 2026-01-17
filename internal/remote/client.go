@@ -270,6 +270,165 @@ func (c *Client) DeleteApp(name string) error {
 	return nil
 }
 
+// SourceInfo contains source tracking information
+type SourceInfo struct {
+	Type   string `json:"type"`
+	URL    string `json:"url"`
+	Ref    string `json:"ref"`
+	Commit string `json:"commit"`
+}
+
+// FileEntry represents a file in an app
+type FileEntry struct {
+	Path    string `json:"path"`
+	Size    int64  `json:"size_bytes"`
+	ModTime string `json:"updated_at"`
+}
+
+// DeployWithSource deploys a ZIP file with source tracking info
+func (c *Client) DeployWithSource(zipPath, siteName string, source *SourceInfo) (*DeployResponse, error) {
+	// Open the zip file
+	file, err := os.Open(zipPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open zip file: %w", err)
+	}
+	defer file.Close()
+
+	// Create multipart form
+	var buf bytes.Buffer
+	writer := multipart.NewWriter(&buf)
+
+	// Add site_name field
+	if err := writer.WriteField("site_name", siteName); err != nil {
+		return nil, fmt.Errorf("failed to write site_name: %w", err)
+	}
+
+	// Add source tracking fields if provided
+	if source != nil {
+		writer.WriteField("source_type", source.Type)
+		writer.WriteField("source_url", source.URL)
+		writer.WriteField("source_ref", source.Ref)
+		writer.WriteField("source_commit", source.Commit)
+	}
+
+	// Add file
+	part, err := writer.CreateFormFile("file", filepath.Base(zipPath))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create form file: %w", err)
+	}
+	if _, err := io.Copy(part, file); err != nil {
+		return nil, fmt.Errorf("failed to copy file: %w", err)
+	}
+
+	if err := writer.Close(); err != nil {
+		return nil, fmt.Errorf("failed to close writer: %w", err)
+	}
+
+	// Create request
+	req, err := http.NewRequest("POST", c.peer.URL+"/api/deploy", &buf)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	if c.peer.Token != "" {
+		req.Header.Set("Authorization", "Bearer "+c.peer.Token)
+	}
+
+	// Execute request
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	var apiResp APIResponse
+	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	if apiResp.Error != nil {
+		return nil, fmt.Errorf("%s: %s", apiResp.Error.Code, apiResp.Error.Message)
+	}
+
+	var deploy DeployResponse
+	if err := json.Unmarshal(apiResp.Data, &deploy); err != nil {
+		return nil, fmt.Errorf("failed to decode deploy response: %w", err)
+	}
+
+	return &deploy, nil
+}
+
+// GetAppSource gets the source tracking info for an app
+func (c *Client) GetAppSource(name string) (*SourceInfo, error) {
+	resp, err := c.doRequest("GET", "/api/apps/"+name+"/source", nil)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var apiResp APIResponse
+	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	if apiResp.Error != nil {
+		return nil, fmt.Errorf("%s: %s", apiResp.Error.Code, apiResp.Error.Message)
+	}
+
+	var source SourceInfo
+	if err := json.Unmarshal(apiResp.Data, &source); err != nil {
+		return nil, fmt.Errorf("failed to decode source: %w", err)
+	}
+
+	return &source, nil
+}
+
+// GetAppFiles lists files in an app
+func (c *Client) GetAppFiles(name string) ([]FileEntry, error) {
+	resp, err := c.doRequest("GET", "/api/apps/"+name+"/files", nil)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var apiResp APIResponse
+	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	if apiResp.Error != nil {
+		return nil, fmt.Errorf("%s: %s", apiResp.Error.Code, apiResp.Error.Message)
+	}
+
+	var files []FileEntry
+	if err := json.Unmarshal(apiResp.Data, &files); err != nil {
+		return nil, fmt.Errorf("failed to decode files: %w", err)
+	}
+
+	return files, nil
+}
+
+// GetAppFileContent gets the content of a specific file
+func (c *Client) GetAppFileContent(appName, filePath string) ([]byte, error) {
+	resp, err := c.doRequest("GET", "/api/apps/"+appName+"/files/"+filePath, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	// File content is returned directly, not wrapped in API response
+	if resp.StatusCode != http.StatusOK {
+		var apiResp APIResponse
+		if err := json.NewDecoder(resp.Body).Decode(&apiResp); err == nil && apiResp.Error != nil {
+			return nil, fmt.Errorf("%s: %s", apiResp.Error.Code, apiResp.Error.Message)
+		}
+		return nil, fmt.Errorf("request failed with status %d", resp.StatusCode)
+	}
+
+	return io.ReadAll(resp.Body)
+}
+
 // doRequest performs an authenticated HTTP request
 func (c *Client) doRequest(method, path string, body io.Reader) (*http.Response, error) {
 	req, err := http.NewRequest(method, c.peer.URL+path, body)

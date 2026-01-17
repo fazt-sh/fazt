@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/fazt-sh/fazt/internal/api"
@@ -253,4 +254,90 @@ func formatTime(t interface{}) string {
 		return s
 	}
 	return ""
+}
+
+// AppSourceHandler returns source tracking info for an app
+func AppSourceHandler(w http.ResponseWriter, r *http.Request) {
+	appID := r.PathValue("id")
+	if appID == "" {
+		api.BadRequest(w, "app_id required")
+		return
+	}
+
+	db := database.GetDB()
+	if db == nil {
+		api.InternalError(w, nil)
+		return
+	}
+
+	query := `
+		SELECT source, source_url, source_ref, source_commit
+		FROM apps WHERE name = ? OR id = ?
+	`
+
+	var sourceType string
+	var sourceURL, sourceRef, sourceCommit *string
+
+	err := db.QueryRow(query, appID, appID).Scan(&sourceType, &sourceURL, &sourceRef, &sourceCommit)
+	if err != nil {
+		api.NotFound(w, "APP_NOT_FOUND", "App not found")
+		return
+	}
+
+	result := map[string]string{
+		"type": sourceType,
+	}
+	if sourceURL != nil {
+		result["url"] = *sourceURL
+	}
+	if sourceRef != nil {
+		result["ref"] = *sourceRef
+	}
+	if sourceCommit != nil {
+		result["commit"] = *sourceCommit
+	}
+
+	api.Success(w, http.StatusOK, result)
+}
+
+// AppFileContentHandler returns the content of a specific file
+func AppFileContentHandler(w http.ResponseWriter, r *http.Request) {
+	appID := r.PathValue("id")
+	filePath := r.PathValue("path")
+
+	if appID == "" || filePath == "" {
+		api.BadRequest(w, "app_id and path required")
+		return
+	}
+
+	db := database.GetDB()
+	if db == nil {
+		api.InternalError(w, nil)
+		return
+	}
+
+	// Get app name
+	var name string
+	err := db.QueryRow("SELECT name FROM apps WHERE id = ? OR name = ?", appID, appID).Scan(&name)
+	if err != nil {
+		api.NotFound(w, "APP_NOT_FOUND", "App not found")
+		return
+	}
+
+	fs := hosting.GetFileSystem()
+	file, err := fs.ReadFile(name, filePath)
+	if err != nil {
+		api.NotFound(w, "FILE_NOT_FOUND", "File not found")
+		return
+	}
+	defer file.Content.Close()
+
+	// Return raw content with correct MIME type
+	w.Header().Set("Content-Type", file.MimeType)
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", file.Size))
+	w.WriteHeader(http.StatusOK)
+
+	buf := make([]byte, file.Size)
+	file.Content.Read(buf)
+	w.Write(buf)
 }

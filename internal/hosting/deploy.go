@@ -22,6 +22,11 @@ type DeployResult struct {
 
 // DeploySite extracts a ZIP file to the VFS
 func DeploySite(zipReader *zip.Reader, subdomain string) (*DeployResult, error) {
+	return DeploySiteWithSource(zipReader, subdomain, nil)
+}
+
+// DeploySiteWithSource extracts a ZIP file to the VFS with source tracking
+func DeploySiteWithSource(zipReader *zip.Reader, subdomain string, source *SourceInfo) (*DeployResult, error) {
 	// Validate subdomain
 	if err := ValidateSubdomain(subdomain); err != nil {
 		return nil, err
@@ -34,6 +39,11 @@ func DeploySite(zipReader *zip.Reader, subdomain string) (*DeployResult, error) 
 	// For now, let's delete the site first to ensure a clean state (Cartridge style).
 	if err := fs.DeleteSite(subdomain); err != nil {
 		return nil, fmt.Errorf("failed to clear existing site: %w", err)
+	}
+
+	// Ensure app entry exists with source tracking
+	if err := fs.EnsureApp(subdomain, source); err != nil {
+		return nil, fmt.Errorf("failed to create app entry: %w", err)
 	}
 
 	var totalSize int64

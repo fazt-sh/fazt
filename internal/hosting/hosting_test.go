@@ -50,6 +50,18 @@ func setupTestDB(t *testing.T) *sql.DB {
 		deployed_by TEXT,
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 	);
+	CREATE TABLE apps (
+		id TEXT PRIMARY KEY,
+		name TEXT NOT NULL UNIQUE,
+		source TEXT DEFAULT 'deploy',
+		manifest TEXT,
+		source_url TEXT,
+		source_ref TEXT,
+		source_commit TEXT,
+		installed_at DATETIME,
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+	);
 	`
 	if _, err := db.Exec(schema); err != nil {
 		t.Fatalf("Failed to create schema: %v", err)

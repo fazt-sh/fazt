@@ -79,6 +79,8 @@ func main() {
 		handleServersCommand(os.Args[2:])
 	case "remote":
 		handleRemoteCommand(os.Args[2:])
+	case "app":
+		handleAppCommand(os.Args[2:])
 	case "service":
 		handleServiceCommand(os.Args[2:])
 	case "client":
@@ -567,10 +569,12 @@ func handleRemoteCommand(args []string) {
 	case "status":
 		handleRemoteStatus(args[1:])
 	case "apps":
+		fmt.Fprintln(os.Stderr, "DEPRECATED: Use 'fazt app list [peer]' instead")
 		handleRemoteApps(args[1:])
 	case "upgrade":
 		handleRemoteUpgrade(args[1:])
 	case "deploy":
+		fmt.Fprintln(os.Stderr, "DEPRECATED: Use 'fazt app deploy <dir> --to <peer>' instead")
 		handleRemoteDeploy(args[1:])
 	case "--help", "-h", "help":
 		printRemoteHelp()
@@ -982,9 +986,11 @@ COMMANDS:
   remove <name>    Remove a peer
   default <name>   Set the default peer
   status [name]    Check peer health and status
-  apps [name]      List apps on a peer
   upgrade [name]   Check/perform upgrade on peer
-  deploy <dir>     Deploy directory to peer
+
+DEPRECATED (use 'fazt app' instead):
+  apps [name]      → fazt app list [peer]
+  deploy <dir>     → fazt app deploy <dir> --to <peer>
 
 EXAMPLES:
   # Add a peer
@@ -993,11 +999,11 @@ EXAMPLES:
   # Check status (uses default if only one peer)
   fazt remote status
 
-  # List apps on specific peer
-  fazt remote apps zyt
+  # List apps on specific peer (NEW)
+  fazt app list zyt
 
-  # Deploy to default peer
-  fazt remote deploy ./my-site --name blog
+  # Deploy to peer (NEW)
+  fazt app deploy ./my-site --to zyt
 
   # Check for upgrades
   fazt remote upgrade check
@@ -2546,6 +2552,8 @@ func handleStartCommand() {
 	dashboardMux.HandleFunc("GET /api/apps/{id}", handlers.AppDetailHandler)
 	dashboardMux.HandleFunc("DELETE /api/apps/{id}", handlers.AppDeleteHandler)
 	dashboardMux.HandleFunc("GET /api/apps/{id}/files", handlers.AppFilesHandler)
+	dashboardMux.HandleFunc("GET /api/apps/{id}/source", handlers.AppSourceHandler)
+	dashboardMux.HandleFunc("GET /api/apps/{id}/files/{path...}", handlers.AppFileContentHandler)
 
 	dashboardMux.HandleFunc("/api/keys", handlers.APIKeysHandler)
 	dashboardMux.HandleFunc("/api/deployments", handlers.DeploymentsHandler)
@@ -2765,23 +2773,23 @@ func printUsage() {
 	fmt.Println("USAGE:")
 	fmt.Println("  fazt <command> [flags]")
 	fmt.Println()
-	fmt.Println("MODES:")
-	fmt.Println("  service    System Service (install, start, logs)")
-	fmt.Println("  client     Client Tool (deploy, logs, tokens)")
-	fmt.Println("  server     Manual Control (config, reset-password)")
-	fmt.Println()
 	fmt.Println("COMMANDS:")
-	fmt.Println("  deploy     Deploy current directory")
+	fmt.Println("  app        App management (list, deploy, info, remove)")
+	fmt.Println("  remote     Peer management (add, list, status, upgrade)")
+	fmt.Println("  service    System service (install, start, logs)")
+	fmt.Println("  server     Server control (init, start, config)")
 	fmt.Println("  version    Show version info")
 	fmt.Println("  help       Show this message")
 	fmt.Println()
 	fmt.Println("QUICK START:")
-	fmt.Println("  1. System Service (Hosting)")
-	fmt.Println("     sudo fazt service install --domain example.com --email you@mail.com --https")
+	fmt.Println("  # Deploy an app to a peer")
+	fmt.Println("  fazt app deploy ./my-site --to zyt")
 	fmt.Println()
-	fmt.Println("  2. Client Tool (Deploying)")
-	fmt.Println("     fazt client set-auth-token --token <YOUR_TOKEN>")
-	fmt.Println("     fazt deploy --domain my-site")
+	fmt.Println("  # List apps on a peer")
+	fmt.Println("  fazt app list zyt")
+	fmt.Println()
+	fmt.Println("  # Check peer status")
+	fmt.Println("  fazt remote status zyt")
 	fmt.Println()
 }
 

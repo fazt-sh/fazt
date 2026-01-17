@@ -79,9 +79,18 @@ my-app/
 ```bash
 fazt remote list                    # List all peers
 fazt remote status zyt              # Health, version, uptime
-fazt remote apps zyt                # List deployed apps
-fazt remote deploy <dir> zyt        # Deploy app
 fazt remote upgrade zyt             # Upgrade to latest version
+```
+
+**Managing apps:**
+```bash
+fazt app list zyt                   # List deployed apps
+fazt app deploy <dir> --to zyt      # Deploy from local directory
+fazt app install <url> --to zyt     # Install from GitHub
+fazt app upgrade <app>              # Upgrade git-sourced app
+fazt app pull <app> --to ./local    # Download app files
+fazt app info <app>                 # Show app details
+fazt app remove <app> --from zyt    # Remove an app
 ```
 
 ### Development Workflow
@@ -249,10 +258,8 @@ servers/                  # gitignored
 
 | Skill | Description |
 |-------|-------------|
-| `/fazt-status` | Check server health |
-| `/fazt-apps` | List/manage apps |
-| `/fazt-deploy` | Deploy site/app |
-| `/fazt-upgrade` | Check/perform upgrades |
+| `/fazt-start` | Begin work session |
+| `/fazt-app` | Build and deploy apps with Claude |
 | `/fazt-release` | Release new version (full workflow) |
 
 ### API Endpoints
@@ -262,6 +269,9 @@ servers/                  # gitignored
 | `/api/deploy` | POST | Deploy ZIP archive |
 | `/api/apps` | GET | List apps |
 | `/api/apps/{id}` | GET/DELETE | App details/delete |
+| `/api/apps/{id}/source` | GET | App source tracking |
+| `/api/apps/{id}/files` | GET | List app files |
+| `/api/apps/{id}/files/{path}` | GET | Get file content |
 | `/api/upgrade` | POST | Upgrade server |
 | `/health` | GET | Health check |
 

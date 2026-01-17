@@ -18,6 +18,8 @@ type FileSystem interface {
 	DeleteSite(siteID string) error
 	Exists(siteID, path string) (bool, error)
 	ListFiles(siteID string) ([]FileEntry, error)
+	EnsureApp(name string, source *SourceInfo) error
+	GetAppSource(name string) (*SourceInfo, error)
 }
 
 // File represents a file in the VFS
@@ -266,4 +268,72 @@ func (r *byteReader) Read(p []byte) (n int, err error) {
 	n = copy(p, r.data[r.pos:])
 	r.pos += n
 	return n, nil
+}
+
+// SourceInfo contains source tracking information for an app
+type SourceInfo struct {
+	Type   string // "deploy" or "git"
+	URL    string // git URL (for git-sourced apps)
+	Ref    string // git ref (tag, branch, or commit)
+	Commit string // resolved commit SHA
+}
+
+// EnsureApp creates or updates an app entry in the apps table
+func (fs *SQLFileSystem) EnsureApp(name string, source *SourceInfo) error {
+	sourceType := "deploy"
+	var sourceURL, sourceRef, sourceCommit *string
+
+	if source != nil {
+		sourceType = source.Type
+		if source.URL != "" {
+			sourceURL = &source.URL
+		}
+		if source.Ref != "" {
+			sourceRef = &source.Ref
+		}
+		if source.Commit != "" {
+			sourceCommit = &source.Commit
+		}
+	}
+
+	// Upsert app entry
+	query := `
+		INSERT INTO apps (id, name, source, source_url, source_ref, source_commit, installed_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+		ON CONFLICT(name) DO UPDATE SET
+			source = excluded.source,
+			source_url = COALESCE(excluded.source_url, apps.source_url),
+			source_ref = COALESCE(excluded.source_ref, apps.source_ref),
+			source_commit = COALESCE(excluded.source_commit, apps.source_commit),
+			updated_at = CURRENT_TIMESTAMP
+	`
+
+	_, err := fs.db.Exec(query, name, name, sourceType, sourceURL, sourceRef, sourceCommit)
+	return err
+}
+
+// GetAppSource returns source tracking info for an app
+func (fs *SQLFileSystem) GetAppSource(name string) (*SourceInfo, error) {
+	query := `
+		SELECT source, source_url, source_ref, source_commit
+		FROM apps WHERE name = ?
+	`
+
+	var sourceType string
+	var sourceURL, sourceRef, sourceCommit sql.NullString
+
+	err := fs.db.QueryRow(query, name).Scan(&sourceType, &sourceURL, &sourceRef, &sourceCommit)
+	if err == sql.ErrNoRows {
+		return nil, fmt.Errorf("app not found: %s", name)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return &SourceInfo{
+		Type:   sourceType,
+		URL:    sourceURL.String,
+		Ref:    sourceRef.String,
+		Commit: sourceCommit.String,
+	}, nil
 }
