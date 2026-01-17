@@ -1,5 +1,11 @@
 [
     {
+        "version": "v0.9.27",
+        "title": "CSP for Cloudflare Analytics",
+        "description": "Added static.cloudflareinsights.com to Content-Security-Policy for Cloudflare Web Analytics support.",
+        "created_at": "2026-01-18"
+    },
+    {
         "version": "v0.9.26",
         "title": "Serverless Timeout Increase",
         "description": "Increased default serverless runtime timeout from 100ms to 1 second to support larger KV operations for full state persistence in apps.",

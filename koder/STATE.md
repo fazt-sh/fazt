@@ -1,21 +1,21 @@
 # Fazt Implementation State
 
 **Last Updated**: 2026-01-18
-**Current Version**: v0.9.26 (local), v0.9.26 (zyt)
+**Current Version**: v0.9.27 (local), v0.9.27 (zyt)
 
 ## Status
 
 ```
 State: CLEAN
-v0.9.26 released - Serverless timeout increased for larger KV ops.
+v0.9.27 released - Cloudflare Analytics CSP fix.
 ```
 
 ---
 
-## Recent Changes (v0.9.26)
+## Recent Changes (v0.9.27)
 
-- Increased serverless timeout from 100ms to 1 second for larger KV operations
-- Supports full state persistence in apps (e.g., pomodoro tracker)
+- Added `static.cloudflareinsights.com` to CSP whitelist
+- Fixed pomodoro app to use Vue production build
 
 ---
 
@@ -23,8 +23,7 @@ v0.9.26 released - Serverless timeout increased for larger KV ops.
 
 | Item | Priority | Notes |
 |------|----------|-------|
-| Vue production build | Low | Use `vue.esm-browser.prod.js` in /fazt-app skill |
-| Cloudflare Insights CSP | Low | Add `static.cloudflareinsights.com` to script-src |
+| (empty) | - | - |
 
 ---
 

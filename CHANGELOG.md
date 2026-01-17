@@ -2,6 +2,11 @@
 
 All notable changes to fazt.sh will be documented in this file.
 
+## [0.9.27] - 2026-01-18
+
+### Changed
+- **CSP**: Added Cloudflare Web Analytics (`static.cloudflareinsights.com`)
+
 ## [0.9.26] - 2026-01-18
 
 ### Changed

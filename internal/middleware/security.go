@@ -78,6 +78,7 @@ var (
 		"https://cdn.statically.io",
 		"https://rawcdn.githack.com",
 		"https://raw.githubusercontent.com",
+		"https://static.cloudflareinsights.com", // Cloudflare Web Analytics
 	}
 
 	// Style/CSS CDNs
