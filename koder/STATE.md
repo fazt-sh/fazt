@@ -1,6 +1,6 @@
 # Fazt Implementation State
 
-**Last Updated**: 2026-01-17
+**Last Updated**: 2026-01-18
 **Current Version**: v0.9.24 (local), v0.9.24 (zyt)
 
 ## Status
@@ -41,8 +41,12 @@ Vite Dev Enhancement implementation completed:
 
 ## Apps on zyt.app
 
-| App | URL |
-|-----|-----|
-| home | https://zyt.app |
-| tetris | https://tetris.zyt.app |
-| snake | https://snake.zyt.app |
+| App | URL | Type |
+|-----|-----|------|
+| root | https://zyt.app | system |
+| tetris | https://tetris.zyt.app | game |
+| snake | https://snake.zyt.app | game |
+| hello | https://hello.zyt.app | test |
+| hello2 | https://hello2.zyt.app | test |
+| admin | https://admin.zyt.app | system |
+| 404 | (error page) | system |
