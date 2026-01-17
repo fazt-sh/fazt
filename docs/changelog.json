@@ -1,5 +1,11 @@
 [
     {
+        "version": "v0.9.26",
+        "title": "Serverless Timeout Increase",
+        "description": "Increased default serverless runtime timeout from 100ms to 1 second to support larger KV operations for full state persistence in apps.",
+        "created_at": "2026-01-18"
+    },
+    {
         "version": "v0.9.25",
         "title": "Comprehensive CSP Whitelist",
         "description": "Expanded Content-Security-Policy to allow common CDNs (jsdelivr, unpkg, cdnjs, tailwindcss, esm.sh, skypack, Google Fonts, etc.) for easier app development.",

@@ -2,6 +2,12 @@
 
 All notable changes to fazt.sh will be documented in this file.
 
+## [0.9.26] - 2026-01-18
+
+### Changed
+- **Serverless Timeout**: Increased default timeout from 100ms to 1 second to
+  support larger KV operations (e.g., full state persistence in apps)
+
 ## [0.9.25] - 2026-01-18
 
 ### Changed

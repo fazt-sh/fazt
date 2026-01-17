@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	DefaultTimeout = 100 * time.Millisecond
+	DefaultTimeout = 1 * time.Second // Increased for KV operations with larger data
 	MaxPoolSize    = 10
 )
 

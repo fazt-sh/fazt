@@ -1,27 +1,30 @@
 # Fazt Implementation State
 
 **Last Updated**: 2026-01-18
-**Current Version**: v0.9.24 (local), v0.9.24 (zyt)
+**Current Version**: v0.9.26 (local), v0.9.26 (zyt)
 
 ## Status
 
 ```
 State: CLEAN
-Plan 19 (Vite Dev Enhancement) completed and released.
+v0.9.26 released - Serverless timeout increased for larger KV ops.
 ```
 
 ---
 
-## Recent Changes (Plan 19)
+## Recent Changes (v0.9.26)
 
-Vite Dev Enhancement implementation completed:
+- Increased serverless timeout from 100ms to 1 second for larger KV operations
+- Supports full state persistence in apps (e.g., pomodoro tracker)
 
-- `fazt app create` - Scaffold apps from templates
-- Embedded templates (minimal, vite) in binary
-- Build package with multi-package-manager support
-- Deploy integrates build step automatically
-- Pre-built branch detection for git installs
-- API endpoints for GUI/LLM harness integration
+---
+
+## Backlog
+
+| Item | Priority | Notes |
+|------|----------|-------|
+| Vue production build | Low | Use `vue.esm-browser.prod.js` in /fazt-app skill |
+| Cloudflare Insights CSP | Low | Add `static.cloudflareinsights.com` to script-src |
 
 ---
 
@@ -44,6 +47,7 @@ Vite Dev Enhancement implementation completed:
 | App | URL | Type |
 |-----|-----|------|
 | root | https://zyt.app | system |
+| pomodoro | https://pomodoro.zyt.app | productivity |
 | tetris | https://tetris.zyt.app | game |
 | snake | https://snake.zyt.app | game |
 | hello | https://hello.zyt.app | test |
