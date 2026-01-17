@@ -7,41 +7,42 @@
 
 ```
 State: CLEAN
-All work committed and deployed. No active development.
+All work committed. Plan 19 drafted, ready for implementation.
 ```
+
+---
+
+## Next Up: Plan 19 - Vite Dev Enhancement
+
+**Plan**: `koder/plans/19_vite-dev-enhancement.md`
+
+Unified build/deploy model with progressive enhancement:
+
+- `fazt app create --template vite` scaffolds Vite-ready apps
+- Embedded templates (minimal, vite) in binary
+- Multi-package-manager support (bun, pnpm, yarn, npm)
+- Build step integrated into deploy (or graceful fallback)
+- Pre-built branch detection for git installs
+- API endpoints for LLM harness integration
+
+**Key constraint**: Complex apps that require building MUST have either:
+- A package manager available, OR
+- A pre-built dist/ folder, OR
+- A pre-built branch (fazt-dist)
+
+Otherwise → clear error (not broken deployment).
 
 ---
 
 ## Recent Changes (Plan 18)
 
-App Ecosystem implementation completed and committed:
+App Ecosystem implementation completed:
 
 - `fazt app` CLI namespace (list, deploy, install, upgrade, pull, info, remove)
 - Git integration via go-git for `fazt app install`
 - Source tracking in DB for upgrade detection
 - `/fazt-app` skill for Claude-driven app development
 - API endpoints for source info and file content
-
----
-
-## Next Steps (Ideas)
-
-### Vite Dev Enhancement
-
-Optional Vite integration for better DX during app development:
-
-- Error catching during development
-- HMR (Hot Module Replacement) for faster iteration
-- Optional build step for performance (tree-shaking, minification)
-- Apps must still work WITHOUT Vite (zero-build fallback)
-
-### Other Ideas
-
-See `koder/ideas/ROADMAP.md` for future specs:
-
-- v0.9: Storage layer (blobs, documents)
-- v0.10: Runtime enhancements (stdlib, sandbox)
-- v0.11: Distribution (marketplace, manifest)
 
 ---
 
