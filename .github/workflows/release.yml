@@ -9,8 +9,29 @@ permissions:
   contents: write
 
 jobs:
+  check-release:
+    name: Check if release exists
+    runs-on: ubuntu-latest
+    outputs:
+      should_build: ${{ steps.check.outputs.should_build }}
+    steps:
+      - name: Check for existing assets
+        id: check
+        run: |
+          # Check if release already has all 4 assets (from local release)
+          ASSETS=$(curl -s https://api.github.com/repos/${{ github.repository }}/releases/tags/${{ github.ref_name }} | jq '.assets | length')
+          if [ "$ASSETS" -ge 4 ]; then
+            echo "Release already has $ASSETS assets, skipping build"
+            echo "should_build=false" >> $GITHUB_OUTPUT
+          else
+            echo "Release has $ASSETS assets, building..."
+            echo "should_build=true" >> $GITHUB_OUTPUT
+          fi
+
   build-and-release:
     name: Build and Release
+    needs: check-release
+    if: needs.check-release.outputs.should_build == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -37,22 +58,22 @@ jobs:
 
       - name: Build Linux amd64
         run: |
-          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-w -s -X main.Version=${{ github.ref_name }}" -o fazt ./cmd/server
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o fazt ./cmd/server
           tar -czvf fazt-${{ github.ref_name }}-linux-amd64.tar.gz fazt
 
       - name: Build Linux arm64
         run: |
-          CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -ldflags="-w -s -X main.Version=${{ github.ref_name }}" -o fazt ./cmd/server
+          CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -ldflags="-w -s" -o fazt ./cmd/server
           tar -czvf fazt-${{ github.ref_name }}-linux-arm64.tar.gz fazt
 
       - name: Build macOS arm64
         run: |
-          CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -ldflags="-w -s -X main.Version=${{ github.ref_name }}" -o fazt ./cmd/server
+          CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -ldflags="-w -s" -o fazt ./cmd/server
           tar -czvf fazt-${{ github.ref_name }}-darwin-arm64.tar.gz fazt
 
       - name: Build macOS amd64
         run: |
-          CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -ldflags="-w -s -X main.Version=${{ github.ref_name }}" -o fazt ./cmd/server
+          CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -ldflags="-w -s" -o fazt ./cmd/server
           tar -czvf fazt-${{ github.ref_name }}-darwin-amd64.tar.gz fazt
 
       - name: Create Release
