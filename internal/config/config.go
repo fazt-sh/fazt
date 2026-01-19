@@ -6,11 +6,77 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 )
+
+// WildcardDNSProviders is the list of wildcard DNS services to try, in order.
+// These services resolve any subdomain containing an IP to that IP.
+// e.g., app.192.168.64.3.nip.io resolves to 192.168.64.3
+var WildcardDNSProviders = []string{
+	"nip.io",
+	"sslip.io",
+	// "wdns.fazt.sh", // future: self-hosted
+}
+
+// ipv4Pattern matches IPv4 addresses
+var ipv4Pattern = regexp.MustCompile(`^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$`)
+
+// IsIPAddress checks if the given string is an IPv4 address
+func IsIPAddress(s string) bool {
+	// Remove port if present
+	host := s
+	if idx := strings.LastIndex(s, ":"); idx != -1 {
+		// Check if it's not IPv6
+		if !strings.Contains(s, "[") {
+			host = s[:idx]
+		}
+	}
+	return ipv4Pattern.MatchString(host) && net.ParseIP(host) != nil
+}
+
+// WrapWithWildcardDNS wraps an IP address with a working wildcard DNS provider.
+// Returns the original domain if it's not an IP or if no provider works.
+func WrapWithWildcardDNS(domain string) string {
+	// Extract just the IP/hostname part (remove protocol and port)
+	cleanDomain := domain
+	if strings.HasPrefix(cleanDomain, "http://") {
+		cleanDomain = strings.TrimPrefix(cleanDomain, "http://")
+	}
+	if strings.HasPrefix(cleanDomain, "https://") {
+		cleanDomain = strings.TrimPrefix(cleanDomain, "https://")
+	}
+	if idx := strings.Index(cleanDomain, "/"); idx != -1 {
+		cleanDomain = cleanDomain[:idx]
+	}
+	if idx := strings.LastIndex(cleanDomain, ":"); idx != -1 {
+		cleanDomain = cleanDomain[:idx]
+	}
+
+	// Only wrap if it's an IP address
+	if !IsIPAddress(cleanDomain) {
+		return domain
+	}
+
+	// Try each provider until one resolves
+	for _, provider := range WildcardDNSProviders {
+		testDomain := fmt.Sprintf("test.%s.%s", cleanDomain, provider)
+		ips, err := net.LookupIP(testDomain)
+		if err == nil && len(ips) > 0 {
+			wrapped := fmt.Sprintf("%s.%s", cleanDomain, provider)
+			log.Printf("Wildcard DNS: %s → %s (via %s)", cleanDomain, wrapped, provider)
+			return wrapped
+		}
+	}
+
+	// No provider worked, return original
+	log.Printf("Warning: No wildcard DNS provider available for %s", cleanDomain)
+	return domain
+}
 
 // Version holds the current application version
 var Version = "0.9.27"

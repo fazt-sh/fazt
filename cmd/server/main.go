@@ -139,10 +139,13 @@ func initCommand(username, password, domain, port, env, dbPath string) error {
 
 	store := config.NewDBConfigStore(database.GetDB())
 
+	// Wrap domain with wildcard DNS if it's an IP address
+	wrappedDomain := config.WrapWithWildcardDNS(domain)
+
 	// Set configs
 	configs := map[string]string{
 		"server.port":        port,
-		"server.domain":      domain,
+		"server.domain":      wrappedDomain,
 		"server.env":         env,
 		"auth.username":      username,
 		"auth.password_hash": string(passwordHash),
@@ -228,9 +231,10 @@ func setConfigCommand(domain, port, env, dbPath string) error {
 		}
 	}
 
-	// Update domain if provided
+	// Update domain if provided (wrap with wildcard DNS if IP)
 	if domain != "" {
-		if err := store.Set("server.domain", domain); err != nil {
+		wrappedDomain := config.WrapWithWildcardDNS(domain)
+		if err := store.Set("server.domain", wrappedDomain); err != nil {
 			return fmt.Errorf("failed to set domain: %w", err)
 		}
 	}
@@ -2426,8 +2430,9 @@ func handleStartCommand() {
 	}
 
 	// Apply domain override if provided (highest priority)
+	// Wrap with wildcard DNS if it's an IP address
 	if *domain != "" {
-		cfg.Server.Domain = *domain
+		cfg.Server.Domain = config.WrapWithWildcardDNS(*domain)
 	}
 
 	// Initialize database EARLY to load config
@@ -2458,7 +2463,19 @@ func handleStartCommand() {
 	fmt.Printf("  Port:         %s\n", cfg.Server.Port)
 	fmt.Printf("  Domain:       %s\n", cfg.Server.Domain)
 	fmt.Printf("  Database:     %s\n", cfg.Database.Path)
-	// fmt.Printf("  Config File:  %s\n", config.ExpandPath(cliFlags.ConfigPath)) // Deprecated display
+
+	// Show accessible URLs
+	protocol := "http"
+	if cfg.HTTPS.Enabled {
+		protocol = "https"
+	}
+	portSuffix := ""
+	if cfg.Server.Port != "80" && cfg.Server.Port != "443" {
+		portSuffix = ":" + cfg.Server.Port
+	}
+	fmt.Println()
+	fmt.Printf("  Dashboard:    %s://admin.%s%s\n", protocol, cfg.Server.Domain, portSuffix)
+	fmt.Printf("  Apps:         %s://<app>.%s%s\n", protocol, cfg.Server.Domain, portSuffix)
 
 	// Initialize session store
 	sessionStore := auth.NewSessionStore(auth.SessionTTL)
