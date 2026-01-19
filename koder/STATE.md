@@ -1,42 +1,42 @@
 # Fazt Implementation State
 
 **Last Updated**: 2026-01-19
-**Current Version**: v0.9.27 (local), v0.9.27 (zyt)
+**Current Version**: v0.10.0 (local), v0.9.27 (zyt - pending update)
 
 ## Status
 
 ```
 State: CLEAN
-v0.10 spec complete, ready for implementation.
-Spec: koder/ideas/specs/v0.10-app-identity/README.md
+v0.10 implementation complete, pending zyt deployment.
 ```
 
 ---
 
-## Next Up: v0.10 - App Identity, Aliases & Remote Execution
+## Completed: v0.10 - App Identity, Aliases & Remote Execution
 
+**Implemented**: 2026-01-19
 **Spec**: `koder/ideas/specs/v0.10-app-identity/README.md`
 
-### Core Design
+### What's New
 
-- **Apps** = content + identity (id, title, description, tags, visibility, lineage)
-- **Aliases** = routing layer (subdomain → app, supports proxy/redirect/reserved/split)
-- **`@peer`** = remote execution (`fazt @zyt app list`)
+- **App Identity**: Permanent UUIDs (`app_xxxxxxxx`) independent of aliases
+- **Alias System**: Subdomains as routing layer (proxy/redirect/reserved/split)
+- **Lineage Tracking**: Fork relationships with `original_id` and `forked_from_id`
+- **@peer Execution**: `fazt @zyt app list` runs commands on remote peers
+- **Agent Endpoints**: `/_fazt/*` for LLM testing workflows
+- **Traffic Splitting**: Weighted distribution with sticky sessions
 
-### Key Decisions
+### Implementation Details
 
-- No subdomain field on apps - aliases ARE the routing layer
-- Multiple aliases can point to same app
-- Logs use app_id (stable across alias changes)
-- CLI uses `--alias` and `--id` flags
-- 1:1 CLI to API mapping via command gateway (`POST /api/cmd`)
-
-### Implementation Phases
-
-1. **Core Data Model**: Schema migration, ID generation, routing
-2. **CLI + API**: All commands with 1:1 API mapping
-3. **Remote Execution**: `@peer` parsing, command gateway
-4. **Advanced**: Traffic splitting, visibility, agent endpoints
+| Component | File |
+|-----------|------|
+| Migration | `internal/database/migrations/012_app_identity.sql` |
+| ID Generation | `internal/appid/appid.go` |
+| Aliases Handler | `internal/handlers/aliases_handler.go` |
+| Apps v2 Handler | `internal/handlers/apps_handler_v2.go` |
+| Agent Handler | `internal/handlers/agent_handler.go` |
+| Command Gateway | `internal/handlers/cmd_gateway.go` |
+| CLI v2 | `cmd/server/app_v2.go` |
 
 ---
 
@@ -47,7 +47,10 @@ Spec: koder/ideas/specs/v0.10-app-identity/README.md
 | `fazt app list zyt` | List apps |
 | `fazt app deploy ./dir --to local` | Deploy to local |
 | `fazt app deploy ./dir --to zyt` | Deploy to production |
-| `fazt remote status zyt` | Check health/version |
+| `fazt @zyt app list` | Remote command execution |
+| `fazt app fork <id> --alias new-name` | Fork with lineage |
+| `fazt app link <id> <alias>` | Attach alias |
+| `fazt app swap alias1 alias2` | Atomic swap |
 
 ### Local Development (Wildcard DNS)
 

@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -316,13 +317,13 @@ func (fs *SQLFileSystem) EnsureApp(name string, source *SourceInfo) error {
 func (fs *SQLFileSystem) GetAppSource(name string) (*SourceInfo, error) {
 	query := `
 		SELECT source, source_url, source_ref, source_commit
-		FROM apps WHERE name = ?
+		FROM apps WHERE id = ? OR title = ?
 	`
 
 	var sourceType string
 	var sourceURL, sourceRef, sourceCommit sql.NullString
 
-	err := fs.db.QueryRow(query, name).Scan(&sourceType, &sourceURL, &sourceRef, &sourceCommit)
+	err := fs.db.QueryRow(query, name, name).Scan(&sourceType, &sourceURL, &sourceRef, &sourceCommit)
 	if err == sql.ErrNoRows {
 		return nil, fmt.Errorf("app not found: %s", name)
 	}
@@ -336,4 +337,136 @@ func (fs *SQLFileSystem) GetAppSource(name string) (*SourceInfo, error) {
 		Ref:    sourceRef.String,
 		Commit: sourceCommit.String,
 	}, nil
+}
+
+// ReadFileByAppID reads a file using app_id instead of site_id
+func (fs *SQLFileSystem) ReadFileByAppID(appID, path string) (*File, error) {
+	key := cacheKey(appID, path)
+
+	// Check cache
+	fs.cacheMu.RLock()
+	if cached, ok := fs.cache[key]; ok {
+		fs.cacheMu.RUnlock()
+		return &File{
+			Content:  io.NopCloser(newByteReader(cached.Data)),
+			Size:     cached.Size,
+			MimeType: cached.MimeType,
+			Hash:     cached.Hash,
+			ModTime:  cached.ModTime,
+		}, nil
+	}
+	fs.cacheMu.RUnlock()
+
+	// Query DB using app_id
+	query := `
+		SELECT content, size_bytes, mime_type, hash, updated_at
+		FROM files WHERE app_id = ? AND path = ?
+	`
+
+	var data []byte
+	var size int64
+	var mimeType, hash string
+	var modTime time.Time
+
+	err := fs.db.QueryRow(query, appID, path).Scan(&data, &size, &mimeType, &hash, &modTime)
+	if err == sql.ErrNoRows {
+		return nil, fmt.Errorf("file not found")
+	}
+	if err != nil {
+		return nil, fmt.Errorf("database error: %w", err)
+	}
+
+	// Update cache
+	fs.cacheMu.Lock()
+	if len(fs.cache) > 1000 {
+		fs.cache = make(map[string]CachedFile)
+	}
+	fs.cache[key] = CachedFile{
+		Data:     data,
+		Size:     size,
+		MimeType: mimeType,
+		Hash:     hash,
+		ModTime:  modTime,
+	}
+	fs.cacheMu.Unlock()
+
+	return &File{
+		Content:  io.NopCloser(newByteReader(data)),
+		Size:     size,
+		MimeType: mimeType,
+		Hash:     hash,
+		ModTime:  modTime,
+	}, nil
+}
+
+// ListFilesByAppID returns files for an app using app_id
+func (fs *SQLFileSystem) ListFilesByAppID(appID string) ([]FileEntry, error) {
+	query := `
+		SELECT path, size_bytes, updated_at
+		FROM files WHERE app_id = ?
+		ORDER BY path
+	`
+
+	rows, err := fs.db.Query(query, appID)
+	if err != nil {
+		return nil, fmt.Errorf("database error: %w", err)
+	}
+	defer rows.Close()
+
+	var files []FileEntry
+	for rows.Next() {
+		var f FileEntry
+		if err := rows.Scan(&f.Path, &f.Size, &f.ModTime); err != nil {
+			return nil, err
+		}
+		files = append(files, f)
+	}
+
+	return files, nil
+}
+
+// DeleteAppFiles deletes all files for an app by app_id
+func (fs *SQLFileSystem) DeleteAppFiles(appID string) error {
+	_, err := fs.db.Exec("DELETE FROM files WHERE app_id = ?", appID)
+
+	// Invalidate cache
+	fs.cacheMu.Lock()
+	for k := range fs.cache {
+		if strings.HasPrefix(k, appID+":") {
+			delete(fs.cache, k)
+		}
+	}
+	fs.cacheMu.Unlock()
+
+	return err
+}
+
+// GetMimeType returns the MIME type for a file path
+func GetMimeType(path string) string {
+	ext := strings.ToLower(filepath.Ext(path))
+	mimeTypes := map[string]string{
+		".html": "text/html",
+		".css":  "text/css",
+		".js":   "application/javascript",
+		".json": "application/json",
+		".png":  "image/png",
+		".jpg":  "image/jpeg",
+		".jpeg": "image/jpeg",
+		".gif":  "image/gif",
+		".svg":  "image/svg+xml",
+		".ico":  "image/x-icon",
+		".woff": "font/woff",
+		".woff2": "font/woff2",
+		".ttf":  "font/ttf",
+		".eot":  "application/vnd.ms-fontobject",
+		".txt":  "text/plain",
+		".xml":  "application/xml",
+		".pdf":  "application/pdf",
+		".zip":  "application/zip",
+		".wasm": "application/wasm",
+	}
+	if mime, ok := mimeTypes[ext]; ok {
+		return mime
+	}
+	return "application/octet-stream"
 }

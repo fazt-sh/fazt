@@ -2,6 +2,78 @@
 
 All notable changes to fazt.sh will be documented in this file.
 
+## [0.10.0] - 2026-01-19
+
+### Added
+
+#### App Identity Model
+- **Permanent App IDs**: Apps now have stable UUIDs (`app_xxxxxxxx`) independent
+  of their routing aliases. IDs persist across renames and can be used for
+  programmatic access.
+- **Alias System**: Subdomains are now routing aliases that map to app IDs
+  - `proxy` - Standard serving (default)
+  - `redirect` - HTTP 301/302 to target URL
+  - `reserved` - Holds subdomain without content
+  - `split` - Weighted traffic distribution
+
+#### Lineage & Forking
+- **Fork with Lineage**: `fazt app fork <app-id> --alias new-name` creates a copy
+  with full lineage tracking
+  - `original_id` - Root ancestor of fork chain
+  - `forked_from_id` - Immediate parent
+- **Lineage Tree**: `fazt app lineage <app-id>` shows fork relationships
+
+#### CLI Enhancements
+- **@peer Remote Execution**: Run commands on remote peers directly
+  - `fazt @zyt app list` - List apps on zyt peer
+  - `fazt @zyt app info myapp` - Get app info from remote
+- **Alias Management**:
+  - `fazt app link <app-id> <alias>` - Attach alias to app
+  - `fazt app unlink <alias>` - Remove alias
+  - `fazt app reserve <alias>` - Reserve subdomain
+  - `fazt app swap <alias1> <alias2>` - Atomic swap
+  - `fazt app split <alias> <app1>:<weight> <app2>:<weight>` - Traffic splitting
+
+#### API Endpoints
+- `GET /api/v2/apps` - List apps with visibility filter
+- `GET /api/v2/apps/:id` - Get app by ID
+- `POST /api/v2/apps/:id/fork` - Fork an app
+- `GET /api/v2/apps/:id/lineage` - Get lineage tree
+- `GET /api/aliases` - List all aliases
+- `POST /api/aliases` - Create alias
+- `PUT /api/aliases/:subdomain` - Update alias
+- `DELETE /api/aliases/:subdomain` - Delete alias
+- `POST /api/aliases/swap` - Atomic alias swap
+- `POST /api/aliases/split` - Configure traffic split
+- `POST /api/cmd` - Command gateway for @peer execution
+
+#### Agent Endpoints (/_fazt/*)
+For LLM testing workflows:
+- `GET /_fazt/info` - App metadata
+- `GET /_fazt/storage` - List storage keys
+- `GET /_fazt/storage/:key` - Get storage value
+- `POST /_fazt/snapshot` - Create named snapshot
+- `POST /_fazt/restore/:name` - Restore snapshot
+- `GET /_fazt/snapshots` - List snapshots
+- `GET /_fazt/logs` - Recent execution logs
+- `GET /_fazt/errors` - Recent errors
+
+#### Traffic Splitting
+- Weighted distribution across multiple app versions
+- Sticky sessions via `X-Fazt-Variant` cookie
+- Useful for A/B testing and gradual rollouts
+
+### Changed
+- **Database Schema**: Migration 012 adds `apps_new` table with identity fields
+  and `aliases` table. Existing apps are migrated automatically.
+- **Routing**: Subdomain resolution now checks aliases table first, then falls
+  back to direct app ID lookup for backwards compatibility.
+
+### Migration Notes
+- Existing apps receive auto-generated IDs during migration
+- Existing subdomains become `proxy` type aliases pointing to their app IDs
+- All existing functionality remains backward compatible
+
 ## [0.9.27] - 2026-01-18
 
 ### Changed

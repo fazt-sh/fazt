@@ -9,6 +9,78 @@ import (
 	"strings"
 )
 
+// ServeVFSByAppID serves files from the Virtual File System using app_id
+func ServeVFSByAppID(w http.ResponseWriter, r *http.Request, appID string) {
+	path := r.URL.Path
+	if !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
+
+	// Default to index.html for root or directories
+	if path == "/" || strings.HasSuffix(path, "/") {
+		path += "index.html"
+	}
+
+	// Clean path
+	path = filepath.Clean(path)
+	path = filepath.ToSlash(path)
+	path = strings.TrimPrefix(path, "/")
+	if path == "" {
+		path = "index.html"
+	}
+
+	sqlFS, ok := fs.(*SQLFileSystem)
+	if !ok {
+		http.NotFound(w, r)
+		return
+	}
+
+	// 1. Try exact match using app_id
+	file, err := sqlFS.ReadFileByAppID(appID, path)
+	if err != nil {
+		// 2. If not found, try with index.html
+		if filepath.Ext(path) == "" {
+			idxPath := filepath.Join(path, "index.html")
+			idxPath = filepath.ToSlash(idxPath)
+			file, err = sqlFS.ReadFileByAppID(appID, idxPath)
+		}
+
+		// 3. If still not found, 404
+		if err != nil {
+			http.NotFound(w, r)
+			return
+		}
+	}
+	defer file.Content.Close()
+
+	// ETag Caching
+	w.Header().Set("ETag", fmt.Sprintf(`"%s"`, file.Hash))
+	if match := r.Header.Get("If-None-Match"); match != "" {
+		if strings.Contains(match, file.Hash) {
+			w.WriteHeader(http.StatusNotModified)
+			return
+		}
+	}
+
+	// Content Type
+	contentType := file.MimeType
+	if contentType == "" {
+		contentType = mime.TypeByExtension(filepath.Ext(path))
+		if contentType == "" {
+			contentType = "application/octet-stream"
+		}
+	}
+	w.Header().Set("Content-Type", contentType)
+
+	// Content Length
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", file.Size))
+
+	// Serve content
+	if _, err := io.Copy(w, file.Content); err != nil {
+		// Log error?
+	}
+}
+
 // ServeVFS serves files from the Virtual File System
 func ServeVFS(w http.ResponseWriter, r *http.Request, siteID string) {
 	path := r.URL.Path

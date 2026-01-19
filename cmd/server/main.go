@@ -71,6 +71,13 @@ func main() {
 		return
 	}
 
+	// v0.10: Handle @peer prefix for remote execution
+	// e.g., "fazt @zyt app list" -> execute "app list" on peer "zyt"
+	if strings.HasPrefix(command, "@") {
+		handlePeerCommand(command[1:], os.Args[2:])
+		return
+	}
+
 	// Handle top-level subcommands
 	switch command {
 	case "server":
@@ -80,7 +87,7 @@ func main() {
 	case "remote":
 		handleRemoteCommand(os.Args[2:])
 	case "app":
-		handleAppCommand(os.Args[2:])
+		handleAppCommandV2(os.Args[2:]) // v0.10: Use new app command handler
 	case "service":
 		handleServiceCommand(os.Args[2:])
 	case "client":
@@ -93,6 +100,111 @@ func main() {
 		fmt.Printf("Unknown command: %s\n\n", command)
 		printUsage()
 		os.Exit(1)
+	}
+}
+
+// handlePeerCommand handles @peer remote execution
+// e.g., "fazt @zyt app list" executes "app list" on peer "zyt"
+func handlePeerCommand(peerName string, args []string) {
+	if len(args) < 1 {
+		fmt.Printf("Error: command required after @%s\n", peerName)
+		fmt.Println("Usage: fazt @<peer> <command> [args...]")
+		os.Exit(1)
+	}
+
+	command := args[0]
+	cmdArgs := args[1:]
+
+	// Only certain commands can be executed remotely
+	switch command {
+	case "app":
+		// Inject peer into args for app commands
+		// Most app commands already support --to/--from/--on flags
+		handleAppCommandV2WithPeer(peerName, cmdArgs)
+	case "server":
+		// Limited server commands (info only)
+		if len(cmdArgs) > 0 && cmdArgs[0] == "info" {
+			handleRemoteServerInfo(peerName)
+		} else {
+			fmt.Printf("Error: only 'server info' can be executed remotely\n")
+			os.Exit(1)
+		}
+	default:
+		fmt.Printf("Error: command '%s' cannot be executed remotely\n", command)
+		fmt.Println("Remote execution supported for: app, server info")
+		os.Exit(1)
+	}
+}
+
+// handleAppCommandV2WithPeer handles app commands with an explicit peer
+func handleAppCommandV2WithPeer(peerName string, args []string) {
+	if len(args) < 1 {
+		// Default: list apps on specified peer
+		handleAppListV2([]string{peerName})
+		return
+	}
+
+	subcommand := args[0]
+	subArgs := args[1:]
+
+	// Inject peer name into the args based on the subcommand
+	switch subcommand {
+	case "list":
+		handleAppListV2(append([]string{peerName}, subArgs...))
+	case "info":
+		handleAppInfoV2(append(subArgs, "--on", peerName))
+	case "deploy":
+		handleAppDeploy(append(subArgs, "--to", peerName))
+	case "install":
+		handleAppInstall(append(subArgs, "--to", peerName))
+	case "remove":
+		handleAppRemoveV2(append(subArgs, "--from", peerName))
+	case "link":
+		handleAppLink(append(subArgs, "--to", peerName))
+	case "unlink":
+		handleAppUnlink(append(subArgs, "--from", peerName))
+	case "reserve":
+		handleAppReserve(append(subArgs, "--on", peerName))
+	case "fork":
+		handleAppFork(append(subArgs, "--to", peerName))
+	case "swap":
+		handleAppSwap(append(subArgs, "--on", peerName))
+	case "split":
+		handleAppSplit(append(subArgs, "--on", peerName))
+	case "lineage":
+		handleAppLineage(append(subArgs, "--on", peerName))
+	case "upgrade":
+		handleAppUpgrade(append(subArgs, "--from", peerName))
+	case "pull":
+		handleAppPull(append(subArgs, "--from", peerName))
+	default:
+		fmt.Printf("Unknown app command: %s\n", subcommand)
+		os.Exit(1)
+	}
+}
+
+// handleRemoteServerInfo gets server info from a remote peer
+func handleRemoteServerInfo(peerName string) {
+	db := getClientDB()
+	defer database.Close()
+
+	peer, err := remote.ResolvePeer(db, peerName)
+	if err != nil {
+		fmt.Printf("Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	result, err := executeRemoteCmd(peer, "server", []string{"info"})
+	if err != nil {
+		fmt.Printf("Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	if info, ok := result.(map[string]interface{}); ok {
+		fmt.Printf("Server: %s\n", peerName)
+		fmt.Printf("Version: %v\n", info["version"])
+		fmt.Printf("Domain:  %v\n", info["domain"])
+		fmt.Printf("Env:     %v\n", info["env"])
 	}
 }
 
@@ -1324,33 +1436,62 @@ func extractSubdomain(host, mainDomain string) string {
 }
 
 // siteHandler handles requests for hosted sites
-// Serves files from VFS
+// v0.10: First resolves alias to app_id, then serves files from VFS
 // If main.js exists, executes serverless JavaScript instead
 // WebSocket connections at /ws are handled by the WebSocket hub
 // API paths (/api or /api/*) are handled by the serverless handler with storage
 func siteHandler(w http.ResponseWriter, r *http.Request, subdomain string) {
-	// Check if site exists
-	if !hosting.SiteExists(subdomain) {
+	// v0.10: Resolve alias to app_id
+	appID, aliasType, err := handlers.ResolveAlias(subdomain)
+	if err != nil {
+		// Alias resolution failed, try legacy lookup by site_id
+		appID = subdomain
+	}
+
+	// Handle alias types
+	switch aliasType {
+	case "reserved":
+		// Reserved subdomain - return 404
+		serveSiteNotFound(w, r, subdomain)
+		return
+	case "redirect":
+		// Get redirect URL and redirect
+		redirectURL, err := handlers.GetRedirectURL(subdomain)
+		if err == nil && redirectURL != "" {
+			http.Redirect(w, r, redirectURL, http.StatusMovedPermanently)
+			return
+		}
+	}
+
+	// If alias resolved, use app_id; otherwise fall back to subdomain as site_id
+	siteID := subdomain
+	if appID != "" {
+		siteID = appID
+	}
+
+	// Check if site exists (using legacy check for now)
+	if !hosting.SiteExists(subdomain) && appID == "" {
 		serveSiteNotFound(w, r, subdomain)
 		return
 	}
+
 	// Handle WebSocket connections at /ws
 	if r.URL.Path == "/ws" {
 		hosting.HandleWebSocket(w, r, subdomain)
 		return
 	}
 
-	// Log analytics event for site visits
-	logSiteVisit(r, subdomain)
+	// Log analytics event for site visits (using app_id for v0.10)
+	logSiteVisit(r, siteID)
 
 	// Check for API paths (/api or /api/*)
 	// These are handled by the serverless handler with storage support
 	if r.URL.Path == "/api" || strings.HasPrefix(r.URL.Path, "/api/") {
 		// Get app ID from database (site_id in files table)
 		fs := hosting.GetFileSystem()
-		hasAPI, _ := fs.Exists(subdomain, "api/main.js")
+		hasAPI, _ := fs.Exists(siteID, "api/main.js")
 		if hasAPI && serverlessHandler != nil {
-			serverlessHandler.HandleRequest(w, r, subdomain, subdomain)
+			serverlessHandler.HandleRequest(w, r, siteID, siteID)
 			return
 		}
 		// No api/main.js found
@@ -1361,17 +1502,17 @@ func siteHandler(w http.ResponseWriter, r *http.Request, subdomain string) {
 	// Check for serverless (main.js) - legacy support for root-level handlers
 	// We check directly in VFS now
 	fs := hosting.GetFileSystem()
-	hasServerless, _ := fs.Exists(subdomain, "main.js")
+	hasServerless, _ := fs.Exists(siteID, "main.js")
 
 	if hasServerless {
 		db := database.GetDB()
-		if hosting.RunServerless(w, r, subdomain, db, subdomain) {
+		if hosting.RunServerless(w, r, siteID, db, siteID) {
 			return // Serverless handled the request
 		}
 	}
 
-	// Serve from VFS
-	hosting.ServeVFS(w, r, subdomain)
+	// Serve from VFS (using siteID which is app_id if alias resolved, otherwise subdomain)
+	hosting.ServeVFS(w, r, siteID)
 }
 
 // logSiteVisit logs an analytics event for a site visit
@@ -2564,16 +2705,44 @@ func handleStartCommand() {
 	dashboardMux.HandleFunc("GET /api/sites/{id}/files", handlers.SiteFilesHandler)
 	dashboardMux.HandleFunc("GET /api/sites/{id}/files/{path...}", handlers.SiteFileContentHandler)
 
-	// Apps API (new - replaces sites)
-	dashboardMux.HandleFunc("GET /api/apps", handlers.AppsListHandler)
+	// Apps API v2 (v0.10 - identity model)
+	dashboardMux.HandleFunc("GET /api/apps", handlers.AppsListHandlerV2)
+	dashboardMux.HandleFunc("POST /api/apps", handlers.AppCreateHandlerV2)
 	dashboardMux.HandleFunc("POST /api/apps/install", handlers.AppInstallHandler)
-	dashboardMux.HandleFunc("POST /api/apps/create", handlers.AppCreateHandler)
+	dashboardMux.HandleFunc("POST /api/apps/create", handlers.AppCreateHandler) // Legacy
 	dashboardMux.HandleFunc("GET /api/templates", handlers.TemplatesListHandler)
-	dashboardMux.HandleFunc("GET /api/apps/{id}", handlers.AppDetailHandler)
-	dashboardMux.HandleFunc("DELETE /api/apps/{id}", handlers.AppDeleteHandler)
+	dashboardMux.HandleFunc("GET /api/apps/{id}", handlers.AppDetailHandlerV2)
+	dashboardMux.HandleFunc("PUT /api/apps/{id}", handlers.AppUpdateHandlerV2)
+	dashboardMux.HandleFunc("DELETE /api/apps/{id}", handlers.AppDeleteHandlerV2)
 	dashboardMux.HandleFunc("GET /api/apps/{id}/files", handlers.AppFilesHandler)
 	dashboardMux.HandleFunc("GET /api/apps/{id}/source", handlers.AppSourceHandler)
 	dashboardMux.HandleFunc("GET /api/apps/{id}/files/{path...}", handlers.AppFileContentHandler)
+	dashboardMux.HandleFunc("POST /api/apps/{id}/fork", handlers.AppForkHandler)
+	dashboardMux.HandleFunc("GET /api/apps/{id}/lineage", handlers.AppLineageHandler)
+	dashboardMux.HandleFunc("GET /api/apps/{id}/forks", handlers.AppForksHandler)
+
+	// Aliases API (v0.10 - routing layer)
+	dashboardMux.HandleFunc("GET /api/aliases", handlers.AliasesListHandler)
+	dashboardMux.HandleFunc("POST /api/aliases", handlers.AliasCreateHandler)
+	dashboardMux.HandleFunc("GET /api/aliases/{subdomain}", handlers.AliasDetailHandler)
+	dashboardMux.HandleFunc("PUT /api/aliases/{subdomain}", handlers.AliasUpdateHandler)
+	dashboardMux.HandleFunc("DELETE /api/aliases/{subdomain}", handlers.AliasDeleteHandler)
+	dashboardMux.HandleFunc("POST /api/aliases/{subdomain}/reserve", handlers.AliasReserveHandler)
+	dashboardMux.HandleFunc("POST /api/aliases/{subdomain}/split", handlers.AliasSplitHandler)
+	dashboardMux.HandleFunc("POST /api/aliases/swap", handlers.AliasSwapHandler)
+
+	// Command Gateway (v0.10 - for @peer remote execution)
+	dashboardMux.HandleFunc("POST /api/cmd", handlers.CmdGatewayHandler)
+
+	// Agent Endpoints (v0.10 - for LLM agent workflows)
+	dashboardMux.HandleFunc("GET /_fazt/info", handlers.AgentInfoHandler)
+	dashboardMux.HandleFunc("GET /_fazt/storage", handlers.AgentStorageListHandler)
+	dashboardMux.HandleFunc("GET /_fazt/storage/{key}", handlers.AgentStorageGetHandler)
+	dashboardMux.HandleFunc("POST /_fazt/snapshot", handlers.AgentSnapshotHandler)
+	dashboardMux.HandleFunc("POST /_fazt/restore/{name}", handlers.AgentRestoreHandler)
+	dashboardMux.HandleFunc("GET /_fazt/snapshots", handlers.AgentSnapshotsListHandler)
+	dashboardMux.HandleFunc("GET /_fazt/logs", handlers.AgentLogsHandler)
+	dashboardMux.HandleFunc("GET /_fazt/errors", handlers.AgentErrorsHandler)
 
 	dashboardMux.HandleFunc("/api/keys", handlers.APIKeysHandler)
 	dashboardMux.HandleFunc("/api/deployments", handlers.DeploymentsHandler)
