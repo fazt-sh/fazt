@@ -6,59 +6,37 @@
 ## Status
 
 ```
-State: IN_PROGRESS
-Working on: Agent-friendly API surface for CLI-based debugging
+State: CLEAN
+v0.10 spec complete, ready for implementation.
 Spec: koder/ideas/specs/v0.10-app-identity/README.md
 ```
 
 ---
 
-## Current Work: v0.10 - App Identity, Aliases & Agent Debugging
+## Next Up: v0.10 - App Identity, Aliases & Remote Execution
 
-### Goal
+**Spec**: `koder/ideas/specs/v0.10-app-identity/README.md`
 
-Enable fully agentic/CLI-based app development and debugging:
-1. Build locally (Vite, optimized)
-2. Deploy to local fazt (test via API, no browser)
-3. Iterate until approved
-4. Deploy to production
+### Core Design
 
-### Completed This Session
+- **Apps** = content + identity (id, title, description, tags, visibility, lineage)
+- **Aliases** = routing layer (subdomain → app, supports proxy/redirect/reserved/split)
+- **`@peer`** = remote execution (`fazt @zyt app list`)
 
-**Wildcard DNS** - Zero-config local development:
-- `--domain 192.168.64.3` auto-wraps to `192.168.64.3.nip.io`
-- Apps accessible at `http://app.192.168.64.3.nip.io:8080`
-- No host config needed (works across VM/host boundaries)
-- Files changed: `internal/config/config.go`, `cmd/server/main.go`
+### Key Decisions
 
-**App Identity + Aliases Spec** - Major design iteration:
-- **Separated apps from routing**: Apps have identity, aliases handle subdomains
-- **Apps table**: id, original_id, title, description, tags, visibility
-- **Aliases table**: subdomain → app_id (proxy, redirect, reserved, split)
-- Multiple aliases can point to same app (solves multi-label question)
-- Traffic splitting with sticky sessions (A/B testing)
-- Logs use app_id (stable across renames)
-- CLI uses `--alias` and `--id` flags for flexibility
+- No subdomain field on apps - aliases ARE the routing layer
+- Multiple aliases can point to same app
+- Logs use app_id (stable across alias changes)
+- CLI uses `--alias` and `--id` flags
+- 1:1 CLI to API mapping via command gateway (`POST /api/cmd`)
 
-**Key Design Decisions:**
-- No `subdomain` field on apps - aliases ARE the routing layer
-- `visibility`: public (listed), unlisted (accessible but not discoverable), private
-- Metadata (title, description, tags) inherited on fork
-- Reserved subdomains via `reserved` alias type
+### Implementation Phases
 
-### Next: Implementation
-
-1. Schema migration (apps + aliases tables)
-2. ID generation (nanoid)
-3. Routing update (check aliases first)
-4. CLI `--alias/--id` flags
-5. `fazt app link/unlink/split/swap` commands
-6. `/_fazt/` debug endpoints
-7. Traffic splitting with sticky sessions
-
-### Spec Location
-
-`koder/ideas/specs/v0.10-app-identity/README.md` - fully updated
+1. **Core Data Model**: Schema migration, ID generation, routing
+2. **CLI + API**: All commands with 1:1 API mapping
+3. **Remote Execution**: `@peer` parsing, command gateway
+4. **Advanced**: Traffic splitting, visibility, agent endpoints
 
 ---
 
