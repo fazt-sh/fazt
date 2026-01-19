@@ -1,21 +1,31 @@
 # Fazt Implementation State
 
 **Last Updated**: 2026-01-19
-**Current Version**: v0.10.0 (local), v0.9.27 (zyt - pending update)
+**Current Version**: v0.10.1 (local), v0.10.0 (zyt - needs update)
 
 ## Status
 
 ```
-State: CLEAN
-v0.10 implementation complete, pending zyt deployment.
+State: PENDING RELEASE UPLOAD
+v0.10.1 committed and pushed, GitHub release created but assets need manual upload.
+GitHub PAT expired during release process.
 ```
+
+## Action Required
+
+1. Generate new GitHub PAT with `repo` scope
+2. Upload release assets to v0.10.1:
+   - `/tmp/fazt-release/fazt-v0.10.1-linux-amd64.tar.gz`
+   - `/tmp/fazt-release/fazt-v0.10.1-linux-arm64.tar.gz`
+3. Run `fazt remote upgrade zyt`
+
+Or manually upload via GitHub web UI: https://github.com/fazt-sh/fazt/releases/tag/v0.10.1
 
 ---
 
 ## Completed: v0.10 - App Identity, Aliases & Remote Execution
 
 **Implemented**: 2026-01-19
-**Spec**: `koder/ideas/specs/v0.10-app-identity/README.md`
 
 ### What's New
 
@@ -26,7 +36,13 @@ v0.10 implementation complete, pending zyt deployment.
 - **Agent Endpoints**: `/_fazt/*` for LLM testing workflows
 - **Traffic Splitting**: Weighted distribution with sticky sessions
 
-### Implementation Details
+### Bug Fix in v0.10.1
+
+After v0.10 migration, files have both `site_id` (old subdomain) and `app_id`
+(new UUID). The VFS layer was querying by site_id when given app_id, causing
+404s for migrated apps. Fixed by using `app_id` column for lookups.
+
+### Implementation Files
 
 | Component | File |
 |-----------|------|
@@ -45,44 +61,29 @@ v0.10 implementation complete, pending zyt deployment.
 | Command | Purpose |
 |---------|---------|
 | `fazt app list zyt` | List apps |
-| `fazt app deploy ./dir --to local` | Deploy to local |
 | `fazt app deploy ./dir --to zyt` | Deploy to production |
 | `fazt @zyt app list` | Remote command execution |
-| `fazt app fork <id> --alias new-name` | Fork with lineage |
-| `fazt app link <id> <alias>` | Attach alias |
-| `fazt app swap alias1 alias2` | Atomic swap |
+| `fazt app fork --alias myapp --as myapp-v2 --to zyt` | Fork with lineage |
+| `fazt app link myalias --id app_xxx --to zyt` | Attach alias |
+| `fazt app swap alias1 alias2 --on zyt` | Atomic swap |
 
 ### Local Development (Wildcard DNS)
 
 ```bash
-# Start local server (IP auto-wrapped with nip.io)
 fazt server start --domain 192.168.64.3 --port 8080 --db /tmp/fazt-local.db
-
-# Access apps
-http://admin.192.168.64.3.nip.io:8080    # Dashboard
-http://myapp.192.168.64.3.nip.io:8080    # Your app
+# Access at http://myapp.192.168.64.3.nip.io:8080
 ```
 
 ---
 
-## Apps
+## Apps on zyt.app
 
-### Local (192.168.64.3.nip.io:8080)
-
-| App | URL |
-|-----|-----|
-| othelo | http://othelo.192.168.64.3.nip.io:8080 |
-| tetris | http://tetris.192.168.64.3.nip.io:8080 |
-| snake | http://snake.192.168.64.3.nip.io:8080 |
-
-### Production (zyt.app)
-
-| App | URL |
-|-----|-----|
-| pomodoro | https://pomodoro.zyt.app |
-| tetris | https://tetris.zyt.app |
-| othelo | https://othelo.zyt.app |
-| snake | https://snake.zyt.app |
+| App | ID | URL |
+|-----|----|-----|
+| pomodoro | app_9c479319 | https://pomodoro.zyt.app |
+| tetris | app_98ed8539 | https://tetris.zyt.app |
+| othelo | app_706bd43c | https://othelo.zyt.app |
+| snake | app_1d28078d | https://snake.zyt.app |
 
 ---
 
