@@ -73,7 +73,10 @@ my-app/
 | Name | URL | Description |
 |------|-----|-------------|
 | zyt | https://zyt.app | Personal production instance |
-| local | http://192.168.64.3:8080 | Local dev server (when running) |
+| local | http://192.168.64.3:8080 | Local dev server (always running) |
+
+**Note**: The local server is a persistent instance - always running across all
+Claude sessions. Never stop it. Use it to test apps before deploying to zyt.
 
 **Managing peers:**
 ```bash

@@ -194,28 +194,28 @@ func AppDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get app name for file deletion
-	var name string
-	err := db.QueryRow("SELECT name FROM apps WHERE id = ? OR name = ?", appID, appID).Scan(&name)
+	// Get app title for file deletion
+	var title string
+	err := db.QueryRow("SELECT title FROM apps WHERE id = ? OR title = ?", appID, appID).Scan(&title)
 	if err != nil {
 		api.NotFound(w, "APP_NOT_FOUND", "App not found")
 		return
 	}
 
 	// Don't allow deleting system apps
-	if name == "root" || name == "404" || name == "admin" {
+	if title == "root" || title == "404" || title == "admin" {
 		api.ErrorResponse(w, http.StatusForbidden, "SYSTEM_APP", "Cannot delete system app", "")
 		return
 	}
 
 	// Delete files via hosting
-	if err := hosting.DeleteSite(name); err != nil {
+	if err := hosting.DeleteSite(title); err != nil {
 		api.InternalError(w, err)
 		return
 	}
 
 	// Delete from apps table
-	_, err = db.Exec("DELETE FROM apps WHERE id = ? OR name = ?", appID, appID)
+	_, err = db.Exec("DELETE FROM apps WHERE id = ? OR title = ?", appID, appID)
 	if err != nil {
 		api.InternalError(w, err)
 		return
@@ -223,7 +223,7 @@ func AppDeleteHandler(w http.ResponseWriter, r *http.Request) {
 
 	api.Success(w, http.StatusOK, map[string]interface{}{
 		"message": "App deleted",
-		"name":    name,
+		"name":    title,
 	})
 }
 
@@ -241,16 +241,16 @@ func AppFilesHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get app name
-	var name string
-	err := db.QueryRow("SELECT name FROM apps WHERE id = ? OR name = ?", appID, appID).Scan(&name)
+	// Get app title
+	var title string
+	err := db.QueryRow("SELECT title FROM apps WHERE id = ? OR title = ?", appID, appID).Scan(&title)
 	if err != nil {
 		api.NotFound(w, "APP_NOT_FOUND", "App not found")
 		return
 	}
 
 	fs := hosting.GetFileSystem()
-	files, err := fs.ListFiles(name)
+	files, err := fs.ListFiles(title)
 	if err != nil {
 		api.InternalError(w, err)
 		return
@@ -283,7 +283,7 @@ func AppSourceHandler(w http.ResponseWriter, r *http.Request) {
 
 	query := `
 		SELECT source, source_url, source_ref, source_commit
-		FROM apps WHERE name = ? OR id = ?
+		FROM apps WHERE title = ? OR id = ?
 	`
 
 	var sourceType string
@@ -327,16 +327,16 @@ func AppFileContentHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get app name
-	var name string
-	err := db.QueryRow("SELECT name FROM apps WHERE id = ? OR name = ?", appID, appID).Scan(&name)
+	// Get app title
+	var title string
+	err := db.QueryRow("SELECT title FROM apps WHERE id = ? OR title = ?", appID, appID).Scan(&title)
 	if err != nil {
 		api.NotFound(w, "APP_NOT_FOUND", "App not found")
 		return
 	}
 
 	fs := hosting.GetFileSystem()
-	file, err := fs.ReadFile(name, filePath)
+	file, err := fs.ReadFile(title, filePath)
 	if err != nil {
 		api.NotFound(w, "FILE_NOT_FOUND", "File not found")
 		return

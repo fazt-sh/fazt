@@ -1,6 +1,7 @@
 package hosting
 
 import (
+	"crypto/rand"
 	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
@@ -297,20 +298,62 @@ func (fs *SQLFileSystem) EnsureApp(name string, source *SourceInfo) error {
 		}
 	}
 
-	// Upsert app entry
-	query := `
-		INSERT INTO apps (id, name, source, source_url, source_ref, source_commit, installed_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-		ON CONFLICT(name) DO UPDATE SET
-			source = excluded.source,
-			source_url = COALESCE(excluded.source_url, apps.source_url),
-			source_ref = COALESCE(excluded.source_ref, apps.source_ref),
-			source_commit = COALESCE(excluded.source_commit, apps.source_commit),
-			updated_at = CURRENT_TIMESTAMP
-	`
+	// Check if app exists by title (via alias lookup)
+	var existingID string
+	err := fs.db.QueryRow(`SELECT id FROM apps WHERE title = ?`, name).Scan(&existingID)
 
-	_, err := fs.db.Exec(query, name, name, sourceType, sourceURL, sourceRef, sourceCommit)
+	if err == sql.ErrNoRows {
+		// Create new app with generated ID
+		appID := generateAppID()
+		query := `
+			INSERT INTO apps (id, title, source, source_url, source_ref, source_commit, created_at, updated_at)
+			VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+		`
+		_, err = fs.db.Exec(query, appID, name, sourceType, sourceURL, sourceRef, sourceCommit)
+		if err != nil {
+			return fmt.Errorf("failed to create app entry: %w", err)
+		}
+
+		// Create alias pointing to this app
+		aliasQuery := `
+			INSERT OR IGNORE INTO aliases (subdomain, type, targets, created_at, updated_at)
+			VALUES (?, 'app', json_object('app_id', ?), CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+		`
+		fs.db.Exec(aliasQuery, name, appID)
+		return nil
+	} else if err != nil {
+		return fmt.Errorf("failed to lookup app: %w", err)
+	}
+
+	// Update existing app
+	query := `
+		UPDATE apps SET
+			source = ?,
+			source_url = COALESCE(?, source_url),
+			source_ref = COALESCE(?, source_ref),
+			source_commit = COALESCE(?, source_commit),
+			updated_at = CURRENT_TIMESTAMP
+		WHERE id = ?
+	`
+	_, err = fs.db.Exec(query, sourceType, sourceURL, sourceRef, sourceCommit, existingID)
 	return err
+}
+
+// generateAppID creates a unique app ID like "app_7f3k9x2m"
+func generateAppID() string {
+	const charset = "0123456789abcdefghijklmnopqrstuvwxyz"
+	b := make([]byte, 8)
+	for i := range b {
+		b[i] = charset[randInt(len(charset))]
+	}
+	return "app_" + string(b)
+}
+
+// randInt returns a random int in [0, max)
+func randInt(max int) int {
+	var b [1]byte
+	rand.Read(b[:])
+	return int(b[0]) % max
 }
 
 // GetAppSource returns source tracking info for an app

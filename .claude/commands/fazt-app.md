@@ -20,18 +20,23 @@ Apps should feel native, polished, and delightful - like Apple apps.
 
 ```
 my-app/
-├── manifest.json      # Required: {"name": "my-app"}
-├── index.html         # Entry point with PWA meta tags
-├── main.js            # ES6 module entry
+├── manifest.json        # Required: {"name": "my-app"}
+├── index.html           # Entry point with PWA meta tags + import maps
+├── main.js              # ES6 module entry
+├── package.json         # Dev dependencies (Vite only)
+├── vite.config.js       # Vite configuration
 ├── lib/
-│   ├── session.js     # Session management
-│   ├── settings.js    # Settings/preferences
-│   ├── sounds.js      # Sound effects
-│   └── theme.js       # Theme management
-├── components/        # Vue components (plain JS)
-├── api/               # Serverless functions
-│   └── data.js        # → GET/POST /api/data
-└── assets/            # Copied from defaults or user-provided
+│   ├── session.js       # Session management
+│   ├── settings.js      # Settings/preferences
+│   ├── sounds.js        # Sound effects
+│   └── theme.js         # Theme management
+├── components/          # Vue components (plain JS, one per file)
+│   ├── App.js           # Root component
+│   ├── Header.js        # Navigation/header
+│   └── SettingsPanel.js # Settings modal
+├── api/                 # Serverless functions
+│   └── main.js          # → /api/* routes
+└── assets/              # Copied from defaults or user-provided
     ├── favicon.png
     ├── logo.png
     ├── logo.svg
@@ -44,7 +49,73 @@ Only request custom assets if the user wants app-specific branding.
 
 ---
 
-## Frontend Stack (Zero Build)
+## Frontend Stack (Vue + Vite)
+
+**Mandatory**: All fazt apps use Vue 3 with Vite. Apps must work in two modes:
+
+1. **Static hosting** (import maps) - Direct deploy to fazt, no build step
+2. **Vite dev/build** - Fast HMR in dev, optimized production builds
+
+This dual-mode approach lets you iterate with Vite locally while deploying
+the same source files directly to fazt static hosting.
+
+### package.json (Development Only)
+
+```json
+{
+  "name": "my-app",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0"
+  }
+}
+```
+
+**Note**: `vue` is NOT a dependency - it's loaded via import maps in production.
+
+### vite.config.js
+
+```javascript
+import { defineConfig } from 'vite'
+
+export default defineConfig({
+  // Resolve bare 'vue' import to CDN version for consistency
+  resolve: {
+    alias: {
+      'vue': 'https://unpkg.com/vue@3/dist/vue.esm-browser.js'
+    }
+  },
+  // Don't bundle Vue - use CDN in both dev and prod
+  build: {
+    rollupOptions: {
+      external: ['vue'],
+      output: {
+        paths: {
+          vue: 'https://unpkg.com/vue@3/dist/vue.esm-browser.js'
+        }
+      }
+    }
+  },
+  server: {
+    port: 5173,
+    // Proxy API calls to local fazt server
+    proxy: {
+      '/api': {
+        target: 'http://my-app.192.168.64.3.nip.io:8080',
+        changeOrigin: true
+      }
+    }
+  }
+})
+```
+
+### index.html
 
 ```html
 <!DOCTYPE html>
@@ -87,9 +158,6 @@ Only request custom assets if the user wants app-specific branding.
         extend: {
           fontFamily: {
             sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
-          },
-          colors: {
-            // Theme colors injected by theme.js
           }
         }
       }
@@ -99,7 +167,8 @@ Only request custom assets if the user wants app-specific branding.
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 
-  <!-- Import Map -->
+  <!-- Import Map: Makes 'vue' resolve to CDN in static hosting mode -->
+  <!-- Vite ignores this in dev/build and uses its own resolution -->
   <script type="importmap">
   {
     "imports": {
@@ -144,6 +213,19 @@ Only request custom assets if the user wants app-specific branding.
 </body>
 </html>
 ```
+
+### How It Works
+
+| Mode | Vue Resolution | Tailwind | Lucide |
+|------|----------------|----------|--------|
+| Static (fazt) | Import map → CDN | CDN | CDN |
+| Vite dev | Alias → CDN | CDN | CDN |
+| Vite build | External → CDN | CDN | CDN |
+
+The same `index.html` and `main.js` work in all three modes because:
+- `import { createApp } from 'vue'` resolves to CDN everywhere
+- No build step required for deployment
+- Vite just provides HMR during development
 
 ---
 
@@ -323,76 +405,96 @@ import { settings, updateSetting } from '../lib/settings.js'
 import { playSound } from '../lib/sounds.js'
 
 export default {
-  setup() {
+  name: 'SettingsPanel',
+  emits: ['close'],
+  setup(props, { emit }) {
     const toggle = (key) => {
       updateSetting(key, !settings.value[key])
       playSound('toggle')
     }
 
-    return { settings, updateSetting, toggle }
+    const close = () => {
+      emit('close')
+      playSound('tap')
+    }
+
+    return { settings, updateSetting, toggle, close, playSound }
   },
   template: `
-    <div class="p-6 space-y-6">
-      <h2 class="text-title">Settings</h2>
-
-      <!-- Display Name -->
-      <div class="space-y-2">
-        <label class="text-caption">Display Name</label>
-        <input
-          type="text"
-          v-model="settings.displayName"
-          placeholder="Enter your name"
-          class="w-full px-4 py-3 rounded-xl bg-neutral-100 dark:bg-neutral-800
-                 border-0 focus:ring-2 focus:ring-blue-500 outline-none"
+    <div>
+      <!-- Header -->
+      <div class="sticky top-0 p-4 border-b border-neutral-200 dark:border-neutral-800
+                  flex items-center justify-between bg-white dark:bg-neutral-900">
+        <span class="text-headline">Settings</span>
+        <button
+          @click="close"
+          class="p-2 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800"
         >
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
       </div>
 
-      <!-- Theme -->
-      <div class="space-y-2">
-        <label class="text-caption">Theme</label>
-        <div class="grid grid-cols-3 gap-2">
-          <button
-            v-for="t in ['light', 'dark', 'system']"
-            :key="t"
-            @click="updateSetting('theme', t); playSound('tap')"
-            class="px-4 py-3 rounded-xl capitalize transition-all touch-feedback"
-            :class="settings.theme === t
-              ? 'bg-blue-500 text-white'
-              : 'bg-neutral-100 dark:bg-neutral-800'"
+      <!-- Content -->
+      <div class="p-6 space-y-6">
+        <!-- Display Name -->
+        <div class="space-y-2">
+          <label class="text-caption">Display Name</label>
+          <input
+            type="text"
+            v-model="settings.displayName"
+            placeholder="Enter your name"
+            class="w-full px-4 py-3 rounded-xl bg-neutral-100 dark:bg-neutral-800
+                   border-0 focus:ring-2 focus:ring-blue-500 outline-none"
           >
-            {{ t }}
-          </button>
-        </div>
-      </div>
-
-      <!-- Toggles -->
-      <div class="space-y-3">
-        <div class="flex items-center justify-between">
-          <span>Sound Effects</span>
-          <button
-            @click="toggle('soundEnabled')"
-            class="w-12 h-7 rounded-full transition-colors touch-feedback"
-            :class="settings.soundEnabled ? 'bg-blue-500' : 'bg-neutral-300 dark:bg-neutral-700'"
-          >
-            <div
-              class="w-5 h-5 bg-white rounded-full shadow transition-transform mx-1"
-              :class="settings.soundEnabled ? 'translate-x-5' : 'translate-x-0'"
-            ></div>
-          </button>
         </div>
 
-        <div class="flex items-center justify-between">
-          <span>Haptic Feedback</span>
-          <button
-            @click="toggle('hapticEnabled')"
-            class="w-12 h-7 rounded-full transition-colors touch-feedback"
-            :class="settings.hapticEnabled ? 'bg-blue-500' : 'bg-neutral-300 dark:bg-neutral-700'"
-          >
-            <div
-              class="w-5 h-5 bg-white rounded-full shadow transition-transform mx-1"
-              :class="settings.hapticEnabled ? 'translate-x-5' : 'translate-x-0'"
-            ></div>
-          </button>
+        <!-- Theme -->
+        <div class="space-y-2">
+          <label class="text-caption">Theme</label>
+          <div class="grid grid-cols-3 gap-2">
+            <button
+              v-for="t in ['light', 'dark', 'system']"
+              :key="t"
+              @click="updateSetting('theme', t); playSound('tap')"
+              class="px-4 py-3 rounded-xl capitalize transition-all touch-feedback"
+              :class="settings.theme === t
+                ? 'bg-blue-500 text-white'
+                : 'bg-neutral-100 dark:bg-neutral-800'"
+            >
+              {{ t }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Toggles -->
+        <div class="space-y-3">
+          <div class="flex items-center justify-between">
+            <span>Sound Effects</span>
+            <button
+              @click="toggle('soundEnabled')"
+              class="w-12 h-7 rounded-full transition-colors touch-feedback"
+              :class="settings.soundEnabled ? 'bg-blue-500' : 'bg-neutral-300 dark:bg-neutral-700'"
+            >
+              <div
+                class="w-5 h-5 bg-white rounded-full shadow transition-transform mx-1"
+                :class="settings.soundEnabled ? 'translate-x-5' : 'translate-x-0'"
+              ></div>
+            </button>
+          </div>
+
+          <div class="flex items-center justify-between">
+            <span>Haptic Feedback</span>
+            <button
+              @click="toggle('hapticEnabled')"
+              class="w-12 h-7 rounded-full transition-colors touch-feedback"
+              :class="settings.hapticEnabled ? 'bg-blue-500' : 'bg-neutral-300 dark:bg-neutral-700'"
+            >
+              <div
+                class="w-5 h-5 bg-white rounded-full shadow transition-transform mx-1"
+                :class="settings.hapticEnabled ? 'translate-x-5' : 'translate-x-0'"
+              ></div>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -402,24 +504,41 @@ export default {
 
 ---
 
-## Main App Template
+## Component Architecture
+
+**Mandatory**: Components must be in separate `.js` files for maintainability.
+
+### main.js (Entry Point)
 
 ```javascript
-// main.js
-import { createApp, ref } from 'vue'
-import { getSession, getSessionUrl } from './lib/session.js'
-import { settings } from './lib/settings.js'
+// main.js - Minimal entry point
+import { createApp } from 'vue'
 import { initTheme } from './lib/theme.js'
-import { playSound, haptic } from './lib/sounds.js'
-import SettingsPanel from './components/SettingsPanel.js'
+import App from './components/App.js'
 
-// Initialize
+// Initialize theme before mounting
 initTheme()
-const sessionId = getSession()
 
-const App = {
-  components: { SettingsPanel },
+// Mount the app
+createApp(App).mount('#app')
+```
+
+### components/App.js (Root Component)
+
+```javascript
+// components/App.js
+import { ref } from 'vue'
+import { getSession } from '../lib/session.js'
+import { settings } from '../lib/settings.js'
+import { playSound, haptic } from '../lib/sounds.js'
+import Header from './Header.js'
+import SettingsPanel from './SettingsPanel.js'
+
+export default {
+  name: 'App',
+  components: { Header, SettingsPanel },
   setup() {
+    const sessionId = getSession()
     const showSettings = ref(false)
 
     const openSettings = () => {
@@ -428,34 +547,28 @@ const App = {
       haptic('light')
     }
 
+    const closeSettings = () => {
+      showSettings.value = false
+      playSound('tap')
+    }
+
     return {
       sessionId,
       settings,
       showSettings,
       openSettings,
+      closeSettings,
       playSound,
       haptic
     }
   },
   template: `
     <div class="min-h-screen flex flex-col">
-      <!-- Header -->
-      <header class="sticky top-0 z-40 backdrop-blur-xl bg-white/80 dark:bg-neutral-950/80
-                     border-b border-neutral-200 dark:border-neutral-800 no-select">
-        <div class="px-4 h-14 flex items-center justify-between">
-          <h1 class="text-headline">App Name</h1>
-          <button
-            @click="openSettings"
-            class="p-2 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 touch-feedback"
-          >
-            <i data-lucide="settings" class="w-5 h-5"></i>
-          </button>
-        </div>
-      </header>
+      <Header @open-settings="openSettings" />
 
       <!-- Main Content -->
       <main class="flex-1 p-4">
-        <!-- App content here -->
+        <!-- App-specific content here -->
       </main>
 
       <!-- Settings Modal -->
@@ -467,22 +580,11 @@ const App = {
           >
             <div
               class="absolute inset-0 bg-black/50 backdrop-blur-sm"
-              @click="showSettings = false"
+              @click="closeSettings"
             ></div>
             <div class="relative w-full max-w-md bg-white dark:bg-neutral-900
-                        rounded-t-3xl sm:rounded-3xl max-h-[80vh] overflow-auto
-                        safe-area-bottom">
-              <div class="sticky top-0 p-4 border-b border-neutral-200 dark:border-neutral-800
-                          flex items-center justify-between bg-white dark:bg-neutral-900">
-                <span class="text-headline">Settings</span>
-                <button
-                  @click="showSettings = false; playSound('tap')"
-                  class="p-2 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800"
-                >
-                  <i data-lucide="x" class="w-5 h-5"></i>
-                </button>
-              </div>
-              <SettingsPanel />
+                        rounded-t-3xl sm:rounded-3xl max-h-[80vh] overflow-auto">
+              <SettingsPanel @close="closeSettings" />
             </div>
           </div>
         </Transition>
@@ -490,56 +592,219 @@ const App = {
     </div>
   `,
   mounted() {
-    // Initialize Lucide icons
     lucide.createIcons()
   },
   updated() {
     lucide.createIcons()
   }
 }
+```
 
-createApp(App).mount('#app')
+### components/Header.js
+
+```javascript
+// components/Header.js
+export default {
+  name: 'Header',
+  emits: ['open-settings'],
+  template: `
+    <header class="sticky top-0 z-40 backdrop-blur-xl bg-white/80 dark:bg-neutral-950/80
+                   border-b border-neutral-200 dark:border-neutral-800 no-select">
+      <div class="px-4 h-14 flex items-center justify-between">
+        <h1 class="text-headline">App Name</h1>
+        <button
+          @click="$emit('open-settings')"
+          class="p-2 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 touch-feedback"
+        >
+          <i data-lucide="settings" class="w-5 h-5"></i>
+        </button>
+      </div>
+    </header>
+  `
+}
 ```
 
 ---
 
-## Serverless Functions
+## Data Persistence Protocol
+
+**Critical**: Follow this protocol for ALL fazt apps with persistence.
+
+### Core Principles
+
+1. **Session = Identity**: The `?s=...` URL parameter is the user's identity
+2. **Document per Session**: Store user data as a document in a `sessions` collection
+3. **Server is Truth**: `fazt.storage` is the source of truth, not localStorage
+4. **Queryable by Design**: Use document store so you can query across users
+
+### Storage Primitives
+
+Fazt provides three storage APIs, all auto-namespaced by `app_id`:
+
+#### Document Store (`ds`) - Primary storage
+
+Use for: session state, user data, app content, anything queryable.
 
 ```javascript
-// api/data.js
-function handler(req) {
-  const db = fazt.storage.kv
-  const params = new URLSearchParams(req.url.split('?')[1] || '')
-  const session = params.get('session')
+var ds = fazt.storage.ds;
 
-  if (!session) {
-    return { status: 400, body: JSON.stringify({ error: 'session required' }) }
-  }
+ds.insert(collection, doc)           // Returns generated id
+ds.find(collection, query)           // Returns array of docs
+ds.findOne(collection, id)           // Returns single doc or null
+ds.update(collection, query, changes)// Returns count updated
+ds.delete(collection, query)         // Returns count deleted
+```
 
-  const key = `data:${session}`
+Query operators: `$eq`, `$ne`, `$gt`, `$lt`, `$in`, `$contains`
 
-  if (req.method === 'GET') {
-    const data = db.get(key) || {}
-    return {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    }
-  }
+#### Key-Value (`kv`) - Simple lookups
 
-  if (req.method === 'POST') {
-    const data = JSON.parse(req.body)
-    db.set(key, data)
-    return {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ success: true })
-    }
-  }
+Use for: global config, counters, feature flags, caches.
 
-  return { status: 405, body: 'Method not allowed' }
+```javascript
+var kv = fazt.storage.kv;
+
+kv.set(key, value)      // Store any JSON value
+kv.set(key, value, ttl) // With TTL in milliseconds
+kv.get(key)             // Returns value or undefined
+kv.delete(key)          // Remove key
+kv.list(prefix)         // Returns [{key, value, expiresAt?}, ...]
+```
+
+#### Blob Storage (`s3`) - Files
+
+Use for: images, uploads, any binary content.
+
+```javascript
+var s3 = fazt.storage.s3;
+
+s3.put(path, data, mimeType)  // data as string or base64
+s3.get(path)                  // Returns {data (base64), mime, size, hash}
+s3.delete(path)               // Remove file
+s3.list(prefix)               // Returns [{path, mime, size, updatedAt}, ...]
+```
+
+### Session Document Structure
+
+Store each user's state as a document in `sessions` collection:
+
+```javascript
+{
+  sessionId: "fox-gold-river",    // The ?s= value
+
+  // Identity
+  displayName: "Alex",
+
+  // Preferences
+  settings: {
+    theme: "dark",
+    soundEnabled: true
+  },
+
+  // App-specific state
+  current: { /* work in progress */ },
+  history: [ /* past activity */ ],
+  stats: { /* aggregates */ },
+
+  // Metadata (auto-managed)
+  createdAt: 1705708800000,
+  updatedAt: 1705795200000
 }
 ```
+
+### API Pattern
+
+```javascript
+// api/main.js
+function handler(req) {
+  var ds = fazt.storage.ds;
+  var path = req.path;
+
+  // GET /api/state?session=xxx
+  if (path === '/api/state' && req.method === 'GET') {
+    var sessionId = req.query.session;
+    if (!sessionId) return error(400, 'session required');
+
+    var docs = ds.find('sessions', { sessionId: sessionId });
+    var state = docs.length > 0 ? docs[0] : null;
+    return json(state);
+  }
+
+  // POST /api/state {session, ...fields}
+  if (path === '/api/state' && req.method === 'POST') {
+    var body = req.body || {};
+    var sessionId = body.session;
+    if (!sessionId) return error(400, 'session required');
+
+    var existing = ds.find('sessions', { sessionId: sessionId });
+
+    if (existing.length > 0) {
+      ds.update('sessions', { sessionId: sessionId }, {
+        $set: { ...body.state, updatedAt: Date.now() }
+      });
+    } else {
+      ds.insert('sessions', {
+        sessionId: sessionId,
+        ...body.state,
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+      });
+    }
+    return json({ ok: true });
+  }
+
+  // GET /api/leaderboard - Query across sessions
+  if (path === '/api/leaderboard' && req.method === 'GET') {
+    var all = ds.find('sessions', {});
+    var sorted = all
+      .filter(function(s) { return s.stats && s.stats.highScore; })
+      .sort(function(a, b) { return b.stats.highScore - a.stats.highScore; })
+      .slice(0, 10)
+      .map(function(s) {
+        return { displayName: s.displayName, score: s.stats.highScore };
+      });
+    return json(sorted);
+  }
+
+  return error(404, 'not found');
+}
+
+function json(data) {
+  return { status: 200, headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) };
+}
+
+function error(status, msg) {
+  return { status: status, headers: {'Content-Type':'application/json'}, body: JSON.stringify({error: msg}) };
+}
+
+handler(request);
+```
+
+### Which Storage to Use
+
+| Data | Primitive | Why |
+|------|-----------|-----|
+| Session/user state | `ds` | Queryable, structured |
+| Global config | `kv` | Simple key lookup |
+| Leaderboards | `ds` | Query from sessions |
+| User uploads | `s3` | Binary content |
+| Counters, flags | `kv` | Atomic, simple |
+
+### Storage Boundaries
+
+| Use | For |
+|-----|-----|
+| `fazt.storage.ds` | Session state, user data, app content |
+| `fazt.storage.kv` | Global config, counters, caches |
+| `fazt.storage.s3` | Files, images, binary uploads |
+| `localStorage` | Device-only prefs (e.g., "don't show again") |
+| URL `?s=` | Session identity only |
+
+### Future: Relational (`rd`)
+
+A 4th primitive for raw SQL (JOINs, complex aggregations) is spec'd but not built.
+If you hit a wall with `ds` - needing multi-table joins or complex queries - ask
+the user: "Is it time to build `fazt.storage.rd`?"
 
 ---
 
@@ -607,10 +872,87 @@ Only ask for custom assets if the user explicitly wants app-specific branding.
 | Command | Purpose |
 |---------|---------|
 | `fazt app create <name>` | Scaffold from template |
-| `fazt app create <name> --template vite` | Scaffold Vite app |
 | `fazt app list [peer]` | See deployed apps |
-| `fazt app deploy <dir> --to <peer>` | Deploy app |
-| `fazt app deploy <dir> --to <peer> --no-build` | Deploy without building |
+| `fazt app deploy <dir> --to local` | Deploy to local server |
+| `fazt app deploy <dir> --to zyt` | Deploy to production |
+
+---
+
+## Local Development Workflow
+
+**Always test locally first, then deploy to production.**
+
+### Development Modes
+
+| Mode | When to Use | HMR | API |
+|------|-------------|-----|-----|
+| Vite dev | Iterating on UI | Yes | Proxied to fazt |
+| Direct deploy | Testing API / final check | No | Real fazt server |
+
+### Option A: Vite Dev Server (Recommended for UI work)
+
+```bash
+cd servers/zyt/my-app
+
+# Install Vite (first time only)
+npm install
+
+# Start Vite dev server
+npm run dev
+```
+
+Access at: `http://localhost:5173`
+
+Vite provides:
+- Hot Module Replacement (instant UI updates)
+- Better error messages
+- Source maps for debugging
+
+API calls are proxied to your local fazt server via `vite.config.js`.
+
+### Option B: Direct Deploy (For API testing)
+
+```bash
+# Ensure local fazt server is running
+fazt remote status local
+
+# If not running, start it
+fazt server start --port 8080 --domain 192.168.64.3 --db /tmp/fazt-local.db
+
+# Deploy
+fazt app deploy ./my-app --to local
+```
+
+Access at: `http://my-app.192.168.64.3.nip.io:8080`
+
+### Debug with /_fazt/* Endpoints
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/_fazt/info` | GET | App metadata, file count |
+| `/_fazt/storage` | GET | List all storage (KV, DS) |
+| `/_fazt/storage/:key` | GET | Get specific KV value |
+| `/_fazt/logs` | GET | Recent serverless logs |
+| `/_fazt/errors` | GET | Recent errors only |
+
+```bash
+# Check app info
+curl http://my-app.192.168.64.3.nip.io:8080/_fazt/info
+
+# Check storage state
+curl http://my-app.192.168.64.3.nip.io:8080/_fazt/storage
+
+# Check for errors
+curl http://my-app.192.168.64.3.nip.io:8080/_fazt/errors
+```
+
+### Deploy to Production
+
+Once working locally:
+
+```bash
+fazt app deploy ./my-app --to zyt
+```
 
 ---
 
@@ -630,14 +972,32 @@ When the user invokes `/fazt-app`:
 
 1. Parse the description to understand what app to build
 2. Determine target location (fazt repo → `servers/zyt/`, else `/tmp/`)
-3. Create the app with:
+3. Create the app with **mandatory Vue + Vite structure**:
    - `manifest.json` with app name
-   - `index.html` with full PWA meta tags, Inter font, Lucide, Tailwind
+   - `package.json` with Vite dev dependency
+   - `vite.config.js` with API proxy and Vue CDN alias
+   - `index.html` with import maps, PWA meta tags, Inter font, Lucide, Tailwind
+   - `main.js` minimal entry point (just imports and mounts App)
+   - `components/` folder with granular Vue components:
+     - `App.js` - root component
+     - `Header.js` - navigation
+     - `SettingsPanel.js` - settings modal
+     - Additional app-specific components
    - `lib/` folder with session, settings, sounds, theme modules
-   - `main.js` with Vue app, settings panel, proper structure
-   - `components/` for any needed components
-   - `api/` endpoints if persistence needed
+   - `api/main.js` for serverless routes (if persistence needed)
    - `assets/` folder with defaults copied from `.claude/fazt-assets/`
 4. Copy default assets: `cp .claude/fazt-assets/* <app>/assets/`
-5. Deploy: `fazt app deploy <folder> --to zyt`
-6. Report URL with session: `https://{name}.zyt.app?s=cat-apple-tree`
+5. **Local-first workflow:**
+   - Option A (UI iteration): `cd <app> && npm install && npm run dev`
+   - Option B (API testing): `fazt app deploy <folder> --to local`
+   - Debug with `/_fazt/info`, `/_fazt/storage`, `/_fazt/errors`
+   - Fix any issues found
+6. Deploy to production: `fazt app deploy <folder> --to zyt`
+7. Report production URL: `https://{name}.zyt.app?s=cat-apple-tree`
+
+### Component File Naming
+
+- One component per file
+- PascalCase names: `Header.js`, `GameBoard.js`, `SettingsPanel.js`
+- Export default object with `name`, `template`, and optionally `emits`, `props`, `setup`
+- Keep templates readable - break large templates into child components
