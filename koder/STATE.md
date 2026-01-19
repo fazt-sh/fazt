@@ -23,7 +23,24 @@ File: `.claude/commands/fazt-app.md`
 1. **Deploys directly to zyt** - skips local testing entirely
 2. **No `/_fazt/*` endpoints** - Claude can't introspect app state
 3. **No local workflow** - can't test serverless before deploying
-4. **Outdated CLI examples** - doesn't show `@peer` syntax
+
+### CLI Syntax Question
+
+The `--to`/`--from` flags are redundant with `@peer`. Consider:
+
+```bash
+# Current
+fazt app deploy ./myapp --to local
+
+# Cleaner option 1: @peer suffix
+fazt app deploy ./myapp @local
+
+# Cleaner option 2: positional (like 'list' already does)
+fazt app deploy ./myapp local
+```
+
+Note: `@peer` at START = remote execution (`fazt @zyt app list`).
+For deploy, files transfer FROM local, so it's different from remote exec.
 
 ### What the Skill Should Do
 
