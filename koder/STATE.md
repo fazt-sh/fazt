@@ -58,19 +58,25 @@ The app identity model (`app_xxxxxxxx`) and alias system make this cleaner:
 
 ---
 
-## Next Up: Refine /fazt-app Workflow
+## Next Up: Fix Othelo App
 
-The infrastructure is in place. Next steps to complete the workflow:
+**Goal**: Use `/fazt-app` to fix the othelo app - a real test of the v0.10 workflow.
 
-1. **Test /fazt-app skill** with the new endpoints
-   - Does Claude correctly use `/_fazt/*` for testing?
-   - Is the local → remote deploy flow smooth?
+### The Problem
 
-2. **Improve local dev experience**
-   - Auto-reload on file changes?
-   - Better error messages from serverless?
+The othelo app at https://othelo.zyt.app is broken/incomplete. This is a perfect
+candidate to test the new Claude-driven development workflow:
 
-3. **Document the workflow** in the skill itself
+1. Pull the app locally: `fazt app pull othelo --from zyt --to ./servers/zyt/othelo`
+2. Run `/fazt-app` to have Claude fix/rebuild it
+3. Deploy locally, test with `/_fazt/*` endpoints
+4. Deploy to zyt when working
+
+### Success Criteria
+
+- Othelo game is playable at https://othelo.zyt.app
+- `/fazt-app` workflow proved out end-to-end
+- Any workflow gaps identified and noted
 
 ---
 
@@ -98,9 +104,9 @@ fazt app deploy ./myapp --to zyt
 
 ## Apps on zyt.app
 
-| App | ID | URL |
-|-----|----|-----|
-| tetris | app_98ed8539 | https://tetris.zyt.app |
-| pomodoro | app_9c479319 | https://pomodoro.zyt.app |
-| othelo | app_706bd43c | https://othelo.zyt.app |
-| snake | app_1d28078d | https://snake.zyt.app |
+| App | ID | Status | URL |
+|-----|----|----|-----|
+| tetris | app_98ed8539 | ✓ | https://tetris.zyt.app |
+| pomodoro | app_9c479319 | ✓ | https://pomodoro.zyt.app |
+| **othelo** | app_706bd43c | **broken** | https://othelo.zyt.app |
+| snake | app_1d28078d | ✓ | https://snake.zyt.app |
