@@ -7,59 +7,92 @@
 
 ```
 State: CLEAN
-v0.10 App Identity fully implemented and deployed.
+v0.10 App Identity implemented. Next: refine /fazt-app workflow.
 ```
 
 ---
 
-## Completed: v0.10 - App Identity, Aliases & Remote Execution
+## Context: Why v0.10?
+
+The v0.10 changes support the **`/fazt-app` workflow** - enabling Claude to:
+
+1. **Build** apps using Vite (or any build tool)
+2. **Deploy locally** for rapid iteration
+3. **Test serverless** via `/_fazt/*` endpoints (storage, snapshots, logs)
+4. **Get local URL** to verify behavior
+5. **Deploy to remote** once everything works
+
+The app identity model (`app_xxxxxxxx`) and alias system make this cleaner:
+- Apps have stable IDs across local/remote
+- Aliases handle routing without ID conflicts
+- `@peer` execution lets Claude run commands on any peer
+- Agent endpoints provide introspection for testing
+
+---
+
+## Completed: v0.10 - App Identity & Agent Endpoints
 
 **Released**: v0.10.0 + v0.10.1 (bug fix)
 
-### Features Implemented
+### For /fazt-app Workflow
 
-- **App Identity**: Permanent UUIDs (`app_xxxxxxxx`) independent of aliases
-- **Alias System**: Subdomains as routing layer (proxy/redirect/reserved/split)
-- **Lineage Tracking**: Fork relationships with `original_id` and `forked_from_id`
-- **@peer Execution**: `fazt @zyt app list` runs commands on remote peers
-- **Agent Endpoints**: `/_fazt/*` for LLM testing workflows
-- **Traffic Splitting**: Weighted distribution with sticky sessions
-- **Fast Release Script**: `./scripts/release.sh` for local builds + upload
+| Feature | Purpose in Workflow |
+|---------|---------------------|
+| `/_fazt/info` | Claude checks app metadata |
+| `/_fazt/storage` | Inspect KV state during testing |
+| `/_fazt/snapshot` | Save state before experiments |
+| `/_fazt/restore` | Reset to known state |
+| `/_fazt/logs` | Debug serverless execution |
+| `/_fazt/errors` | Find issues quickly |
+| `@peer` execution | `fazt @local app list` vs `fazt @zyt app list` |
+| Aliases | Same app name locally and remotely |
 
 ### Key Files
 
 | Component | File |
 |-----------|------|
-| Migration | `internal/database/migrations/012_app_identity.sql` |
-| ID Generation | `internal/appid/appid.go` |
-| Aliases Handler | `internal/handlers/aliases_handler.go` |
-| Apps v2 Handler | `internal/handlers/apps_handler_v2.go` |
-| Agent Handler | `internal/handlers/agent_handler.go` |
+| Agent Endpoints | `internal/handlers/agent_handler.go` |
+| Aliases | `internal/handlers/aliases_handler.go` |
 | Command Gateway | `internal/handlers/cmd_gateway.go` |
 | CLI v2 | `cmd/server/app_v2.go` |
-| Release Script | `scripts/release.sh` |
+
+---
+
+## Next Up: Refine /fazt-app Workflow
+
+The infrastructure is in place. Next steps to complete the workflow:
+
+1. **Test /fazt-app skill** with the new endpoints
+   - Does Claude correctly use `/_fazt/*` for testing?
+   - Is the local → remote deploy flow smooth?
+
+2. **Improve local dev experience**
+   - Auto-reload on file changes?
+   - Better error messages from serverless?
+
+3. **Document the workflow** in the skill itself
 
 ---
 
 ## Quick Reference
 
-| Command | Purpose |
-|---------|---------|
-| `fazt app list zyt` | List apps |
-| `fazt @zyt app list` | Remote execution |
-| `fazt app fork --alias myapp --as myapp-v2 --to zyt` | Fork with lineage |
-| `fazt app swap alias1 alias2 --on zyt` | Atomic swap |
-| `./scripts/release.sh v0.x.y "Title"` | Fast local release |
+```bash
+# Local development
+fazt server start --domain 192.168.64.3 --port 8080 --db /tmp/fazt-local.db
+fazt app deploy ./myapp --to local
+# Test at http://myapp.192.168.64.3.nip.io:8080
 
----
+# Agent endpoints (for Claude testing)
+curl http://myapp.192.168.64.3.nip.io:8080/_fazt/info
+curl http://myapp.192.168.64.3.nip.io:8080/_fazt/storage
+curl http://myapp.192.168.64.3.nip.io:8080/_fazt/logs
 
-## Next Up
+# Deploy to production when ready
+fazt app deploy ./myapp --to zyt
 
-No active plan. Potential next steps from roadmap:
-- v0.11: Distribution (marketplace, manifest)
-- v0.12: Agentic (AI harness, ai-shim)
-
-See `koder/ideas/ROADMAP.md` for full roadmap.
+# Release new fazt version
+./scripts/release.sh v0.x.y "Title"
+```
 
 ---
 
