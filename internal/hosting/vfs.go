@@ -441,6 +441,23 @@ func (fs *SQLFileSystem) DeleteAppFiles(appID string) error {
 	return err
 }
 
+// ExistsByAppID checks if a file exists using app_id
+func (fs *SQLFileSystem) ExistsByAppID(appID, path string) (bool, error) {
+	// Check cache first
+	key := cacheKey(appID, path)
+	fs.cacheMu.RLock()
+	if _, ok := fs.cache[key]; ok {
+		fs.cacheMu.RUnlock()
+		return true, nil
+	}
+	fs.cacheMu.RUnlock()
+
+	// Query DB using app_id
+	var count int
+	err := fs.db.QueryRow("SELECT COUNT(*) FROM files WHERE app_id = ? AND path = ?", appID, path).Scan(&count)
+	return count > 0, err
+}
+
 // GetMimeType returns the MIME type for a file path
 func GetMimeType(path string) string {
 	ext := strings.ToLower(filepath.Ext(path))

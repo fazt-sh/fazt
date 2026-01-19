@@ -1487,9 +1487,16 @@ func siteHandler(w http.ResponseWriter, r *http.Request, subdomain string) {
 	// Check for API paths (/api or /api/*)
 	// These are handled by the serverless handler with storage support
 	if r.URL.Path == "/api" || strings.HasPrefix(r.URL.Path, "/api/") {
-		// Get app ID from database (site_id in files table)
+		// Check for api/main.js using app_id if available
 		fs := hosting.GetFileSystem()
-		hasAPI, _ := fs.Exists(siteID, "api/main.js")
+		var hasAPI bool
+		if strings.HasPrefix(siteID, "app_") {
+			if sqlFS, ok := fs.(*hosting.SQLFileSystem); ok {
+				hasAPI, _ = sqlFS.ExistsByAppID(siteID, "api/main.js")
+			}
+		} else {
+			hasAPI, _ = fs.Exists(siteID, "api/main.js")
+		}
 		if hasAPI && serverlessHandler != nil {
 			serverlessHandler.HandleRequest(w, r, siteID, siteID)
 			return
@@ -1502,7 +1509,14 @@ func siteHandler(w http.ResponseWriter, r *http.Request, subdomain string) {
 	// Check for serverless (main.js) - legacy support for root-level handlers
 	// We check directly in VFS now
 	fs := hosting.GetFileSystem()
-	hasServerless, _ := fs.Exists(siteID, "main.js")
+	var hasServerless bool
+	if strings.HasPrefix(siteID, "app_") {
+		if sqlFS, ok := fs.(*hosting.SQLFileSystem); ok {
+			hasServerless, _ = sqlFS.ExistsByAppID(siteID, "main.js")
+		}
+	} else {
+		hasServerless, _ = fs.Exists(siteID, "main.js")
+	}
 
 	if hasServerless {
 		db := database.GetDB()
@@ -1511,8 +1525,12 @@ func siteHandler(w http.ResponseWriter, r *http.Request, subdomain string) {
 		}
 	}
 
-	// Serve from VFS (using siteID which is app_id if alias resolved, otherwise subdomain)
-	hosting.ServeVFS(w, r, siteID)
+	// Serve from VFS - use app_id-based lookup if siteID is an app_id
+	if strings.HasPrefix(siteID, "app_") {
+		hosting.ServeVFSByAppID(w, r, siteID)
+	} else {
+		hosting.ServeVFS(w, r, siteID)
+	}
 }
 
 // logSiteVisit logs an analytics event for a site visit

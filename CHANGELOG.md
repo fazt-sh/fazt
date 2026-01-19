@@ -2,6 +2,14 @@
 
 All notable changes to fazt.sh will be documented in this file.
 
+## [0.10.1] - 2026-01-19
+
+### Fixed
+- **VFS File Serving**: Fixed app routing to use `app_id` column after migration.
+  After v0.10 migration, files are stored with both `site_id` (old subdomain)
+  and `app_id` (new UUID). The VFS layer now correctly uses app_id for lookups
+  when serving migrated apps.
+
 ## [0.10.0] - 2026-01-19
 
 ### Added
