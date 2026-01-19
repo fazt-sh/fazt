@@ -7,107 +7,81 @@
 
 ```
 State: CLEAN
-v0.10 infrastructure complete. /fazt-app skill needs update to use it.
+Next: Update /fazt-app skill to use v0.10 local-first workflow.
 ```
 
 ---
 
-## Context: Why v0.10?
+## Next Up: Update /fazt-app Skill
 
-The v0.10 changes support the **`/fazt-app` workflow** - enabling Claude to:
+The v0.10 infrastructure is complete but `/fazt-app` skill doesn't use it yet.
 
-1. **Build** apps using Vite (or any build tool)
-2. **Deploy locally** for rapid iteration
-3. **Test serverless** via `/_fazt/*` endpoints (storage, snapshots, logs)
-4. **Get local URL** to verify behavior
-5. **Deploy to remote** once everything works
+### Current Skill Problems
 
-### The Problem Before v0.10
+File: `.claude/commands/fazt-app.md`
 
-- Testing serverless locally was hard/broken
-- No way for Claude to introspect app state during testing
-- Jumping straight to remote deployment = slow iteration
+1. **Deploys directly to zyt** - skips local testing entirely
+2. **No `/_fazt/*` endpoints** - Claude can't introspect app state
+3. **No local workflow** - can't test serverless before deploying
+4. **Outdated CLI examples** - doesn't show `@peer` syntax
 
-### What v0.10 Provides
+### What the Skill Should Do
 
-| Feature | Purpose |
-|---------|---------|
-| `/_fazt/info` | Claude checks app metadata |
-| `/_fazt/storage` | Inspect KV state during testing |
-| `/_fazt/snapshot` | Save state before experiments |
-| `/_fazt/restore` | Reset to known state |
-| `/_fazt/logs` | Debug serverless execution |
-| `/_fazt/errors` | Find issues quickly |
-| `@peer` syntax | `fazt @local ...` vs `fazt @zyt ...` |
-
----
-
-## Next Up: Update /fazt-app Skill + Fix Othelo
-
-### Problem 1: /fazt-app is Outdated
-
-The skill at `.claude/commands/fazt-app.md` doesn't reflect v0.10:
-
-- Jumps straight to `fazt app deploy --to zyt` (no local testing)
-- Doesn't mention `/_fazt/*` endpoints
-- Doesn't show local development workflow
-- Uses `--to`/`--from` flags (should prefer `@peer` where appropriate)
-
-**Fix**: Update the skill to use the local-first workflow:
 ```
-1. Build app
-2. Deploy to local: fazt app deploy ./app --to local
-3. Test at http://app.192.168.64.3.nip.io:8080
-4. Use /_fazt/* endpoints to debug
-5. When working: fazt app deploy ./app --to zyt
+1. Build app (Vite or zero-build)
+2. Start local server if not running
+3. Deploy to local: fazt app deploy ./app --to local
+4. Get local URL: http://app.192.168.64.3.nip.io:8080
+5. Test & iterate using /_fazt/* endpoints
+6. When working: fazt app deploy ./app --to zyt
 ```
 
-### Problem 2: Othelo Not Working Locally
+### New Endpoints for Testing (v0.10)
 
-The othelo app at `servers/zyt/othelo/` doesn't work when deployed locally.
-This is a good test case for the updated workflow.
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/_fazt/info` | GET | App metadata, file count, storage keys |
+| `/_fazt/storage` | GET | List all KV keys with sizes |
+| `/_fazt/storage/:key` | GET | Get specific KV value |
+| `/_fazt/snapshot` | POST | Save current state with name |
+| `/_fazt/restore/:name` | POST | Restore to named snapshot |
+| `/_fazt/snapshots` | GET | List available snapshots |
+| `/_fazt/logs` | GET | Recent serverless logs |
+| `/_fazt/errors` | GET | Recent errors only |
 
-**Goal**: Use updated `/fazt-app` to fix othelo locally, then deploy to zyt.
+These let Claude debug serverless without guessing.
 
-### Success Criteria
+### Test Case: Othelo App
 
-- [ ] `/fazt-app` skill updated with local-first workflow
-- [ ] `/fazt-app` documents `/_fazt/*` endpoints for testing
-- [ ] Othelo works locally at http://othelo.192.168.64.3.nip.io:8080
-- [ ] Othelo deployed and working at https://othelo.zyt.app
+`servers/zyt/othelo/` - broken locally, good test for the updated workflow.
 
 ---
 
 ## Quick Reference
 
 ```bash
-# Start local server
+# Local development
 fazt server start --domain 192.168.64.3 --port 8080 --db /tmp/fazt-local.db
-
-# Deploy locally
 fazt app deploy ./myapp --to local
-# Test at http://myapp.192.168.64.3.nip.io:8080
+# http://myapp.192.168.64.3.nip.io:8080
 
-# Agent endpoints (Claude uses these for testing)
+# Test endpoints
 curl http://myapp.192.168.64.3.nip.io:8080/_fazt/info
 curl http://myapp.192.168.64.3.nip.io:8080/_fazt/storage
 curl http://myapp.192.168.64.3.nip.io:8080/_fazt/logs
 
-# Deploy to production when working
+# Deploy to production
 fazt app deploy ./myapp --to zyt
-
-# @peer syntax for remote commands
-fazt @local app list
-fazt @zyt app list
 ```
 
 ---
 
-## Apps on zyt.app
+## v0.10 Implementation (Complete)
 
-| App | ID | Status | URL |
-|-----|----|----|-----|
-| tetris | app_98ed8539 | ✓ | https://tetris.zyt.app |
-| pomodoro | app_9c479319 | ✓ | https://pomodoro.zyt.app |
-| **othelo** | app_706bd43c | **broken locally** | https://othelo.zyt.app |
-| snake | app_1d28078d | ✓ | https://snake.zyt.app |
+| Component | File |
+|-----------|------|
+| Agent Endpoints | `internal/handlers/agent_handler.go` |
+| Aliases | `internal/handlers/aliases_handler.go` |
+| Command Gateway | `internal/handlers/cmd_gateway.go` |
+| CLI v2 | `cmd/server/app_v2.go` |
+| Release Script | `scripts/release.sh` |
