@@ -13,7 +13,7 @@ Spec: koder/ideas/specs/v0.10-app-identity/README.md
 
 ---
 
-## Current Work: v0.10 - App Identity & Agent Debugging
+## Current Work: v0.10 - App Identity, Aliases & Agent Debugging
 
 ### Goal
 
@@ -31,47 +31,34 @@ Enable fully agentic/CLI-based app development and debugging:
 - No host config needed (works across VM/host boundaries)
 - Files changed: `internal/config/config.go`, `cmd/server/main.go`
 
-**App Identity Spec** - `koder/ideas/specs/v0.10-app-identity/README.md`:
-- UUID-based identity (`app_7f3k9x2m`) separate from label (`myapp`)
-- Labels are mutable, swappable, optional
-- Lineage tracking (`original_id`, `forked_from_id`)
-- Fork/promote workflow for safe testing
+**App Identity + Aliases Spec** - Major design iteration:
+- **Separated apps from routing**: Apps have identity, aliases handle subdomains
+- **Apps table**: id, original_id, title, description, tags, visibility
+- **Aliases table**: subdomain → app_id (proxy, redirect, reserved, split)
+- Multiple aliases can point to same app (solves multi-label question)
+- Traffic splitting with sticky sessions (A/B testing)
+- Logs use app_id (stable across renames)
+- CLI uses `--alias` and `--id` flags for flexibility
 
-### Next: Agent Debugging Endpoints
+**Key Design Decisions:**
+- No `subdomain` field on apps - aliases ARE the routing layer
+- `visibility`: public (listed), unlisted (accessible but not discoverable), private
+- Metadata (title, description, tags) inherited on fork
+- Reserved subdomains via `reserved` alias type
 
-Reserved `/_fazt/` endpoints for CLI-based debugging:
+### Next: Implementation
 
-| Endpoint | Purpose |
-|----------|---------|
-| `GET /_fazt/info` | App metadata, storage stats |
-| `GET /_fazt/storage` | List all KV keys |
-| `GET /_fazt/storage/:key` | Get specific value |
-| `POST /_fazt/snapshot` | Create named snapshot |
-| `POST /_fazt/restore/:name` | Restore snapshot |
-| `GET /_fazt/logs` | Recent serverless execution logs |
-| `GET /_fazt/errors` | Recent errors with traces |
+1. Schema migration (apps + aliases tables)
+2. ID generation (nanoid)
+3. Routing update (check aliases first)
+4. CLI `--alias/--id` flags
+5. `fazt app link/unlink/split/swap` commands
+6. `/_fazt/` debug endpoints
+7. Traffic splitting with sticky sessions
 
-**Agent workflow:**
-```bash
-# Test serverless function
-curl -X POST http://app.192.168.64.3.nip.io:8080/api/action
+### Spec Location
 
-# Check what happened
-curl http://app.../\_fazt/logs
-
-# Check errors if failed
-curl http://app.../\_fazt/errors
-
-# Verify storage state
-curl http://app.../\_fazt/storage
-```
-
-### Implementation Order
-
-1. Schema migration (UUID, label, lineage)
-2. `fazt app rename/swap/fork/lineage` commands
-3. `/_fazt/` endpoints (storage, logs, errors)
-4. Update `/fazt-app` skill to use local-first workflow
+`koder/ideas/specs/v0.10-app-identity/README.md` - fully updated
 
 ---
 

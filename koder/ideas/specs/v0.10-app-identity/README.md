@@ -1,22 +1,24 @@
-# App Identity and Lineage
+# App Identity, Aliases, and Lineage
 
 **Version**: v0.10
 **Status**: Draft
 **Created**: 2026-01-19
+**Updated**: 2026-01-19
 
 ## Overview
 
-This spec defines a new app identity model that separates permanent identity
-(UUID) from mutable labels (subdomains), and introduces lineage tracking for
-fork/clone workflows.
+This spec separates app identity (content + metadata) from routing (aliases).
+Apps have permanent UUIDs and metadata. Aliases handle all subdomain routing,
+enabling flexible workflows like traffic splitting, reserved subdomains, and
+atomic swaps.
 
 ## Goals
 
 1. **Stable Identity**: Apps have permanent UUIDs that never change
-2. **Flexible Labels**: Subdomains can be reassigned trivially
+2. **Flexible Routing**: Aliases handle subdomains, can be retargeted freely
 3. **Lineage Tracking**: Know where an app came from and its history
 4. **Agent-Friendly**: Support LLM agent workflows (test, fork, promote)
-5. **Safe Testing**: Fork production, test safely, promote when ready
+5. **Organizational Metadata**: Title, description, tags persist across forks
 
 ## Non-Goals
 
@@ -28,46 +30,75 @@ fork/clone workflows.
 
 ## Data Model
 
-### Apps Table
+### Apps Table (Content + Identity)
 
 ```sql
 CREATE TABLE apps (
     -- Identity (immutable)
     id TEXT PRIMARY KEY,              -- "app_7f3k9x2m" (UUID, never changes)
 
-    -- Label (mutable, can be NULL)
-    label TEXT UNIQUE,                -- "myapp" (subdomain, reassignable)
-
     -- Lineage
     original_id TEXT,                 -- Root ancestor (self if original)
     forked_from_id TEXT,              -- Immediate parent (NULL if original)
 
-    -- Metadata
-    source TEXT DEFAULT 'deploy',     -- 'deploy', 'git', 'fork', 'system'
-    manifest TEXT,                    -- JSON manifest
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    -- Metadata (inherited on fork)
+    title TEXT,                       -- "Tetris" - what it is
+    description TEXT,                 -- "Classic block-stacking game"
+    tags TEXT,                        -- JSON array: ["game", "arcade"]
+    visibility TEXT DEFAULT 'unlisted', -- public|unlisted|private
 
-    -- Source tracking (for git-installed apps)
+    -- Source tracking
+    source TEXT DEFAULT 'deploy',     -- 'deploy', 'git', 'fork', 'system'
     source_url TEXT,
     source_ref TEXT,
     source_commit TEXT,
-    installed_at DATETIME
+
+    -- Timestamps
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_apps_label ON apps(label);
 CREATE INDEX idx_apps_original ON apps(original_id);
 CREATE INDEX idx_apps_forked_from ON apps(forked_from_id);
+CREATE INDEX idx_apps_visibility ON apps(visibility);
 ```
+
+### Aliases Table (Routing)
+
+```sql
+CREATE TABLE aliases (
+    -- Routing key
+    subdomain TEXT PRIMARY KEY,       -- "tetris" → tetris.zyt.app
+
+    -- Routing behavior
+    type TEXT DEFAULT 'proxy',        -- proxy|redirect|reserved|split
+
+    -- Target(s)
+    targets TEXT,                     -- JSON (structure depends on type)
+
+    -- Timestamps
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### Alias Types
+
+| Type | Targets Format | Behavior |
+|------|----------------|----------|
+| `proxy` | `{"app_id": "app_abc"}` | Serve app content, URL unchanged |
+| `redirect` | `{"url": "https://..."}` | 301/302 redirect |
+| `reserved` | `null` | Returns 404 (blocks subdomain) |
+| `split` | `[{"app_id": "x", "weight": 50}, ...]` | Weighted + sticky session |
 
 ### Key Concepts
 
-| Field | Purpose | Mutability |
-|-------|---------|------------|
-| `id` | Permanent identity | Immutable |
-| `label` | Subdomain / public name | Mutable, nullable, unique |
-| `original_id` | Root ancestor in lineage | Immutable after creation |
-| `forked_from_id` | Immediate parent | Immutable after creation |
+| Field | Table | Purpose | Mutability |
+|-------|-------|---------|------------|
+| `id` | apps | Permanent identity | Immutable |
+| `title` | apps | Human-readable name | Mutable |
+| `subdomain` | aliases | Routing key | Mutable (retargetable) |
+| `visibility` | apps | Discoverability | Mutable |
 
 ### ID Format
 
@@ -84,199 +115,306 @@ Use 8-character nanoid for readability. Collision-resistant for single-instance.
 
 ---
 
+## Visibility Model
+
+Controls discoverability, not access:
+
+| Visibility | Direct URL | Public API | Admin API |
+|------------|------------|------------|-----------|
+| `public` | Yes | Yes | Yes |
+| `unlisted` | Yes | No | Yes |
+| `private` | Auth only | No | Yes |
+
+- **public**: Listed on homepage, accessible to all
+- **unlisted**: Accessible via direct URL, not discoverable
+- **private**: Requires authentication (future)
+
+---
+
 ## Lineage Model
 
 ### Example Lineage Tree
 
 ```
-app_001 "myapp" (original)
+app_001 (original)
+│   title: "Tetris"
+│   original_id: app_001
 │
-├── app_002 "myapp-debug"
+├── app_002
+│   │   title: "Tetris" (inherited)
 │   │   forked_from: app_001
 │   │   original: app_001
 │   │
-│   └── app_003 "myapp-fix"
+│   └── app_003
+│           title: "Tetris" (inherited)
 │           forked_from: app_002
 │           original: app_001
 │
-└── app_004 (no label - unlisted)
+└── app_004
+        title: "Tetris" (inherited)
         forked_from: app_001
         original: app_001
+```
+
+Aliases (separate):
+```
+tetris       → app_001 (production)
+tetris-staging → app_002
+tetris-v2    → app_003
+(app_004 has no alias - accessible by ID only)
 ```
 
 ### Lineage Rules
 
 1. **Original apps**: `original_id = id`, `forked_from_id = NULL`
 2. **Forked apps**: `original_id` = root ancestor, `forked_from_id` = parent
-3. **Deletion**: Deleting an app doesn't affect descendants' lineage fields
-4. **Orphans OK**: `forked_from_id` can reference deleted apps
+3. **Metadata inheritance**: title, description, tags copied on fork
+4. **Deletion**: Deleting an app doesn't affect descendants' lineage fields
+5. **Orphans OK**: `forked_from_id` can reference deleted apps
 
 ---
 
-## Label Management
+## Alias Operations
 
-Labels are subdomains that point to apps. They are:
+Aliases are the routing layer. Multiple aliases can point to same app.
 
-- **Mutable**: Can be changed anytime
-- **Unique**: Only one app can have a given label
-- **Optional**: Apps can exist without labels (unlisted)
-- **Swappable**: Two apps can swap labels atomically
-
-### Label Operations
+### Basic Operations
 
 ```bash
-# Assign label to app
-fazt app rename app_7f3k9x2m --to myapp
-# → myapp.zyt.app now serves app_7f3k9x2m
+# Create alias pointing to app
+fazt app link tetris --id app_abc123 --to zyt
+# → tetris.zyt.app now serves app_abc123
 
-# Remove label (app becomes unlisted)
-fazt app rename myapp --to ""
-# → myapp.zyt.app returns 404, app still accessible by ID
+# Retarget alias to different app
+fazt app link tetris --id app_def456 --to zyt
+# → tetris.zyt.app now serves app_def456
 
-# Reassign label to different app
-fazt app rename app_x9p2q4wn --to myapp
-# → myapp.zyt.app now serves app_x9p2q4wn
+# Remove alias
+fazt app unlink tetris --from zyt
+# → tetris.zyt.app returns 404
 
-# Swap labels between two apps (atomic)
-fazt app swap myapp myapp-v2
-# → Labels exchanged, no downtime
+# Reserve subdomain (block it)
+fazt app reserve admin --on zyt
+# → admin.zyt.app returns 404, can't be used
 ```
 
-### Accessing Unlisted Apps
+### Multiple Aliases Per App
 
-Apps without labels can still be accessed via their ID:
-
+```bash
+fazt app link tetris --id app_abc123 --to zyt
+fazt app link games-tetris --id app_abc123 --to zyt
+fazt app link classic-blocks --id app_abc123 --to zyt
+# → All three subdomains serve the same app
 ```
-http://app_7f3k9x2m.zyt.app    (direct ID access)
+
+### Traffic Splitting
+
+```bash
+fazt app split tetris --ids app_v1:50,app_v2:50 --on zyt
+# → 50% traffic to each version, sticky sessions
 ```
 
-This enables:
-- Preview deployments
-- Testing before assigning label
-- Keeping old versions accessible
+Traffic splitting without URL change:
+- Server picks target based on weights
+- Sets cookie for session affinity (same user → same version)
+- Browser URL stays `tetris.zyt.app`
 
 ---
 
 ## CLI Commands
 
-Labels are managed through standard `fazt app` commands. No separate namespace.
+### Reference by --alias or --id
 
-### List and Info
+Most commands accept either flag:
+
+```bash
+# Info
+fazt app info --alias tetris          # resolves alias → shows app
+fazt app info --id app_abc123         # direct lookup
+
+# Deploy
+fazt app deploy ./dir --alias tetris --to zyt
+fazt app deploy ./dir --id app_abc123 --to zyt
+
+# Remove
+fazt app remove --alias tetris --from zyt   # removes alias only
+fazt app remove --id app_abc123 --from zyt  # removes app + orphans aliases
+```
+
+### List
 
 ```bash
 # List all apps
-fazt app list
-# ID            LABEL        FORKED-FROM   SOURCE   CREATED
-# app_7f3k9x2m  myapp        -             deploy   2026-01-15
-# app_m3n8k1vz  myapp-test   app_7f3k9x2m  fork     2026-01-19
-# app_x9p2q4wn  othelo       -             deploy   2026-01-10
-# app_p4q7r2st  -            app_7f3k9x2m  fork     2026-01-19
+fazt app list zyt
+# ID            TITLE     VISIBILITY  TAGS          FORKED-FROM
+# app_7f3k9x2m  Tetris    public      game,arcade   -
+# app_m3n8k1vz  Tetris    unlisted    game,arcade   app_7f3k9x2m
+# app_x9p2q4wn  Notes     public      tool          -
 
-# Show app details (by label or ID)
-fazt app info myapp
-# ID:          app_7f3k9x2m
-# Label:       myapp
-# URL:         https://myapp.zyt.app
+# List aliases
+fazt app list --aliases zyt
+# SUBDOMAIN      TYPE    TARGET
+# tetris         proxy   app_7f3k9x2m
+# tetris-dev     proxy   app_m3n8k1vz
+# notes          proxy   app_x9p2q4wn
+# admin          reserved -
+```
+
+### Info
+
+```bash
+fazt app info --alias tetris --on zyt
+# Alias:       tetris
+# Type:        proxy
+# App ID:      app_7f3k9x2m
+# Title:       Tetris
+# Description: Classic block-stacking game
+# Tags:        game, arcade
+# Visibility:  public
+# URL:         https://tetris.zyt.app
 # Original:    app_7f3k9x2m (self)
 # Forked from: -
 # Source:      deploy
-# Created:     2026-01-19
-# Storage:     42 keys
 ```
 
 ### Deploy
 
 ```bash
-# Deploy by label or ID
-fazt app deploy ./src --to myapp
-fazt app deploy ./src --to app_7f3k9x2m
+# Deploy creates app + alias from manifest
+fazt app deploy ./src --alias tetris --to zyt
+# → Created app_x9p2q4wn
+# → Created alias tetris → app_x9p2q4wn
+# → URL: https://tetris.zyt.app
 
-# Deploy creates app if doesn't exist
-fazt app deploy ./src --to newapp
-# → Created app_x9p2q4wn with label "newapp"
-```
+# Deploy to existing alias (updates app behind it)
+fazt app deploy ./src --alias tetris --to zyt
+# → Updated app_x9p2q4wn
 
-### Rename (Label Assignment)
-
-```bash
-# Assign or change label
-fazt app rename app_7f3k9x2m --to myapp
-# → app_7f3k9x2m accessible at myapp.zyt.app
-
-# Change existing label
-fazt app rename myapp --to my-new-app
-# → myapp.zyt.app becomes my-new-app.zyt.app
-
-# Remove label (unlisted, accessible by ID only)
-fazt app rename myapp --to ""
-# → Accessible only at app_7f3k9x2m.zyt.app
-
-# Swap labels between two apps
-fazt app swap myapp myapp-v2
-# → Labels exchanged instantly
+# Deploy to app directly (no alias)
+fazt app deploy ./src --id app_x9p2q4wn --to zyt
 ```
 
 ### Fork
 
 ```bash
-# Fork with label (copies files + storage)
-fazt app fork myapp --as myapp-test
-# → Created app_m3n8k1vz "myapp-test"
+# Fork with new alias
+fazt app fork --alias tetris --as tetris-staging --to zyt
+# → Created app_m3n8k1vz (forked from app_7f3k9x2m)
+# → Created alias tetris-staging → app_m3n8k1vz
 
-# Fork without label
-fazt app fork myapp
-# → Created app_p4q7r2st (unlisted)
+# Fork without alias (unlisted)
+fazt app fork --id app_7f3k9x2m --to zyt
+# → Created app_p4q7r2st (no alias, accessible by ID)
 
-# Fork without storage
-fazt app fork myapp --as myapp-clean --no-storage
+# Fork without copying storage
+fazt app fork --alias tetris --as tetris-clean --no-storage --to zyt
+```
+
+### Link/Unlink (Alias Management)
+
+```bash
+# Create or update alias
+fazt app link tetris --id app_abc123 --to zyt
+
+# Remove alias
+fazt app unlink tetris --from zyt
+
+# Reserve subdomain
+fazt app reserve admin --on zyt
+
+# Traffic split
+fazt app split tetris --ids app_v1:50,app_v2:50 --on zyt
+
+# Atomic swap (exchange two aliases' targets)
+fazt app swap tetris tetris-v2 --on zyt
 ```
 
 ### Lineage
 
 ```bash
 # Show lineage tree
-fazt app lineage myapp
-# app_7f3k9x2m "myapp" (original)
-# ├── app_m3n8k1vz "myapp-test"
-# │   └── app_q2w3e4r5 "myapp-test-v2"
-# └── app_p4q7r2st (unlisted)
-
-# Delete app
-fazt app delete myapp
+fazt app lineage --id app_7f3k9x2m --on zyt
+# app_7f3k9x2m "Tetris" (original)
+# ├── app_m3n8k1vz "Tetris" [tetris-staging]
+# │   └── app_q2w3e4r5 "Tetris" [tetris-v2]
+# └── app_p4q7r2st "Tetris" (no alias)
 
 # Delete app and all forks
-fazt app delete myapp --with-forks
-
-# Delete only forks
-fazt app prune myapp
+fazt app remove --id app_7f3k9x2m --with-forks --from zyt
 ```
 
 ---
 
-## Storage Handling
+## Manifest Extension
 
-### On Fork
+`manifest.json` now supports metadata:
 
-When forking an app, storage is copied by default:
-
-```sql
--- Copy all KV entries from parent to new app
-INSERT INTO app_kv (app_id, key, value, expires_at, created_at, updated_at)
-SELECT 'app_NEW', key, value, expires_at, created_at, CURRENT_TIMESTAMP
-FROM app_kv WHERE app_id = 'app_PARENT';
+```json
+{
+  "name": "tetris",
+  "title": "Tetris",
+  "description": "Classic block-stacking game",
+  "tags": ["game", "arcade"],
+  "visibility": "public"
+}
 ```
 
-Options:
-- `--no-storage`: Fork without copying storage (clean slate)
-- `--storage-snapshot`: Copy storage at specific point (future)
+On deploy:
+- `name` → used as alias subdomain (if --alias not specified)
+- `title`, `description`, `tags`, `visibility` → stored on app
 
-### Storage Scoping
+---
 
-Storage is always scoped by `app_id` (the UUID), not the label:
+## Logging and Analytics
+
+All logs use `app_id`, not subdomain:
 
 ```sql
--- This query works regardless of label changes
-SELECT * FROM app_kv WHERE app_id = 'app_7f3k9x2m';
+-- Events table
+CREATE TABLE events (
+    ...
+    app_id TEXT,    -- app_abc123 (stable across renames)
+    domain TEXT,    -- tetris.zyt.app (for reference)
+    ...
+);
+
+-- Audit logs
+CREATE TABLE audit_logs (
+    ...
+    app_id TEXT,    -- app_abc123
+    ...
+);
+
+-- Deployments
+CREATE TABLE deployments (
+    ...
+    app_id TEXT,    -- app_abc123
+    ...
+);
+```
+
+This ensures historical data stays connected even after alias changes.
+
+---
+
+## URL Routing
+
+Request routing with aliases:
+
+```
+Request: https://tetris.zyt.app/api/hello
+
+1. Extract subdomain: "tetris"
+2. Query aliases: SELECT type, targets FROM aliases WHERE subdomain = 'tetris'
+3. If found:
+   - proxy: Serve content from target app_id
+   - redirect: 301/302 to target URL
+   - reserved: Return 404
+   - split: Pick target by weight, set sticky cookie, serve
+4. If not found:
+   - Check if subdomain matches app_* pattern
+   - If yes: Serve app by ID directly
+   - If no: Return 404
 ```
 
 ---
@@ -305,75 +443,36 @@ GET  /_fazt/errors            → Recent errors with stack traces
 GET  /_fazt/errors?limit=10   → Last N errors
 ```
 
-**Log entry example:**
-```json
-{
-  "id": "log_abc123",
-  "timestamp": "2026-01-19T15:30:00Z",
-  "method": "POST",
-  "path": "/api/action",
-  "status": 200,
-  "duration_ms": 45,
-  "storage_ops": ["get:scores", "set:scores"],
-  "error": null
-}
-```
-
-**Error entry example:**
-```json
-{
-  "id": "err_xyz789",
-  "timestamp": "2026-01-19T15:31:00Z",
-  "method": "POST",
-  "path": "/api/broken",
-  "error": "TypeError: Cannot read property 'x' of undefined",
-  "stack": "at handler (api/main.js:42)\n  at ..."
-}
-```
-
-### Snapshot Model
-
-```sql
-CREATE TABLE app_snapshots (
-    id TEXT PRIMARY KEY,
-    app_id TEXT NOT NULL,
-    name TEXT NOT NULL,
-    storage_data TEXT,        -- JSON dump of app_kv entries
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(app_id, name)
-);
-```
-
 ### Example Agent Workflow
 
 ```bash
 # 1. Fork production for testing
-fazt app fork myapp --as myapp-test
+fazt app fork --alias tetris --as tetris-test --to local
 
 # 2. Create snapshot before tests
-curl -X POST http://myapp-test.local:8080/_fazt/snapshot \
+curl -X POST http://tetris-test.local:8080/_fazt/snapshot \
   -d '{"name":"pre-test"}'
 
-# 3. Run tests, modify data
-curl -X POST http://myapp-test.local:8080/api/data -d '{"test":true}'
+# 3. Run tests
+curl -X POST http://tetris-test.local:8080/api/action
 
-# 4. Check execution logs
-curl http://myapp-test.local:8080/_fazt/logs?limit=1
+# 4. Check logs
+curl http://tetris-test.local:8080/_fazt/logs?limit=1
 
-# 5. If something failed, check errors
-curl http://myapp-test.local:8080/_fazt/errors
+# 5. Check errors if needed
+curl http://tetris-test.local:8080/_fazt/errors
 
-# 6. Verify storage state
-curl http://myapp-test.local:8080/_fazt/storage
+# 6. Verify storage
+curl http://tetris-test.local:8080/_fazt/storage
 
 # 7. Restore after tests
-curl -X POST http://myapp-test.local:8080/_fazt/restore/pre-test
+curl -X POST http://tetris-test.local:8080/_fazt/restore/pre-test
 
-# 8. When ready, swap labels
-fazt app swap myapp myapp-test
+# 8. When ready, swap to production
+fazt app swap tetris tetris-test --on zyt
 
 # 9. Clean up old version
-fazt app delete app_OLD_ID
+fazt app remove --id app_OLD_ID --from zyt
 ```
 
 ---
@@ -384,101 +483,292 @@ fazt app delete app_OLD_ID
 
 Current:
 ```sql
-id TEXT PRIMARY KEY,      -- "othelo" (same as name)
+-- apps table uses name as both id and subdomain
+id TEXT PRIMARY KEY,      -- "othelo"
 name TEXT NOT NULL UNIQUE -- "othelo"
 ```
 
 Migration steps:
 
-1. Generate UUIDs for existing apps
-2. Rename `name` to `label`
-3. Add lineage fields (NULL for existing apps)
-4. Update storage references
+1. Create new `apps` table with UUID schema
+2. Create `aliases` table
+3. Migrate existing apps:
+   - Generate UUID for each app
+   - Copy name to alias pointing to new UUID
+   - Set original_id = id (they're originals)
+4. Update VFS to key by app_id instead of subdomain
+5. Update all logs/analytics to reference app_id
 
 ```sql
--- Step 1: Add new columns
-ALTER TABLE apps ADD COLUMN new_id TEXT;
-ALTER TABLE apps ADD COLUMN original_id TEXT;
-ALTER TABLE apps ADD COLUMN forked_from_id TEXT;
+-- Create new tables
+CREATE TABLE apps_new (...);
+CREATE TABLE aliases (...);
 
--- Step 2: Generate UUIDs and set as original
-UPDATE apps SET
-  new_id = 'app_' || lower(hex(randomblob(4))),
-  original_id = 'app_' || lower(hex(randomblob(4)));
+-- Migrate apps
+INSERT INTO apps_new (id, original_id, title, source, created_at, updated_at)
+SELECT
+  'app_' || lower(hex(randomblob(4))),
+  'app_' || lower(hex(randomblob(4))),
+  name,
+  source,
+  created_at,
+  updated_at
+FROM apps;
 
--- Step 3: Update original_id to match new_id (they're originals)
-UPDATE apps SET original_id = new_id;
+-- Fix original_id to match id
+UPDATE apps_new SET original_id = id;
 
--- Step 4: Update storage references
-UPDATE app_kv SET app_id = (
-  SELECT new_id FROM apps WHERE apps.id = app_kv.app_id
+-- Create aliases for each app
+INSERT INTO aliases (subdomain, type, targets)
+SELECT
+  old.name,
+  'proxy',
+  json_object('app_id', new.id)
+FROM apps old
+JOIN apps_new new ON old.name = new.title;
+
+-- Update VFS references
+UPDATE vfs_files SET app_id = (
+  SELECT a.id FROM apps_new a
+  JOIN aliases al ON json_extract(al.targets, '$.app_id') = a.id
+  WHERE al.subdomain = vfs_files.site_id
 );
-
--- Step 5: Rename columns
-ALTER TABLE apps RENAME COLUMN name TO label;
-ALTER TABLE apps RENAME COLUMN id TO old_id;
-ALTER TABLE apps RENAME COLUMN new_id TO id;
-
--- Step 6: Drop old column, update primary key
--- (requires table rebuild in SQLite)
 ```
 
 ---
 
-## System Apps
+## Reserved Subdomains
 
-System apps (admin, 404, root) have reserved labels:
+System subdomains that cannot be used by user apps:
 
-| Label | Purpose |
-|-------|---------|
+| Subdomain | Purpose |
+|-----------|---------|
 | `admin` | Admin dashboard |
+| `api` | API endpoints |
 | `404` | Error page |
 | `root` | Root domain handler |
 
-These cannot be reassigned to user apps.
+These are created as `reserved` type aliases on server init.
 
 ---
 
-## URL Routing
+## Remote Execution (`@peer`)
 
-Request routing with new model:
+Any command can be executed on a remote fazt node using the `@peer` prefix:
 
-```
-Request: https://myapp.zyt.app/api/hello
+```bash
+# Local execution
+fazt app list
 
-1. Extract subdomain: "myapp"
-2. Query: SELECT id FROM apps WHERE label = 'myapp'
-3. If found: Route to app with that ID
-4. If not found: Check if subdomain matches app_* pattern
-   - If yes: Route to app by ID directly
-   - If no: Return 404
+# Remote execution (equivalent)
+fazt @zyt app list
+fazt @local app deploy ./dir --alias tetris
 ```
 
-This allows both:
-- `myapp.zyt.app` (via label)
-- `app_7f3k9x2m.zyt.app` (via ID directly)
+### How It Works
+
+```
+┌─────────────────┐         ┌─────────────────┐
+│  Local CLI      │         │  Remote fazt    │
+│                 │         │                 │
+│ fazt @zyt app   │───API──→│ POST /api/cmd   │
+│      list       │         │ {cmd: "app",    │
+│                 │←──JSON──│  args: ["list"]}│
+└─────────────────┘         └─────────────────┘
+```
+
+1. CLI detects `@peer` prefix
+2. Looks up peer URL and token from local config
+3. Serializes command to API request
+4. Remote fazt executes, returns JSON response
+5. Local CLI formats and displays result
+
+### Syntax
+
+```bash
+fazt @<peer> <command> [args...]
+
+# Examples
+fazt @zyt app list
+fazt @zyt app info --alias tetris
+fazt @zyt app deploy ./dir --alias myapp
+fazt @local app fork --alias tetris --as tetris-dev
+```
+
+### Authentication
+
+Uses existing peer tokens stored in local client DB:
+
+```bash
+# Peer already configured with token
+fazt remote add zyt --url https://admin.zyt.app --token <TOKEN>
+
+# Now @zyt works automatically
+fazt @zyt app list
+```
+
+### Commands Available Remotely
+
+| Command | Remote API | Notes |
+|---------|------------|-------|
+| `app list` | Yes | List apps/aliases |
+| `app info` | Yes | App details |
+| `app deploy` | Yes | Upload and deploy |
+| `app remove` | Yes | Delete app/alias |
+| `app fork` | Yes | Fork with metadata |
+| `app link` | Yes | Create/update alias |
+| `app unlink` | Yes | Remove alias |
+| `app reserve` | Yes | Block subdomain |
+| `app split` | Yes | Traffic splitting |
+| `app swap` | Yes | Atomic swap |
+| `app lineage` | Yes | Show fork tree |
+| `server info` | Yes | Server metadata |
+| `server stop` | Yes | Graceful shutdown |
+| `server create-key` | Yes | Create API key |
+| `server start` | No | Local only |
+| `server init` | No | Local only |
+| `remote *` | No | Manages local peers |
+
+### Error Handling
+
+```bash
+fazt @zyt app list
+# Error: peer 'zyt' not found (check 'fazt remote list')
+
+fazt @zyt app list
+# Error: connection refused (is the server running?)
+
+fazt @zyt app list
+# Error: 401 unauthorized (check API token)
+```
 
 ---
 
-## Open Questions
+## API Endpoints
 
-1. **Label history**: Track when labels were assigned/removed?
-2. **Multiple labels**: Allow multiple labels per app (aliases)?
-3. **Label reservations**: Reserve labels before app is ready?
-4. **Cross-node forks**: Fork from remote to local?
-5. **Storage snapshots**: How many to keep? Auto-cleanup?
+Every CLI command has a corresponding API endpoint. All admin endpoints require
+authentication via API token in `Authorization: Bearer <token>` header.
+
+### Public (no auth)
+
+```
+GET /api/apps                    → visibility=public apps only
+GET /api/health                  → Health check
+```
+
+### Apps (authenticated)
+
+```
+GET    /api/apps?all=true        → All apps (admin)
+GET    /api/apps/:id             → App by ID
+POST   /api/apps                 → Create app
+PUT    /api/apps/:id             → Update app metadata
+DELETE /api/apps/:id             → Delete app
+DELETE /api/apps/:id?with-forks  → Delete app and all forks
+```
+
+### Aliases (authenticated)
+
+```
+GET    /api/aliases              → All aliases
+GET    /api/aliases/:subdomain   → Alias details
+POST   /api/aliases              → Create alias (link)
+PUT    /api/aliases/:subdomain   → Update alias (retarget)
+DELETE /api/aliases/:subdomain   → Delete alias (unlink)
+```
+
+### Alias Operations (authenticated)
+
+```
+POST /api/aliases/:subdomain/reserve
+  → Reserve subdomain (block it)
+
+POST /api/aliases/swap
+  Body: {"alias1": "tetris", "alias2": "tetris-v2"}
+  → Atomic swap of two aliases' targets
+
+POST /api/aliases/:subdomain/split
+  Body: {"targets": [{"app_id": "app_x", "weight": 50}, ...]}
+  → Configure traffic splitting
+```
+
+### Fork (authenticated)
+
+```
+POST /api/apps/:id/fork
+  Body: {"alias": "tetris-dev", "copy_storage": true}
+  → Fork app with optional new alias
+```
+
+### Lineage (authenticated)
+
+```
+GET /api/apps/:id/lineage        → Lineage tree for app
+GET /api/apps/:id/forks          → Direct forks of app
+```
+
+### Deploy (authenticated)
+
+```
+POST /api/deploy
+  Content-Type: multipart/form-data
+  Body: zip file + metadata
+  → Deploy app (creates app + alias if needed)
+
+POST /api/deploy?alias=tetris
+  → Deploy to specific alias
+
+POST /api/deploy?id=app_abc123
+  → Deploy to specific app ID
+```
+
+### Server (authenticated)
+
+```
+GET  /api/server/info            → Server metadata, version
+POST /api/server/stop            → Graceful shutdown
+POST /api/server/keys            → Create new API key
+GET  /api/server/keys            → List API keys
+DELETE /api/server/keys/:id      → Revoke API key
+```
+
+### Command Gateway (for @peer)
+
+Generic endpoint that accepts any CLI command:
+
+```
+POST /api/cmd
+  Body: {"command": "app", "args": ["list", "--aliases"]}
+  Response: {"success": true, "output": "...", "data": {...}}
+```
+
+This enables `@peer` to work with any command without needing
+explicit endpoint mapping in the client.
 
 ---
 
 ## Implementation Order
 
-1. **Schema migration**: Add UUID, rename name→label, add lineage
-2. **ID generation**: Implement nanoid/UUID generation
-3. **Label commands**: `fazt app label/unlabel/swap`
-4. **Fork command**: `fazt app fork` with storage copy
-5. **Lineage commands**: `fazt app lineage/family`
-6. **Agent endpoints**: `/_fazt/*` for testing workflows
-7. **Update routing**: Support both label and ID-based routing
+### Phase 1: Core Data Model
+1. **Schema migration**: Create apps/aliases tables, migrate data
+2. **ID generation**: Implement nanoid generation
+3. **Routing update**: Check aliases table first
+
+### Phase 2: CLI + API (1:1)
+4. **API endpoints**: All app/alias CRUD operations
+5. **CLI --alias/--id flags**: Update all app commands
+6. **Link/unlink/reserve**: Alias management commands + APIs
+7. **Fork with metadata**: Copy title/description/tags
+
+### Phase 3: Remote Execution
+8. **Command gateway**: `POST /api/cmd` endpoint
+9. **@peer parsing**: CLI detects and routes to remote
+10. **Error handling**: Network, auth, command errors
+
+### Phase 4: Advanced Features
+11. **Visibility filter**: Public API only returns public apps
+12. **Traffic splitting**: Weighted routing + sticky sessions
+13. **Agent endpoints**: `/_fazt/*` for testing workflows
 
 ---
 
