@@ -146,7 +146,7 @@ func TestNewTemplates(t *testing.T) {
 			"src/lib/api.js",
 			"src/lib/session.js",
 			"src/lib/settings.js",
-			"api/items.js",
+			"api/main.js",
 		}
 
 		for _, f := range required {

@@ -6,100 +6,61 @@
 ## Status
 
 ```
-State: PLANNING
-Next: Simplify /fazt-app skill
+State: IN_PROGRESS
+Next: Rebuild binary to include template fixes
 ```
 
 ---
 
-## Task: Simplify /fazt-app
+## Completed: Simplify /fazt-app
 
-**Goal**: Make fazt app building reliable for cheaper models (Haiku-class).
+Reduced `/fazt-app` skill from 1004 lines to 127 lines (87% reduction).
 
-### The Problem
+### Changes Made
 
-Current `/fazt-app` is 1000+ lines. It tries to teach the LLM everything
-about Vue, Vite, storage APIs, component patterns, etc. This makes it:
-- Brittle (LLM can miss details)
-- Expensive (lots of context)
-- Inconsistent (generates from scratch each time)
+1. **Skill rewritten** (`.claude/commands/fazt-app.md`)
+   - Workflow-focused instead of code-heavy
+   - References CLI commands and template
+   - Quick storage reference
+   - 127 lines total
 
-### The Solution
+2. **Template fixes** (`internal/assets/templates/vue-api/`)
+   - Renamed `api/items.js` → `api/main.js` (serverless requires main.js)
+   - Added `handler(request)` call at end (was missing execution)
+   - Added `genId()` helper (fazt.uuid() doesn't exist)
+   - Fixed vite.config.js to externalize Vue for build
 
-v0.10.5 CLI now does the heavy lifting:
+### Template Files Changed
 
-| Capability | What It Does |
-|------------|--------------|
-| `fazt app create --template vue-api` | Scaffolds complete project |
-| `fazt app validate` | Pre-deploy validation with JS syntax |
-| `fazt app logs -f` | Real-time debugging |
-| `.gitignore` support | Auto-excludes node_modules, etc. |
-| Better Goja errors | Line numbers and context |
-
-**New approach**: Skill orchestrates CLI, doesn't duplicate knowledge.
-
-### Target
-
-Reduce `/fazt-app` from ~1000 lines to ~100-150 lines:
-
-```markdown
-# /fazt-app
-
-1. Scaffold: `fazt app create <name> --template vue-api`
-2. Customize:
-   - UI: `src/components/App.js`
-   - API: `api/items.js` (rename collection, add endpoints)
-3. Validate: `fazt app validate ./<name>`
-4. Test: `fazt app deploy ./<name> --to local`
-5. Debug: `fazt app logs <name> --peer local -f`
-6. Ship: `fazt app deploy ./<name> --to zyt`
-
-## Storage Quick Reference
-var ds = fazt.storage.ds
-ds.insert('items', {name: 'x'})
-ds.find('items', {})
-ds.update('items', {id: '...'}, {$set: {name: 'y'}})
-ds.delete('items', {id: '...'})
-
-## Design Notes
-- Apple-esque: clean, spacious, subtle
-- Components in separate .js files
-- Session via ?s= URL param (already in template)
-```
-
-### What to Keep
-
-- CLI command sequence
-- Storage API quick reference (ds, kv basics)
-- Brief design principles
-- Location behavior (servers/zyt/ vs /tmp/)
-
-### What to Remove
-
-- Full boilerplate code (templates have it)
-- Component architecture details
-- Detailed Vue/Vite patterns
-- 500 lines of example code
-
-### Implementation Steps
-
-1. Read current `/fazt-app` skill
-2. Read `vue-api` template to verify it has everything
-3. Write new minimal skill
-4. Test with a sample prompt
-5. Delete old verbose skill
+| File | Change |
+|------|--------|
+| `api/main.js` | Renamed from items.js, added handler call, added genId |
+| `vite.config.js` | Added Vue externalization for Vite build |
 
 ---
 
-## Future Enhancement (v0.10.6)
+## Action Required: Rebuild Binary
 
-Consider `fazt app dev` command:
+The template fixes are in source but not in the installed binary. To apply:
+
 ```bash
-fazt app dev ./myapp --peer local
-# Validates → Deploys → Opens browser → Tails logs → Watches for changes
+go build -o ~/.local/bin/fazt ./cmd/server
 ```
 
-Would reduce iteration loop to single command.
+Until rebuilt, `fazt app create` uses old templates. Workaround: use `--no-build`
+when deploying to skip Vite build step.
+
+---
+
+## Verified Working
+
+Tested full workflow:
+```bash
+fazt app create myapp --template vue-api
+fazt app validate ./myapp
+fazt app deploy ./myapp --to local --no-build
+curl http://myapp.192.168.64.3.nip.io:8080/api/items  # ✓ returns JSON
+```
 
 ---
 
@@ -113,7 +74,7 @@ fazt app create myapp --template vue-api
 fazt app validate ./myapp
 
 # Local testing
-fazt app deploy ./myapp --to local
+fazt app deploy ./myapp --to local --no-build
 fazt app logs myapp --peer local -f
 
 # Production

@@ -1,7 +1,13 @@
 // CRUD API for items using fazt storage
-// Access: /api/items and /api/items/:id
+// All /api/* requests are routed to this file
+// Handles: /api/items and /api/items/:id
 
 var ds = fazt.storage.ds
+
+// Simple ID generator (timestamp + random suffix)
+function genId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8)
+}
 
 function handler(req) {
   var parts = req.path.split('/').filter(Boolean)
@@ -26,7 +32,7 @@ function handler(req) {
     if (!body.name) return respond(400, { error: 'name required' })
 
     var item = {
-      id: fazt.uuid(),
+      id: genId(),
       name: body.name,
       created: Date.now()
     }
@@ -50,3 +56,6 @@ function handler(req) {
 
   return respond(405, { error: 'Method not allowed' })
 }
+
+// Execute the handler with the injected request object
+handler(request)
