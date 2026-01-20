@@ -6,74 +6,177 @@
 ## Status
 
 ```
-State: CLEAN
-Next: Build apps with the improved static hosting.
+State: PLANNING
+Next: Implement fazt CLI improvements for LLM-friendly app development
 ```
 
 ---
 
-## Current Session: Static Hosting + Headless Apps
+## Current Session: Reflex App + DX Ideas
 
-### 1. Legacy Serverless Removal
+### 1. Reflex - Example App (Complete)
 
-Removed legacy root `main.js` serverless pattern. Static files (including `.js`)
-now served correctly without Goja interception.
+Built an advanced typing speed game to showcase fazt capabilities:
+- **Live**: https://reflex.zyt.app
+- **Source**: `servers/zyt/reflex/`
 
-**Changes:**
-- Deleted `internal/hosting/runtime.go` (-428 lines)
-- Removed legacy handler call from `cmd/server/main.go`
+**Features demonstrated:**
+- Document store (ds) for session state, user stats
+- Key-value (kv) for leaderboards, daily challenges, multiplayer with TTL
+- Complex queries for aggregating rankings
+- Vue 3 + Vite dual-mode (static hosting + dev server)
+- PWA-ready with sounds, haptics, themes
 
-### 2. Headless Apps Support
+**README includes feature proposals** for what would be possible with:
+- WebSockets (v0.17) - real-time multiplayer
+- Cron (v0.10) - daily challenge generation
+- Stdlib (v0.10) - lodash, dayjs
+- Sandbox (v0.10) - user-generated challenges
 
-Apps can now be API-only (no `index.html`, just `api/main.js`).
+---
 
-**Changes:**
-- `SiteExists()` now checks for `index.html` OR `api/main.js`
-- Test added for headless API apps
+## Next: LLM-Friendly App Development
 
-### 3. Local-Only App ID Routes
+Goal: Make it possible for cheaper models (Haiku) to build fazt apps reliably.
 
-Added `/_app/<id>/` escape hatch for direct app access by ID.
-Only works from local/private IPs - returns 404 from public IPs.
+### Design Principle
 
-**Use cases:**
-- Local development without DNS/subdomain setup
-- LLM agent testing
-- Debugging
+**Use existing concepts, don't invent new ones.**
 
-**Changes:**
-- Added `IsLocalRequest()` and `ParseAppPath()` to `internal/hosting/manager.go`
-- Added routing in `cmd/server/main.go`
-- Tests for both functions
+- Use `.gitignore` for deploy exclusions (not `.faztignore`)
+- Use `package.json` patterns (not `app.json`)
+- Copy from templates (not interpret long specs)
 
-### 4. Development Philosophy (CLAUDE.md)
+### Fazt CLI Additions (Priority Order)
 
-- No backward compatibility - break things and evolve
-- Static hosting first - zero build steps required
-- All other features are progressive enhancements
+#### 1. `fazt app create --template`
+
+Scaffold working boilerplate so models only write business logic.
+
+```bash
+fazt app create myapp --template static   # index.html + manifest
+fazt app create myapp --template vue      # Vue + Vite + lib/
+fazt app create myapp --template api      # With serverless API
+```
+
+**Implementation:**
+- Embed templates in binary (like admin dashboard)
+- Templates at `internal/assets/templates/`
+- Each template is a working app out-of-box
+
+#### 2. Respect `.gitignore` on deploy
+
+Don't upload `node_modules/`, `dist/`, `.git/`, etc.
+
+**Implementation:**
+- Parse `.gitignore` in deploy command
+- Use existing gitignore libraries (go-gitignore)
+- No new config files to learn
+
+#### 3. `fazt app validate <dir>`
+
+Check app before deploy, return actionable errors.
+
+```bash
+fazt app validate ./myapp
+# ✓ manifest.json valid
+# ✓ index.html found
+# ✗ api/main.js:15 - SyntaxError: Unexpected token
+```
+
+**Implementation:**
+- Check manifest.json schema
+- Check required files exist
+- Parse JS with Goja, report errors with line numbers
+
+#### 4. `fazt app logs <app> [--peer]`
+
+Stream serverless execution logs.
+
+```bash
+fazt app logs reflex --peer local
+# 2026-01-20 12:00:01 [reflex] GET /api/state → 200 (12ms)
+# 2026-01-20 12:00:02 [reflex] POST /api/state → 200 (8ms)
+```
+
+**Implementation:**
+- Ring buffer for recent logs (already have site_logs table)
+- SSE endpoint `/_fazt/logs/stream`
+- CLI connects and prints
+
+#### 5. Better Goja error messages
+
+When serverless fails, return line number and context.
+
+```json
+{
+  "error": "ReferenceError: foo is not defined",
+  "file": "api/main.js",
+  "line": 42,
+  "context": "var x = foo.bar();"
+}
+```
+
+### /fazt-app-lite Skill
+
+After CLI improvements, create a minimal skill (~50 lines):
+
+```markdown
+# /fazt-app-lite
+
+1. Run: `fazt app create <name> --template vue-api`
+2. Edit `components/App.js` - add your UI
+3. Edit `api/main.js` - add your endpoints
+4. Test: `fazt app deploy <dir> --to local`
+5. Ship: `fazt app deploy <dir> --to zyt`
+
+## Storage (in api/main.js)
+var ds = fazt.storage.ds;
+ds.insert('items', {name: 'x'});
+ds.find('items', {name: 'x'});
+```
+
+The skill is short because the CLI does the heavy lifting.
+
+### Templates to Create
+
+```
+internal/assets/templates/
+├── static/           # Just HTML/CSS/JS
+│   ├── manifest.json
+│   └── index.html
+├── vue/              # Vue 3 + Vite
+│   ├── manifest.json
+│   ├── package.json
+│   ├── vite.config.js
+│   ├── index.html
+│   ├── main.js
+│   └── components/
+│       └── App.js
+└── vue-api/          # Vue + serverless
+    ├── (all of vue/)
+    ├── api/
+    │   └── main.js   # CRUD template
+    └── lib/
+        ├── api.js    # Fetch helpers
+        ├── session.js
+        └── settings.js
+```
 
 ---
 
 ## Quick Reference
 
 ```bash
-# Deploy static site directly (no build needed!)
+# Current workflow
+fazt app deploy servers/zyt/myapp --to local --no-build
+
+# Future workflow (after CLI improvements)
+fazt app create myapp --template vue-api
+# ... edit files ...
+fazt app validate servers/zyt/myapp
 fazt app deploy servers/zyt/myapp --to local
-
-# App types
-myapp/
-├── index.html, *.js, *.css    # Static - served as files
-└── api/main.js                # Serverless - executed by Goja
-
-# Headless API (no index.html)
-myapi/
-└── api/main.js                # Just the API
-
-# Local-only escape hatch (dev/testing)
-curl http://localhost:8080/_app/myapp/api/hello
-
-# Local fazt server
-fazt server start --domain 192.168.64.3 --port 8080 --db /tmp/fazt-local.db
+fazt app logs myapp --peer local
 ```
 
 ---
