@@ -1,18 +1,30 @@
 # Fazt Implementation State
 
 **Last Updated**: 2026-01-20
-**Current Version**: v0.10.4
+**Current Version**: v0.10.5
 
 ## Status
 
 ```
-State: PLANNING
-Next: Implement fazt CLI improvements for LLM-friendly app development
+State: CLEAN
+Next: (none)
 ```
 
 ---
 
-## Current Session: Reflex App + DX Ideas
+## v0.10.5 - LLM-Friendly CLI (Complete)
+
+Implemented all planned CLI improvements:
+
+1. **New templates**: `static`, `vue`, `vue-api`
+2. **`.gitignore` support**: Deploy respects .gitignore patterns
+3. **`fazt app validate`**: Pre-deploy validation with JS syntax checking
+4. **`fazt app logs`**: SSE streaming of serverless execution logs
+5. **Better Goja errors**: Line numbers and context in error messages
+
+---
+
+## Previous Session: Reflex App + DX Ideas
 
 ### 1. Reflex - Example App (Complete)
 

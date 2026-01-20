@@ -2,6 +2,35 @@
 
 All notable changes to fazt.sh will be documented in this file.
 
+## [0.10.5] - 2026-01-20
+
+### Added
+
+#### LLM-Friendly CLI Improvements
+- **New Templates**: Added `static`, `vue`, and `vue-api` templates
+  - `fazt app create myapp --template static` - Basic HTML/CSS/JS
+  - `fazt app create myapp --template vue` - Vue 3 + Vite
+  - `fazt app create myapp --template vue-api` - Vue + serverless + storage helpers
+- **App Validation**: `fazt app validate <dir>` checks apps before deployment
+  - Validates manifest.json schema
+  - Checks required files exist
+  - Parses JavaScript for syntax errors
+  - `--json` flag for machine-readable output
+- **App Logs**: `fazt app logs <app>` streams serverless execution logs
+  - `-f` flag to follow/stream logs in real-time
+  - `-n <count>` to show N recent logs
+  - SSE endpoint at `/api/logs/stream`
+
+#### Developer Experience
+- **Respect .gitignore**: Deploy now skips files listed in `.gitignore`
+  - Also skips `node_modules/`, `.git/`, `.DS_Store`, `*.log` by default
+- **Better JS Errors**: Improved Goja error messages with line numbers and context
+  - Extracts error type, line number, and source context
+  - Helps LLMs debug serverless code
+
+### Changed
+- Updated help text to reflect new templates and commands
+
 ## [0.10.1] - 2026-01-19
 
 ### Fixed

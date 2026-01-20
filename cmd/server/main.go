@@ -38,6 +38,7 @@ import (
 	jsruntime "github.com/fazt-sh/fazt/internal/runtime"
 	"github.com/fazt-sh/fazt/internal/security"
 	"github.com/fazt-sh/fazt/internal/term"
+	ignore "github.com/sabhiram/go-gitignore"
 	"golang.org/x/crypto/bcrypt"
 	_ "modernc.org/sqlite"
 	"github.com/caddyserver/certmagic"
@@ -1567,18 +1568,39 @@ func serveSiteNotFound(w http.ResponseWriter, r *http.Request, subdomain string)
 </html>`, subdomain)
 }
 
-// createDeployZip creates a ZIP archive of the directory
+// createDeployZip creates a ZIP archive of the directory, respecting .gitignore
 func createDeployZip(dir string) (*bytes.Buffer, int, error) {
 	buf := new(bytes.Buffer)
 	zipWriter := zip.NewWriter(buf)
 	fileCount := 0
+
+	// Load .gitignore if present
+	var gitignore *ignore.GitIgnore
+	gitignorePath := filepath.Join(dir, ".gitignore")
+	if _, err := os.Stat(gitignorePath); err == nil {
+		gitignore, _ = ignore.CompileIgnoreFile(gitignorePath)
+	}
+
+	// Default ignores (always skip these)
+	defaultIgnores := []string{
+		"node_modules",
+		".git",
+		".DS_Store",
+		"*.log",
+	}
 
 	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 
-		// Skip hidden files and directories
+		// Get relative path first (needed for gitignore matching)
+		relPath, err := filepath.Rel(dir, path)
+		if err != nil {
+			return err
+		}
+
+		// Skip hidden files and directories (except the root)
 		if strings.HasPrefix(info.Name(), ".") && info.Name() != "." {
 			if info.IsDir() {
 				return filepath.SkipDir
@@ -1586,15 +1608,34 @@ func createDeployZip(dir string) (*bytes.Buffer, int, error) {
 			return nil
 		}
 
-		// Skip directories
-		if info.IsDir() {
-			return nil
+		// Check default ignores
+		for _, pattern := range defaultIgnores {
+			if matched, _ := filepath.Match(pattern, info.Name()); matched {
+				if info.IsDir() {
+					return filepath.SkipDir
+				}
+				return nil
+			}
 		}
 
-		// Get relative path
-		relPath, err := filepath.Rel(dir, path)
-		if err != nil {
-			return err
+		// Check .gitignore patterns
+		if gitignore != nil && relPath != "." {
+			// For directories, append / to match gitignore conventions
+			matchPath := relPath
+			if info.IsDir() {
+				matchPath = relPath + "/"
+			}
+			if gitignore.MatchesPath(matchPath) {
+				if info.IsDir() {
+					return filepath.SkipDir
+				}
+				return nil
+			}
+		}
+
+		// Skip directories (we only store files)
+		if info.IsDir() {
+			return nil
 		}
 
 		// Create ZIP entry
@@ -2750,6 +2791,7 @@ func handleStartCommand() {
 	dashboardMux.HandleFunc("/api/deployments", handlers.DeploymentsHandler)
 	dashboardMux.HandleFunc("/api/envvars", handlers.EnvVarsHandler)
 	dashboardMux.HandleFunc("/api/logs", handlers.LogsHandler)
+	dashboardMux.HandleFunc("/api/logs/stream", handlers.LogStreamHandler)
 
 	// System upgrade endpoint (requires API key auth)
 	dashboardMux.HandleFunc("POST /api/upgrade", handlers.UpgradeHandler)

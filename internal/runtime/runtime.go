@@ -147,11 +147,7 @@ func (r *Runtime) Execute(ctx context.Context, code string, req *Request) *Execu
 	result.Duration = time.Since(start)
 
 	if err != nil {
-		if jserr, ok := err.(*goja.InterruptedError); ok {
-			result.Error = fmt.Errorf("execution timeout: %v", jserr.Value())
-		} else {
-			result.Error = fmt.Errorf("javascript error: %w", err)
-		}
+		result.Error = formatJSError(err, code)
 		return result
 	}
 
@@ -352,11 +348,7 @@ func (r *Runtime) ExecuteWithFiles(ctx context.Context, mainCode string, req *Re
 	result.Duration = time.Since(start)
 
 	if err != nil {
-		if jserr, ok := err.(*goja.InterruptedError); ok {
-			result.Error = fmt.Errorf("execution timeout: %v", jserr.Value())
-		} else {
-			result.Error = fmt.Errorf("javascript error: %w", err)
-		}
+		result.Error = formatJSError(err, mainCode)
 		return result
 	}
 
@@ -538,15 +530,137 @@ func (r *Runtime) ExecuteWithInjectors(ctx context.Context, mainCode string, req
 	result.Duration = time.Since(start)
 
 	if err != nil {
-		if jserr, ok := err.(*goja.InterruptedError); ok {
-			result.Error = fmt.Errorf("execution timeout: %v", jserr.Value())
-		} else {
-			result.Error = fmt.Errorf("javascript error: %w", err)
-		}
+		result.Error = formatJSError(err, mainCode)
 		return result
 	}
 
 	// Process the return value
 	result.Response = r.extractResponse(vm, value)
 	return result
+}
+
+// JSError represents a detailed JavaScript error
+type JSError struct {
+	Type    string `json:"type"`
+	Message string `json:"message"`
+	File    string `json:"file,omitempty"`
+	Line    int    `json:"line,omitempty"`
+	Column  int    `json:"column,omitempty"`
+	Context string `json:"context,omitempty"`
+}
+
+func (e *JSError) Error() string {
+	if e.Line > 0 {
+		if e.Context != "" {
+			return fmt.Sprintf("%s at line %d: %s\n  > %s", e.Type, e.Line, e.Message, e.Context)
+		}
+		return fmt.Sprintf("%s at line %d: %s", e.Type, e.Line, e.Message)
+	}
+	return fmt.Sprintf("%s: %s", e.Type, e.Message)
+}
+
+// formatJSError creates a detailed error from a Goja error
+func formatJSError(err error, code string) error {
+	if err == nil {
+		return nil
+	}
+
+	// Handle timeout interrupts
+	if jserr, ok := err.(*goja.InterruptedError); ok {
+		return &JSError{
+			Type:    "TimeoutError",
+			Message: fmt.Sprintf("%v", jserr.Value()),
+		}
+	}
+
+	// Handle syntax errors (compile time)
+	if syntaxErr, ok := err.(*goja.CompilerSyntaxError); ok {
+		jsErr := &JSError{
+			Type:    "SyntaxError",
+			Message: syntaxErr.Error(),
+		}
+		// Goja syntax errors include position info in the message
+		// Try to extract line number and add context
+		extractErrorDetails(jsErr, syntaxErr.Error(), code)
+		return jsErr
+	}
+
+	// Handle runtime exceptions
+	if exception, ok := err.(*goja.Exception); ok {
+		jsErr := &JSError{
+			Type:    "Error",
+			Message: exception.Error(),
+		}
+
+		// Try to get stack trace info
+		val := exception.Value()
+		if obj := val.ToObject(nil); obj != nil {
+			if name := obj.Get("name"); name != nil && !goja.IsUndefined(name) {
+				jsErr.Type = name.String()
+			}
+			if msg := obj.Get("message"); msg != nil && !goja.IsUndefined(msg) {
+				jsErr.Message = msg.String()
+			}
+		}
+
+		// Extract position from error message if possible
+		extractErrorDetails(jsErr, exception.Error(), code)
+		return jsErr
+	}
+
+	// Fallback for other error types
+	return &JSError{
+		Type:    "Error",
+		Message: err.Error(),
+	}
+}
+
+// extractErrorDetails tries to extract line/column info and code context
+func extractErrorDetails(jsErr *JSError, errMsg string, code string) {
+	// Goja errors often contain position info like "at line 5 column 10"
+	// or like ":5:10" in the error message
+
+	// Try to find line number patterns
+	var line int
+	patterns := []string{
+		"at line %d",
+		"line %d",
+		":%d:",
+	}
+
+	for _, pattern := range patterns {
+		if n, err := fmt.Sscanf(errMsg, pattern, &line); err == nil && n == 1 && line > 0 {
+			jsErr.Line = line
+			break
+		}
+	}
+
+	// If we found a line number, extract the code context
+	if jsErr.Line > 0 && code != "" {
+		lines := splitLines(code)
+		if jsErr.Line <= len(lines) {
+			context := lines[jsErr.Line-1]
+			// Trim but preserve indentation indication
+			if len(context) > 80 {
+				context = context[:77] + "..."
+			}
+			jsErr.Context = context
+		}
+	}
+}
+
+// splitLines splits code into lines
+func splitLines(code string) []string {
+	var lines []string
+	start := 0
+	for i := 0; i < len(code); i++ {
+		if code[i] == '\n' {
+			lines = append(lines, code[start:i])
+			start = i + 1
+		}
+	}
+	if start < len(code) {
+		lines = append(lines, code[start:])
+	}
+	return lines
 }

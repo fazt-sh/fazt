@@ -72,6 +72,9 @@ func (h *ServerlessHandler) HandleRequest(w http.ResponseWriter, r *http.Request
 
 	result := h.executeWithFazt(execCtx, mainJS, req, loader, app, env)
 
+	// Persist logs to database
+	h.persistLogs(appID, result.Logs, result.Error)
+
 	// Handle errors
 	if result.Error != nil {
 		w.Header().Set("Content-Type", "application/json")
@@ -196,6 +199,29 @@ func buildRequest(r *http.Request) *Request {
 		Query:   query,
 		Headers: headers,
 		Body:    body,
+	}
+}
+
+// persistLogs saves execution logs to the database
+func (h *ServerlessHandler) persistLogs(appID string, logs []LogEntry, execErr error) {
+	if h.db == nil {
+		return
+	}
+
+	// Persist console logs
+	for _, log := range logs {
+		h.db.Exec(`
+			INSERT INTO site_logs (site_id, level, message)
+			VALUES (?, ?, ?)
+		`, appID, log.Level, log.Message)
+	}
+
+	// Persist error if present
+	if execErr != nil {
+		h.db.Exec(`
+			INSERT INTO site_logs (site_id, level, message)
+			VALUES (?, ?, ?)
+		`, appID, "error", execErr.Error())
 	}
 }
 

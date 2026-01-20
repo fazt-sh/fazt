@@ -18,11 +18,11 @@ func TestListTemplates(t *testing.T) {
 		found[name] = true
 	}
 
-	if !found["minimal"] {
-		t.Error("expected 'minimal' template")
-	}
-	if !found["vite"] {
-		t.Error("expected 'vite' template")
+	expected := []string{"minimal", "vite", "static", "vue", "vue-api"}
+	for _, name := range expected {
+		if !found[name] {
+			t.Errorf("expected '%s' template", name)
+		}
 	}
 }
 
@@ -81,7 +81,78 @@ func TestTemplateExists(t *testing.T) {
 	if !TemplateExists("vite") {
 		t.Error("TemplateExists(vite) should return true")
 	}
+	if !TemplateExists("static") {
+		t.Error("TemplateExists(static) should return true")
+	}
+	if !TemplateExists("vue") {
+		t.Error("TemplateExists(vue) should return true")
+	}
+	if !TemplateExists("vue-api") {
+		t.Error("TemplateExists(vue-api) should return true")
+	}
 	if TemplateExists("nonexistent") {
 		t.Error("TemplateExists(nonexistent) should return false")
 	}
+}
+
+func TestNewTemplates(t *testing.T) {
+	t.Run("static template has required files", func(t *testing.T) {
+		tmplFS, err := GetTemplate("static")
+		if err != nil {
+			t.Fatalf("GetTemplate(static) failed: %v", err)
+		}
+
+		required := []string{"manifest.json", "index.html"}
+		for _, f := range required {
+			if _, err := fs.Stat(tmplFS, f); err != nil {
+				t.Errorf("static template missing %s", f)
+			}
+		}
+	})
+
+	t.Run("vue template has required files", func(t *testing.T) {
+		tmplFS, err := GetTemplate("vue")
+		if err != nil {
+			t.Fatalf("GetTemplate(vue) failed: %v", err)
+		}
+
+		required := []string{
+			"manifest.json",
+			"index.html",
+			"package.json",
+			"vite.config.js",
+			"src/main.js",
+		}
+
+		for _, f := range required {
+			if _, err := fs.Stat(tmplFS, f); err != nil {
+				t.Errorf("vue template missing %s", f)
+			}
+		}
+	})
+
+	t.Run("vue-api template has required files", func(t *testing.T) {
+		tmplFS, err := GetTemplate("vue-api")
+		if err != nil {
+			t.Fatalf("GetTemplate(vue-api) failed: %v", err)
+		}
+
+		required := []string{
+			"manifest.json",
+			"index.html",
+			"package.json",
+			"vite.config.js",
+			"src/main.js",
+			"src/lib/api.js",
+			"src/lib/session.js",
+			"src/lib/settings.js",
+			"api/items.js",
+		}
+
+		for _, f := range required {
+			if _, err := fs.Stat(tmplFS, f); err != nil {
+				t.Errorf("vue-api template missing %s", f)
+			}
+		}
+	})
 }

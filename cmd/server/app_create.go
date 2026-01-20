@@ -147,7 +147,8 @@ func handleAppCreate(args []string) {
 	// Success message
 	fmt.Printf("Created '%s' from '%s' template\n\n", appName, *templateName)
 
-	if *templateName == "vite" {
+	switch *templateName {
+	case "vue", "vue-api", "vite":
 		fmt.Println("Next steps:")
 		fmt.Printf("  cd %s\n", appName)
 		fmt.Println("  npm install        # Install dev dependencies")
@@ -156,7 +157,7 @@ func handleAppCreate(args []string) {
 		fmt.Println()
 		fmt.Println("Or deploy directly (works without npm):")
 		fmt.Printf("  fazt app deploy %s --to zyt\n", appName)
-	} else {
+	default:
 		fmt.Println("Next steps:")
 		fmt.Printf("  fazt app deploy %s --to zyt\n", appName)
 	}

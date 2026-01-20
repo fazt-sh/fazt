@@ -32,6 +32,10 @@ func handleAppCommandV2(args []string) {
 		handleAppDeploy(args[1:]) // Use existing deploy
 	case "create":
 		handleAppCreate(args[1:]) // Use existing create
+	case "validate":
+		handleAppValidate(args[1:]) // Use existing validate
+	case "logs":
+		handleAppLogs(args[1:]) // Use existing logs
 	case "install":
 		handleAppInstall(args[1:]) // Use existing install
 	case "remove":
@@ -895,8 +899,10 @@ COMMANDS:
   list [peer]           List apps (--aliases for alias list)
   info [identifier]     Show app details (--alias or --id)
   deploy <dir>          Deploy directory to peer
+  validate <dir>        Validate app before deployment
+  logs <app>            View serverless execution logs (-f to follow)
   install <url>         Install app from git repository
-  create <name>         Create new app from template
+  create <name>         Create new app from template (static, vue, vue-api)
   remove [identifier]   Remove app (--alias, --id, --with-forks)
   upgrade <app>         Upgrade git-sourced app
 

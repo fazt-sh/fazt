@@ -30,6 +30,10 @@ func handleAppCommand(args []string) {
 		handleAppCreate(args[1:])
 	case "deploy":
 		handleAppDeploy(args[1:])
+	case "validate":
+		handleAppValidate(args[1:])
+	case "logs":
+		handleAppLogs(args[1:])
 	case "install":
 		handleAppInstall(args[1:])
 	case "upgrade":
@@ -688,6 +692,8 @@ COMMANDS:
   create <name>      Create new app from template
   list [peer]        List apps on a peer
   deploy <dir>       Deploy directory to peer
+  validate <dir>     Validate app before deployment
+  logs <app>         View serverless execution logs
   install <url>      Install app from git repository
   upgrade <app>      Upgrade git-sourced app
   pull <app>         Download app files to local directory
@@ -695,11 +701,14 @@ COMMANDS:
   remove <app>       Remove an app from peer
 
 OPTIONS:
-  --template <name>  Template for create (minimal, vite)
+  --template <name>  Template for create (static, vue, vue-api)
   --to <peer>        Target peer for deploy/install
   --from <peer>      Source peer for pull/remove/upgrade
   --name <name>      Override app name
   --check            Check for updates only (upgrade)
+  --json             Output validation results as JSON
+  -f                 Follow log output (stream)
+  -n <count>         Number of recent logs to show
 
 EXAMPLES:
   # Create new app

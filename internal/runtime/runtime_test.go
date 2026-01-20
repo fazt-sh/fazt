@@ -307,5 +307,116 @@ func TestResolvePath(t *testing.T) {
 	}
 }
 
+func TestJSError(t *testing.T) {
+	t.Run("error with line number and context", func(t *testing.T) {
+		err := &JSError{
+			Type:    "SyntaxError",
+			Message: "Unexpected token",
+			Line:    5,
+			Context: "var x = ;",
+		}
+		expected := "SyntaxError at line 5: Unexpected token\n  > var x = ;"
+		if err.Error() != expected {
+			t.Errorf("expected %q, got %q", expected, err.Error())
+		}
+	})
+
+	t.Run("error with line number only", func(t *testing.T) {
+		err := &JSError{
+			Type:    "ReferenceError",
+			Message: "x is not defined",
+			Line:    10,
+		}
+		expected := "ReferenceError at line 10: x is not defined"
+		if err.Error() != expected {
+			t.Errorf("expected %q, got %q", expected, err.Error())
+		}
+	})
+
+	t.Run("error without line number", func(t *testing.T) {
+		err := &JSError{
+			Type:    "Error",
+			Message: "Something went wrong",
+		}
+		expected := "Error: Something went wrong"
+		if err.Error() != expected {
+			t.Errorf("expected %q, got %q", expected, err.Error())
+		}
+	})
+}
+
+func TestFormatJSError_SyntaxError(t *testing.T) {
+	r := NewRuntime(1, time.Second)
+	ctx := context.Background()
+
+	req := &Request{Method: "GET", Path: "/test"}
+	// Code with syntax error
+	code := `var x = ;` // Invalid syntax
+	result := r.Execute(ctx, code, req)
+
+	if result.Error == nil {
+		t.Fatal("expected error for syntax error")
+	}
+
+	// Should be a JSError
+	jsErr, ok := result.Error.(*JSError)
+	if !ok {
+		t.Fatalf("expected *JSError, got %T", result.Error)
+	}
+
+	if jsErr.Type != "SyntaxError" {
+		t.Errorf("expected SyntaxError, got %s", jsErr.Type)
+	}
+}
+
+func TestFormatJSError_RuntimeError(t *testing.T) {
+	r := NewRuntime(1, time.Second)
+	ctx := context.Background()
+
+	req := &Request{Method: "GET", Path: "/test"}
+	// Code with runtime error
+	code := `undefined_variable.foo`
+	result := r.Execute(ctx, code, req)
+
+	if result.Error == nil {
+		t.Fatal("expected error for undefined variable")
+	}
+
+	// Should be a JSError
+	jsErr, ok := result.Error.(*JSError)
+	if !ok {
+		t.Fatalf("expected *JSError, got %T", result.Error)
+	}
+
+	// Type should be ReferenceError or similar
+	if jsErr.Type == "" {
+		t.Error("expected error type to be set")
+	}
+}
+
+func TestSplitLines(t *testing.T) {
+	tests := []struct {
+		code     string
+		expected []string
+	}{
+		{"line1\nline2\nline3", []string{"line1", "line2", "line3"}},
+		{"single line", []string{"single line"}},
+		{"line1\nline2\n", []string{"line1", "line2"}},
+	}
+
+	for _, tt := range tests {
+		result := splitLines(tt.code)
+		if len(result) != len(tt.expected) {
+			t.Errorf("splitLines(%q): expected %d lines, got %d", tt.code, len(tt.expected), len(result))
+			continue
+		}
+		for i, line := range result {
+			if line != tt.expected[i] {
+				t.Errorf("splitLines(%q)[%d]: expected %q, got %q", tt.code, i, tt.expected[i], line)
+			}
+		}
+	}
+}
+
 // Suppress unused import warning
 var _ = fmt.Sprintf
