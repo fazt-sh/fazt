@@ -1,86 +1,51 @@
 # Fazt Session Start
 
-Run this at the beginning of a work session to get up to speed quickly.
+Get up to speed quickly at the beginning of a work session.
 
 ## Steps
 
-### 1. Read Current State
+### 1. Read State
 
 ```bash
 cat koder/STATE.md
 ```
 
-This is the **primary handoff document** from the previous session. It contains:
-- Current version
+This is the **handoff from previous session**:
+- Current version and status
 - What was completed
-- Any pending work or blockers
-- Quick reference to other docs
+- What to work on next
 
-### 2. Verify Environment
+### 2. Verify Versions
 
 ```bash
-# Installed binary version
 fazt --version
-
-# Source code version
 grep "var Version" internal/config/config.go
-
-# Remote server version
 fazt remote status zyt | grep -E "Version|Status"
-
-# Git status
 git status --short
 ```
 
-**Verify versions match**: installed = source = remote. If not, may need to build/release.
+All three should match. If not, may need to build or release.
 
-### 3. Review Recent Changes (if needed)
-
-```bash
-# Recent commits
-git log --oneline -10
-
-# What changed recently
-git diff HEAD~5 --stat
-```
-
-### 4. Sync Understanding
-
-If STATE.md mentions pending work or blockers, investigate:
-- Read referenced files
-- Check mentioned issues
-- Understand context before proceeding
-
-### 5. Ready Check
-
-Before starting work, confirm:
-- [ ] Read STATE.md
-- [ ] Local and remote versions match expectations
-- [ ] Git is clean (or understand uncommitted changes)
-- [ ] Know what to work on
-
-## Quick Reference
-
-| Doc | When to Read |
-|-----|--------------|
-| `koder/STATE.md` | Always - primary state |
-| `CLAUDE.md` | If unfamiliar with project |
-| `koder/start.md` | For deep implementation work |
-| `koder/ideas/specs/` | When implementing new features |
-
-## Output
-
-After running session-start, output:
+### 3. Output
 
 ```
 ## Session Ready
 
-**Version**: vX.Y.Z (local), vX.Y.Z (zyt)
-**State**: [CLEAN | IN_PROGRESS | BLOCKED]
+**Version**: vX.Y.Z (source = binary = zyt: ✓)
+**State**: CLEAN | IN_PROGRESS | BLOCKED
 
-### Context
-[Brief summary from STATE.md]
+### From Last Session
+[Summary from STATE.md]
 
-### Ready to work on
-[What the user likely wants to do, or ask them]
+### Ready to Work On
+[Next task from STATE.md, or ask user]
 ```
+
+## Reference
+
+| Need | Read |
+|------|------|
+| Project context | `CLAUDE.md` |
+| Current state | `koder/STATE.md` |
+| Feature specs | `koder/ideas/specs/` |
+| Version history | `CHANGELOG.md` |

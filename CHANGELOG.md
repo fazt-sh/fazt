@@ -2,6 +2,15 @@
 
 All notable changes to fazt.sh will be documented in this file.
 
+## [Unreleased]
+
+### Changed
+- Simplified `/fazt-start` and `/fazt-stop` skills for symmetric session handoff
+- Added `[Unreleased]` section to CHANGELOG.md for tracking pre-release work
+
+### Removed
+- Deleted `koder/start.md` (redundant with CLAUDE.md and session skills)
+
 ## [0.10.5] - 2026-01-20
 
 ### Added
