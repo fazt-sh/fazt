@@ -6,11 +6,10 @@
 ## Status
 
 State: CLEAN
-**Latest: Storage query fixes**
 
 ---
 
-## Last Session
+## Last Session (2026-01-20)
 
 ### v0.10.6 - SQLite busy_timeout
 - Added `PRAGMA busy_timeout=5000` to prevent SQLITE_BUSY errors
@@ -25,29 +24,38 @@ State: CLEAN
 - Removed localStorage from momentum (settings now in-memory only)
 - Moved local dev DB to `servers/local/data.db` (persists across reboots)
 - Added "apps are throw-away" to development philosophy in CLAUDE.md
+- Created `scripts/release.sh` for fast local releases using PAT
 
 ---
 
-## Problem Statement
+## Next Session
 
-Intermittent timeout errors (~10% of requests) in the Goja JS runtime. Observed
-pattern: approximately 1 in 10 API requests fail with `TimeoutError: execution
-timeout` even when executing simple, fast operations.
+### Storage Debug Mode
 
-**Reproduction:**
+Add observability to storage operations to catch bugs faster.
+
+**Problem:** Storage bugs (v0.10.7) were hard to diagnose because queries silently
+returned empty results instead of helpful errors.
+
+**Proposed solution:**
 ```bash
-for i in {1..10}; do
-  curl -s -X POST "http://192.168.64.3:8080/api/tasks" \
-    -H "Host: momentum.192.168.64.3.nip.io" \
-    -H "Content-Type: application/json" \
-    -d '{"session":"test","text":"Task '$i'"}'
-done
-# ~1 request will timeout
+FAZT_STORAGE_DEBUG=1 fazt server start ...
 ```
 
-**Impact:**
-- Affects all fazt apps with serverless APIs
-- Non-deterministic failures frustrate users
+When enabled, log:
+- Every storage operation with parameters
+- Actual SQL queries generated
+- Row counts and timing
+- Warnings for queries on reserved fields
+
+**Files to modify:**
+- `internal/storage/bindings.go` - Add debug logging
+- `internal/storage/ds_query.go` - Log generated SQL
+- `internal/config/config.go` - Add debug flag
+
+---
+
+## Resolved Issues
 - Hard to debug without proper observability
 
 ---
