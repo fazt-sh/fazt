@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"database/sql"
 	"io"
+	"net/http"
 	"strings"
 	"testing"
 
@@ -284,10 +285,16 @@ func TestSiteExists(t *testing.T) {
 		t.Error("SiteExists returned false for static site")
 	}
 
-	// Case 3: Serverless site (main.js only)
-	fs.WriteFile("app", "main.js", strings.NewReader("code"), 4, "text/javascript")
-	if !SiteExists("app") {
-		t.Error("SiteExists returned false for serverless app")
+	// Case 3: Site with only root main.js should NOT exist (legacy pattern removed)
+	fs.WriteFile("legacy", "main.js", strings.NewReader("code"), 4, "text/javascript")
+	if SiteExists("legacy") {
+		t.Error("SiteExists returned true for legacy root main.js (not supported)")
+	}
+
+	// Case 4: Headless API (api/main.js only) should exist
+	fs.WriteFile("headless", "api/main.js", strings.NewReader("handler()"), 10, "text/javascript")
+	if !SiteExists("headless") {
+		t.Error("SiteExists returned false for headless API app")
 	}
 }
 
@@ -364,5 +371,82 @@ func TestSiteOperations(t *testing.T) {
 
 	if SiteExists(siteName) {
 		t.Error("SiteExists() returned true for deleted site")
+	}
+}
+
+func TestIsLocalRequest(t *testing.T) {
+	tests := []struct {
+		name       string
+		remoteAddr string
+		want       bool
+	}{
+		// Loopback addresses
+		{"localhost IPv4", "127.0.0.1:12345", true},
+		{"localhost IPv6", "[::1]:12345", true},
+
+		// Private IP ranges (RFC 1918)
+		{"10.x.x.x", "10.0.0.5:8080", true},
+		{"172.16.x.x", "172.16.0.1:8080", true},
+		{"172.31.x.x", "172.31.255.255:8080", true},
+		{"192.168.x.x", "192.168.1.100:8080", true},
+
+		// Public IPs should NOT be local
+		{"public IP 1", "8.8.8.8:12345", false},
+		{"public IP 2", "203.0.113.50:12345", false},
+		{"public IPv6", "[2001:db8::1]:12345", false},
+
+		// Edge cases
+		{"no port", "127.0.0.1", true},
+		{"invalid IP", "not-an-ip:1234", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := &http.Request{RemoteAddr: tt.remoteAddr}
+			got := IsLocalRequest(req)
+			if got != tt.want {
+				t.Errorf("IsLocalRequest(%q) = %v, want %v", tt.remoteAddr, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestParseAppPath(t *testing.T) {
+	tests := []struct {
+		path        string
+		wantAppID   string
+		wantRemain  string
+		wantOK      bool
+	}{
+		// Valid paths
+		{"/_app/myapp/", "myapp", "/", true},
+		{"/_app/myapp/api/hello", "myapp", "/api/hello", true},
+		{"/_app/test-app/index.html", "test-app", "/index.html", true},
+		{"/_app/app123", "app123", "/", true},
+
+		// Invalid paths
+		{"/app/myapp/", "", "", false},           // missing underscore
+		{"/_app/", "", "", false},                // no app id
+		{"/other/path", "", "", false},           // different path
+		{"/_apps/myapp/", "", "", false},         // wrong prefix
+		{"/", "", "", false},                     // root
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.path, func(t *testing.T) {
+			appID, remaining, ok := ParseAppPath(tt.path)
+			if ok != tt.wantOK {
+				t.Errorf("ParseAppPath(%q) ok = %v, want %v", tt.path, ok, tt.wantOK)
+				return
+			}
+			if ok {
+				if appID != tt.wantAppID {
+					t.Errorf("ParseAppPath(%q) appID = %q, want %q", tt.path, appID, tt.wantAppID)
+				}
+				if remaining != tt.wantRemain {
+					t.Errorf("ParseAppPath(%q) remaining = %q, want %q", tt.path, remaining, tt.wantRemain)
+				}
+			}
+		})
 	}
 }

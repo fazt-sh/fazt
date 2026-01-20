@@ -5,6 +5,8 @@ import (
 	"fmt"
 	iofs "io/fs"
 	"mime"
+	"net"
+	"net/http"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -125,19 +127,17 @@ func GetStats() VFSStats {
 	return VFSStats{}
 }
 
-// SiteExists checks if a site directory exists
+// SiteExists checks if a site directory exists.
+// A site exists if it has index.html (static) or api/main.js (headless API).
 func SiteExists(subdomain string) bool {
-	// Check VFS first
-	exists, err := fs.Exists(subdomain, "index.html")
-	if err == nil && exists {
+	// Check for index.html (static site)
+	if exists, err := fs.Exists(subdomain, "index.html"); err == nil && exists {
 		return true
 	}
-	// Check for main.js (serverless)
-	exists, err = fs.Exists(subdomain, "main.js")
-	if err == nil && exists {
+	// Check for api/main.js (headless API)
+	if exists, err := fs.Exists(subdomain, "api/main.js"); err == nil && exists {
 		return true
 	}
-	
 	return false
 }
 
@@ -219,4 +219,60 @@ func DeleteSite(subdomain string) error {
 
 	// Delete from VFS
 	return fs.DeleteSite(subdomain)
+}
+
+// IsLocalRequest checks if a request originates from a local/private IP.
+// Used to restrict certain routes (like /_app/) to local development only.
+func IsLocalRequest(r *http.Request) bool {
+	// Get the client IP from RemoteAddr
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		host = r.RemoteAddr
+	}
+
+	ip := net.ParseIP(host)
+	if ip == nil {
+		return false
+	}
+
+	// Check for localhost
+	if ip.IsLoopback() {
+		return true
+	}
+
+	// Check for private IP ranges (RFC 1918 + RFC 4193)
+	// 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, fc00::/7
+	if ip.IsPrivate() {
+		return true
+	}
+
+	// Check for link-local addresses
+	if ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() {
+		return true
+	}
+
+	return false
+}
+
+// ParseAppPath extracts app_id and remaining path from /_app/<id>/... URLs.
+// Returns app_id, remaining path (with leading /), and whether it matched.
+func ParseAppPath(path string) (appID, remaining string, ok bool) {
+	const prefix = "/_app/"
+	if !strings.HasPrefix(path, prefix) {
+		return "", "", false
+	}
+
+	rest := path[len(prefix):]
+	if rest == "" {
+		return "", "", false
+	}
+
+	// Find the next slash to separate app_id from path
+	slashIdx := strings.Index(rest, "/")
+	if slashIdx == -1 {
+		// No trailing path, e.g., /_app/myapp
+		return rest, "/", true
+	}
+
+	return rest[:slashIdx], rest[slashIdx:], true
 }

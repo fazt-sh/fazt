@@ -1312,7 +1312,19 @@ func createRootHandler(cfg *config.Config, dashboardMux *http.ServeMux, sessionS
 
 		}
 
-
+		// Local-only: /_app/<id>/ routes for direct app access by ID
+		// Only available from local/private IPs (dev/testing escape hatch)
+		if appID, remaining, ok := hosting.ParseAppPath(r.URL.Path); ok {
+			if !hosting.IsLocalRequest(r) {
+				// Return 404 (not 401) to avoid revealing the route exists
+				http.NotFound(w, r)
+				return
+			}
+			// Rewrite the request path and serve the app
+			r.URL.Path = remaining
+			siteHandler(w, r, appID)
+			return
+		}
 
 		// Special case: localhost serves Dashboard (for CLI/Dev simplicity)
 
@@ -1499,16 +1511,6 @@ func siteHandler(w http.ResponseWriter, r *http.Request, subdomain string) {
 		// No api/main.js found
 		http.Error(w, "404 page not found", http.StatusNotFound)
 		return
-	}
-
-	// Check for serverless (main.js) - legacy support for root-level handlers
-	fs := hosting.GetFileSystem()
-	hasServerless, _ := fs.Exists(siteID, "main.js")
-	if hasServerless {
-		db := database.GetDB()
-		if hosting.RunServerless(w, r, siteID, db, siteID) {
-			return // Serverless handled the request
-		}
 	}
 
 	// Serve from VFS using subdomain as site_id

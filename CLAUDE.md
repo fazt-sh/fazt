@@ -3,7 +3,7 @@
 **Fazt** is sovereign compute infrastructure for individuals—a single Go binary
 + SQLite database that runs anywhere from phones to servers to IoT devices.
 
-**Current Version**: 0.9.23
+**Current Version**: 0.10.3
 **This Repo**: Source code for fazt development
 
 ## Environment Context
@@ -37,6 +37,20 @@ This file (`CLAUDE.md`) is the primary context. For deep implementation work:
 read koder/STATE.md    # Check if a plan is active
 read koder/start.md    # Deep implementation protocol
 ```
+
+## Development Philosophy
+
+**No backward compatibility.** Fazt is rapidly iterating with a single user.
+We break things and evolve. Never maintain legacy patterns or compatibility shims.
+
+**Static hosting first.** Fazt's primary goal is being a self-hostable Surge
+alternative. Static file hosting must work perfectly with zero build steps.
+All other features (serverless, apps model) are progressive enhancements that
+should never get in the way of simple static file deployment.
+
+**Simple nomenclature:**
+- A static site is called an **app**
+- A subdomain is called an **alias**
 
 ## App Development
 

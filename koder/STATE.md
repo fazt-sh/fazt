@@ -1,79 +1,79 @@
 # Fazt Implementation State
 
 **Last Updated**: 2026-01-20
-**Current Version**: v0.10.3 (source = 0.10.3, local binary = 0.10.1, zyt = 0.10.3)
+**Current Version**: v0.10.4
 
 ## Status
 
 ```
 State: CLEAN
-Next: Build more apps using the Vue + Vite pattern to validate it.
+Next: Build apps with the improved static hosting.
 ```
 
 ---
 
-## Recent Session: Vue + Vite Refactor
+## Current Session: Static Hosting + Headless Apps
 
-### `/fazt-app` Skill Update
+### 1. Legacy Serverless Removal
 
-Made Vue + Vite **mandatory** for all fazt apps:
+Removed legacy root `main.js` serverless pattern. Static files (including `.js`)
+now served correctly without Goja interception.
 
-- Added `package.json` and `vite.config.js` templates
-- Apps work in two modes:
-  - **Static hosting**: Import maps resolve Vue to CDN
-  - **Vite dev/build**: HMR in dev, bundled for production
-- Updated component architecture: one component per `.js` file
-- Added development workflow docs (Vite dev server + API proxy)
+**Changes:**
+- Deleted `internal/hosting/runtime.go` (-428 lines)
+- Removed legacy handler call from `cmd/server/main.go`
 
-### Othelo Refactor
+### 2. Headless Apps Support
 
-Refactored from single 1400-line `index.html` to modular Vue + Vite:
+Apps can now be API-only (no `index.html`, just `api/main.js`).
 
-```
-othelo/
-├── package.json, vite.config.js
-├── index.html (CSS + import maps)
-├── main.js (3 lines - imports App)
-├── components/
-│   ├── App.js, StartScreen.js, GameScreen.js
-│   ├── GameBoard.js, SettingsModal.js
-│   ├── LeaderboardModal.js, GameOverScreen.js
-├── lib/
-│   ├── api.js, game.js, session.js
-│   ├── settings.js, sounds.js, theme.js
-└── api/main.js (unchanged - DS storage)
-```
+**Changes:**
+- `SiteExists()` now checks for `index.html` OR `api/main.js`
+- Test added for headless API apps
 
-**Deploy workflow discovered**: Vite bundles JS, but fazt's serverless runtime
-executes ALL `.js` files (not just `api/`). Solution: always build with Vite,
-copy `api/` to `dist/`, then deploy `dist/`.
+### 3. Local-Only App ID Routes
 
-### Issue Found
+Added `/_app/<id>/` escape hatch for direct app access by ID.
+Only works from local/private IPs - returns 404 from public IPs.
 
-Fazt serverless executes any `.js` request through Goja, even non-api files.
-This prevents unbundled ES module apps. For now, Vite build is required for
-production - static hosting only works for non-JS or bundled assets.
+**Use cases:**
+- Local development without DNS/subdomain setup
+- LLM agent testing
+- Debugging
+
+**Changes:**
+- Added `IsLocalRequest()` and `ParseAppPath()` to `internal/hosting/manager.go`
+- Added routing in `cmd/server/main.go`
+- Tests for both functions
+
+### 4. Development Philosophy (CLAUDE.md)
+
+- No backward compatibility - break things and evolve
+- Static hosting first - zero build steps required
+- All other features are progressive enhancements
 
 ---
 
 ## Quick Reference
 
 ```bash
-# Development with Vite (recommended for UI work)
-cd servers/zyt/myapp && npm install && npm run dev
-# http://localhost:5173 (API proxied to fazt)
+# Deploy static site directly (no build needed!)
+fazt app deploy servers/zyt/myapp --to local
 
-# Production deploy (must build first)
-npm run build
-cp -r api dist/ && cp manifest.json dist/
-mv dist /tmp/myapp && fazt app deploy /tmp/myapp --to local
+# App types
+myapp/
+├── index.html, *.js, *.css    # Static - served as files
+└── api/main.js                # Serverless - executed by Goja
+
+# Headless API (no index.html)
+myapi/
+└── api/main.js                # Just the API
+
+# Local-only escape hatch (dev/testing)
+curl http://localhost:8080/_app/myapp/api/hello
 
 # Local fazt server
 fazt server start --domain 192.168.64.3 --port 8080 --db /tmp/fazt-local.db
-
-# Debug endpoints
-curl http://myapp.192.168.64.3.nip.io:8080/_fazt/info
-curl http://myapp.192.168.64.3.nip.io:8080/_fazt/storage
 ```
 
 ---
