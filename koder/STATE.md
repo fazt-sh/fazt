@@ -1,21 +1,21 @@
 # Fazt Implementation State
 
 **Last Updated**: 2026-01-20
-**Current Version**: v0.10.5
+**Current Version**: v0.10.6
 
 ## Status
 
-State: INVESTIGATING
-**Task: Runtime Reliability & Observability**
+State: CLEAN
+**Latest: Fixed SQLite busy_timeout issue**
 
 ---
 
 ## Last Session
 
-- Built momentum todo app, discovered intermittent ~10% timeout failures
-- Investigated runtime architecture, identified likely root cause: missing SQLite busy_timeout
-- Documented three-track plan: Reliability, Capacity, Defensive Systems
-- Fixed /fazt-app skill to enforce `servers/zyt/<name>` path (was creating in repo root)
+- **Fixed intermittent timeout issue** by adding `PRAGMA busy_timeout=5000`
+- Before: ~6% failure rate (2/30 requests failed with 500 error)
+- After: 0% failure rate (50/50 requests succeeded)
+- Released v0.10.6 and deployed to zyt
 
 ---
 
@@ -428,7 +428,7 @@ db.Exec("PRAGMA busy_timeout=5000")  // Wait up to 5 seconds for lock
 
 **Questions answered:**
 - Is WAL mode enabled? **YES**
-- What's the busy timeout? **NOT SET (0ms = fail immediately)**
+- What's the busy timeout? **SET to 5000ms (v0.10.6)**
 - Are we using connection pooling correctly? **25 max, 5 idle - reasonable**
 
 ---
@@ -437,8 +437,8 @@ db.Exec("PRAGMA busy_timeout=5000")  // Wait up to 5 seconds for lock
 
 ### Track A: Reliability (Timeout Investigation)
 
-1. [ ] **Add SQLite busy_timeout (LIKELY ROOT CAUSE)**
-2. [ ] Fix storage context propagation
+1. [x] **Add SQLite busy_timeout** ✓ Fixed in v0.10.6 - resolved ~6% failure rate
+2. [ ] Fix storage context propagation (lower priority now)
 3. [ ] Add request ID tracing
 4. [ ] Add timing breakdown to ExecuteResult
 5. [ ] Add debug logging flag
@@ -452,7 +452,7 @@ db.Exec("PRAGMA busy_timeout=5000")  // Wait up to 5 seconds for lock
 3. [ ] Test concurrent load scenarios
 4. [ ] Find breaking points
 5. [ ] Document limits in CLAUDE.md
-6. [ ] Check SQLite configuration (WAL, busy timeout)
+6. [x] Check SQLite configuration (WAL, busy timeout) ✓ Done
 
 ### Track C: Defensive Systems (After A & B)
 
