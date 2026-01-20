@@ -4,12 +4,13 @@ All notable changes to fazt.sh will be documented in this file.
 
 ## [Unreleased]
 
-### Changed
-- Simplified `/fazt-start` and `/fazt-stop` skills for symmetric session handoff
-- Added `[Unreleased]` section to CHANGELOG.md for tracking pre-release work
+## [0.10.6] - 2026-01-20
 
-### Removed
-- Deleted `koder/start.md` (redundant with CLAUDE.md and session skills)
+### Fixed
+- **SQLite Busy Timeout**: Added `PRAGMA busy_timeout=5000` to database initialization
+  - Fixes ~10% intermittent timeout errors under concurrent load
+  - SQLite now waits up to 5 seconds for write locks instead of failing immediately
+  - Root cause: concurrent requests were getting SQLITE_BUSY errors instantly
 
 ## [0.10.5] - 2026-01-20
 

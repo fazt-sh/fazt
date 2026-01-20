@@ -49,6 +49,12 @@ func Init(dbPath string) error {
 		return fmt.Errorf("failed to enable foreign keys: %w", err)
 	}
 
+	// Set busy timeout to wait for locks instead of failing immediately
+	// This prevents SQLITE_BUSY errors under concurrent load
+	if _, err := db.Exec("PRAGMA busy_timeout=5000"); err != nil {
+		return fmt.Errorf("failed to set busy timeout: %w", err)
+	}
+
 	// Run migrations
 	if err := runMigrations(); err != nil {
 		return fmt.Errorf("failed to run migrations: %w", err)
