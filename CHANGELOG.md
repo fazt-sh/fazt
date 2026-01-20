@@ -4,6 +4,17 @@ All notable changes to fazt.sh will be documented in this file.
 
 ## [Unreleased]
 
+## [0.10.7] - 2026-01-20
+
+### Fixed
+- **Storage `findOne` API**: Now accepts query object `{ id, session }` instead of
+  just string ID, matching expected MongoDB-style usage
+- **Storage `id` field queries**: The `id` field is now queryable in `find()`,
+  `update()`, and `delete()` operations - previously queries like `{ id: 'x' }`
+  silently returned empty results
+- **Better type validation**: Storage bindings now throw descriptive errors when
+  wrong argument types are passed (e.g., "got object, expected string")
+
 ## [0.10.6] - 2026-01-20
 
 ### Fixed
