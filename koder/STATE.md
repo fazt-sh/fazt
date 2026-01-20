@@ -33,34 +33,33 @@ State: CLEAN
 
 ## Next Session
 
-### Storage Debug Mode
+### Debug Mode
 
-Add observability to catch bugs faster. The v0.10.7 bugs were hard to diagnose
-because queries silently returned empty results.
+Add `FAZT_DEBUG=1` for development observability. Enable by default for local server.
 
-**Goal:**
-```bash
-FAZT_STORAGE_DEBUG=1 fazt server start ...
-```
+**Why:** v0.10.7 bugs were hard to diagnose - queries silently returned empty results.
 
 **When enabled, log:**
-- Every storage operation with parameters
-- Actual SQL queries generated
-- Row counts and timing
-- Warnings for reserved fields (`id`, `_createdAt`, `_updatedAt`)
+- Storage: operations, SQL queries, row counts, timing
+- Runtime: request IDs, execution timing, VM pool state
+- Warnings for common mistakes (reserved fields, type mismatches)
 
-**Files:**
-- `internal/storage/bindings.go` - Add debug logging
-- `internal/storage/ds_query.go` - Log generated SQL
-- `internal/config/config.go` - Add debug flag
+**Implementation:**
+1. Add `FAZT_DEBUG` env var check in `internal/config/config.go`
+2. Add debug logging to storage (`internal/storage/`)
+3. Add debug logging to runtime (`internal/runtime/`)
+4. Local server (`Environment=development`) enables debug by default
 
 ---
 
 ## Quick Reference
 
 ```bash
-# Local server
+# Local server (debug on by default in dev mode)
 fazt server start --port 8080 --domain 192.168.64.3 --db servers/local/data.db
+
+# Force debug in any environment
+FAZT_DEBUG=1 fazt server start ...
 
 # Release
 source .env && ./scripts/release.sh vX.Y.Z
