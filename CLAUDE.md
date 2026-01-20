@@ -140,18 +140,19 @@ go build -o fazt ./cmd/server
 
 **2. Initialize local server (first time only):**
 ```bash
-# Creates DB at /tmp/fazt-dev.db with auth configured
+# Creates DB at servers/local/data.db (persists across reboots)
+mkdir -p servers/local
 fazt server init \
   --username dev \
   --password dev \
   --domain 192.168.64.3 \
-  --db /tmp/fazt-dev.db
+  --db servers/local/data.db
 ```
 
 **3. Create API key and add as peer:**
 ```bash
 # Generate API key
-fazt server create-key --db /tmp/fazt-dev.db
+fazt server create-key --db servers/local/data.db
 # Save the token output
 
 # Add local peer (if not already added)
@@ -165,7 +166,7 @@ fazt remote add local \
 fazt server start \
   --port 8080 \
   --domain 192.168.64.3 \
-  --db /tmp/fazt-dev.db
+  --db servers/local/data.db
 ```
 
 **5. Deploy and test:**
