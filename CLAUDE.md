@@ -315,10 +315,14 @@ go build -o fazt ./cmd/server
 
 ## Releasing
 
-Use `/fazt-release` skill - it handles versioning, changelog, building all platforms,
-uploading to GitHub (using `GITHUB_PAT_FAZT` from `.env`), and upgrading servers.
+Use `/fazt-release` skill, which calls `scripts/release.sh` for the heavy lifting.
 
-Fast local release is preferred over waiting for GitHub Actions (~30s vs ~4min).
+```bash
+source .env                    # loads GITHUB_PAT_FAZT
+./scripts/release.sh vX.Y.Z    # build all platforms, upload to GitHub
+```
+
+Fast local release (~30s) vs GitHub Actions (~4min).
 
 ## Key Directories
 
