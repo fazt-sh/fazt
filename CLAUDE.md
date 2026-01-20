@@ -315,25 +315,10 @@ go build -o fazt ./cmd/server
 
 ## Releasing
 
-**Fast local release** (preferred over waiting for GitHub Actions):
+Use `/fazt-release` skill - it handles versioning, changelog, building all platforms,
+uploading to GitHub (using `GITHUB_PAT_FAZT` from `.env`), and upgrading servers.
 
-```bash
-# 1. Set version in internal/config/config.go
-# 2. Update CHANGELOG.md
-# 3. Commit and create tag
-git add -A && git commit -m "chore: Bump to vX.Y.Z"
-git tag vX.Y.Z
-
-# 4. Build all platforms and upload release
-source .env  # loads GITHUB_PAT_FAZT
-./scripts/release.sh vX.Y.Z
-
-# 5. Push (Actions will skip build since assets exist)
-git push origin master && git push origin vX.Y.Z
-```
-
-The `.env` file contains `GITHUB_PAT_FAZT` for uploading releases.
-The GitHub Actions workflow skips building if release already has 4 assets.
+Fast local release is preferred over waiting for GitHub Actions (~30s vs ~4min).
 
 ## Key Directories
 

@@ -91,28 +91,62 @@ git tag -l "vX.Y.Z"
 git tag -l "vX.Y.Z" | grep -q . || git tag vX.Y.Z
 ```
 
-### 7. Build and Install Locally
+### 7. Build All Platforms Locally
 
 ```bash
-go build -ldflags "-X github.com/fazt-sh/fazt/internal/config.Version=X.Y.Z" -o ~/.local/bin/fazt ./cmd/server
+# Build admin if needed
+[ -d "internal/assets/system/admin" ] || (npm run build --prefix admin && cp -r admin/dist internal/assets/system/admin)
+
+# Build all platforms
+for PLATFORM in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64; do
+  OS=${PLATFORM%/*}
+  ARCH=${PLATFORM#*/}
+  echo "Building $OS/$ARCH..."
+  CGO_ENABLED=0 GOOS=$OS GOARCH=$ARCH go build -ldflags="-w -s" -o fazt ./cmd/server
+  tar -czvf "fazt-vX.Y.Z-${OS}-${ARCH}.tar.gz" fazt
+done
+```
+
+### 8. Create Release and Upload Assets
+
+Uses `GITHUB_PAT_FAZT` from `.env` for fast local release (skips waiting for CI):
+
+```bash
+source .env
+
+# Create release
+RELEASE=$(curl -s -X POST \
+  -H "Authorization: token $GITHUB_PAT_FAZT" \
+  -H "Accept: application/vnd.github.v3+json" \
+  "https://api.github.com/repos/fazt-sh/fazt/releases" \
+  -d '{"tag_name":"vX.Y.Z","name":"vX.Y.Z","generate_release_notes":true}')
+
+RELEASE_ID=$(echo "$RELEASE" | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")
+
+# Upload each asset
+for ASSET in fazt-vX.Y.Z-*.tar.gz; do
+  echo "Uploading $ASSET..."
+  curl -s -X POST \
+    -H "Authorization: token $GITHUB_PAT_FAZT" \
+    -H "Content-Type: application/gzip" \
+    "https://uploads.github.com/repos/fazt-sh/fazt/releases/$RELEASE_ID/assets?name=$ASSET" \
+    --data-binary "@$ASSET"
+done
+
+# Cleanup
+rm -f fazt-*.tar.gz fazt
+```
+
+### 9. Push and Install
+
+```bash
+# Push (Actions will skip since 4 assets already exist)
+git push origin master && git push origin vX.Y.Z
+
+# Install locally
+cp fazt ~/.local/bin/fazt
 fazt --version
 ```
-
-### 8. Push (if needed)
-
-```bash
-# Check if we need to push
-git status -sb | grep -q "ahead" && git push origin master --tags || echo "Already pushed"
-```
-
-### 9. Wait for CI
-
-```bash
-# Poll until complete
-curl -s "https://api.github.com/repos/fazt-sh/fazt/actions/runs?per_page=1" | jq '.workflow_runs[0] | {status, conclusion}'
-```
-
-Wait for `status: completed` and `conclusion: success`.
 
 ### 10. Upgrade Remote Servers
 
