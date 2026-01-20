@@ -1,5 +1,23 @@
 [
     {
+        "version": "v0.10.5",
+        "title": "LLM-Friendly CLI & Template Fixes",
+        "description": "New templates (static, vue, vue-api), app validation, log streaming, and fixed vue-api serverless execution.",
+        "created_at": "2026-01-20"
+    },
+    {
+        "version": "v0.10.1",
+        "title": "VFS Migration Fix",
+        "description": "Fixed app routing to use app_id column after v0.10 migration.",
+        "created_at": "2026-01-19"
+    },
+    {
+        "version": "v0.10.0",
+        "title": "App Identity Model",
+        "description": "Permanent app IDs (app_xxxxxxxx), alias system, fork with lineage, multiple aliases per app.",
+        "created_at": "2026-01-19"
+    },
+    {
         "version": "v0.9.27",
         "title": "CSP for Cloudflare Analytics",
         "description": "Added static.cloudflareinsights.com to Content-Security-Policy for Cloudflare Web Analytics support.",

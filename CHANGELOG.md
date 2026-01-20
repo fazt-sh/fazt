@@ -30,6 +30,15 @@ All notable changes to fazt.sh will be documented in this file.
 
 ### Changed
 - Updated help text to reflect new templates and commands
+- Simplified `/fazt-app` skill from 1004 to 127 lines (orchestrates CLI instead of
+  duplicating knowledge)
+
+### Fixed
+- **vue-api Template**: Fixed serverless API execution
+  - Renamed `api/items.js` to `api/main.js` (serverless runtime requires main.js)
+  - Added `handler(request)` call at end of file (was missing execution)
+  - Added `genId()` helper function (`fazt.uuid()` doesn't exist)
+  - Fixed Vite config to externalize Vue for proper builds
 
 ## [0.10.1] - 2026-01-19
 
