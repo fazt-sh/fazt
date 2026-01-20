@@ -1,21 +1,30 @@
 # Fazt Implementation State
 
 **Last Updated**: 2026-01-20
-**Current Version**: v0.10.6
+**Current Version**: v0.10.7
 
 ## Status
 
 State: CLEAN
-**Latest: Fixed SQLite busy_timeout issue**
+**Latest: Storage query fixes**
 
 ---
 
 ## Last Session
 
-- **Fixed intermittent timeout issue** by adding `PRAGMA busy_timeout=5000`
-- Before: ~6% failure rate (2/30 requests failed with 500 error)
-- After: 0% failure rate (50/50 requests succeeded)
-- Released v0.10.6 and deployed to zyt
+### v0.10.6 - SQLite busy_timeout
+- Added `PRAGMA busy_timeout=5000` to prevent SQLITE_BUSY errors
+- Failure rate: 6% → 0%
+
+### v0.10.7 - Storage query fixes
+- `findOne` now accepts query objects `{ id, session }` (was expecting string ID)
+- `id` field now queryable in `find()`, `update()`, `delete()` (was silently failing)
+- Better type validation with descriptive error messages
+
+### Other
+- Removed localStorage from momentum (settings now in-memory only)
+- Moved local dev DB to `servers/local/data.db` (persists across reboots)
+- Added "apps are throw-away" to development philosophy in CLAUDE.md
 
 ---
 
