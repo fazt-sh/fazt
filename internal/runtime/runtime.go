@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/dop251/goja"
+	"github.com/fazt-sh/fazt/internal/debug"
 )
 
 const (
@@ -84,8 +85,10 @@ func NewRuntime(poolSize int, timeout time.Duration) *Runtime {
 func (r *Runtime) getVM() *goja.Runtime {
 	select {
 	case vm := <-r.pool:
+		debug.RuntimePool(r.poolSize, len(r.pool))
 		return vm
 	default:
+		debug.Log("runtime", "pool empty, creating new VM")
 		return goja.New()
 	}
 }
@@ -95,7 +98,7 @@ func (r *Runtime) returnVM(vm *goja.Runtime) {
 	select {
 	case r.pool <- vm:
 	default:
-		// Pool is full, discard VM
+		debug.Log("runtime", "pool full, discarding VM")
 	}
 }
 

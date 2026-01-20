@@ -2,13 +2,16 @@ package runtime
 
 import (
 	"context"
+	"crypto/rand"
 	"database/sql"
+	"encoding/hex"
 	"encoding/json"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/dop251/goja"
+	"github.com/fazt-sh/fazt/internal/debug"
 	"github.com/fazt-sh/fazt/internal/storage"
 )
 
@@ -39,12 +42,17 @@ func NewServerlessHandlerWithRuntime(db *sql.DB, rt *Runtime) *ServerlessHandler
 
 // HandleRequest handles a serverless request for a specific app.
 func (h *ServerlessHandler) HandleRequest(w http.ResponseWriter, r *http.Request, appID, appName string) {
+	start := time.Now()
+	reqID := generateRequestID()
 	ctx := r.Context()
+
+	debug.Log("runtime", "req=%s app=%s path=%s method=%s started", reqID, appName, r.URL.Path, r.Method)
 
 	// Load api/main.js from the app's files
 	mainJS, err := h.loadFile(appID, "api/main.js")
 	if err != nil {
 		// No serverless handler found
+		debug.RuntimeReq(reqID, appName, r.URL.Path, 404, time.Since(start))
 		http.Error(w, "No serverless handler found", http.StatusNotFound)
 		return
 	}
@@ -77,6 +85,7 @@ func (h *ServerlessHandler) HandleRequest(w http.ResponseWriter, r *http.Request
 
 	// Handle errors
 	if result.Error != nil {
+		debug.RuntimeReq(reqID, appName, r.URL.Path, 500, time.Since(start))
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]interface{}{
@@ -102,6 +111,7 @@ func (h *ServerlessHandler) HandleRequest(w http.ResponseWriter, r *http.Request
 	}
 
 	w.WriteHeader(result.Response.Status)
+	debug.RuntimeReq(reqID, appName, r.URL.Path, result.Response.Status, time.Since(start))
 
 	// Write body
 	if result.Response.Body != nil {
@@ -111,6 +121,13 @@ func (h *ServerlessHandler) HandleRequest(w http.ResponseWriter, r *http.Request
 			json.NewEncoder(w).Encode(result.Response.Body)
 		}
 	}
+}
+
+// generateRequestID creates a short random request ID for tracing.
+func generateRequestID() string {
+	b := make([]byte, 4)
+	rand.Read(b)
+	return hex.EncodeToString(b)
 }
 
 // executeWithFazt executes code with the fazt namespace injected.

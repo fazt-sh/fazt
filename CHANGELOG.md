@@ -4,6 +4,17 @@ All notable changes to fazt.sh will be documented in this file.
 
 ## [Unreleased]
 
+## [0.10.8] - 2026-01-21
+
+### Added
+- **Debug Mode**: New `FAZT_DEBUG=1` environment variable for development observability
+  - Enabled by default in development mode (when `ENV=development`)
+  - Logs storage operations with timing: `[DEBUG storage] find app/col query={} rows=3 took=2ms`
+  - Logs runtime requests with tracing: `[DEBUG runtime] req=a1b2c3 app=myapp path=/api/hello status=200 took=45ms`
+  - Logs VM pool state for performance monitoring
+  - Warns on common mistakes (e.g., setting `id` field in insert)
+  - All output goes to stderr - no storage, just realtime streaming
+
 ## [0.10.7] - 2026-01-20
 
 ### Fixed

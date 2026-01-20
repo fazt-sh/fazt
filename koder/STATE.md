@@ -1,7 +1,7 @@
 # Fazt Implementation State
 
 **Last Updated**: 2026-01-21
-**Current Version**: v0.10.7
+**Current Version**: v0.10.8
 
 ## Status
 
@@ -9,46 +9,51 @@ State: CLEAN
 
 ---
 
-## Last Session (2026-01-20)
+## Last Session (2026-01-21)
 
-### Releases
+### Release: v0.10.8 - Debug Mode
 
-**v0.10.6** - SQLite busy_timeout
-- Added `PRAGMA busy_timeout=5000` to prevent SQLITE_BUSY errors
-- Failure rate: 6% → 0%
+Added `FAZT_DEBUG=1` environment variable for development observability.
 
-**v0.10.7** - Storage query fixes
-- `findOne` now accepts query objects `{ id, session }`
-- `id` field now queryable in `find()`, `update()`, `delete()`
-- Better type validation with descriptive error messages
+**Features:**
+- Debug mode enabled by default in development mode
+- Storage operations logged with timing and row counts
+- Runtime requests logged with request IDs for tracing
+- VM pool state monitoring
+- Warnings for common mistakes (e.g., setting `id` in insert)
 
-### Other Changes
-- Removed localStorage from momentum (settings now in-memory)
-- Moved local dev DB to `servers/local/data.db`
-- Added "apps are throw-away" philosophy to CLAUDE.md
-- Created `scripts/release.sh` for fast local releases
-- Updated `/fazt-release` skill to use the script
+**Implementation:**
+- `internal/debug/debug.go` - New debug package with logging helpers
+- `internal/config/config.go` - Added `DebugMode()` method
+- `internal/storage/bindings.go` - Added debug logging to ds.* operations
+- `internal/runtime/handler.go` - Added request ID generation and logging
+- `internal/runtime/runtime.go` - Added VM pool state logging
+
+**Usage:**
+```bash
+# Explicit enable
+FAZT_DEBUG=1 fazt server start ...
+
+# Automatic in dev mode (ENV=development)
+fazt server start --db servers/local/data.db ...
+```
+
+**Sample output:**
+```
+[DEBUG] Debug mode enabled
+[DEBUG runtime] req=a1b2c3 app=myapp path=/api/tasks method=GET started
+[DEBUG storage] find myapp/tasks query={} rows=5 took=1.2ms
+[DEBUG runtime] req=a1b2c3 app=myapp path=/api/tasks status=200 took=3.5ms
+```
 
 ---
 
 ## Next Session
 
-### Debug Mode
-
-Add `FAZT_DEBUG=1` for development observability. Enable by default for local server.
-
-**Why:** v0.10.7 bugs were hard to diagnose - queries silently returned empty results.
-
-**When enabled, log:**
-- Storage: operations, SQL queries, row counts, timing
-- Runtime: request IDs, execution timing, VM pool state
-- Warnings for common mistakes (reserved fields, type mismatches)
-
-**Implementation:**
-1. Add `FAZT_DEBUG` env var check in `internal/config/config.go`
-2. Add debug logging to storage (`internal/storage/`)
-3. Add debug logging to runtime (`internal/runtime/`)
-4. Local server (`Environment=development`) enables debug by default
+No specific task queued. Potential areas:
+- More debug coverage (KV, S3 operations)
+- SQL query logging option
+- Performance profiling tools
 
 ---
 
@@ -60,6 +65,9 @@ fazt server start --port 8080 --domain 192.168.64.3 --db servers/local/data.db
 
 # Force debug in any environment
 FAZT_DEBUG=1 fazt server start ...
+
+# Disable debug in dev mode
+FAZT_DEBUG=0 fazt server start ...
 
 # Release
 source .env && ./scripts/release.sh vX.Y.Z

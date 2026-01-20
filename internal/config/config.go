@@ -79,7 +79,7 @@ func WrapWithWildcardDNS(domain string) string {
 }
 
 // Version holds the current application version
-var Version = "0.10.7"
+var Version = "0.10.8"
 
 // Config holds all configuration for the application
 type Config struct {
@@ -389,6 +389,19 @@ func (c *Config) IsDevelopment() bool {
 // IsProduction returns true if running in production mode
 func (c *Config) IsProduction() bool {
 	return c.Server.Env == "production"
+}
+
+// DebugMode returns true if debug logging is enabled.
+// Debug mode is enabled when:
+// - FAZT_DEBUG=1 environment variable is set (explicit)
+// - OR running in development mode (implicit)
+func (c *Config) DebugMode() bool {
+	// Explicit env var takes precedence
+	if debug := os.Getenv("FAZT_DEBUG"); debug != "" {
+		return debug == "1" || debug == "true"
+	}
+	// Default to on in development mode
+	return c.IsDevelopment()
 }
 
 // Legacy helpers for backward compatibility

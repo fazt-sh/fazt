@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/dop251/goja"
+	"github.com/fazt-sh/fazt/internal/debug"
 )
 
 // InjectStorageNamespace adds fazt.storage.* to a Goja VM.
@@ -152,6 +153,7 @@ func makeKVList(vm *goja.Runtime, kv KVStore, appID string) func(goja.FunctionCa
 
 func makeDSInsert(vm *goja.Runtime, ds DocStore, appID string) func(goja.FunctionCall) goja.Value {
 	return func(call goja.FunctionCall) goja.Value {
+		start := time.Now()
 		if len(call.Arguments) < 2 {
 			panic(vm.NewGoError(fmt.Errorf("ds.insert requires collection and document")))
 		}
@@ -164,8 +166,14 @@ func makeDSInsert(vm *goja.Runtime, ds DocStore, appID string) func(goja.Functio
 			panic(vm.NewGoError(fmt.Errorf("ds.insert requires a document object")))
 		}
 
+		// Warn if trying to set reserved field
+		if _, hasID := doc["id"]; hasID {
+			debug.Warn("storage", "ds.insert: 'id' in doc will be used as document ID")
+		}
+
 		ctx := context.Background()
 		id, err := ds.Insert(ctx, appID, collection, doc)
+		debug.StorageOp("insert", appID, collection, doc, 1, time.Since(start))
 		if err != nil {
 			panic(vm.NewGoError(err))
 		}
@@ -176,6 +184,7 @@ func makeDSInsert(vm *goja.Runtime, ds DocStore, appID string) func(goja.Functio
 
 func makeDSFind(vm *goja.Runtime, ds DocStore, appID string) func(goja.FunctionCall) goja.Value {
 	return func(call goja.FunctionCall) goja.Value {
+		start := time.Now()
 		if len(call.Arguments) < 1 {
 			panic(vm.NewGoError(fmt.Errorf("ds.find requires collection")))
 		}
@@ -192,6 +201,7 @@ func makeDSFind(vm *goja.Runtime, ds DocStore, appID string) func(goja.FunctionC
 
 		ctx := context.Background()
 		docs, err := ds.Find(ctx, appID, collection, query)
+		debug.StorageOp("find", appID, collection, query, int64(len(docs)), time.Since(start))
 		if err != nil {
 			panic(vm.NewGoError(err))
 		}
@@ -212,6 +222,7 @@ func makeDSFind(vm *goja.Runtime, ds DocStore, appID string) func(goja.FunctionC
 
 func makeDSFindOne(vm *goja.Runtime, ds DocStore, appID string) func(goja.FunctionCall) goja.Value {
 	return func(call goja.FunctionCall) goja.Value {
+		start := time.Now()
 		if len(call.Arguments) < 2 {
 			panic(vm.NewGoError(fmt.Errorf("ds.findOne requires collection and query")))
 		}
@@ -236,6 +247,11 @@ func makeDSFindOne(vm *goja.Runtime, ds DocStore, appID string) func(goja.Functi
 
 		ctx := context.Background()
 		docs, err := ds.Find(ctx, appID, collection, query)
+		rows := int64(0)
+		if len(docs) > 0 {
+			rows = 1
+		}
+		debug.StorageOp("findOne", appID, collection, query, rows, time.Since(start))
 		if err != nil {
 			panic(vm.NewGoError(err))
 		}
@@ -256,6 +272,7 @@ func makeDSFindOne(vm *goja.Runtime, ds DocStore, appID string) func(goja.Functi
 
 func makeDSUpdate(vm *goja.Runtime, ds DocStore, appID string) func(goja.FunctionCall) goja.Value {
 	return func(call goja.FunctionCall) goja.Value {
+		start := time.Now()
 		if len(call.Arguments) < 3 {
 			panic(vm.NewGoError(fmt.Errorf("ds.update requires collection, query, and changes")))
 		}
@@ -276,6 +293,7 @@ func makeDSUpdate(vm *goja.Runtime, ds DocStore, appID string) func(goja.Functio
 
 		ctx := context.Background()
 		count, err := ds.Update(ctx, appID, collection, query, changes)
+		debug.StorageOp("update", appID, collection, query, count, time.Since(start))
 		if err != nil {
 			panic(vm.NewGoError(err))
 		}
@@ -286,6 +304,7 @@ func makeDSUpdate(vm *goja.Runtime, ds DocStore, appID string) func(goja.Functio
 
 func makeDSDelete(vm *goja.Runtime, ds DocStore, appID string) func(goja.FunctionCall) goja.Value {
 	return func(call goja.FunctionCall) goja.Value {
+		start := time.Now()
 		if len(call.Arguments) < 2 {
 			panic(vm.NewGoError(fmt.Errorf("ds.delete requires collection and query")))
 		}
@@ -300,6 +319,7 @@ func makeDSDelete(vm *goja.Runtime, ds DocStore, appID string) func(goja.Functio
 
 		ctx := context.Background()
 		count, err := ds.Delete(ctx, appID, collection, query)
+		debug.StorageOp("delete", appID, collection, query, count, time.Since(start))
 		if err != nil {
 			panic(vm.NewGoError(err))
 		}
