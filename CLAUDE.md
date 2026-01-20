@@ -48,6 +48,10 @@ alternative. Static file hosting must work perfectly with zero build steps.
 All other features (serverless, apps model) are progressive enhancements that
 should never get in the way of simple static file deployment.
 
+**Apps are throw-away.** Apps in `servers/zyt/` exist only to exercise and
+refine fazt. When an app hits a bug or limitation, fix fazt - never work around
+it in the app. The app is the test case; fazt is the product.
+
 **Simple nomenclature:**
 - A static site is called an **app**
 - A subdomain is called an **alias**

@@ -213,22 +213,38 @@ func makeDSFind(vm *goja.Runtime, ds DocStore, appID string) func(goja.FunctionC
 func makeDSFindOne(vm *goja.Runtime, ds DocStore, appID string) func(goja.FunctionCall) goja.Value {
 	return func(call goja.FunctionCall) goja.Value {
 		if len(call.Arguments) < 2 {
-			panic(vm.NewGoError(fmt.Errorf("ds.findOne requires collection and id")))
+			panic(vm.NewGoError(fmt.Errorf("ds.findOne requires collection and query")))
 		}
 
 		collection := call.Argument(0).String()
-		id := call.Argument(1).String()
+
+		// Accept either string ID (legacy) or query object
+		var query map[string]interface{}
+		arg1 := call.Argument(1)
+		exported := arg1.Export()
+
+		switch v := exported.(type) {
+		case string:
+			// Legacy: ds.findOne('col', 'id-string')
+			query = map[string]interface{}{"id": v}
+		case map[string]interface{}:
+			// New: ds.findOne('col', { id: 'x', session: 'y' })
+			query = v
+		default:
+			panic(vm.NewGoError(fmt.Errorf("ds.findOne requires query object or string ID, got %T", exported)))
+		}
 
 		ctx := context.Background()
-		doc, err := ds.FindOne(ctx, appID, collection, id)
+		docs, err := ds.Find(ctx, appID, collection, query)
 		if err != nil {
 			panic(vm.NewGoError(err))
 		}
 
-		if doc == nil {
+		if len(docs) == 0 {
 			return goja.Null()
 		}
 
+		doc := docs[0]
 		obj := doc.Data
 		obj["id"] = doc.ID
 		obj["_createdAt"] = doc.CreatedAt.UnixMilli()

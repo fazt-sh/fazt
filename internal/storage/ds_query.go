@@ -52,6 +52,13 @@ func (qb *QueryBuilder) Build(query map[string]interface{}) (string, []interface
 }
 
 func (qb *QueryBuilder) parseField(field string, value interface{}) error {
+	// Handle reserved fields that are stored in columns, not JSON
+	if field == "id" {
+		qb.conditions = append(qb.conditions, "id = ?")
+		qb.args = append(qb.args, value)
+		return nil
+	}
+
 	// Check if value is an operator object
 	if opMap, ok := value.(map[string]interface{}); ok {
 		for op, opVal := range opMap {
@@ -74,7 +81,14 @@ func (qb *QueryBuilder) parseField(field string, value interface{}) error {
 }
 
 func (qb *QueryBuilder) buildOperator(field, op string, value interface{}) (string, []interface{}, error) {
-	jsonPath := fmt.Sprintf("json_extract(data, '$.%s')", escapeJSONPath(field))
+	// Handle reserved fields that are stored in columns, not JSON
+	var fieldExpr string
+	if field == "id" {
+		fieldExpr = "id"
+	} else {
+		fieldExpr = fmt.Sprintf("json_extract(data, '$.%s')", escapeJSONPath(field))
+	}
+	jsonPath := fieldExpr
 
 	switch op {
 	case OpEq:
