@@ -4,6 +4,25 @@ All notable changes to fazt.sh will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- **App Architecture Templates**: New `/fazt-app` skill templates with proper structure
+  - Import maps for clean imports (`from 'vue'`)
+  - Pinia state management (battle-tested, works without build)
+  - Multi-page structure: router, stores, pages, components
+  - "Build-free, but buildable" pattern - apps work served raw AND built
+- **DevTools Plan**: `koder/plans/20_devtools.md` - unified observability for LLM agents
+  - Real-time SSE streaming endpoint (`/_fazt/stream`)
+  - Injectable test scripts (`/_fazt/scripts`)
+  - Leverages existing `/_fazt/logs`, `/_fazt/errors` endpoints
+
+### Changed
+- **CSP Headers**: Changed `frame-ancestors 'none'` to `frame-ancestors *` to allow
+  iframe embedding for testing harnesses
+- **Skill Updates**: Removed hardcoded "zyt" references, now uses configured peers
+
+### Infrastructure
+- Installed `agent-browser` for headless browser testing
+
 ## [0.10.8] - 2026-01-21
 
 ### Added

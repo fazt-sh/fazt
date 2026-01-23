@@ -1,6 +1,23 @@
+---
+name: fazt-app
+description: Build and deploy polished Vue+API apps to fazt instances. Creates PWA-ready apps with advanced storage, session management, and production-quality UX. Use when building new fazt apps.
+context: fork
+---
+
 # /fazt-app - Build Fazt Apps
 
 Build and deploy polished, PWA-ready apps to fazt instances with Claude.
+
+## Supporting Documentation
+
+This skill includes reference materials:
+- **examples/cashflow.md** - Full reference app with advanced storage patterns
+- **patterns/layout.md** - Fixed-height layouts, responsive design
+- **patterns/modals.md** - Modal patterns with click-outside close
+- **patterns/testing.md** - Testing framework for validating data flow and state
+- **templates/** - Complete app template (mirrors final app structure)
+
+Reference these files when building apps to follow established patterns.
 
 ## Usage
 
@@ -18,30 +35,45 @@ Apps should feel native, polished, and delightful - like Apple apps.
 
 ## Workflow
 
-### 1. Scaffold
+### 0. Check Available Peers
 
-**CRITICAL: Apps MUST be created in `servers/zyt/` directory!**
+First, check what fazt peers are configured:
 
 ```bash
-# CORRECT - always use this path
-fazt app create servers/zyt/<name> --template vue-api
-
-# WRONG - never create in repo root!
-# fazt app create <name> --template vue-api
+fazt remote list
 ```
 
-The `servers/zyt/` directory is gitignored - apps are instance-specific, not
-part of fazt source code. Creating apps in the repo root pollutes the codebase.
+Common peers (from CLAUDE.md):
+- `local` - Local dev server (http://192.168.64.3:8080)
+- `zyt` - Production server (https://zyt.app)
+
+### 1. Scaffold
+
+**CRITICAL: Apps MUST be created in `servers/<peer>/` directory!**
+
+```bash
+# CORRECT - create in servers/<peer>/ (typically servers/zyt/ for production apps)
+mkdir -p servers/zyt/<name>
+cd servers/zyt/<name>
+
+# WRONG - never create in repo root!
+# This pollutes the fazt source code
+```
+
+The `servers/` directory is gitignored - apps are instance-specific, not
+part of fazt source code.
 
 ### 2. Customize Fully
 
-The template provides a minimal starting point. You MUST customize:
+Copy from templates and customize:
 
-- `index.html` - Add PWA meta tags, fonts, dark mode, custom styles
-- `src/main.js` - Build the full Vue app with components
-- `src/lib/session.js` - Use URL-based sessions (not localStorage)
-- `src/lib/api.js` - Include session in all API calls
-- `api/main.js` - Scope all data by session ID
+- `index.html` - PWA meta tags, fonts, dark mode, import maps
+- `src/main.js` - Vue app with Pinia stores, router
+- `src/stores/` - Pinia stores for state management
+- `src/pages/` - Page components
+- `src/components/` - Reusable components
+- `src/lib/` - Utilities (api, session, settings)
+- `api/main.js` - Session-scoped serverless API
 
 ### 3. Test Locally First
 
@@ -52,19 +84,21 @@ fazt app deploy servers/zyt/<name> --to local
 Access at: `http://<name>.192.168.64.3.nip.io:8080`
 
 **Debug endpoints:**
-- `/_fazt/info` - app metadata
+- `/_fazt/info` - app metadata (includes app_id)
 - `/_fazt/storage` - storage contents
-- `/_fazt/errors` - recent errors
+- `/_fazt/logs` - recent execution logs
+- `/_fazt/errors` - error logs
 
 **STOP HERE** - Show URL to user and wait for approval before production deploy.
 
 ### 4. Deploy to Production (After Approval)
 
 ```bash
-fazt app deploy servers/zyt/<name> --to zyt
+# Deploy to configured production peer (check with `fazt remote list`)
+fazt app deploy servers/zyt/<name> --to <production-peer>
 ```
 
-Access at: `https://<name>.zyt.app`
+Example: `fazt app deploy servers/zyt/myapp --to zyt` → `https://myapp.zyt.app`
 
 ---
 
@@ -109,8 +143,14 @@ Access at: `https://<name>.zyt.app`
   <style>
     * { font-family: 'Inter', system-ui, sans-serif; }
 
+    /* Full height, no scrollbars on outer container */
+    html, body { height: 100%; overflow: hidden; margin: 0; padding: 0; }
+
     /* iOS safe areas */
     body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+
+    /* Full height app container */
+    #app { height: 100%; }
 
     /* Touch feedback */
     .touch-active:active { opacity: 0.7; transform: scale(0.98); }
@@ -118,12 +158,19 @@ Access at: `https://<name>.zyt.app`
     /* Prevent text selection on buttons */
     button, .no-select { -webkit-user-select: none; user-select: none; }
 
-    /* Custom scrollbar */
+    /* Custom scrollbar for inner containers */
     ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-thumb { background: rgba(128,128,128,0.3); border-radius: 3px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+
+    /* Prevent scrollbar layout shift */
+    .overflow-y-auto { scrollbar-gutter: stable; }
+
+    /* Smooth transitions */
+    .transition-all { transition-duration: 150ms; }
   </style>
 </head>
-<body class="font-sans antialiased bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100 min-h-screen">
+<body class="font-sans antialiased bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100">
   <div id="app"></div>
   <script type="module" src="./src/main.js"></script>
 </body>
@@ -382,7 +429,7 @@ onMounted(() => {
 
 // Template - click outside to close
 `<div v-if="showModal" class="fixed inset-0 z-50" @click.self="closeModal">
-  <div class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
+  <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="closeModal"></div>
   <div class="relative ...">
     <!-- Modal content -->
   </div>
@@ -403,6 +450,14 @@ onMounted(() => {
 | Muted | `text-neutral-500` | `text-neutral-400` |
 | Border | `border-neutral-200` | `border-neutral-800` |
 | Accent | `bg-blue-500 text-white` | same |
+
+### Layout Best Practices
+
+**Fixed Height Container (Prevents Scroll Jumps)**:
+- App container should be `h-screen flex flex-col overflow-hidden`
+- Header should be `flex-none` (fixed at top)
+- Content area should be `flex-1 overflow-y-auto` (scrollable)
+- Use `scrollbar-gutter: stable` to prevent layout shift
 
 ### Typography
 
@@ -468,27 +523,26 @@ s3.list('prefix')
 
 When user invokes `/fazt-app`:
 
-1. **Parse** the description to understand what to build
-2. **Scaffold** in correct location:
+1. **Check peers**: Run `fazt remote list` to see configured peers
+2. **Parse** the description to understand what to build
+3. **Scaffold** in correct location:
    ```bash
-   fazt app create servers/zyt/<name> --template vue-api
+   mkdir -p servers/zyt/<name>
    ```
-   **NEVER create apps in repo root!** Always use `servers/zyt/<name>` path.
-3. **Customize fully**:
-   - `index.html` with PWA meta, fonts, dark mode, styles
-   - `src/lib/session.js` with URL-based 3-word sessions
-   - `src/lib/api.js` with session in all requests
-   - `src/lib/settings.js` with theme system
-   - `src/main.js` with full Vue app including:
-     - Settings panel (theme, sound, animations, session)
-     - Escape key to close modals
-     - Click outside to close modals
-     - Sound effects
-     - Proper light/dark mode
-   - `api/main.js` with session-scoped data
-4. **Validate**: `fazt app validate servers/zyt/<name>`
+   **NEVER create apps in repo root!** Always use `servers/<peer>/<name>` path.
+4. **Customize fully** using templates from this skill:
+   - `index.html` - PWA meta, fonts, dark mode, import maps, full-height layout
+   - `src/main.js` - Vue app with Pinia, router
+   - `src/stores/` - Pinia stores for state management
+   - `src/pages/` - Page components (Home, Settings, etc.)
+   - `src/components/ui/` - Reusable UI components
+   - `src/lib/` - Utilities (api.js, session.js, settings.js)
+   - `api/main.js` - Session-scoped serverless API
 5. **Deploy to local**: `fazt app deploy servers/zyt/<name> --to local`
 6. **STOP** - Present local URL to user: `http://<name>.192.168.64.3.nip.io:8080`
 7. **Wait for approval** before production deploy
-8. After approval: `fazt app deploy servers/zyt/<name> --to zyt`
-9. Report production URL: `https://<name>.zyt.app`
+8. After approval: `fazt app deploy servers/zyt/<name> --to <production-peer>`
+9. Report production URL (e.g., `https://<name>.zyt.app`)
+
+**Note**: The fazt system generates proper app_ids (like `app_7f3k9x2m`).
+The app name (like "cashflow") becomes the **alias/subdomain**, not the ID.

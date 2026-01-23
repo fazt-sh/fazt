@@ -126,7 +126,7 @@ func buildCSP(domain string) string {
 		"connect-src 'self' " + joinSources(connectCDNs) + " https://*." + domain + "; " +
 		"media-src 'self' blob: https:; " +
 		"object-src 'none'; " +
-		"frame-ancestors 'none'"
+		"frame-ancestors *"
 }
 
 // joinSources joins CDN sources with spaces
@@ -147,7 +147,7 @@ func SecurityHeaders(next http.Handler) http.Handler {
 		cfg := config.Get()
 
 		// Basic security headers
-		w.Header().Set("X-Frame-Options", "DENY")
+		// Note: X-Frame-Options removed to allow iframe embedding (CSP frame-ancestors handles this)
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("Referrer-Policy", "no-referrer")
 		w.Header().Set("X-XSS-Protection", "1; mode=block")
