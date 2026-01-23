@@ -39,6 +39,7 @@ type GitHubRelease struct {
 // UpgradeHandler handles POST /api/upgrade
 // Query params:
 //   - check=true: Only check for updates, don't upgrade
+//   - force=true: Force restart even if already on latest version
 func UpgradeHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		api.ErrorResponse(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Method not allowed", "")
@@ -46,6 +47,7 @@ func UpgradeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	checkOnly := r.URL.Query().Get("check") == "true"
+	forceRestart := r.URL.Query().Get("force") == "true"
 	currentVersion := config.Version
 
 	// Get latest release from GitHub
@@ -59,6 +61,31 @@ func UpgradeHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Check if already on latest
 	if latestVersion == currentVersion {
+		if forceRestart {
+			// Force restart requested
+			api.Success(w, http.StatusOK, UpgradeResponse{
+				Success:        true,
+				Message:        "Force restarting service",
+				CurrentVersion: currentVersion,
+				NewVersion:     latestVersion,
+				Action:         "force_restart",
+			})
+
+			// Flush the response
+			if f, ok := w.(http.Flusher); ok {
+				f.Flush()
+			}
+
+			// Trigger restart
+			go func() {
+				time.Sleep(100 * time.Millisecond)
+				exec.Command("systemd-run", "--scope", "--",
+					"sudo", "/bin/systemctl", "restart", "fazt").Start()
+				os.Exit(0)
+			}()
+			return
+		}
+
 		api.Success(w, http.StatusOK, UpgradeResponse{
 			Success:        true,
 			Message:        "Already running the latest version",

@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	DefaultTimeout = 1 * time.Second // Increased for KV operations with larger data
+	DefaultTimeout = 5 * time.Second // Increased for database write operations
 	MaxPoolSize    = 10
 )
 
