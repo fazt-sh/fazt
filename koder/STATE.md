@@ -1,123 +1,69 @@
 # Fazt Implementation State
 
 **Last Updated**: 2026-01-24
-**Current Version**: v0.10.8
+**Current Version**: v0.10.10
 
 ## Status
 
-State: PLANNING COMPLETE - Ready to rebuild CashFlow
+State: CLEAN - CashFlow rebuilt, deployed to production
 
 ---
 
 ## Last Session (2026-01-24)
 
-### DevTools Planning & App Architecture
+### CashFlow Rebuild + Runtime Fix
 
-Major planning session for fazt app development patterns and devtools infrastructure.
+**CashFlow rebuilt** from 890-line monolith to proper multi-page architecture:
 
-**Key Decisions:**
+```
+cashflow/
+├── index.html          # Import maps (Vue, Pinia, Vue Router)
+├── api/main.js         # Backend (unchanged)
+└── src/
+    ├── main.js         # 14 lines - app init
+    ├── App.js          # Shell with bottom nav
+    ├── router.js       # 4 routes with session preservation
+    ├── stores/         # transactions.js, categories.js, ui.js
+    ├── pages/          # Transactions, Categories, Stats, Settings
+    ├── components/     # Cards, Forms, SummaryCards
+    └── lib/            # api.js, session.js, settings.js
+```
 
-1. **"Build-free, but buildable"** - Apps work served raw AND built with Vite/Bun
-2. **Pinia for state management** - Battle-tested, works without build
-3. **Import maps** - Clean imports (`from 'vue'`) that work raw and built
-4. **Multi-page structure** - Router, stores, pages, components hierarchy
-5. **DevTools in fazt** - Not browser extension, server-native streaming
+**Key patterns:**
+- Session in URL: `/#/settings?s=xxx` (router guard preserves across navigation)
+- Pinia stores handle all state and API calls
+- No build step, no localStorage for session
 
-**Files Created/Updated:**
+**Production issues fixed:**
+1. Runtime timeout too short (1s → 5s) - storage writes were timing out
+2. Added `?force=true` to `/api/upgrade` for manual restarts
 
-Plan:
-- `koder/plans/20_devtools.md` - Comprehensive devtools plan
-
-Skill templates (`.claude/skills/fazt-app/templates/`):
-- `index.html` - PWA setup with import maps
-- `api/main.js` - Session-scoped API template
-- `src/main.js` - App initialization with Pinia/Router
-- `src/App.js` - Root component
-- `src/router.js` - Client-side routing
-- `src/stores/app.js` - Pinia store template
-- `src/pages/Home.js`, `Settings.js` - Page templates
-- `src/components/ui/Button.js`, `Modal.js`, `Card.js` - UI components
-- `src/lib/api.js`, `session.js`, `settings.js` - Utilities
-
-Skill updates:
-- Removed hardcoded "zyt" references
-- Updated template references
-- Added note about app_id being auto-generated UUID
-
-Infrastructure:
-- `internal/middleware/security.go` - Changed CSP to allow iframe embedding
-- Installed `agent-browser` for headless browser testing
-
-**What Exists in Fazt (Researched):**
-- `FAZT_DEBUG=1` with structured logging
-- `/_fazt/info`, `/_fazt/logs`, `/_fazt/errors` endpoints
-- `/_fazt/storage`, `/_fazt/snapshot`, `/_fazt/restore` endpoints
-- `fazt.storage.kv/ds/s3` with MongoDB-style queries
-- `site_logs` table for execution log persistence
-
-**What Needs Building:**
-- `/_fazt/stream` - SSE endpoint for real-time events
-- `/_fazt/events` - POST endpoint for client-side events
-- `/_fazt/scripts` - Injectable JS library
-- Shared component library (deferred)
+**Releases:**
+- v0.10.9: Added force restart option
+- v0.10.10: Increased runtime timeout to 5s
 
 ---
 
 ## Next Session
 
-**Task**: Rebuild CashFlow app using new templates and patterns
-
-Goals:
-1. Use proper multi-page structure (router, stores, pages, components)
-2. Use Pinia for state management
-3. Use import maps
-4. Validate "build-free, but buildable" works
-5. Test thoroughly with agent-browser
-6. Make it a reference implementation
+CashFlow is working. Potential next steps:
+- Test more thoroughly with real usage
+- DevTools implementation (see `koder/plans/20_devtools.md`)
+- Storage primitives ticket f-180c still open
 
 ---
 
 ## Quick Reference
 
 ```bash
-# Local server
-FAZT_DEBUG=1 fazt server start --port 8080 --domain 192.168.64.3 --db servers/local/data.db
+# Deploy app
+fazt app deploy servers/zyt/cashflow --to local
+fazt app deploy servers/zyt/cashflow --to zyt
 
-# Check peers
-fazt remote list
-
-# Deploy locally first
-fazt app deploy servers/zyt/<name> --to local
-
-# Deploy to production (after approval)
-fazt app deploy servers/zyt/<name> --to zyt
-
-# Agent browser testing
-agent-browser open http://<app>.192.168.64.3.nip.io:8080
-agent-browser snapshot
-agent-browser eval "..."
+# Force restart (no version change)
+curl -X POST "https://admin.zyt.app/api/upgrade?force=true" -H "Authorization: Bearer $TOKEN"
 
 # Release
 source .env && ./scripts/release.sh vX.Y.Z
+fazt remote upgrade zyt
 ```
-
-## Architecture Notes
-
-**App Structure (template):**
-```
-app-name/
-├── index.html          # Import maps, PWA meta
-├── api/main.js         # Serverless API
-└── src/
-    ├── main.js         # App init (Pinia, Router)
-    ├── App.js          # Root component
-    ├── router.js       # Routes
-    ├── stores/         # Pinia stores
-    ├── pages/          # Page components
-    ├── components/ui/  # Reusable UI
-    └── lib/            # Utilities
-```
-
-**app_id vs alias:**
-- `app_id` = UUID like `app_sd7w8rvt` (auto-generated)
-- `alias` = subdomain like `cashflow` (from manifest name)

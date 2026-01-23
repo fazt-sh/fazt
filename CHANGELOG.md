@@ -4,24 +4,21 @@ All notable changes to fazt.sh will be documented in this file.
 
 ## [Unreleased]
 
+## [0.10.10] - 2026-01-24
+
+### Fixed
+- **Runtime Timeout**: Increased serverless execution timeout from 1s to 5s
+  - Storage write operations were timing out in production
+  - Affects `ds.insert`, `ds.update`, `ds.delete`, `kv.set`, `s3.put`
+
 ### Added
-- **App Architecture Templates**: New `/fazt-app` skill templates with proper structure
-  - Import maps for clean imports (`from 'vue'`)
-  - Pinia state management (battle-tested, works without build)
-  - Multi-page structure: router, stores, pages, components
-  - "Build-free, but buildable" pattern - apps work served raw AND built
-- **DevTools Plan**: `koder/plans/20_devtools.md` - unified observability for LLM agents
-  - Real-time SSE streaming endpoint (`/_fazt/stream`)
-  - Injectable test scripts (`/_fazt/scripts`)
-  - Leverages existing `/_fazt/logs`, `/_fazt/errors` endpoints
+- **Force Restart**: `/api/upgrade?force=true` restarts service without version change
+  - Useful when server needs restart but already on latest version
 
-### Changed
-- **CSP Headers**: Changed `frame-ancestors 'none'` to `frame-ancestors *` to allow
-  iframe embedding for testing harnesses
-- **Skill Updates**: Removed hardcoded "zyt" references, now uses configured peers
+## [0.10.9] - 2026-01-24
 
-### Infrastructure
-- Installed `agent-browser` for headless browser testing
+### Added
+- **Force Restart Option**: Added `?force=true` query param to upgrade endpoint
 
 ## [0.10.8] - 2026-01-21
 
