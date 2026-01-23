@@ -5,51 +5,50 @@
 
 ## Status
 
-State: CLEAN - CashFlow rebuilt, deployed to production
+State: BLOCKED - Storage layer needs fixes before further app development
 
 ---
 
-## Last Session (2026-01-24)
+## Active Plan
 
-### CashFlow Rebuild + Runtime Fix
+**Plan 21: Storage Layer Performance & Concurrency Fixes**
+See `koder/plans/21_storage_layer_fixes.md`
 
-**CashFlow rebuilt** from 890-line monolith to proper multi-page architecture:
+### Problem
 
-```
-cashflow/
-├── index.html          # Import maps (Vue, Pinia, Vue Router)
-├── api/main.js         # Backend (unchanged)
-└── src/
-    ├── main.js         # 14 lines - app init
-    ├── App.js          # Shell with bottom nav
-    ├── router.js       # 4 routes with session preservation
-    ├── stores/         # transactions.js, categories.js, ui.js
-    ├── pages/          # Transactions, Categories, Stats, Settings
-    ├── components/     # Cards, Forms, SummaryCards
-    └── lib/            # api.js, session.js, settings.js
-```
+Stress testing revealed storage layer can't handle concurrent load:
 
-**Key patterns:**
-- Session in URL: `/#/settings?s=xxx` (router guard preserves across navigation)
-- Pinia stores handle all state and API calls
-- No build step, no localStorage for session
+| Test | Success Rate | Error |
+|------|--------------|-------|
+| Sequential writes (20) | 70% | TimeoutError |
+| Concurrent writes (10) | 60% | SQLITE_BUSY |
+| Sequential reads (50) | 48% | TimeoutError |
 
-**Production issues fixed:**
-1. Runtime timeout too short (1s → 5s) - storage writes were timing out
-2. Added `?force=true` to `/api/upgrade` for manual restarts
+### Root Causes
 
-**Releases:**
-- v0.10.9: Added force restart option
-- v0.10.10: Increased runtime timeout to 5s
+1. **Context not propagated** - `bindings.go` uses `context.Background()`
+2. **Timeout race** - Runtime timeout (5s) = SQLite busy_timeout (5s)
+3. **No retry logic** - SQLITE_BUSY treated as hard failure
+4. **Missing indexes** - JSON session queries do full table scans
+5. **Pool too large** - 25 connections causes contention
+
+### Fixes Required
+
+| Priority | Fix | File |
+|----------|-----|------|
+| P0 | Pass context to storage ops | `internal/storage/bindings.go` |
+| P0 | Reduce busy_timeout to 2s | `internal/database/db.go` |
+| P1 | Add retry + backoff for SQLITE_BUSY | `internal/storage/storage.go` |
+| P1 | Reduce MaxOpenConns to 10 | `internal/database/db.go` |
+| P2 | Add session_id index | New migration |
 
 ---
 
 ## Next Session
 
-CashFlow is working. Potential next steps:
-- Test more thoroughly with real usage
-- DevTools implementation (see `koder/plans/20_devtools.md`)
-- Storage primitives ticket f-180c still open
+1. Implement Plan 21 fixes
+2. Re-run stress tests (target: 95%+ success)
+3. Then continue with app development
 
 ---
 
@@ -57,13 +56,16 @@ CashFlow is working. Potential next steps:
 
 ```bash
 # Deploy app
-fazt app deploy servers/zyt/cashflow --to local
 fazt app deploy servers/zyt/cashflow --to zyt
 
-# Force restart (no version change)
-curl -X POST "https://admin.zyt.app/api/upgrade?force=true" -H "Authorization: Bearer $TOKEN"
+# Force restart
+curl -X POST "https://admin.zyt.app/api/upgrade?force=true" \
+  -H "Authorization: Bearer $TOKEN"
 
 # Release
 source .env && ./scripts/release.sh vX.Y.Z
 fazt remote upgrade zyt
+
+# Stress test storage
+curl -s "https://cashflow.zyt.app/api/categories?session=test"
 ```
