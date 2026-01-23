@@ -12,12 +12,18 @@ import (
 
 // SQLDocStore implements DocStore using SQLite.
 type SQLDocStore struct {
-	db *sql.DB
+	db     *sql.DB
+	writer *WriteQueue
 }
 
 // NewSQLDocStore creates a new SQLite-backed document store.
 func NewSQLDocStore(db *sql.DB) *SQLDocStore {
-	return &SQLDocStore{db: db}
+	return NewSQLDocStoreWithWriter(db, nil)
+}
+
+// NewSQLDocStoreWithWriter creates a document store with an optional write queue.
+func NewSQLDocStoreWithWriter(db *sql.DB, writer *WriteQueue) *SQLDocStore {
+	return &SQLDocStore{db: db, writer: writer}
 }
 
 // Insert adds a new document to a collection.
@@ -26,6 +32,12 @@ func (s *SQLDocStore) Insert(ctx context.Context, appID, collection string, doc 
 	id, ok := doc["id"].(string)
 	if !ok || id == "" {
 		id = uuid.New().String()
+	}
+
+	// Extract session_id for indexed lookups
+	var sessionID *string
+	if sess, ok := doc["session"].(string); ok && sess != "" {
+		sessionID = &sess
 	}
 
 	// Remove id from doc data (stored separately)
@@ -42,10 +54,22 @@ func (s *SQLDocStore) Insert(ctx context.Context, appID, collection string, doc 
 	}
 
 	query := `
-		INSERT INTO app_docs (app_id, collection, id, data, created_at, updated_at)
-		VALUES (?, ?, ?, ?, strftime('%s', 'now'), strftime('%s', 'now'))
+		INSERT INTO app_docs (app_id, collection, id, data, session_id, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, strftime('%s', 'now'), strftime('%s', 'now'))
 	`
-	_, err = s.db.ExecContext(ctx, query, appID, collection, id, string(dataJSON))
+
+	writeOp := func() error {
+		return withRetry(ctx, func() error {
+			_, err := s.db.ExecContext(ctx, query, appID, collection, id, string(dataJSON), sessionID)
+			return err
+		})
+	}
+
+	if s.writer != nil {
+		err = s.writer.Write(ctx, writeOp)
+	} else {
+		err = writeOp()
+	}
 	if err != nil {
 		return "", fmt.Errorf("failed to insert document: %w", err)
 	}
@@ -72,7 +96,12 @@ func (s *SQLDocStore) Find(ctx context.Context, appID, collection string, query 
 		ORDER BY created_at DESC
 	`, whereClause)
 
-	rows, err := s.db.QueryContext(ctx, sqlQuery, fullArgs...)
+	var rows *sql.Rows
+	err = withRetry(ctx, func() error {
+		var err error
+		rows, err = s.db.QueryContext(ctx, sqlQuery, fullArgs...)
+		return err
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to query documents: %w", err)
 	}
@@ -110,7 +139,9 @@ func (s *SQLDocStore) FindOne(ctx context.Context, appID, collection, id string)
 	`
 	var docID, dataJSON string
 	var createdAt, updatedAt int64
-	err := s.db.QueryRowContext(ctx, query, appID, collection, id).Scan(&docID, &dataJSON, &createdAt, &updatedAt)
+	err := withRetry(ctx, func() error {
+		return s.db.QueryRowContext(ctx, query, appID, collection, id).Scan(&docID, &dataJSON, &createdAt, &updatedAt)
+	})
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -159,7 +190,20 @@ func (s *SQLDocStore) Update(ctx context.Context, appID, collection string, quer
 		WHERE app_id = ? AND collection = ? AND %s
 	`, updateExpr, whereClause)
 
-	result, err := s.db.ExecContext(ctx, sqlQuery, allArgs...)
+	var result sql.Result
+	writeOp := func() error {
+		return withRetry(ctx, func() error {
+			var err error
+			result, err = s.db.ExecContext(ctx, sqlQuery, allArgs...)
+			return err
+		})
+	}
+
+	if s.writer != nil {
+		err = s.writer.Write(ctx, writeOp)
+	} else {
+		err = writeOp()
+	}
 	if err != nil {
 		return 0, fmt.Errorf("failed to update documents: %w", err)
 	}
@@ -185,7 +229,20 @@ func (s *SQLDocStore) Delete(ctx context.Context, appID, collection string, quer
 		WHERE app_id = ? AND collection = ? AND %s
 	`, whereClause)
 
-	result, err := s.db.ExecContext(ctx, sqlQuery, fullArgs...)
+	var result sql.Result
+	writeOp := func() error {
+		return withRetry(ctx, func() error {
+			var err error
+			result, err = s.db.ExecContext(ctx, sqlQuery, fullArgs...)
+			return err
+		})
+	}
+
+	if s.writer != nil {
+		err = s.writer.Write(ctx, writeOp)
+	} else {
+		err = writeOp()
+	}
 	if err != nil {
 		return 0, fmt.Errorf("failed to delete documents: %w", err)
 	}
@@ -212,7 +269,9 @@ func (s *SQLDocStore) Count(ctx context.Context, appID, collection string, query
 	`, whereClause)
 
 	var count int64
-	err = s.db.QueryRowContext(ctx, sqlQuery, fullArgs...).Scan(&count)
+	err = withRetry(ctx, func() error {
+		return s.db.QueryRowContext(ctx, sqlQuery, fullArgs...).Scan(&count)
+	})
 	if err != nil {
 		return 0, fmt.Errorf("failed to count documents: %w", err)
 	}
@@ -227,7 +286,12 @@ func (s *SQLDocStore) Collections(ctx context.Context, appID string) ([]string, 
 		WHERE app_id = ?
 		ORDER BY collection
 	`
-	rows, err := s.db.QueryContext(ctx, query, appID)
+	var rows *sql.Rows
+	err := withRetry(ctx, func() error {
+		var err error
+		rows, err = s.db.QueryContext(ctx, query, appID)
+		return err
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to query collections: %w", err)
 	}

@@ -11,7 +11,8 @@ import (
 )
 
 // InjectStorageNamespace adds fazt.storage.* to a Goja VM.
-func InjectStorageNamespace(vm *goja.Runtime, storage *Storage, appID string) error {
+// The context is used for all storage operations to respect request timeouts.
+func InjectStorageNamespace(vm *goja.Runtime, storage *Storage, appID string, ctx context.Context) error {
 	// Get or create fazt object
 	faztVal := vm.Get("fazt")
 	var fazt *goja.Object
@@ -26,27 +27,27 @@ func InjectStorageNamespace(vm *goja.Runtime, storage *Storage, appID string) er
 
 	// fazt.storage.kv
 	kvObj := vm.NewObject()
-	kvObj.Set("set", makeKVSet(vm, storage.KV, appID))
-	kvObj.Set("get", makeKVGet(vm, storage.KV, appID))
-	kvObj.Set("delete", makeKVDelete(vm, storage.KV, appID))
-	kvObj.Set("list", makeKVList(vm, storage.KV, appID))
+	kvObj.Set("set", makeKVSet(vm, storage.KV, appID, ctx))
+	kvObj.Set("get", makeKVGet(vm, storage.KV, appID, ctx))
+	kvObj.Set("delete", makeKVDelete(vm, storage.KV, appID, ctx))
+	kvObj.Set("list", makeKVList(vm, storage.KV, appID, ctx))
 	storageObj.Set("kv", kvObj)
 
 	// fazt.storage.ds
 	dsObj := vm.NewObject()
-	dsObj.Set("insert", makeDSInsert(vm, storage.Docs, appID))
-	dsObj.Set("find", makeDSFind(vm, storage.Docs, appID))
-	dsObj.Set("findOne", makeDSFindOne(vm, storage.Docs, appID))
-	dsObj.Set("update", makeDSUpdate(vm, storage.Docs, appID))
-	dsObj.Set("delete", makeDSDelete(vm, storage.Docs, appID))
+	dsObj.Set("insert", makeDSInsert(vm, storage.Docs, appID, ctx))
+	dsObj.Set("find", makeDSFind(vm, storage.Docs, appID, ctx))
+	dsObj.Set("findOne", makeDSFindOne(vm, storage.Docs, appID, ctx))
+	dsObj.Set("update", makeDSUpdate(vm, storage.Docs, appID, ctx))
+	dsObj.Set("delete", makeDSDelete(vm, storage.Docs, appID, ctx))
 	storageObj.Set("ds", dsObj)
 
 	// fazt.storage.s3
 	s3Obj := vm.NewObject()
-	s3Obj.Set("put", makeS3Put(vm, storage.Blobs, appID))
-	s3Obj.Set("get", makeS3Get(vm, storage.Blobs, appID))
-	s3Obj.Set("delete", makeS3Delete(vm, storage.Blobs, appID))
-	s3Obj.Set("list", makeS3List(vm, storage.Blobs, appID))
+	s3Obj.Set("put", makeS3Put(vm, storage.Blobs, appID, ctx))
+	s3Obj.Set("get", makeS3Get(vm, storage.Blobs, appID, ctx))
+	s3Obj.Set("delete", makeS3Delete(vm, storage.Blobs, appID, ctx))
+	s3Obj.Set("list", makeS3List(vm, storage.Blobs, appID, ctx))
 	storageObj.Set("s3", s3Obj)
 
 	fazt.Set("storage", storageObj)
@@ -55,7 +56,7 @@ func InjectStorageNamespace(vm *goja.Runtime, storage *Storage, appID string) er
 
 // KV bindings
 
-func makeKVSet(vm *goja.Runtime, kv KVStore, appID string) func(goja.FunctionCall) goja.Value {
+func makeKVSet(vm *goja.Runtime, kv KVStore, appID string, ctx context.Context) func(goja.FunctionCall) goja.Value {
 	return func(call goja.FunctionCall) goja.Value {
 		if len(call.Arguments) < 2 {
 			panic(vm.NewGoError(fmt.Errorf("kv.set requires key and value")))
@@ -71,7 +72,6 @@ func makeKVSet(vm *goja.Runtime, kv KVStore, appID string) func(goja.FunctionCal
 			ttl = &d
 		}
 
-		ctx := context.Background()
 		if err := kv.Set(ctx, appID, key, value, ttl); err != nil {
 			panic(vm.NewGoError(err))
 		}
@@ -80,14 +80,13 @@ func makeKVSet(vm *goja.Runtime, kv KVStore, appID string) func(goja.FunctionCal
 	}
 }
 
-func makeKVGet(vm *goja.Runtime, kv KVStore, appID string) func(goja.FunctionCall) goja.Value {
+func makeKVGet(vm *goja.Runtime, kv KVStore, appID string, ctx context.Context) func(goja.FunctionCall) goja.Value {
 	return func(call goja.FunctionCall) goja.Value {
 		if len(call.Arguments) < 1 {
 			panic(vm.NewGoError(fmt.Errorf("kv.get requires a key")))
 		}
 
 		key := call.Argument(0).String()
-		ctx := context.Background()
 
 		value, err := kv.Get(ctx, appID, key)
 		if err != nil {
@@ -102,14 +101,13 @@ func makeKVGet(vm *goja.Runtime, kv KVStore, appID string) func(goja.FunctionCal
 	}
 }
 
-func makeKVDelete(vm *goja.Runtime, kv KVStore, appID string) func(goja.FunctionCall) goja.Value {
+func makeKVDelete(vm *goja.Runtime, kv KVStore, appID string, ctx context.Context) func(goja.FunctionCall) goja.Value {
 	return func(call goja.FunctionCall) goja.Value {
 		if len(call.Arguments) < 1 {
 			panic(vm.NewGoError(fmt.Errorf("kv.delete requires a key")))
 		}
 
 		key := call.Argument(0).String()
-		ctx := context.Background()
 
 		if err := kv.Delete(ctx, appID, key); err != nil {
 			panic(vm.NewGoError(err))
@@ -119,14 +117,13 @@ func makeKVDelete(vm *goja.Runtime, kv KVStore, appID string) func(goja.Function
 	}
 }
 
-func makeKVList(vm *goja.Runtime, kv KVStore, appID string) func(goja.FunctionCall) goja.Value {
+func makeKVList(vm *goja.Runtime, kv KVStore, appID string, ctx context.Context) func(goja.FunctionCall) goja.Value {
 	return func(call goja.FunctionCall) goja.Value {
 		prefix := ""
 		if len(call.Arguments) >= 1 && !goja.IsUndefined(call.Argument(0)) {
 			prefix = call.Argument(0).String()
 		}
 
-		ctx := context.Background()
 		entries, err := kv.List(ctx, appID, prefix)
 		if err != nil {
 			panic(vm.NewGoError(err))
@@ -151,7 +148,7 @@ func makeKVList(vm *goja.Runtime, kv KVStore, appID string) func(goja.FunctionCa
 
 // Document store bindings
 
-func makeDSInsert(vm *goja.Runtime, ds DocStore, appID string) func(goja.FunctionCall) goja.Value {
+func makeDSInsert(vm *goja.Runtime, ds DocStore, appID string, ctx context.Context) func(goja.FunctionCall) goja.Value {
 	return func(call goja.FunctionCall) goja.Value {
 		start := time.Now()
 		if len(call.Arguments) < 2 {
@@ -171,7 +168,6 @@ func makeDSInsert(vm *goja.Runtime, ds DocStore, appID string) func(goja.Functio
 			debug.Warn("storage", "ds.insert: 'id' in doc will be used as document ID")
 		}
 
-		ctx := context.Background()
 		id, err := ds.Insert(ctx, appID, collection, doc)
 		debug.StorageOp("insert", appID, collection, doc, 1, time.Since(start))
 		if err != nil {
@@ -182,7 +178,7 @@ func makeDSInsert(vm *goja.Runtime, ds DocStore, appID string) func(goja.Functio
 	}
 }
 
-func makeDSFind(vm *goja.Runtime, ds DocStore, appID string) func(goja.FunctionCall) goja.Value {
+func makeDSFind(vm *goja.Runtime, ds DocStore, appID string, ctx context.Context) func(goja.FunctionCall) goja.Value {
 	return func(call goja.FunctionCall) goja.Value {
 		start := time.Now()
 		if len(call.Arguments) < 1 {
@@ -199,7 +195,6 @@ func makeDSFind(vm *goja.Runtime, ds DocStore, appID string) func(goja.FunctionC
 			}
 		}
 
-		ctx := context.Background()
 		docs, err := ds.Find(ctx, appID, collection, query)
 		debug.StorageOp("find", appID, collection, query, int64(len(docs)), time.Since(start))
 		if err != nil {
@@ -220,7 +215,7 @@ func makeDSFind(vm *goja.Runtime, ds DocStore, appID string) func(goja.FunctionC
 	}
 }
 
-func makeDSFindOne(vm *goja.Runtime, ds DocStore, appID string) func(goja.FunctionCall) goja.Value {
+func makeDSFindOne(vm *goja.Runtime, ds DocStore, appID string, ctx context.Context) func(goja.FunctionCall) goja.Value {
 	return func(call goja.FunctionCall) goja.Value {
 		start := time.Now()
 		if len(call.Arguments) < 2 {
@@ -245,7 +240,6 @@ func makeDSFindOne(vm *goja.Runtime, ds DocStore, appID string) func(goja.Functi
 			panic(vm.NewGoError(fmt.Errorf("ds.findOne requires query object or string ID, got %T", exported)))
 		}
 
-		ctx := context.Background()
 		docs, err := ds.Find(ctx, appID, collection, query)
 		rows := int64(0)
 		if len(docs) > 0 {
@@ -270,7 +264,7 @@ func makeDSFindOne(vm *goja.Runtime, ds DocStore, appID string) func(goja.Functi
 	}
 }
 
-func makeDSUpdate(vm *goja.Runtime, ds DocStore, appID string) func(goja.FunctionCall) goja.Value {
+func makeDSUpdate(vm *goja.Runtime, ds DocStore, appID string, ctx context.Context) func(goja.FunctionCall) goja.Value {
 	return func(call goja.FunctionCall) goja.Value {
 		start := time.Now()
 		if len(call.Arguments) < 3 {
@@ -291,7 +285,6 @@ func makeDSUpdate(vm *goja.Runtime, ds DocStore, appID string) func(goja.Functio
 			panic(vm.NewGoError(fmt.Errorf("ds.update requires a changes object")))
 		}
 
-		ctx := context.Background()
 		count, err := ds.Update(ctx, appID, collection, query, changes)
 		debug.StorageOp("update", appID, collection, query, count, time.Since(start))
 		if err != nil {
@@ -302,7 +295,7 @@ func makeDSUpdate(vm *goja.Runtime, ds DocStore, appID string) func(goja.Functio
 	}
 }
 
-func makeDSDelete(vm *goja.Runtime, ds DocStore, appID string) func(goja.FunctionCall) goja.Value {
+func makeDSDelete(vm *goja.Runtime, ds DocStore, appID string, ctx context.Context) func(goja.FunctionCall) goja.Value {
 	return func(call goja.FunctionCall) goja.Value {
 		start := time.Now()
 		if len(call.Arguments) < 2 {
@@ -317,7 +310,6 @@ func makeDSDelete(vm *goja.Runtime, ds DocStore, appID string) func(goja.Functio
 			panic(vm.NewGoError(fmt.Errorf("ds.delete requires a query object")))
 		}
 
-		ctx := context.Background()
 		count, err := ds.Delete(ctx, appID, collection, query)
 		debug.StorageOp("delete", appID, collection, query, count, time.Since(start))
 		if err != nil {
@@ -330,7 +322,7 @@ func makeDSDelete(vm *goja.Runtime, ds DocStore, appID string) func(goja.Functio
 
 // Blob store bindings
 
-func makeS3Put(vm *goja.Runtime, blobs BlobStore, appID string) func(goja.FunctionCall) goja.Value {
+func makeS3Put(vm *goja.Runtime, blobs BlobStore, appID string, ctx context.Context) func(goja.FunctionCall) goja.Value {
 	return func(call goja.FunctionCall) goja.Value {
 		if len(call.Arguments) < 2 {
 			panic(vm.NewGoError(fmt.Errorf("s3.put requires path and data")))
@@ -369,7 +361,6 @@ func makeS3Put(vm *goja.Runtime, blobs BlobStore, appID string) func(goja.Functi
 			mimeType = call.Argument(2).String()
 		}
 
-		ctx := context.Background()
 		if err := blobs.Put(ctx, appID, path, data, mimeType); err != nil {
 			panic(vm.NewGoError(err))
 		}
@@ -378,14 +369,13 @@ func makeS3Put(vm *goja.Runtime, blobs BlobStore, appID string) func(goja.Functi
 	}
 }
 
-func makeS3Get(vm *goja.Runtime, blobs BlobStore, appID string) func(goja.FunctionCall) goja.Value {
+func makeS3Get(vm *goja.Runtime, blobs BlobStore, appID string, ctx context.Context) func(goja.FunctionCall) goja.Value {
 	return func(call goja.FunctionCall) goja.Value {
 		if len(call.Arguments) < 1 {
 			panic(vm.NewGoError(fmt.Errorf("s3.get requires a path")))
 		}
 
 		path := call.Argument(0).String()
-		ctx := context.Background()
 
 		blob, err := blobs.Get(ctx, appID, path)
 		if err != nil {
@@ -408,14 +398,13 @@ func makeS3Get(vm *goja.Runtime, blobs BlobStore, appID string) func(goja.Functi
 	}
 }
 
-func makeS3Delete(vm *goja.Runtime, blobs BlobStore, appID string) func(goja.FunctionCall) goja.Value {
+func makeS3Delete(vm *goja.Runtime, blobs BlobStore, appID string, ctx context.Context) func(goja.FunctionCall) goja.Value {
 	return func(call goja.FunctionCall) goja.Value {
 		if len(call.Arguments) < 1 {
 			panic(vm.NewGoError(fmt.Errorf("s3.delete requires a path")))
 		}
 
 		path := call.Argument(0).String()
-		ctx := context.Background()
 
 		if err := blobs.Delete(ctx, appID, path); err != nil {
 			panic(vm.NewGoError(err))
@@ -425,14 +414,13 @@ func makeS3Delete(vm *goja.Runtime, blobs BlobStore, appID string) func(goja.Fun
 	}
 }
 
-func makeS3List(vm *goja.Runtime, blobs BlobStore, appID string) func(goja.FunctionCall) goja.Value {
+func makeS3List(vm *goja.Runtime, blobs BlobStore, appID string, ctx context.Context) func(goja.FunctionCall) goja.Value {
 	return func(call goja.FunctionCall) goja.Value {
 		prefix := ""
 		if len(call.Arguments) >= 1 && !goja.IsUndefined(call.Argument(0)) {
 			prefix = call.Argument(0).String()
 		}
 
-		ctx := context.Background()
 		items, err := blobs.List(ctx, appID, prefix)
 		if err != nil {
 			panic(vm.NewGoError(err))

@@ -10,11 +10,18 @@ import (
 
 // Limits holds the detected system resource limits
 type Limits struct {
-	TotalRAM      int64 // Bytes
-	AvailableRAM  int64 // Bytes (estimated)
-	CPUCount      int
-	MaxVFSBytes   int64 // Calculated safe limit
+	TotalRAM       int64 // Bytes
+	AvailableRAM   int64 // Bytes (estimated)
+	CPUCount       int
+	MaxVFSBytes    int64 // Calculated safe limit
 	MaxUploadBytes int64 // Calculated safe limit
+
+	// Capacity estimates (based on stress testing)
+	ConcurrentUsers      int `json:"concurrent_users"`       // Conservative estimate
+	ConcurrentUsersMax   int `json:"concurrent_users_max"`   // Best-case scenario
+	ReadThroughput       int `json:"read_throughput"`        // req/sec
+	WriteThroughput      int `json:"write_throughput"`       // req/sec
+	MixedThroughput      int `json:"mixed_throughput"`       // req/sec (80R/20W)
 }
 
 var cachedLimits *Limits
@@ -43,12 +50,32 @@ func GetLimits() *Limits {
 		maxUpload = 10 * 1024 * 1024
 	}
 
+	// Capacity estimates based on stress testing (fazt v0.10.10, Jan 2026)
+	// Baseline: $6 VPS = 1 vCPU, 1GB RAM
+	// Scales roughly linearly with CPU cores for read-heavy workloads
+	baseUsers := 50
+	baseReads := 200
+	baseWrites := 100
+	baseMixed := 150
+
+	// Scale with CPU cores (diminishing returns after 4 cores for SQLite)
+	scaleFactor := cpuCount
+	if scaleFactor > 4 {
+		scaleFactor = 4 + (cpuCount-4)/2 // Half credit above 4 cores
+	}
+
 	cachedLimits = &Limits{
 		TotalRAM:       totalRAM,
 		AvailableRAM:   totalRAM, // Approximate, we don't track live usage here
 		CPUCount:       cpuCount,
 		MaxVFSBytes:    maxVFS,
 		MaxUploadBytes: maxUpload,
+
+		ConcurrentUsers:    baseUsers * scaleFactor,
+		ConcurrentUsersMax: baseUsers * scaleFactor * 2,
+		ReadThroughput:     baseReads * scaleFactor,
+		WriteThroughput:    baseWrites + (scaleFactor-1)*25, // Writes don't scale as well
+		MixedThroughput:    baseMixed * scaleFactor,
 	}
 
 	return cachedLimits

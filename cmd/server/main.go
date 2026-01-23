@@ -2740,6 +2740,7 @@ func handleStartCommand() {
 	dashboardMux.HandleFunc("GET /api/system/config", handlers.SystemConfigHandler)
 	dashboardMux.HandleFunc("/api/config", handlers.SystemConfigHandler) // Alias
 	dashboardMux.HandleFunc("GET /api/system/health", handlers.SystemHealthHandler)
+	dashboardMux.HandleFunc("GET /api/system/capacity", handlers.SystemCapacityHandler)
 
 	// API routes - Hosting/Deploy
 	dashboardMux.HandleFunc("/api/deploy", handlers.DeployHandler)

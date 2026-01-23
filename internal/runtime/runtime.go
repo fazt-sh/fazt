@@ -15,7 +15,7 @@ import (
 
 const (
 	DefaultTimeout = 5 * time.Second // Increased for database write operations
-	MaxPoolSize    = 10
+	MaxPoolSize    = 100
 )
 
 // Runtime manages JavaScript execution.

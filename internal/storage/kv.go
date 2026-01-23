@@ -12,10 +12,11 @@ import (
 
 // SQLKVStore implements KVStore using SQLite.
 type SQLKVStore struct {
-	db    *sql.DB
-	cache map[string]kvCacheEntry
-	mu    sync.RWMutex
-	done  chan struct{}
+	db     *sql.DB
+	writer *WriteQueue
+	cache  map[string]kvCacheEntry
+	mu     sync.RWMutex
+	done   chan struct{}
 }
 
 type kvCacheEntry struct {
@@ -25,16 +26,22 @@ type kvCacheEntry struct {
 }
 
 const (
-	kvCacheMaxSize = 1000
+	kvCacheMaxSize    = 1000
 	kvCleanupInterval = 5 * time.Minute
 )
 
-// NewSQLKVStore creates a new SQLite-backed KV store.
+// NewSQLKVStore creates a new SQLite-backed KV store (without write queue).
 func NewSQLKVStore(db *sql.DB) *SQLKVStore {
+	return NewSQLKVStoreWithWriter(db, nil)
+}
+
+// NewSQLKVStoreWithWriter creates a KV store with an optional write queue.
+func NewSQLKVStoreWithWriter(db *sql.DB, writer *WriteQueue) *SQLKVStore {
 	store := &SQLKVStore{
-		db:    db,
-		cache: make(map[string]kvCacheEntry),
-		done:  make(chan struct{}),
+		db:     db,
+		writer: writer,
+		cache:  make(map[string]kvCacheEntry),
+		done:   make(chan struct{}),
 	}
 	go store.cleanupLoop()
 	return store
@@ -61,7 +68,20 @@ func (s *SQLKVStore) Set(ctx context.Context, appID, key string, value interface
 			expires_at = excluded.expires_at,
 			updated_at = strftime('%s', 'now')
 	`
-	_, err = s.db.ExecContext(ctx, query, appID, key, string(valueJSON), expiresAt)
+
+	writeOp := func() error {
+		return withRetry(ctx, func() error {
+			_, err := s.db.ExecContext(ctx, query, appID, key, string(valueJSON), expiresAt)
+			return err
+		})
+	}
+
+	// Use write queue if available, otherwise direct write
+	if s.writer != nil {
+		err = s.writer.Write(ctx, writeOp)
+	} else {
+		err = writeOp()
+	}
 	if err != nil {
 		return fmt.Errorf("failed to set key: %w", err)
 	}
@@ -96,7 +116,9 @@ func (s *SQLKVStore) Get(ctx context.Context, appID, key string) (interface{}, e
 	`
 	var valueJSON string
 	var expiresAt sql.NullInt64
-	err := s.db.QueryRowContext(ctx, query, appID, key).Scan(&valueJSON, &expiresAt)
+	err := withRetry(ctx, func() error {
+		return s.db.QueryRowContext(ctx, query, appID, key).Scan(&valueJSON, &expiresAt)
+	})
 	if err == sql.ErrNoRows {
 		return nil, nil // Key not found
 	}
@@ -132,7 +154,20 @@ func (s *SQLKVStore) Get(ctx context.Context, appID, key string) (interface{}, e
 // Delete removes a key.
 func (s *SQLKVStore) Delete(ctx context.Context, appID, key string) error {
 	query := `DELETE FROM app_kv WHERE app_id = ? AND key = ?`
-	_, err := s.db.ExecContext(ctx, query, appID, key)
+
+	writeOp := func() error {
+		return withRetry(ctx, func() error {
+			_, err := s.db.ExecContext(ctx, query, appID, key)
+			return err
+		})
+	}
+
+	var err error
+	if s.writer != nil {
+		err = s.writer.Write(ctx, writeOp)
+	} else {
+		err = writeOp()
+	}
 	if err != nil {
 		return fmt.Errorf("failed to delete key: %w", err)
 	}
@@ -153,7 +188,12 @@ func (s *SQLKVStore) List(ctx context.Context, appID, prefix string) ([]KVEntry,
 		AND (expires_at IS NULL OR expires_at > strftime('%s', 'now'))
 		ORDER BY key
 	`
-	rows, err := s.db.QueryContext(ctx, query, appID, prefix+"%")
+	var rows *sql.Rows
+	err := withRetry(ctx, func() error {
+		var err error
+		rows, err = s.db.QueryContext(ctx, query, appID, prefix+"%")
+		return err
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to list keys: %w", err)
 	}

@@ -66,18 +66,39 @@ type BlobMeta struct {
 
 // Storage combines all storage primitives.
 type Storage struct {
-	KV    KVStore
-	Docs  DocStore
-	Blobs BlobStore
-	db    *sql.DB
+	KV     KVStore
+	Docs   DocStore
+	Blobs  BlobStore
+	db     *sql.DB
+	writer *WriteQueue
 }
 
 // New creates a new Storage instance with all primitives.
 func New(db *sql.DB) *Storage {
+	writer := NewWriteQueue(DefaultWriteQueueConfig())
 	return &Storage{
-		KV:    NewSQLKVStore(db),
-		Docs:  NewSQLDocStore(db),
-		Blobs: NewSQLBlobStore(db),
-		db:    db,
+		KV:     NewSQLKVStoreWithWriter(db, writer),
+		Docs:   NewSQLDocStoreWithWriter(db, writer),
+		Blobs:  NewSQLBlobStoreWithWriter(db, writer),
+		db:     db,
+		writer: writer,
+	}
+}
+
+// WriteStats returns current write queue statistics.
+func (s *Storage) WriteStats() WriteStats {
+	if s.writer == nil {
+		return WriteStats{}
+	}
+	return s.writer.Stats()
+}
+
+// Close releases storage resources.
+func (s *Storage) Close() {
+	if s.writer != nil {
+		s.writer.Close()
+	}
+	if kv, ok := s.KV.(*SQLKVStore); ok {
+		kv.Close()
 	}
 }

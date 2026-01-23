@@ -85,8 +85,26 @@ func (h *ServerlessHandler) HandleRequest(w http.ResponseWriter, r *http.Request
 
 	// Handle errors
 	if result.Error != nil {
-		debug.RuntimeReq(reqID, appName, r.URL.Path, 500, time.Since(start))
 		w.Header().Set("Content-Type", "application/json")
+
+		// Check for retryable errors (overload, timeout)
+		errMsg := result.Error.Error()
+		if storage.IsRetryableError(result.Error) ||
+			strings.Contains(errMsg, "queue full") ||
+			strings.Contains(errMsg, "SQLITE_BUSY") {
+			// Return 503 Service Unavailable with Retry-After hint
+			debug.RuntimeReq(reqID, appName, r.URL.Path, 503, time.Since(start))
+			w.Header().Set("Retry-After", "1")
+			w.WriteHeader(http.StatusServiceUnavailable)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"error":     "Server overloaded, please retry",
+				"retryable": true,
+				"logs":      result.Logs,
+			})
+			return
+		}
+
+		debug.RuntimeReq(reqID, appName, r.URL.Path, 500, time.Since(start))
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"error": result.Error.Error(),
@@ -141,7 +159,7 @@ func (h *ServerlessHandler) executeWithFazt(ctx context.Context, code string, re
 
 	storageInjector := func(vm *goja.Runtime) error {
 		if app != nil && app.ID != "" {
-			return storage.InjectStorageNamespace(vm, h.storage, app.ID)
+			return storage.InjectStorageNamespace(vm, h.storage, app.ID, ctx)
 		}
 		return nil
 	}

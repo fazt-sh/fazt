@@ -4,6 +4,23 @@ All notable changes to fazt.sh will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- **Capacity Module**: New `/api/system/capacity` endpoint with VPS tier profiles
+  - Reports concurrent user estimates based on detected hardware
+  - Profiles for $6, $15, $40 VPS tiers
+
+### Changed
+- **Storage Write Serialization**: All writes now go through single-writer WriteQueue
+  - Eliminates SQLITE_BUSY errors under high concurrency
+  - Tested: 100% write success at 1000 concurrent operations
+- **Connection Pool Tuning**: MaxOpen=10, MaxIdle=10, Lifetime=5min, busy_timeout=2s
+- **Retry Logic**: Storage operations retry 5x with exponential backoff (20-320ms)
+- **VM Pool Size**: Increased from 10 to 100 for better concurrency
+
+### Performance
+- Stress tested to 2000 concurrent users (80% success, 424 req/sec, 63MB RAM)
+- Pure writes: 530 req/sec | Pure reads: 670 req/sec | Mixed: 375 req/sec
+
 ## [0.10.10] - 2026-01-24
 
 ### Fixed

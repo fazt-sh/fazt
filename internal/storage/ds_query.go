@@ -59,6 +59,13 @@ func (qb *QueryBuilder) parseField(field string, value interface{}) error {
 		return nil
 	}
 
+	// Use session_id column for indexed session queries
+	if field == "session" {
+		qb.conditions = append(qb.conditions, "session_id = ?")
+		qb.args = append(qb.args, value)
+		return nil
+	}
+
 	// Check if value is an operator object
 	if opMap, ok := value.(map[string]interface{}); ok {
 		for op, opVal := range opMap {
@@ -85,6 +92,9 @@ func (qb *QueryBuilder) buildOperator(field, op string, value interface{}) (stri
 	var fieldExpr string
 	if field == "id" {
 		fieldExpr = "id"
+	} else if field == "session" {
+		// Use indexed session_id column
+		fieldExpr = "session_id"
 	} else {
 		fieldExpr = fmt.Sprintf("json_extract(data, '$.%s')", escapeJSONPath(field))
 	}

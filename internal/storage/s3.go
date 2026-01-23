@@ -12,12 +12,18 @@ import (
 
 // SQLBlobStore implements BlobStore using SQLite.
 type SQLBlobStore struct {
-	db *sql.DB
+	db     *sql.DB
+	writer *WriteQueue
 }
 
 // NewSQLBlobStore creates a new SQLite-backed blob store.
 func NewSQLBlobStore(db *sql.DB) *SQLBlobStore {
-	return &SQLBlobStore{db: db}
+	return NewSQLBlobStoreWithWriter(db, nil)
+}
+
+// NewSQLBlobStoreWithWriter creates a blob store with an optional write queue.
+func NewSQLBlobStoreWithWriter(db *sql.DB, writer *WriteQueue) *SQLBlobStore {
+	return &SQLBlobStore{db: db, writer: writer}
 }
 
 // Put stores a blob.
@@ -38,7 +44,20 @@ func (s *SQLBlobStore) Put(ctx context.Context, appID, path string, data []byte,
 			hash = excluded.hash,
 			updated_at = strftime('%s', 'now')
 	`
-	_, err := s.db.ExecContext(ctx, query, appID, path, data, mimeType, len(data), hash)
+
+	writeOp := func() error {
+		return withRetry(ctx, func() error {
+			_, err := s.db.ExecContext(ctx, query, appID, path, data, mimeType, len(data), hash)
+			return err
+		})
+	}
+
+	var err error
+	if s.writer != nil {
+		err = s.writer.Write(ctx, writeOp)
+	} else {
+		err = writeOp()
+	}
 	if err != nil {
 		return fmt.Errorf("failed to store blob: %w", err)
 	}
@@ -58,7 +77,9 @@ func (s *SQLBlobStore) Get(ctx context.Context, appID, path string) (*Blob, erro
 	var mimeType, hash string
 	var size int64
 
-	err := s.db.QueryRowContext(ctx, query, appID, path).Scan(&data, &mimeType, &size, &hash)
+	err := withRetry(ctx, func() error {
+		return s.db.QueryRowContext(ctx, query, appID, path).Scan(&data, &mimeType, &size, &hash)
+	})
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -79,7 +100,20 @@ func (s *SQLBlobStore) Delete(ctx context.Context, appID, path string) error {
 	path = normalizePath(path)
 
 	query := `DELETE FROM app_blobs WHERE app_id = ? AND path = ?`
-	_, err := s.db.ExecContext(ctx, query, appID, path)
+
+	writeOp := func() error {
+		return withRetry(ctx, func() error {
+			_, err := s.db.ExecContext(ctx, query, appID, path)
+			return err
+		})
+	}
+
+	var err error
+	if s.writer != nil {
+		err = s.writer.Write(ctx, writeOp)
+	} else {
+		err = writeOp()
+	}
 	if err != nil {
 		return fmt.Errorf("failed to delete blob: %w", err)
 	}
@@ -96,7 +130,12 @@ func (s *SQLBlobStore) List(ctx context.Context, appID, prefix string) ([]BlobMe
 		WHERE app_id = ? AND path LIKE ?
 		ORDER BY path
 	`
-	rows, err := s.db.QueryContext(ctx, query, appID, prefix+"%")
+	var rows *sql.Rows
+	err := withRetry(ctx, func() error {
+		var err error
+		rows, err = s.db.QueryContext(ctx, query, appID, prefix+"%")
+		return err
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to list blobs: %w", err)
 	}
@@ -127,7 +166,9 @@ func (s *SQLBlobStore) Exists(ctx context.Context, appID, path string) (bool, er
 
 	query := `SELECT 1 FROM app_blobs WHERE app_id = ? AND path = ? LIMIT 1`
 	var exists int
-	err := s.db.QueryRowContext(ctx, query, appID, path).Scan(&exists)
+	err := withRetry(ctx, func() error {
+		return s.db.QueryRowContext(ctx, query, appID, path).Scan(&exists)
+	})
 	if err == sql.ErrNoRows {
 		return false, nil
 	}
@@ -148,7 +189,9 @@ func (s *SQLBlobStore) GetMeta(ctx context.Context, appID, path string) (*BlobMe
 	var blobPath, mimeType string
 	var size, updatedAt int64
 
-	err := s.db.QueryRowContext(ctx, query, appID, path).Scan(&blobPath, &mimeType, &size, &updatedAt)
+	err := withRetry(ctx, func() error {
+		return s.db.QueryRowContext(ctx, query, appID, path).Scan(&blobPath, &mimeType, &size, &updatedAt)
+	})
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -181,7 +224,21 @@ func (s *SQLBlobStore) Copy(ctx context.Context, appID, srcPath, dstPath string)
 			hash = excluded.hash,
 			updated_at = strftime('%s', 'now')
 	`
-	result, err := s.db.ExecContext(ctx, query, dstPath, appID, srcPath)
+	var result sql.Result
+	writeOp := func() error {
+		return withRetry(ctx, func() error {
+			var err error
+			result, err = s.db.ExecContext(ctx, query, dstPath, appID, srcPath)
+			return err
+		})
+	}
+
+	var err error
+	if s.writer != nil {
+		err = s.writer.Write(ctx, writeOp)
+	} else {
+		err = writeOp()
+	}
 	if err != nil {
 		return fmt.Errorf("failed to copy blob: %w", err)
 	}
@@ -206,7 +263,9 @@ func (s *SQLBlobStore) Move(ctx context.Context, appID, srcPath, dstPath string)
 func (s *SQLBlobStore) TotalSize(ctx context.Context, appID string) (int64, error) {
 	query := `SELECT COALESCE(SUM(size_bytes), 0) FROM app_blobs WHERE app_id = ?`
 	var total int64
-	err := s.db.QueryRowContext(ctx, query, appID).Scan(&total)
+	err := withRetry(ctx, func() error {
+		return s.db.QueryRowContext(ctx, query, appID).Scan(&total)
+	})
 	if err != nil {
 		return 0, fmt.Errorf("failed to get total size: %w", err)
 	}

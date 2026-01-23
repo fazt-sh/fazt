@@ -51,6 +51,7 @@ func setupTestDB(t *testing.T) *sql.DB {
 			collection TEXT NOT NULL,
 			id TEXT NOT NULL,
 			data TEXT NOT NULL,
+			session_id TEXT,
 			created_at INTEGER DEFAULT (strftime('%s', 'now')),
 			updated_at INTEGER DEFAULT (strftime('%s', 'now')),
 			PRIMARY KEY (app_id, collection, id)

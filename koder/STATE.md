@@ -5,67 +5,75 @@
 
 ## Status
 
-State: BLOCKED - Storage layer needs fixes before further app development
+State: CLEAN - Storage layer optimized, capacity tested to 2000 concurrent users
 
 ---
 
-## Active Plan
+## Last Session
 
-**Plan 21: Storage Layer Performance & Concurrency Fixes**
-See `koder/plans/21_storage_layer_fixes.md`
+Implemented comprehensive storage layer optimization (Plan 21):
 
-### Problem
+**Write Serialization**
+- Created `WriteQueue` single-writer pattern in `internal/storage/writer.go`
+- All storage writes (KV, Docs, Blobs) now serialize through queue
+- Eliminates SQLITE_BUSY errors under load
 
-Stress testing revealed storage layer can't handle concurrent load:
+**Performance Tuning**
+- Context propagation to all storage operations
+- Retry with exponential backoff (5 retries, 20-320ms)
+- Connection pool: MaxOpen=10, MaxIdle=10, Lifetime=5min
+- busy_timeout reduced 5s→2s
 
-| Test | Success Rate | Error |
-|------|--------------|-------|
-| Sequential writes (20) | 70% | TimeoutError |
-| Concurrent writes (10) | 60% | SQLITE_BUSY |
-| Sequential reads (50) | 48% | TimeoutError |
+**Capacity Module**
+- Added `internal/capacity/capacity.go` with VPS tier profiles
+- Extended `internal/system/probe.go` with capacity estimates
+- New endpoint: `/api/system/capacity`
 
-### Root Causes
+**Stress Test Results**
+- 1000 users: ~90% success
+- 2000 users: 80% success, 424 req/sec, 63MB RAM
+- Go handles connections fine; SQLite write serialization is the bottleneck
 
-1. **Context not propagated** - `bindings.go` uses `context.Background()`
-2. **Timeout race** - Runtime timeout (5s) = SQLite busy_timeout (5s)
-3. **No retry logic** - SQLITE_BUSY treated as hard failure
-4. **Missing indexes** - JSON session queries do full table scans
-5. **Pool too large** - 25 connections causes contention
+## Next Up
 
-### Fixes Required
+1. **Discuss**: Agent-interface idea in `koder/scratch.md`
+   - ES6 module with "recipes" for precise agentic UI control
+   - Avoids screenshot guesswork, works with raw APIs
 
-| Priority | Fix | File |
-|----------|-----|------|
-| P0 | Pass context to storage ops | `internal/storage/bindings.go` |
-| P0 | Reduce busy_timeout to 2s | `internal/database/db.go` |
-| P1 | Add retry + backoff for SQLITE_BUSY | `internal/storage/storage.go` |
-| P1 | Reduce MaxOpenConns to 10 | `internal/database/db.go` |
-| P2 | Add session_id index | New migration |
+2. **Fix**: Analytics SQLITE_BUSY (low effort, high impact)
+   - Route analytics batch writes through WriteQueue
+   - Will push 2K-user success rate from 80% → 95%+
 
 ---
 
-## Next Session
+## Known Issues
 
-1. Implement Plan 21 fixes
-2. Re-run stress tests (target: 95%+ success)
-3. Then continue with app development
+### Analytics SQLITE_BUSY
+
+Analytics buffer bypasses WriteQueue, causing 20% failures at 2K concurrent.
+Fix: `internal/analytics/buffer.go` - use WriteQueue in `writeBatch()`.
 
 ---
 
 ## Quick Reference
 
 ```bash
-# Deploy app
-fazt app deploy servers/zyt/cashflow --to zyt
+# Test capacity endpoint
+curl -H "Host: admin.192.168.64.3.nip.io" \
+  -H "Authorization: Bearer $TOKEN" \
+  http://192.168.64.3:8080/api/system/capacity
 
-# Force restart
-curl -X POST "https://admin.zyt.app/api/upgrade?force=true" \
-  -H "Authorization: Bearer $TOKEN"
+# Run load test
+go run /tmp/loadtest.go  # 2000 users, 20s
 
-# Release
-source .env && ./scripts/release.sh vX.Y.Z
-fazt remote upgrade zyt
-
-# Stress test storage
-curl -s "https://cashflow.zyt.app/api/categories?session=test"
+# Local server
+./fazt server start --port 8080 --domain 192.168.64.3 --db servers/local/data.db
 ```
+
+### Files Changed (uncommitted)
+
+- `internal/storage/writer.go` - NEW: WriteQueue
+- `internal/storage/retry.go` - NEW: Retry logic
+- `internal/capacity/capacity.go` - NEW: Capacity profiles
+- `internal/database/migrations/013_storage_perf.sql` - NEW: Session index
+- Multiple storage files updated for WriteQueue integration

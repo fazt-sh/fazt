@@ -36,8 +36,12 @@ func Init(dbPath string) error {
 	}
 
 	// Set connection pool settings
-	db.SetMaxOpenConns(25)
-	db.SetMaxIdleConns(5)
+	// SQLite performs better with fewer concurrent connections due to its
+	// locking model. WAL mode helps, but writes are still serialized.
+	db.SetMaxOpenConns(10)
+	db.SetMaxIdleConns(10)
+	db.SetConnMaxLifetime(5 * time.Minute)
+	db.SetConnMaxIdleTime(1 * time.Minute)
 
 	// Enable WAL mode for better concurrency
 	if _, err := db.Exec("PRAGMA journal_mode=WAL"); err != nil {
@@ -50,8 +54,8 @@ func Init(dbPath string) error {
 	}
 
 	// Set busy timeout to wait for locks instead of failing immediately
-	// This prevents SQLITE_BUSY errors under concurrent load
-	if _, err := db.Exec("PRAGMA busy_timeout=5000"); err != nil {
+	// Use 2s (shorter than runtime timeout) to allow graceful failure and retry
+	if _, err := db.Exec("PRAGMA busy_timeout=2000"); err != nil {
 		return fmt.Errorf("failed to set busy timeout: %w", err)
 	}
 
@@ -96,6 +100,7 @@ func runMigrations() error {
 		{10, "storage", "migrations/010_storage.sql"},
 		{11, "source_tracking", "migrations/011_source_tracking.sql"},
 		{12, "app_identity", "migrations/012_app_identity.sql"},
+		{13, "storage_perf", "migrations/013_storage_perf.sql"},
 	}
 
 	// Run each migration if not already applied
