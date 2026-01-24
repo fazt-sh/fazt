@@ -94,8 +94,15 @@ my-app/
 | zyt | https://zyt.app | Personal production instance |
 | local | http://192.168.64.3:8080 | Local dev server (always running) |
 
-**Note**: The local server is a persistent instance - always running across all
-Claude sessions. Never stop it. Use it to test apps before deploying to zyt.
+**Note**: The local server runs as a **user systemd service** (`fazt-local`).
+It auto-starts on boot and persists across sessions. Never stop it manually.
+
+**Local server commands:**
+```bash
+systemctl --user status fazt-local    # Check status
+systemctl --user restart fazt-local   # Restart after rebuild
+journalctl --user -u fazt-local -f    # View logs
+```
 
 **Managing peers:**
 ```bash
@@ -143,9 +150,15 @@ cp -r admin/dist internal/assets/system/admin
 go build -o fazt ./cmd/server
 ```
 
-**2. Initialize local server (first time only):**
+**2. Install local server (first time only):**
+
+Use the unified install script:
 ```bash
-# Creates DB at servers/local/data.db (persists across reboots)
+./install.sh  # Select option 2: Local Development
+```
+
+Or manually:
+```bash
 mkdir -p servers/local
 fazt server init \
   --username dev \
@@ -167,6 +180,14 @@ fazt remote add local \
 ```
 
 **4. Start local server:**
+
+If installed via `install.sh`, the server runs as a systemd user service:
+```bash
+systemctl --user start fazt-local   # Start
+systemctl --user status fazt-local  # Check status
+```
+
+Or manually (for one-off testing):
 ```bash
 fazt server start \
   --port 8080 \

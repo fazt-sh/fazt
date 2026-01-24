@@ -6,6 +6,23 @@ All notable changes to fazt.sh will be documented in this file.
 
 ### Added
 - **Capacity Module**: New `/api/system/capacity` endpoint with VPS tier profiles
+- **Environment Detection**: Server auto-detects if stored domain matches current machine
+  - New `internal/provision/detect.go` with IP detection and domain matching
+  - On mismatch, warns and falls back to detected local IP
+  - Enables portable database between machines
+- **User Systemd Service**: Local development server runs as user service
+  - `~/.config/systemd/user/fazt-local.service` - no sudo required
+  - Persists across reboots via linger
+  - Managed with `systemctl --user` commands
+
+### Changed
+- **Install Script**: Unified `install.sh` with three modes:
+  - Production Server (system service, real domain, HTTPS)
+  - Local Development (user service, auto-start, IP-based)
+  - CLI Only (just binary, connect to remotes)
+- **Session Skills**: `/fazt-start` and `/fazt-stop` now remote-agnostic
+  - Dynamically detect all configured remotes
+  - No hardcoded server names
   - Reports concurrent user estimates based on detected hardware
   - Profiles for $6, $15, $40 VPS tiers
 - **Capacity Guide**: `koder/CAPACITY.md` documents performance limits and real-time scenarios
