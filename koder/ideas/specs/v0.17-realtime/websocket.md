@@ -317,3 +317,115 @@ On kernel restart:
 1. Send "server_restart" to all clients
 2. Wait 5s for clean disconnects
 3. Force close remaining
+
+## Future: Yjs Protocol Support (v0.17.1)
+
+Yjs is a CRDT library for collaborative editing (Google Docs, Notion, Figma).
+The y-websocket provider expects a specific binary protocol.
+
+### Why Built-In
+
+- Most collaboration tools use Yjs
+- Currently requires separate y-websocket server
+- Fazt should be a complete platform for collaborative apps
+
+### Protocol Overview
+
+y-websocket uses binary WebSocket frames:
+
+```
+[messageType: 1 byte][...payload]
+
+Message types:
+0 = sync step 1 (state vector)
+1 = sync step 2 (diff)
+2 = update
+3 = awareness (cursor positions, selections)
+```
+
+### Implementation
+
+Add binary frame support to existing WebSocket hub:
+
+```go
+// Detect Yjs client by URL or first message
+if isYjsClient(conn) {
+    handleYjsProtocol(conn, room)
+} else {
+    handleJsonProtocol(conn) // existing behavior
+}
+```
+
+### API Surface
+
+```javascript
+// Server-side: get Yjs document state
+const doc = await fazt.realtime.yjsDoc('doc-123')
+
+// Apply update programmatically
+await fazt.realtime.yjsUpdate('doc-123', updateBytes)
+```
+
+### Persistence
+
+Yjs updates stored in SQLite for durability:
+
+```sql
+CREATE TABLE yjs_docs (
+    app_id TEXT,
+    doc_id TEXT,
+    state BLOB,        -- Encoded Y.Doc
+    updated_at DATETIME,
+    PRIMARY KEY (app_id, doc_id)
+);
+```
+
+## Future: Push Notifications (v0.18+)
+
+For offline/mobile push, integrate FCM/APNs.
+
+### Difficulty Assessment
+
+| Component | Effort | Notes |
+|-----------|--------|-------|
+| FCM integration | Medium | HTTP API, need Google Cloud project |
+| APNs integration | Medium | HTTP/2, need Apple Developer cert |
+| Token storage | Low | New table for device tokens |
+| Subscription management | Low | Link tokens to channels |
+| App configuration | Low | Apps provide FCM/APNs keys |
+
+### Total Estimate
+
+~500-800 lines of Go. Main complexity is managing device tokens and
+handling delivery failures (token expiration, uninstalls).
+
+### API Surface
+
+```javascript
+// Register device token (from app's client code)
+await fazt.push.register(token, platform) // 'fcm' | 'apns'
+
+// Server-side: send push to offline users
+await fazt.push.send(userId, {
+    title: 'New message',
+    body: 'Alice: hey!',
+    data: { chatId: '123' }
+})
+
+// Or broadcast to channel (only offline subscribers)
+await fazt.push.broadcastOffline('chat:room1', notification)
+```
+
+### Architecture
+
+```
+Browser online:  WebSocket (existing)
+Browser offline: Skip (no push to desktop browsers)
+Mobile online:   WebSocket (existing)
+Mobile offline:  FCM/APNs push
+```
+
+### Not In Scope
+
+- Web Push API (requires service worker, complex)
+- SMS notifications (different beast entirely)

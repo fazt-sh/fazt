@@ -12,6 +12,7 @@ import (
 
 	"github.com/dop251/goja"
 	"github.com/fazt-sh/fazt/internal/debug"
+	"github.com/fazt-sh/fazt/internal/hosting"
 	"github.com/fazt-sh/fazt/internal/storage"
 )
 
@@ -164,7 +165,14 @@ func (h *ServerlessHandler) executeWithFazt(ctx context.Context, code string, re
 		return nil
 	}
 
-	return h.runtime.ExecuteWithInjectors(ctx, code, req, loader, faztInjector, storageInjector)
+	realtimeInjector := func(vm *goja.Runtime) error {
+		if app != nil && app.ID != "" {
+			return hosting.InjectRealtimeNamespace(vm, app.ID)
+		}
+		return nil
+	}
+
+	return h.runtime.ExecuteWithInjectors(ctx, code, req, loader, faztInjector, storageInjector, realtimeInjector)
 }
 
 // loadFile loads a file from the VFS for a given app.

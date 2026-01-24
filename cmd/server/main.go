@@ -1487,8 +1487,8 @@ func siteHandler(w http.ResponseWriter, r *http.Request, subdomain string) {
 		return
 	}
 
-	// Handle WebSocket connections at /ws
-	if r.URL.Path == "/ws" {
+	// Handle WebSocket connections at /_ws
+	if r.URL.Path == "/_ws" {
 		hosting.HandleWebSocket(w, r, subdomain)
 		return
 	}

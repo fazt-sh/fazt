@@ -5,81 +5,85 @@
 
 ## Status
 
-State: CLEAN - Unified install script complete, local server persistent
+State: CLEAN - WebSocket pub/sub system implemented and tested
 
 ---
 
 ## Last Session
 
-**Persistent Local Server + Unified Install Script**
+**WebSocket Pub/Sub Implementation**
 
-1. **Created persistent local server** (Ticket pending)
-   - User systemd service: `~/.config/systemd/user/fazt-local.service`
-   - Auto-starts on boot via linger
-   - No sudo required for local development
+1. **Enhanced `internal/hosting/ws.go`**
+   - Added `Client` struct with ID, channels, send buffer
+   - Added `channels` map to `SiteHub` for pub/sub
+   - JSON protocol: subscribe, unsubscribe, message, ping, pong
+   - Heartbeat: ping every 30s, 10s timeout
+   - New methods: `BroadcastToChannel`, `BroadcastAll`, `GetSubscribers`, `ChannelCount`, `KickClient`
 
-2. **Updated `install.sh`** with three options:
-   - Production Server (system service, real domain, HTTPS)
-   - Local Development (user service, auto-start, IP-based)
-   - CLI Only (just binary, connect to remotes)
+2. **Created `internal/hosting/realtime.go`** (Goja bindings)
+   - `fazt.realtime.broadcast(channel, data)` - Push to channel subscribers
+   - `fazt.realtime.broadcastAll(data)` - Push to all app connections
+   - `fazt.realtime.subscribers(channel)` - List client IDs
+   - `fazt.realtime.count(channel?)` - Count subscribers or total
+   - `fazt.realtime.kick(clientId, reason)` - Disconnect client
 
-3. **Added environment detection** (`internal/provision/detect.go`):
-   - `GetLocalIPs()` - Get all IPs of current machine
-   - `DetectEnvironment()` - Check if stored domain matches machine
-   - Server auto-detects and warns on domain mismatch
+3. **Wired realtime injector** in `internal/runtime/handler.go`
+   - Added alongside storage injector in `executeWithFazt()`
 
-4. **Extended systemd support** (`internal/provision/systemd.go`):
-   - `InstallUserService()` - Create user-level services
-   - `EnableLinger()` - Persist services across reboots
-   - `UserSystemctl()` - Manage user services
+4. **Changed WebSocket route** from `/ws` to `/_ws`
+   - Line 1491 in `cmd/server/main.go`
 
-5. **Updated `/fazt-start` skill**:
-   - Checks both local and zyt server health
-   - Shows version matrix (source/binary/local/zyt)
-   - Quick commands for common operations
+5. **Added 21 new tests**
+   - `ws_test.go`: Channel subscription, isolation, broadcast, protocol
+   - `realtime_test.go`: Goja binding tests
 
-## Architecture
+6. **Fixed pre-existing test failures**
+   - Updated `hosting_test.go` schema to match migration 012
+   - Added `title`, `aliases` table, `app_id` column
 
-**Install locations**:
+7. **Updated spec** (`koder/ideas/specs/v0.17-realtime/websocket.md`)
+   - Added "Future: Yjs Protocol Support (v0.17.1)" section
+   - Added "Future: Push Notifications (v0.18+)" section with FCM/APNs
 
-| Type | Binary | Service | DB |
-|------|--------|---------|-----|
-| Production | `/usr/local/bin/fazt` | System | `~/.config/fazt/data.db` |
-| Local Dev | `~/.local/bin/fazt` | User | `~/.config/fazt/data.db` |
+## Client Protocol
 
-**Domain detection on startup**:
-- If CLI `--domain` flag → use it (highest priority)
-- If domain in DB matches current machine's IP → use it
-- If mismatch → warn and use detected local IP
+```json
+// Subscribe
+→ {"type":"subscribe","channel":"chat"}
+← {"type":"subscribed","channel":"chat"}
+
+// Receive message
+← {"type":"message","channel":"chat","data":{...},"timestamp":1706000000000}
+
+// Heartbeat (server sends every 30s)
+← {"type":"ping"}
+→ {"type":"pong"}
+```
 
 ## Next Up
 
-1. **Wire WebSocket endpoint** - Foundation exists in `internal/hosting/ws.go`
-   - Add `/_ws` route
-   - Add channels/pub-sub
-   - Add `fazt.realtime` to serverless runtime
+1. **Stress test WebSocket implementation**
+   - Concurrent connections, message throughput
+   - Channel fanout performance
 
-2. **Build stress-test app** - After WebSockets working
-   - "Antfarm" browser visualization
-   - "Siege" Go CLI for real load
-   - Live dashboard with polling/WebSocket updates
-
-3. **Consider**: Agent-interface idea in `koder/scratch.md`
+2. **Brainstorm /fazt-app ideas** showcasing storage + WebSockets
+   - Collaborative apps (Yjs-style)
+   - Real-time dashboards
+   - Chat/presence demos
 
 ---
 
 ## Quick Reference
 
 ```bash
-# Local server management
-systemctl --user status fazt-local
-systemctl --user restart fazt-local
-journalctl --user -u fazt-local -f
-
-# Rebuild and restart
+# Rebuild and restart local server
 go build -o ~/.local/bin/fazt ./cmd/server && \
   systemctl --user restart fazt-local
 
-# Run install script
-./install.sh  # Select option 2 for local dev
+# Test WebSocket (websocat)
+websocat ws://test.192.168.64.3:8080/_ws
+{"type":"subscribe","channel":"chat"}
+
+# Run WebSocket tests
+go test -v ./internal/hosting/... -run "TestChannel|TestBroadcast|TestRealtime"
 ```

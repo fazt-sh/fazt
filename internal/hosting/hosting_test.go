@@ -31,6 +31,7 @@ func setupTestDB(t *testing.T) *sql.DB {
 		size_bytes INTEGER NOT NULL,
 		mime_type TEXT,
 		hash TEXT NOT NULL,
+		app_id TEXT,
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 		PRIMARY KEY (site_id, path)
@@ -53,13 +54,23 @@ func setupTestDB(t *testing.T) *sql.DB {
 	);
 	CREATE TABLE apps (
 		id TEXT PRIMARY KEY,
-		name TEXT NOT NULL UNIQUE,
+		original_id TEXT,
+		forked_from_id TEXT,
+		title TEXT,
+		description TEXT,
+		tags TEXT,
+		visibility TEXT DEFAULT 'unlisted',
 		source TEXT DEFAULT 'deploy',
-		manifest TEXT,
 		source_url TEXT,
 		source_ref TEXT,
 		source_commit TEXT,
-		installed_at DATETIME,
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+	);
+	CREATE TABLE aliases (
+		subdomain TEXT PRIMARY KEY,
+		type TEXT DEFAULT 'proxy',
+		targets TEXT,
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 	);

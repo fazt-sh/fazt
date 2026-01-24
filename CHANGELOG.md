@@ -5,6 +5,11 @@ All notable changes to fazt.sh will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **WebSocket Pub/Sub**: Real-time communication for apps
+  - Channel-based subscriptions at `/_ws` endpoint
+  - JSON protocol: subscribe, unsubscribe, message, ping/pong
+  - Server-side API: `fazt.realtime.broadcast()`, `broadcastAll()`, `subscribers()`, `count()`, `kick()`
+  - Heartbeat with 30s ping, 10s timeout
 - **Capacity Module**: New `/api/system/capacity` endpoint with VPS tier profiles
 - **Environment Detection**: Server auto-detects if stored domain matches current machine
   - New `internal/provision/detect.go` with IP detection and domain matching
