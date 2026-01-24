@@ -3,7 +3,7 @@
 **Fazt** is sovereign compute infrastructure for individuals—a single Go binary
 + SQLite database that runs anywhere from phones to servers to IoT devices.
 
-**Current Version**: 0.10.3
+**Current Version**: 0.10.10
 **This Repo**: Source code for fazt development
 
 ## Environment Context
@@ -34,8 +34,9 @@ fazt server --help       # Server commands
 This file (`CLAUDE.md`) is the primary context. For deep implementation work:
 
 ```
-read koder/STATE.md    # Check if a plan is active
-read koder/start.md    # Deep implementation protocol
+read koder/STATE.md      # Current state, what's in progress
+read koder/CAPACITY.md   # Performance limits, real-time capacity
+read koder/start.md      # Deep implementation protocol
 ```
 
 ## Development Philosophy
