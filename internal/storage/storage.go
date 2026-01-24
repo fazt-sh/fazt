@@ -5,8 +5,37 @@ package storage
 import (
 	"context"
 	"database/sql"
+	"sync"
 	"time"
 )
+
+var (
+	globalWriter *WriteQueue
+	writerOnce   sync.Once
+)
+
+// InitWriter initializes the global write queue. Call once at server startup.
+func InitWriter() {
+	writerOnce.Do(func() {
+		globalWriter = NewWriteQueue(DefaultWriteQueueConfig())
+	})
+}
+
+// GetWriter returns the global write queue for serializing all DB writes.
+// Returns nil if InitWriter hasn't been called.
+func GetWriter() *WriteQueue {
+	return globalWriter
+}
+
+// QueueWrite submits a write operation to the global queue.
+// This is the preferred way for non-storage packages (like analytics) to do writes.
+func QueueWrite(ctx context.Context, fn func() error) error {
+	if globalWriter == nil {
+		// Fallback: execute directly (shouldn't happen in production)
+		return fn()
+	}
+	return globalWriter.Write(ctx, fn)
+}
 
 // KVStore provides key-value storage operations.
 type KVStore interface {
@@ -74,8 +103,13 @@ type Storage struct {
 }
 
 // New creates a new Storage instance with all primitives.
+// Uses the global WriteQueue (call InitWriter first).
 func New(db *sql.DB) *Storage {
-	writer := NewWriteQueue(DefaultWriteQueueConfig())
+	// Use global writer if available, otherwise create local one
+	writer := globalWriter
+	if writer == nil {
+		writer = NewWriteQueue(DefaultWriteQueueConfig())
+	}
 	return &Storage{
 		KV:     NewSQLKVStoreWithWriter(db, writer),
 		Docs:   NewSQLDocStoreWithWriter(db, writer),

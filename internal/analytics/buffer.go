@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/fazt-sh/fazt/internal/database"
+	"github.com/fazt-sh/fazt/internal/storage"
 )
 
 // Event represents a single tracking event
@@ -186,38 +187,44 @@ func (b *Buffer) writeBatch(batch []Event) error {
 		return fmt.Errorf("database not available")
 	}
 
-	tx, err := db.BeginTx(context.Background(), nil)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
+	// Route through WriteQueue to prevent SQLITE_BUSY errors
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
 
-	stmt, err := tx.Prepare(`
-		INSERT INTO events (domain, tags, source_type, event_type, path, referrer, user_agent, ip_address, query_params, created_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-	`)
-	if err != nil {
-		return err
-	}
-	defer stmt.Close()
-
-	for _, e := range batch {
-		_, err := stmt.Exec(
-			e.Domain,
-			e.Tags,
-			e.SourceType,
-			e.EventType,
-			e.Path,
-			e.Referrer,
-			e.UserAgent,
-			e.IPAddress,
-			e.QueryParams,
-			e.CreatedAt,
-		)
+	return storage.QueueWrite(ctx, func() error {
+		tx, err := db.BeginTx(ctx, nil)
 		if err != nil {
 			return err
 		}
-	}
+		defer tx.Rollback()
 
-	return tx.Commit()
+		stmt, err := tx.Prepare(`
+			INSERT INTO events (domain, tags, source_type, event_type, path, referrer, user_agent, ip_address, query_params, created_at)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		`)
+		if err != nil {
+			return err
+		}
+		defer stmt.Close()
+
+		for _, e := range batch {
+			_, err := stmt.Exec(
+				e.Domain,
+				e.Tags,
+				e.SourceType,
+				e.EventType,
+				e.Path,
+				e.Referrer,
+				e.UserAgent,
+				e.IPAddress,
+				e.QueryParams,
+				e.CreatedAt,
+			)
+			if err != nil {
+				return err
+			}
+		}
+
+		return tx.Commit()
+	})
 }

@@ -37,6 +37,7 @@ import (
 	"github.com/fazt-sh/fazt/internal/remote"
 	jsruntime "github.com/fazt-sh/fazt/internal/runtime"
 	"github.com/fazt-sh/fazt/internal/security"
+	"github.com/fazt-sh/fazt/internal/storage"
 	"github.com/fazt-sh/fazt/internal/term"
 	ignore "github.com/sabhiram/go-gitignore"
 	"golang.org/x/crypto/bcrypt"
@@ -2679,6 +2680,9 @@ func handleStartCommand() {
 	if err := audit.Init(database.GetDB()); err != nil {
 		log.Fatalf("Failed to initialize audit logging: %v", err)
 	}
+
+	// Initialize global write queue (must come before analytics)
+	storage.InitWriter()
 
 	// Initialize analytics buffer
 	analytics.Init()
