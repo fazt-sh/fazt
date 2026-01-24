@@ -16,8 +16,26 @@ This skill includes reference materials:
 - **patterns/modals.md** - Modal patterns with click-outside close
 - **patterns/testing.md** - Testing framework for validating data flow and state
 - **templates/** - Complete app template (mirrors final app structure)
+- **koder/CAPACITY.md** - Performance limits and real-time capability guide
 
 Reference these files when building apps to follow established patterns.
+
+## Capacity Awareness
+
+Before building, understand fazt's limits (see `koder/CAPACITY.md`):
+
+| Capability | Limit ($6 VPS) | Notes |
+|------------|----------------|-------|
+| Read throughput | ~20,000/s | Static files, VFS |
+| Write throughput | ~800/s | SQLite single-writer |
+| Mixed workload | ~2,300/s | 30% writes typical |
+| WebSocket connections | 5,000-10,000 | Real-time features |
+| Broadcasts/sec | 10,000+ | Cursors, presence, chat |
+
+**Key insight for real-time apps:** Broadcasts (cursors, typing, presence) are
+unlimited - they never hit disk. Only persist what matters (messages, documents).
+
+For collaborative features, batch writes and keep ephemeral data in-memory.
 
 ## Usage
 
