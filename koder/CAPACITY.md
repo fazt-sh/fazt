@@ -115,12 +115,12 @@ enables collaborative features, presence, and live updates.
 
 ### Connection Limits ($6 VPS)
 
-| Metric | Capacity | Notes |
-|--------|----------|-------|
-| WebSocket connections | 5,000 | Safe baseline |
-| With tuning | 10,000 | Memory optimized |
-| Memory per connection | ~50KB | Buffers + state |
-| Broadcasts/sec | 10,000+ | CPU-bound, not I/O |
+ | Metric                | Capacity   | Notes              |
+ | --------              | ---------- | -------            |
+ | WebSocket connections | 5,000      | Safe baseline      |
+ | With tuning           | 10,000     | Memory optimized   |
+ | Memory per connection | ~50KB      | Buffers + state    |
+ | Broadcasts/sec        | 10,000+    | CPU-bound, not I/O |
 
 ### Critical Insight: Broadcast vs Persist
 
@@ -131,13 +131,13 @@ Real-time features separate two concerns:
 
 Most real-time data is **ephemeral** and never hits disk:
 
-| Data Type | Broadcast | Persist |
-|-----------|-----------|---------|
-| Cursor position | ✓ High frequency | ✗ Never |
-| Typing indicator | ✓ While typing | ✗ Never |
-| Presence status | ✓ On change | ✓ Occasional snapshot |
-| Chat message | ✓ Once | ✓ Once |
-| Document operation | ✓ Immediately | ✓ Batched |
+ | Data Type          | Broadcast        | Persist               |
+ | -----------        | -----------      | ---------             |
+ | Cursor position    | ✓ High frequency | ✗ Never               |
+ | Typing indicator   | ✓ While typing   | ✗ Never               |
+ | Presence status    | ✓ On change      | ✓ Occasional snapshot |
+ | Chat message       | ✓ Once           | ✓ Once                |
+ | Document operation | ✓ Immediately    | ✓ Batched             |
 
 ---
 
@@ -149,13 +149,13 @@ Google Docs-style editor with real-time sync.
 
 **10 concurrent editors:**
 
-| Activity | Rate | Type |
-|----------|------|------|
-| Keystrokes | 50/s total | Broadcast |
-| Cursor moves | 100/s total | Broadcast only |
-| Selection changes | 20/s total | Broadcast only |
-| CRDT operations | 50/s | Broadcast + batch persist |
-| **Writes to disk** | 5-10/s | Batched every 1-2 sec |
+ | Activity           | Rate        | Type                      |
+ | ----------         | ------      | ------                    |
+ | Keystrokes         | 50/s total  | Broadcast                 |
+ | Cursor moves       | 100/s total | Broadcast only            |
+ | Selection changes  | 20/s total  | Broadcast only            |
+ | CRDT operations    | 50/s        | Broadcast + batch persist |
+ | **Writes to disk** | 5-10/s      | Batched every 1-2 sec     |
 
 **Capacity:** 50+ concurrent documents, 500+ editors total
 
@@ -174,12 +174,12 @@ Slack-style online indicators.
 
 **100 users in workspace:**
 
-| Activity | Rate | Type |
-|----------|------|------|
-| Heartbeats | 3/s (100÷30) | Broadcast |
-| Status changes | 0.1/s | Broadcast + persist |
-| Initial sync | On connect | Read |
-| **Writes to disk** | ~1/s | Status snapshots |
+ | Activity           | Rate         | Type                |
+ | ----------         | ------       | ------              |
+ | Heartbeats         | 3/s (100÷30) | Broadcast           |
+ | Status changes     | 0.1/s        | Broadcast + persist |
+ | Initial sync       | On connect   | Read                |
+ | **Writes to disk** | ~1/s         | Status snapshots    |
 
 **Capacity:** 2,000+ users across workspaces
 
@@ -193,12 +193,12 @@ Real-time chat room with "user is typing..." display.
 
 **50-user chat room:**
 
-| Activity | Rate | Type |
-|----------|------|------|
-| Messages sent | 1-5/s | Broadcast + persist |
-| Typing indicators | 20/s | Broadcast only |
-| Read receipts | 10/s | Broadcast + batch |
-| **Writes to disk** | 2-5/s | Messages + receipts |
+ | Activity           | Rate   | Type                |
+ | ----------         | ------ | ------              |
+ | Messages sent      | 1-5/s  | Broadcast + persist |
+ | Typing indicators  | 20/s   | Broadcast only      |
+ | Read receipts      | 10/s   | Broadcast + batch   |
+ | **Writes to disk** | 2-5/s  | Messages + receipts |
 
 **Capacity:** 100+ active rooms, 1,000+ users
 
@@ -212,12 +212,12 @@ Real-time collaborative canvas with visible cursors.
 
 **10 collaborators on canvas:**
 
-| Activity | Rate | Type |
-|----------|------|------|
-| Cursor positions | 150-300/s | Broadcast only (10 users × 15-30 fps) |
-| Shape operations | 10-30/s | Broadcast + persist |
-| Selection changes | 10/s | Broadcast only |
-| **Writes to disk** | 10-30/s | Shape ops only |
+ | Activity           | Rate      | Type                                  |
+ | ----------         | ------    | ------                                |
+ | Cursor positions   | 150-300/s | Broadcast only (10 users × 15-30 fps) |
+ | Shape operations   | 10-30/s   | Broadcast + persist                   |
+ | Selection changes  | 10/s      | Broadcast only                        |
+ | **Writes to disk** | 10-30/s   | Shape ops only                        |
 
 **This is the most demanding scenario.**
 
@@ -228,11 +228,11 @@ Real-time collaborative canvas with visible cursors.
 
 **Capacity estimates:**
 
-| Collaborators/doc | Docs concurrent | Total users |
-|-------------------|-----------------|-------------|
-| 5 | 50 | 250 |
-| 10 | 25 | 250 |
-| 20 | 10 | 200 |
+ | Collaborators/doc   | Docs concurrent   | Total users   |
+ | ------------------- | ----------------- | ------------- |
+ | 5                   | 50                | 250           |
+ | 10                  | 25                | 250           |
+ | 20                  | 10                | 200           |
 
 ⚠️ **Verdict: Achievable with limits (5-20 users per document)**
 
@@ -244,13 +244,13 @@ Real-time behavioral analysis with AI interventions.
 
 **Per user being monitored:**
 
-| Activity | Rate | Type |
-|----------|------|------|
-| Page views | 0.1/s | Event → AI |
-| Scroll events | 3/s (throttled) | Event → AI |
-| Click events | 0.05/s | Event → AI |
-| AI responses | 0.02/s | Push to client |
-| **Writes to disk** | 0.2/s | Batched events |
+ | Activity           | Rate            | Type           |
+ | ----------         | ------          | ------         |
+ | Page views         | 0.1/s           | Event → AI     |
+ | Scroll events      | 3/s (throttled) | Event → AI     |
+ | Click events       | 0.05/s          | Event → AI     |
+ | AI responses       | 0.02/s          | Push to client |
+ | **Writes to disk** | 0.2/s           | Batched events |
 
 **100 concurrent monitored users:**
 - Events to process: 300/s
@@ -269,14 +269,14 @@ A simplified Figma competitor with real-time collaboration.
 
 **Target: 10 collaborators per project**
 
-| Component | Requirement | Fazt Capacity | Status |
-|-----------|-------------|---------------|--------|
-| WebSocket connections | 10/project | 5,000 total | ✅ |
-| Cursor broadcast | 300/s per project | 10,000/s total | ✅ |
-| Shape operations | 30/s per project | 800/s total | ✅ |
-| Undo/redo stack | In-memory | Unlimited | ✅ |
-| Asset storage | Blob store | 800 uploads/s | ✅ |
-| Projects concurrent | 25-50 | - | ✅ |
+ | Component             | Requirement       | Fazt Capacity   | Status   |
+ | -----------           | -------------     | --------------- | -------- |
+ | WebSocket connections | 10/project        | 5,000 total     | ✅       |
+ | Cursor broadcast      | 300/s per project | 10,000/s total  | ✅       |
+ | Shape operations      | 30/s per project  | 800/s total     | ✅       |
+ | Undo/redo stack       | In-memory         | Unlimited       | ✅       |
+ | Asset storage         | Blob store        | 800 uploads/s   | ✅       |
+ | Projects concurrent   | 25-50             | -               | ✅       |
 
 **Realistic limits on $6 VPS:**
 - 25-50 active projects simultaneously
