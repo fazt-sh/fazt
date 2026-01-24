@@ -2632,6 +2632,27 @@ func handleStartCommand() {
 		log.Printf("Warning: Failed to load config from DB: %v", err)
 	}
 
+	// Environment detection: check if stored domain matches current machine
+	// Only do this if no explicit --domain flag was provided
+	if *domain == "" && cfg.Server.Domain != "" {
+		match, storedDomain := provision.DetectEnvironment(cfg.Server.Domain)
+		localIP := provision.GetPrimaryLocalIP()
+
+		switch match {
+		case provision.EnvMismatch:
+			// Domain in DB doesn't match this machine - likely a copied DB
+			log.Printf("Note: Stored domain '%s' doesn't match this machine (IP: %s)", storedDomain, localIP)
+			log.Printf("Using local IP instead. To update stored domain: fazt server set-config --domain %s", localIP)
+			cfg.Server.Domain = config.WrapWithWildcardDNS(localIP)
+		case provision.EnvUnconfigured:
+			// No domain configured, use detected local IP
+			log.Printf("No domain configured, using detected IP: %s", localIP)
+			cfg.Server.Domain = config.WrapWithWildcardDNS(localIP)
+		case provision.EnvMatch:
+			// Domain matches, all good
+		}
+	}
+
 	// Validate configuration now that we have loaded everything
 	if err := cfg.Validate(); err != nil {
 		log.Fatalf("Invalid configuration: %v", err)

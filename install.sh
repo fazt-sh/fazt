@@ -16,7 +16,7 @@ echo -e "\033[38;5;196m___  __/","\033[38;5;208m_____ \033[38;5;214m________\033
 echo -e "\033[38;5;208m__  /_ \033[38;5;214m_  __ ","\`\033[38;5;220m/__  /\033[38;5;226m_  __/","\033[0m"
 echo -e "\033[38;5;214m_  __/ \033[38;5;220m/ /_/ /\033[38;5;226m__  /_","\033[38;5;228m/ /_","\033[0m"
 echo -e "\033[38;5;220m/_/    \033[38;5;226m\__,_/ \033[38;5;228m_____/\033[38;5;231m\__/","\033[0m"
-echo -e "${DIM}  Single Binary PaaS & Analytics${NC}"
+echo -e "${DIM}  Sovereign Compute for Individuals${NC}"
 echo ""
 
 # Detect OS and Arch
@@ -36,272 +36,241 @@ case "$ARCH" in
     *)         echo "Unsupported Architecture: $ARCH"; exit 1 ;;
 esac
 
-BINARY_NAME="fazt"
+# Paths
+SYSTEM_BINARY="/usr/local/bin/fazt"
+USER_BINARY="$HOME/.local/bin/fazt"
+SYSTEM_SERVICE="/etc/systemd/system/fazt.service"
+USER_SERVICE="$HOME/.config/systemd/user/fazt-local.service"
+USER_DB="$HOME/.config/fazt/data.db"
 
-# Check if this is an upgrade scenario
-EXISTING_BINARY="/usr/local/bin/fazt"
-SERVICE_FILE="/etc/systemd/system/fazt.service"
-IS_UPGRADE=false
-SERVICE_WAS_ACTIVE=false
-
-if [ -f "$EXISTING_BINARY" ] || [ -f "$SERVICE_FILE" ]; then
-    IS_UPGRADE=true
-
-    # Check current version
-    if [ -f "$EXISTING_BINARY" ]; then
-        CURRENT_VERSION=$($EXISTING_BINARY --version 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || echo "unknown")
-        echo -e "${BLUE}ℹ${NC} Existing installation detected (v${CURRENT_VERSION})"
+# Detect local IP (prefer 192.168.x.x or 10.x.x.x)
+detect_local_ip() {
+    local ip
+    # Try to get primary local IP
+    ip=$(ip route get 1 2>/dev/null | awk '{print $7; exit}')
+    if [ -z "$ip" ]; then
+        # Fallback: get first non-loopback IP
+        ip=$(hostname -I 2>/dev/null | awk '{print $1}')
     fi
+    if [ -z "$ip" ]; then
+        ip="127.0.0.1"
+    fi
+    echo "$ip"
+}
 
-    # Check if service is active
-    if command -v systemctl >/dev/null 2>&1; then
-        if systemctl is-active --quiet fazt 2>/dev/null; then
-            SERVICE_WAS_ACTIVE=true
-            echo -e "${BLUE}ℹ${NC} Service is currently running"
+# Check for existing installations
+check_existing() {
+    SYSTEM_EXISTS=false
+    USER_EXISTS=false
+    SYSTEM_RUNNING=false
+    USER_RUNNING=false
+    CURRENT_VERSION="none"
+
+    # Check system installation
+    if [ -f "$SYSTEM_BINARY" ]; then
+        SYSTEM_EXISTS=true
+        CURRENT_VERSION=$($SYSTEM_BINARY --version 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || echo "unknown")
+        if command -v systemctl >/dev/null 2>&1; then
+            if systemctl is-active --quiet fazt 2>/dev/null; then
+                SYSTEM_RUNNING=true
+            fi
         fi
     fi
-fi
 
-# 1. Get the latest release tag URL
-LATEST_URL="$(curl -sL -I -o /dev/null -w '%{url_effective}' https://github.com/fazt-sh/fazt/releases/latest)"
-TAG="$(basename "$LATEST_URL")"
+    # Check user installation
+    if [ -f "$USER_BINARY" ]; then
+        USER_EXISTS=true
+        if [ "$CURRENT_VERSION" = "none" ]; then
+            CURRENT_VERSION=$($USER_BINARY --version 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || echo "unknown")
+        fi
+        if command -v systemctl >/dev/null 2>&1; then
+            if systemctl --user is-active --quiet fazt-local 2>/dev/null; then
+                USER_RUNNING=true
+            fi
+        fi
+    fi
+}
 
-if [ -z "$TAG" ]; then
-    echo -e "${RED}✗ Failed to find latest release tag.${NC}"
-    exit 1
-fi
+# Get latest release
+get_latest_release() {
+    LATEST_URL="$(curl -sL -I -o /dev/null -w '%{url_effective}' https://github.com/fazt-sh/fazt/releases/latest)"
+    TAG="$(basename "$LATEST_URL")"
 
-# Extract version number for comparison
-NEW_VERSION="${TAG#v}"
+    if [ -z "$TAG" ]; then
+        echo -e "${RED}Failed to find latest release.${NC}"
+        exit 1
+    fi
 
-if [ "$IS_UPGRADE" = true ] && [ "$CURRENT_VERSION" = "$NEW_VERSION" ]; then
-    echo -e "${GREEN}✓ Already running the latest version (${NEW_VERSION})${NC}"
-    echo ""
-    echo "Nothing to do!"
-    exit 0
-fi
+    NEW_VERSION="${TAG#v}"
+}
 
-# 2. Construct download URL
-FILE_NAME="fazt-${TAG}-${OS}-${ARCH}.tar.gz"
-DOWNLOAD_URL="https://github.com/fazt-sh/fazt/releases/download/${TAG}/${FILE_NAME}"
+# Download binary
+download_binary() {
+    FILE_NAME="fazt-${TAG}-${OS}-${ARCH}.tar.gz"
+    DOWNLOAD_URL="https://github.com/fazt-sh/fazt/releases/download/${TAG}/${FILE_NAME}"
 
-if [ "$IS_UPGRADE" = true ]; then
-    echo -e "${YELLOW}⚡${NC} ${BOLD}Upgrading to ${TAG}${NC}"
-else
-    echo -e "${BLUE}ℹ${NC} Downloading ${BOLD}${TAG}${NC} for ${BOLD}${OS}/${ARCH}${NC}..."
-fi
+    echo -e "${BLUE}Downloading ${BOLD}${TAG}${NC}${BLUE} for ${BOLD}${OS}/${ARCH}${NC}..."
 
-# 3. Download and extract
-TMP_DIR="$(mktemp -d)"
-trap 'rm -rf "$TMP_DIR"' EXIT
+    TMP_DIR="$(mktemp -d)"
+    trap 'rm -rf "$TMP_DIR"' EXIT
 
-if curl -sL --fail "$DOWNLOAD_URL" -o "$TMP_DIR/$FILE_NAME"; then
+    if ! curl -sL --fail "$DOWNLOAD_URL" -o "$TMP_DIR/$FILE_NAME"; then
+        echo -e "${RED}Download failed!${NC}"
+        exit 1
+    fi
+
     tar -xzf "$TMP_DIR/$FILE_NAME" -C "$TMP_DIR"
 
-    if [ -f "$TMP_DIR/$BINARY_NAME" ]; then
-        mv "$TMP_DIR/$BINARY_NAME" "$TMP_DIR/fazt-new"
+    # Find the binary in extracted files
+    if [ -f "$TMP_DIR/fazt" ]; then
+        DOWNLOADED_BINARY="$TMP_DIR/fazt"
     elif [ -f "$TMP_DIR/fazt-${OS}-${ARCH}" ]; then
-        mv "$TMP_DIR/fazt-${OS}-${ARCH}" "$TMP_DIR/fazt-new"
+        DOWNLOADED_BINARY="$TMP_DIR/fazt-${OS}-${ARCH}"
     else
-        FOUND="$(find "$TMP_DIR" -type f -perm -u+x | head -n 1)"
-        if [ -n "$FOUND" ]; then
-            mv "$FOUND" "$TMP_DIR/fazt-new"
-        else
-            echo -e "${RED}✗ Could not find binary in archive.${NC}"
-            exit 1
-        fi
-    fi
-else
-    echo -e "${RED}✗ Download failed!${NC}"
-    exit 1
-fi
-
-chmod +x "$TMP_DIR/fazt-new"
-echo -e "${GREEN}✓ Downloaded ${TAG}${NC}"
-echo ""
-
-# Handle upgrade path
-if [ "$IS_UPGRADE" = true ]; then
-    echo -e "${BLUE}ℹ${NC} Performing upgrade..."
-
-    # Stop service if it was running
-    if [ "$SERVICE_WAS_ACTIVE" = true ]; then
-        echo -e "${BLUE}ℹ${NC} Stopping service..."
-        if [ "$EUID" -ne 0 ]; then
-            sudo systemctl stop fazt
-        else
-            systemctl stop fazt
-        fi
+        DOWNLOADED_BINARY="$(find "$TMP_DIR" -type f -perm -u+x | head -n 1)"
     fi
 
-    # Backup current binary
-    if [ -f "$EXISTING_BINARY" ]; then
-        if [ "$EUID" -ne 0 ]; then
-            sudo cp "$EXISTING_BINARY" "$EXISTING_BINARY.old"
-        else
-            cp "$EXISTING_BINARY" "$EXISTING_BINARY.old"
-        fi
-        echo -e "${BLUE}ℹ${NC} Backed up old binary to $EXISTING_BINARY.old"
+    if [ -z "$DOWNLOADED_BINARY" ] || [ ! -f "$DOWNLOADED_BINARY" ]; then
+        echo -e "${RED}Could not find binary in archive.${NC}"
+        exit 1
     fi
 
-    # Replace binary
-    if [ "$EUID" -ne 0 ]; then
-        sudo mv "$TMP_DIR/fazt-new" "$EXISTING_BINARY"
-        sudo chmod +x "$EXISTING_BINARY"
+    chmod +x "$DOWNLOADED_BINARY"
+    echo -e "${GREEN}Downloaded ${TAG}${NC}"
+}
 
-        # Apply capabilities for port binding (Linux only)
-        if [ "$OS" = "linux" ]; then
-            sudo setcap CAP_NET_BIND_SERVICE=+eip "$EXISTING_BINARY" 2>/dev/null || true
-        fi
+# Install for local development
+install_local_dev() {
+    echo ""
+    echo -e "${BOLD}Local Development Setup${NC}"
+    echo ""
+
+    # Detect local IP
+    LOCAL_IP=$(detect_local_ip)
+    echo -e "${BLUE}Detected local IP: ${BOLD}${LOCAL_IP}${NC}"
+    read -p "Use this IP? [Y/n]: " CONFIRM < /dev/tty
+
+    if [[ "$CONFIRM" =~ ^[Nn]$ ]]; then
+        read -p "Enter IP address: " LOCAL_IP < /dev/tty
+    fi
+
+    # Port selection
+    read -p "Port [8080]: " PORT < /dev/tty
+    PORT=${PORT:-8080}
+
+    # Create directories
+    mkdir -p "$HOME/.local/bin"
+    mkdir -p "$HOME/.config/fazt"
+    mkdir -p "$HOME/.config/systemd/user"
+
+    # Install binary
+    echo -e "${BLUE}Installing binary to ${USER_BINARY}...${NC}"
+    cp "$DOWNLOADED_BINARY" "$USER_BINARY"
+    chmod +x "$USER_BINARY"
+
+    # Ensure ~/.local/bin is in PATH
+    if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
+        echo -e "${YELLOW}Note: Add ~/.local/bin to your PATH:${NC}"
+        echo '  export PATH="$HOME/.local/bin:$PATH"'
+        echo ""
+    fi
+
+    # Initialize database if not exists
+    if [ ! -f "$USER_DB" ]; then
+        echo -e "${BLUE}Initializing database...${NC}"
+        "$USER_BINARY" server init \
+            --username dev \
+            --password dev \
+            --domain "$LOCAL_IP" \
+            --db "$USER_DB"
     else
-        mv "$TMP_DIR/fazt-new" "$EXISTING_BINARY"
-        chmod +x "$EXISTING_BINARY"
-
-        if [ "$OS" = "linux" ]; then
-            setcap CAP_NET_BIND_SERVICE=+eip "$EXISTING_BINARY" 2>/dev/null || true
-        fi
+        echo -e "${BLUE}Database already exists at ${USER_DB}${NC}"
     fi
 
-    echo -e "${GREEN}✓ Binary updated${NC}"
-
-    # Update service file if it exists (applies config fixes from new versions)
-    if [ -f "$SERVICE_FILE" ]; then
-        echo -e "${BLUE}ℹ${NC} Updating service file..."
-        # Extract user from existing service file
-        SERVICE_USER=$(grep -oE '^User=[^ ]+' "$SERVICE_FILE" 2>/dev/null | sed 's/User=//' || echo "fazt")
-
-        # Chown binary to service user (enables remote self-upgrade without sudo)
-        if [ "$EUID" -ne 0 ]; then
-            sudo chown "${SERVICE_USER}:${SERVICE_USER}" "$EXISTING_BINARY"
-        else
-            chown "${SERVICE_USER}:${SERVICE_USER}" "$EXISTING_BINARY"
-        fi
-        echo -e "${GREEN}✓ Binary ownership set to ${SERVICE_USER}${NC}"
-
-        # Grant service user write access to /usr/local/bin (enables atomic binary replacement)
-        # ReadWritePaths in systemd only affects namespace, not actual filesystem permissions
-        BIN_DIR="$(dirname "$EXISTING_BINARY")"
-        if [ "$EUID" -ne 0 ]; then
-            sudo chgrp "${SERVICE_USER}" "$BIN_DIR"
-            sudo chmod g+w "$BIN_DIR"
-        else
-            chgrp "${SERVICE_USER}" "$BIN_DIR"
-            chmod g+w "$BIN_DIR"
-        fi
-        echo -e "${GREEN}✓ Directory permissions set for self-upgrade${NC}"
-
-        # Allow service user to restart fazt service (enables remote upgrade auto-restart)
-        SUDOERS_FILE="/etc/sudoers.d/fazt"
-        SUDOERS_CONTENT="${SERVICE_USER} ALL=(ALL) NOPASSWD: /bin/systemctl restart fazt, /bin/systemctl start fazt, /bin/systemctl stop fazt"
-        if [ "$EUID" -ne 0 ]; then
-            echo "$SUDOERS_CONTENT" | sudo tee "$SUDOERS_FILE" > /dev/null
-            sudo chmod 440 "$SUDOERS_FILE"
-        else
-            echo "$SUDOERS_CONTENT" > "$SUDOERS_FILE"
-            chmod 440 "$SUDOERS_FILE"
-        fi
-        echo -e "${GREEN}✓ Sudoers rule created for service restart${NC}"
-
-        # Generate updated service file with latest template
-        SERVICE_CONTENT="[Unit]
-Description=Fazt PaaS
+    # Create user systemd service
+    echo -e "${BLUE}Creating systemd user service...${NC}"
+    cat > "$USER_SERVICE" << EOF
+[Unit]
+Description=Fazt Local Development Server
 After=network.target
 
 [Service]
 Type=simple
-User=${SERVICE_USER}
-WorkingDirectory=/home/${SERVICE_USER}/.config/fazt
-AmbientCapabilities=CAP_NET_BIND_SERVICE
-CapabilityBoundingSet=CAP_NET_BIND_SERVICE
-ExecStart=/usr/local/bin/fazt server start
+ExecStart=${USER_BINARY} server start --port ${PORT} --domain ${LOCAL_IP} --db ${USER_DB}
 Restart=always
-LimitNOFILE=4096
-Environment=FAZT_ENV=production
-# Security hardening
-ProtectSystem=strict
-ReadWritePaths=/usr/local/bin
-PrivateTmp=true
+RestartSec=5
+WorkingDirectory=${HOME}/.config/fazt
+Environment=FAZT_ENV=development
 
 [Install]
-WantedBy=multi-user.target"
+WantedBy=default.target
+EOF
 
-        if [ "$EUID" -ne 0 ]; then
-            echo "$SERVICE_CONTENT" | sudo tee "$SERVICE_FILE" > /dev/null
-            sudo systemctl daemon-reload
-        else
-            echo "$SERVICE_CONTENT" > "$SERVICE_FILE"
-            systemctl daemon-reload
-        fi
-        echo -e "${GREEN}✓ Service file updated${NC}"
+    # Enable and start service
+    echo -e "${BLUE}Enabling service...${NC}"
+    systemctl --user daemon-reload
+    systemctl --user enable fazt-local
+    systemctl --user start fazt-local
+
+    # Enable linger for persistence across reboots
+    if command -v loginctl >/dev/null 2>&1; then
+        loginctl enable-linger "$(whoami)" 2>/dev/null || true
     fi
 
-    # Restart service if it was running
-    if [ "$SERVICE_WAS_ACTIVE" = true ]; then
-        echo -e "${BLUE}ℹ${NC} Restarting service..."
-        if [ "$EUID" -ne 0 ]; then
-            sudo systemctl start fazt
-        else
-            systemctl start fazt
-        fi
+    # Wait for service to start
+    sleep 2
 
-        # Give it a moment to start
-        sleep 2
-
-        # Check if service started successfully
-        if systemctl is-active --quiet fazt; then
-            echo -e "${GREEN}✓ Service restarted successfully${NC}"
-        else
-            echo -e "${RED}✗ Service failed to start. Check logs with: journalctl -u fazt -n 50${NC}"
-            exit 1
-        fi
-    fi
-
-    echo ""
-    echo -e "${GREEN}✓ Upgrade complete!${NC}"
-    echo ""
-    echo -e "${BOLD}Upgraded from v${CURRENT_VERSION} to ${TAG}${NC}"
-    echo ""
-    echo "Check status: systemctl status fazt"
-    echo "View logs: journalctl -u fazt -f"
-
-    exit 0
-fi
-
-# Fresh installation path (not an upgrade)
-echo -e "${BLUE}ℹ${NC} Installing to /usr/local/bin/fazt..."
-
-if [ "$EUID" -ne 0 ]; then
-    if command -v sudo >/dev/null 2>&1; then
-        sudo mv "$TMP_DIR/fazt-new" "$EXISTING_BINARY"
-        BINARY_PATH="fazt"
+    # Verify
+    if systemctl --user is-active --quiet fazt-local; then
+        echo ""
+        echo -e "${GREEN}Local development server installed and running!${NC}"
+        echo ""
+        echo -e "  ${BOLD}Dashboard:${NC}  http://admin.${LOCAL_IP}.nip.io:${PORT}"
+        echo -e "  ${BOLD}Apps:${NC}       http://<app>.${LOCAL_IP}.nip.io:${PORT}"
+        echo -e "  ${BOLD}Database:${NC}   ${USER_DB}"
+        echo ""
+        echo -e "  ${DIM}Credentials: dev / dev${NC}"
+        echo ""
+        echo -e "${BOLD}Commands:${NC}"
+        echo "  systemctl --user status fazt-local   # Check status"
+        echo "  systemctl --user restart fazt-local  # Restart"
+        echo "  journalctl --user -u fazt-local -f   # View logs"
     else
-        echo -e "${YELLOW}sudo not found. Staying in current directory.${NC}"
-        mv "$TMP_DIR/fazt-new" "./$BINARY_NAME"
-        BINARY_PATH="./fazt"
+        echo -e "${RED}Service failed to start. Check logs:${NC}"
+        echo "  journalctl --user -u fazt-local -n 50"
+        exit 1
     fi
-else
-    mv "$TMP_DIR/fazt-new" "$EXISTING_BINARY"
-    BINARY_PATH="fazt"
-fi
+}
 
-echo ""
-echo -e "${BOLD}Select Installation Type:${NC}"
-echo "1. Headless Server (Daemon)"
-echo "   Best for VPS. Installs Systemd Service. Starts on boot."
-echo ""
-echo "2. Command Line Tool (Portable)"
-echo "   Best for Laptops. Just installs the binary."
-echo ""
-read -p "> Select [1/2]: " MODE < /dev/tty
-
-if [ "$MODE" = "1" ]; then
+# Install for production server
+install_production() {
     echo ""
-    read -p "Domain or IP (e.g. my-paas.com): " DOMAIN < /dev/tty
-    read -p "Email (Enter to skip for HTTP): " EMAIL < /dev/tty
+    echo -e "${BOLD}Production Server Setup${NC}"
+    echo -e "${DIM}(Requires sudo)${NC}"
     echo ""
 
-    # Check sudo for service install
-    CMD="$BINARY_PATH service install --domain $DOMAIN"
+    read -p "Domain (e.g. my-paas.com): " DOMAIN < /dev/tty
+    read -p "Email (Enter to skip HTTPS): " EMAIL < /dev/tty
+    echo ""
+
+    # Install binary to system path
+    echo -e "${BLUE}Installing binary to ${SYSTEM_BINARY}...${NC}"
+    if [ "$EUID" -ne 0 ]; then
+        sudo cp "$DOWNLOADED_BINARY" "$SYSTEM_BINARY"
+        sudo chmod +x "$SYSTEM_BINARY"
+        if [ "$OS" = "linux" ]; then
+            sudo setcap CAP_NET_BIND_SERVICE=+eip "$SYSTEM_BINARY" 2>/dev/null || true
+        fi
+    else
+        cp "$DOWNLOADED_BINARY" "$SYSTEM_BINARY"
+        chmod +x "$SYSTEM_BINARY"
+        if [ "$OS" = "linux" ]; then
+            setcap CAP_NET_BIND_SERVICE=+eip "$SYSTEM_BINARY" 2>/dev/null || true
+        fi
+    fi
+
+    # Run service install command
+    CMD="$SYSTEM_BINARY service install --domain $DOMAIN"
     if [ -n "$EMAIL" ]; then
         CMD="$CMD --email $EMAIL --https"
     fi
@@ -311,29 +280,181 @@ if [ "$MODE" = "1" ]; then
     else
         $CMD
     fi
+}
 
-elif [ "$MODE" = "2" ]; then
+# Install CLI only
+install_cli_only() {
     echo ""
-    read -p "Do you want to connect to a remote server? [y/N] " CONFIRM < /dev/tty
+    echo -e "${BOLD}CLI Tool Installation${NC}"
+    echo ""
+
+    # Prefer user directory, fall back to system
+    mkdir -p "$HOME/.local/bin"
+    echo -e "${BLUE}Installing binary to ${USER_BINARY}...${NC}"
+    cp "$DOWNLOADED_BINARY" "$USER_BINARY"
+    chmod +x "$USER_BINARY"
+
+    if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
+        echo -e "${YELLOW}Note: Add ~/.local/bin to your PATH:${NC}"
+        echo '  export PATH="$HOME/.local/bin:$PATH"'
+        echo ""
+    fi
+
+    echo -e "${GREEN}Binary installed!${NC}"
+    echo ""
+
+    read -p "Connect to a remote server? [y/N]: " CONFIRM < /dev/tty
 
     if [[ "$CONFIRM" =~ ^[Yy]$ ]]; then
         echo ""
         read -p "Server URL (e.g. https://my-paas.com): " URL < /dev/tty
         read -p "API Token: " TOKEN < /dev/tty
         echo ""
-        $BINARY_PATH client set-auth-token --token "$TOKEN" --server "$URL"
-        echo ""
-        echo -e "${DIM}Note: Config saved to ./data.db (Use FAZT_DB_PATH env for global)${NC}"
+        "$USER_BINARY" remote add default --url "$URL" --token "$TOKEN"
+        echo -e "${GREEN}Remote configured!${NC}"
     else
         echo ""
-        echo -e "${GREEN}✓ Setup Complete.${NC}"
-        echo ""
-        echo "To run a local server:"
-        echo "  fazt server init"
-        echo "  fazt server start"
+        echo "Run 'fazt --help' to get started."
+    fi
+}
+
+# Upgrade existing installation
+upgrade_existing() {
+    local target_binary="$1"
+    local service_name="$2"
+    local is_user_service="$3"
+
+    echo -e "${YELLOW}Upgrading from v${CURRENT_VERSION} to v${NEW_VERSION}${NC}"
+    echo ""
+
+    # Stop service if running
+    if [ "$is_user_service" = "true" ] && [ "$USER_RUNNING" = "true" ]; then
+        echo -e "${BLUE}Stopping user service...${NC}"
+        systemctl --user stop fazt-local
+    elif [ "$SYSTEM_RUNNING" = "true" ]; then
+        echo -e "${BLUE}Stopping system service...${NC}"
+        if [ "$EUID" -ne 0 ]; then
+            sudo systemctl stop fazt
+        else
+            systemctl stop fazt
+        fi
     fi
 
-else
+    # Backup and replace binary
+    if [ -f "$target_binary" ]; then
+        if [ "$is_user_service" = "true" ]; then
+            cp "$target_binary" "${target_binary}.old"
+            cp "$DOWNLOADED_BINARY" "$target_binary"
+            chmod +x "$target_binary"
+        else
+            if [ "$EUID" -ne 0 ]; then
+                sudo cp "$target_binary" "${target_binary}.old"
+                sudo cp "$DOWNLOADED_BINARY" "$target_binary"
+                sudo chmod +x "$target_binary"
+            else
+                cp "$target_binary" "${target_binary}.old"
+                cp "$DOWNLOADED_BINARY" "$target_binary"
+                chmod +x "$target_binary"
+            fi
+        fi
+    fi
+
+    echo -e "${GREEN}Binary updated${NC}"
+
+    # Restart service
+    if [ "$is_user_service" = "true" ] && [ "$USER_RUNNING" = "true" ]; then
+        echo -e "${BLUE}Restarting user service...${NC}"
+        systemctl --user start fazt-local
+        sleep 2
+        if systemctl --user is-active --quiet fazt-local; then
+            echo -e "${GREEN}Service restarted successfully${NC}"
+        else
+            echo -e "${RED}Service failed to start${NC}"
+        fi
+    elif [ "$SYSTEM_RUNNING" = "true" ]; then
+        echo -e "${BLUE}Restarting system service...${NC}"
+        if [ "$EUID" -ne 0 ]; then
+            sudo systemctl start fazt
+        else
+            systemctl start fazt
+        fi
+        sleep 2
+        if systemctl is-active --quiet fazt; then
+            echo -e "${GREEN}Service restarted successfully${NC}"
+        else
+            echo -e "${RED}Service failed to start${NC}"
+        fi
+    fi
+
     echo ""
-    echo "You can run 'fazt' manually."
+    echo -e "${GREEN}Upgrade complete! v${CURRENT_VERSION} → v${NEW_VERSION}${NC}"
+}
+
+# Main flow
+check_existing
+get_latest_release
+
+# Handle existing installation
+if [ "$SYSTEM_EXISTS" = "true" ] || [ "$USER_EXISTS" = "true" ]; then
+    echo -e "${BLUE}Existing installation detected (v${CURRENT_VERSION})${NC}"
+
+    if [ "$CURRENT_VERSION" = "$NEW_VERSION" ]; then
+        echo -e "${GREEN}Already running latest version (v${NEW_VERSION})${NC}"
+        echo ""
+        echo -e "${BOLD}What would you like to do?${NC}"
+        echo "1. Reinstall/reconfigure"
+        echo "2. Exit"
+        read -p "> Select [1/2]: " CHOICE < /dev/tty
+
+        if [ "$CHOICE" != "1" ]; then
+            echo "Nothing to do."
+            exit 0
+        fi
+    else
+        echo -e "${YELLOW}New version available: v${NEW_VERSION}${NC}"
+        echo ""
+        echo -e "${BOLD}What would you like to do?${NC}"
+        echo "1. Upgrade (keep configuration)"
+        echo "2. Fresh install (reconfigure)"
+        echo "3. Exit"
+        read -p "> Select [1/2/3]: " CHOICE < /dev/tty
+
+        if [ "$CHOICE" = "3" ]; then
+            exit 0
+        fi
+
+        if [ "$CHOICE" = "1" ]; then
+            download_binary
+            if [ "$USER_EXISTS" = "true" ]; then
+                upgrade_existing "$USER_BINARY" "fazt-local" "true"
+            else
+                upgrade_existing "$SYSTEM_BINARY" "fazt" "false"
+            fi
+            exit 0
+        fi
+    fi
 fi
+
+# Fresh installation
+download_binary
+
+echo ""
+echo -e "${BOLD}Select Installation Type:${NC}"
+echo ""
+echo "1. ${BOLD}Production Server${NC}"
+echo "   For VPS/cloud. System service, real domain, HTTPS."
+echo ""
+echo "2. ${BOLD}Local Development${NC}"
+echo "   For dev machines. User service, auto-start, IP-based."
+echo ""
+echo "3. ${BOLD}CLI Only${NC}"
+echo "   Just the binary. Connect to remote servers."
+echo ""
+read -p "> Select [1/2/3]: " MODE < /dev/tty
+
+case "$MODE" in
+    1) install_production ;;
+    2) install_local_dev ;;
+    3) install_cli_only ;;
+    *) echo "Invalid selection."; exit 1 ;;
+esac
