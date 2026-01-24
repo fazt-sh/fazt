@@ -8,18 +8,25 @@ All notable changes to fazt.sh will be documented in this file.
 - **Capacity Module**: New `/api/system/capacity` endpoint with VPS tier profiles
   - Reports concurrent user estimates based on detected hardware
   - Profiles for $6, $15, $40 VPS tiers
+- **Capacity Guide**: `koder/CAPACITY.md` documents performance limits and real-time scenarios
+  - Models for collaborative docs, presence, chat, cursor sharing, AI monitoring
+  - Key insight: broadcasts unlimited, only writes hit 800/s limit
 
 ### Changed
 - **Storage Write Serialization**: All writes now go through single-writer WriteQueue
   - Eliminates SQLITE_BUSY errors under high concurrency
-  - Tested: 100% write success at 1000 concurrent operations
+  - Tested: 100% write success at 2000 concurrent users
+- **Analytics WriteQueue Integration**: Analytics batch writes now route through global WriteQueue
+  - Fixes SQLITE_BUSY errors during high-traffic analytics collection
+  - Added `storage.InitWriter()` and `storage.QueueWrite()` for cross-package use
 - **Connection Pool Tuning**: MaxOpen=10, MaxIdle=10, Lifetime=5min, busy_timeout=2s
 - **Retry Logic**: Storage operations retry 5x with exponential backoff (20-320ms)
 - **VM Pool Size**: Increased from 10 to 100 for better concurrency
 
 ### Performance
-- Stress tested to 2000 concurrent users (80% success, 424 req/sec, 63MB RAM)
-- Pure writes: 530 req/sec | Pure reads: 670 req/sec | Mixed: 375 req/sec
+- **100% success rate** at 2000 concurrent users (was 80%)
+- Pure reads: 19,536 req/sec | Pure writes: 832 req/sec | Mixed (30% writes): 2,282 req/sec
+- RAM under load: ~60MB stable
 
 ## [0.10.10] - 2026-01-24
 

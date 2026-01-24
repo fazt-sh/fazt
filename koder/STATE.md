@@ -5,52 +5,42 @@
 
 ## Status
 
-State: CLEAN - Storage layer battle-tested, ready for production workloads
+State: CLEAN - Storage layer complete, capacity documented, ready for real-time
 
 ---
 
 ## Last Session
 
-**Analytics WriteQueue Integration** (Ticket f-ea02)
+**Analytics WriteQueue + Capacity Documentation**
 
-Fixed analytics SQLITE_BUSY errors by routing batch writes through the global
-WriteQueue. This was the final piece needed to make fazt handle high concurrency
-reliably.
+1. **Fixed analytics SQLITE_BUSY** (Ticket f-ea02)
+   - Added `storage.InitWriter()` for global WriteQueue
+   - Analytics now routes through `storage.QueueWrite()`
+   - Result: 100% success at 2000 concurrent users (was 80%)
 
-**Changes:**
-- Added `storage.InitWriter()` - creates global WriteQueue at startup
-- Added `storage.QueueWrite()` - allows non-storage packages to serialize writes
-- Updated `analytics.writeBatch()` to use `storage.QueueWrite()`
-- Server now calls `storage.InitWriter()` before `analytics.Init()`
+2. **Load tested comprehensively**
+   - Pure reads: 19,536/s
+   - Pure writes: 832/s
+   - Mixed (30% writes): 2,282/s
+   - All at 100% success rate
 
-**Load Test Results (2000 concurrent users, 20s duration):**
+3. **Created koder/CAPACITY.md**
+   - Performance reference for $6 VPS
+   - Real-time scenario models (chat, presence, collaborative docs, Penpot-lite)
+   - Key insight: broadcasts are unlimited, only persists hit 800/s limit
 
-| Workload | Throughput | Writes/s | Success Rate |
-|----------|------------|----------|--------------|
-| Pure reads (static) | 19,536/s | 0 | 100% |
-| Pure writes (docs) | 832/s | 832 | 100% |
-| Mixed (30% writes) | 2,282/s | 684 | 100% |
-| Mixed (50% writes) | 1,458/s | 739 | 100% |
-
-**Key Insights:**
-- Read throughput is excellent (~20K/s) - limited by network, not fazt
-- Write throughput caps at ~800/s - SQLite single-writer by design
-- Mixed workloads scale well - WriteQueue serialization works
-- **Zero failures** at 2000 concurrent users (was 20% before)
-- RAM usage: 56MB under full load
-
-**$6 VPS Capacity Estimate:**
-- ~70M page views/month (reads)
-- ~2M writes/month (form submissions, storage ops)
-- More than enough for most personal/small business apps
+4. **Updated /fazt-app skill**
+   - Added capacity awareness section
+   - References CAPACITY.md
 
 ## Next Up
 
 1. **Discuss**: Agent-interface idea in `koder/scratch.md`
    - ES6 module with "recipes" for precise agentic UI control
-   - Avoids screenshot guesswork, works with raw APIs
 
-2. **Improve**: `/fazt-start` skill should verify local server is running
+2. **Improve**: `/fazt-start` should verify local server is running
+
+3. **Consider**: WebSocket implementation (v0.17) - specs exist, capacity proven
 
 ---
 
@@ -64,7 +54,4 @@ go run /tmp/mixedtest.go -users 1000 -writes 30    # mixed
 
 # Local server
 fazt server start --port 8080 --domain 192.168.64.3 --db servers/local/data.db
-
-# Check analytics events
-sqlite3 servers/local/data.db "SELECT COUNT(*) FROM events"
 ```
