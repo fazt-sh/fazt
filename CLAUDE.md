@@ -3,8 +3,28 @@
 **Fazt** is sovereign compute infrastructure for individuals—a single Go binary
 + SQLite database that runs anywhere from phones to servers to IoT devices.
 
-**Current Version**: 0.10.10
+**Current Version**: 0.10.13
 **This Repo**: Source code for fazt development
+
+## Uniform Peers
+
+Every fazt instance is a first-class peer. There's no "dev" vs "production"
+distinction - just peers that happen to run in different locations.
+
+**Domain handling is automatic:**
+
+| Domain Type | Behavior |
+|-------------|----------|
+| Real domain (`zyt.app`) | Trusted - never modified |
+| Wildcard DNS (`*.nip.io`) | Auto-updates if IP changes |
+| IP address | Auto-updates if machine changes |
+| Empty | Auto-detects local IP |
+
+This means:
+- Same binary, same commands everywhere
+- Copy `data.db` to another machine - domain auto-adjusts
+- No environment variables to remember
+- Real domains are always respected
 
 ## Environment Context
 

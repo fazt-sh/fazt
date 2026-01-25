@@ -1,75 +1,89 @@
 # Fazt Implementation State
 
 **Last Updated**: 2026-01-25
-**Current Version**: v0.10.10
+**Current Version**: v0.10.13
 
 ## Status
 
-State: CLEAN - WebSocket pub/sub system implemented and tested
+State: CLEAN - Portable database with smart domain detection
 
 ---
 
 ## Last Session
 
-**WebSocket Pub/Sub Implementation**
+**WebSocket Stress Tests & Portable Database Fix**
 
-1. **Enhanced `internal/hosting/ws.go`**
-   - Added `Client` struct with ID, channels, send buffer
-   - Added `channels` map to `SiteHub` for pub/sub
-   - JSON protocol: subscribe, unsubscribe, message, ping, pong
-   - Heartbeat: ping every 30s, 10s timeout
-   - New methods: `BroadcastToChannel`, `BroadcastAll`, `GetSubscribers`, `ChannelCount`, `KickClient`
+### 1. WebSocket Stress Tests (v0.10.11)
 
-2. **Created `internal/hosting/realtime.go`** (Goja bindings)
-   - `fazt.realtime.broadcast(channel, data)` - Push to channel subscribers
-   - `fazt.realtime.broadcastAll(data)` - Push to all app connections
-   - `fazt.realtime.subscribers(channel)` - List client IDs
-   - `fazt.realtime.count(channel?)` - Count subscribers or total
-   - `fazt.realtime.kick(clientId, reason)` - Disconnect client
+Added comprehensive stress tests in `internal/hosting/ws_stress_test.go`:
 
-3. **Wired realtime injector** in `internal/runtime/handler.go`
-   - Added alongside storage injector in `executeWithFazt()`
+| Test | Result |
+|------|--------|
+| 1000 concurrent connections | ~123k/sec |
+| Channel subscription throughput | ~183k/sec |
+| Message fanout (500 subs) | <1µs avg |
+| Memory usage | ~4KB/client |
+| Rapid sub/unsub cycles | ~500k ops/sec |
 
-4. **Changed WebSocket route** from `/ws` to `/_ws`
-   - Line 1491 in `cmd/server/main.go`
+Benchmarks:
+- `BroadcastToChannel`: 3.5µs per broadcast to 100 subscribers
+- `Subscribe`: 1.3µs per operation
+- `GetSubscribers`: 1.6µs per lookup
 
-5. **Added 21 new tests**
-   - `ws_test.go`: Channel subscription, isolation, broadcast, protocol
-   - `realtime_test.go`: Goja binding tests
+### 2. Production Outage & Fix (v0.10.12 → v0.10.13)
 
-6. **Fixed pre-existing test failures**
-   - Updated `hosting_test.go` schema to match migration 012
-   - Added `title`, `aliases` table, `app_id` column
+**Problem**: v0.10.11 upgrade broke zyt.app (525 SSL error)
 
-7. **Updated spec** (`koder/ideas/specs/v0.17-realtime/websocket.md`)
-   - Added "Future: Yjs Protocol Support (v0.17.1)" section
-   - Added "Future: Push Notifications (v0.18+)" section with FCM/APNs
+**Root cause**: Environment detection saw internal DigitalOcean IP (`10.46.0.5`)
+instead of public IP, causing domain override to `10.46.0.5.nip.io`.
 
-## Client Protocol
+**v0.10.12** (hotfix): Skipped detection in production mode - worked but
+required remembering env vars.
 
-```json
-// Subscribe
-→ {"type":"subscribe","channel":"chat"}
-← {"type":"subscribed","channel":"chat"}
+**v0.10.13** (proper fix): Smart domain detection based on domain type:
 
-// Receive message
-← {"type":"message","channel":"chat","data":{...},"timestamp":1706000000000}
+```
+Real domains (zyt.app)     → Always trusted, never touched
+Wildcard DNS (*.nip.io)    → Check IP, auto-update if different machine
+IP addresses               → Check local, auto-update if not matching
+Empty                      → Auto-detect local IP
+```
 
-// Heartbeat (server sends every 30s)
-← {"type":"ping"}
-→ {"type":"pong"}
+**Files changed**:
+- `cmd/server/main.go`: Simplified detection logic
+- `internal/provision/detect.go`: Added `IsWildcardDNS`, `IsPortableDomain`
+- `internal/provision/detect_test.go`: Tests for new functions
+
+### 3. Key Design Decision
+
+**Uniform Peers Philosophy**:
+- No "dev" vs "production" distinction
+- Every instance is a first-class peer
+- Same binary works everywhere without env vars
+- Database is portable - copy `data.db`, domain auto-adjusts
+
+## Files Modified This Session
+
+```
+internal/hosting/ws_stress_test.go   # New - stress tests
+internal/provision/detect.go         # Smart domain detection
+internal/provision/detect_test.go    # New tests
+cmd/server/main.go                   # Simplified detection logic
+internal/config/config.go            # Version bump
+CHANGELOG.md                         # Release notes
+CLAUDE.md                            # Added Uniform Peers section
 ```
 
 ## Next Up
 
-1. **Stress test WebSocket implementation**
-   - Concurrent connections, message throughput
-   - Channel fanout performance
-
-2. **Brainstorm /fazt-app ideas** showcasing storage + WebSockets
+1. **Brainstorm /fazt-app ideas** showcasing storage + WebSockets
    - Collaborative apps (Yjs-style)
    - Real-time dashboards
    - Chat/presence demos
+
+2. **Consider improving domain detection further**
+   - Could fetch public IP from external service as fallback
+   - But current "trust real domains" approach is simpler
 
 ---
 
@@ -84,6 +98,9 @@ go build -o ~/.local/bin/fazt ./cmd/server && \
 websocat ws://test.192.168.64.3:8080/_ws
 {"type":"subscribe","channel":"chat"}
 
-# Run WebSocket tests
-go test -v ./internal/hosting/... -run "TestChannel|TestBroadcast|TestRealtime"
+# Run stress tests
+go test -v ./internal/hosting/... -run "TestStress"
+
+# Run provision tests
+go test -v ./internal/provision/...
 ```
