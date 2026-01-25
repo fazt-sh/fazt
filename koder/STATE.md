@@ -5,102 +5,117 @@
 
 ## Status
 
-State: CLEAN - Portable database with smart domain detection
+State: CLEAN - NEXUS dashboard system with multi-layout support
 
 ---
 
 ## Last Session
 
-**WebSocket Stress Tests & Portable Database Fix**
+**NEXUS Multi-Layout Dashboard System**
 
-### 1. WebSocket Stress Tests (v0.10.11)
+Built a comprehensive dashboard system in `servers/zyt/nexus/` for visualizing
+data with customizable widgets and layouts.
 
-Added comprehensive stress tests in `internal/hosting/ws_stress_test.go`:
+### 1. Base Map Widget
 
-| Test | Result |
-|------|--------|
-| 1000 concurrent connections | ~123k/sec |
-| Channel subscription throughput | ~183k/sec |
-| Message fanout (500 subs) | <1µs avg |
-| Memory usage | ~4KB/client |
-| Rapid sub/unsub cycles | ~500k ops/sec |
+Created `MapWidget.js` using Leaflet for flight/ship tracking:
+- Supports markers, paths, circles, polygons
+- Directional markers (aircraft triangles, ship diamonds) with heading rotation
+- Themes: dark, light, satellite, voyager
+- Rich tooltips with telemetry data
 
-Benchmarks:
-- `BroadcastToChannel`: 3.5µs per broadcast to 100 subscribers
-- `Subscribe`: 1.3µs per operation
-- `GetSubscribers`: 1.6µs per lookup
+### 2. Multi-Layout System
 
-### 2. Production Outage & Fix (v0.10.12 → v0.10.13)
+Created layout registry (`layouts/index.js`) with:
+- **Flight Tracker** (🛰️): Map, flights, ships, activity log
+- **Web Analytics** (📊): Visitors, page views, sessions, bounce rate, top pages
+- **Shopping Mall** (🏬): Foot traffic, occupancy, sales, zone activity
 
-**Problem**: v0.10.11 upgrade broke zyt.app (525 SSL error)
+Each layout has metadata (name, icon, description, theme) and widget positions.
 
-**Root cause**: Environment detection saw internal DigitalOcean IP (`10.46.0.5`)
-instead of public IP, causing domain override to `10.46.0.5.nip.io`.
+### 3. Layout Switcher
 
-**v0.10.12** (hotfix): Skipped detection in production mode - worked but
-required remembering env vars.
+Header dropdown to switch between layouts:
+- Shows current layout icon + name
+- Lists all layouts with descriptions
+- Persists selection to localStorage
 
-**v0.10.13** (proper fix): Smart domain detection based on domain type:
+### 4. DataManager (API-driven architecture)
+
+`DataManager.js` for connecting widgets to API endpoints:
+```javascript
+dataSources: {
+    traffic: { endpoint: '/api/analytics/traffic', refresh: 5000 }
+},
+widgets: [{
+    dataSource: 'traffic',
+    dataMap: { value: 'visitorsToday' }
+}]
+```
+
+### 5. Shell Prompt Enhancement
+
+Updated `~/dotfiles/prompts/lino.zsh` to show repo name in prompt:
+```
+(fazt/master: *)  →  (zyt/main: +)
+```
+
+### 6. zyt Apps Version Control
+
+Initialized git repo in `servers/zyt/`:
+- 228 files, 16 apps committed
+- `config.json` (with token) properly gitignored
+- Ready for remote: `gh repo create zyt-apps --private`
+
+## Files Created/Modified
 
 ```
-Real domains (zyt.app)     → Always trusted, never touched
-Wildcard DNS (*.nip.io)    → Check IP, auto-update if different machine
-IP addresses               → Check local, auto-update if not matching
-Empty                      → Auto-detect local IP
-```
+servers/zyt/nexus/
+├── src/widgets/MapWidget.js      # Leaflet map widget
+├── src/layouts/index.js          # Layout registry
+├── src/core/DataManager.js       # API data fetching
+├── src/core/LayoutSwitcher.js    # Layout dropdown
+├── src/App.js                    # Multi-layout support
+└── index.html                    # z-index fixes, styles
 
-**Files changed**:
-- `cmd/server/main.go`: Simplified detection logic
-- `internal/provision/detect.go`: Added `IsWildcardDNS`, `IsPortableDomain`
-- `internal/provision/detect_test.go`: Tests for new functions
-
-### 3. Key Design Decision
-
-**Uniform Peers Philosophy**:
-- No "dev" vs "production" distinction
-- Every instance is a first-class peer
-- Same binary works everywhere without env vars
-- Database is portable - copy `data.db`, domain auto-adjusts
-
-## Files Modified This Session
-
-```
-internal/hosting/ws_stress_test.go   # New - stress tests
-internal/provision/detect.go         # Smart domain detection
-internal/provision/detect_test.go    # New tests
-cmd/server/main.go                   # Simplified detection logic
-internal/config/config.go            # Version bump
-CHANGELOG.md                         # Release notes
-CLAUDE.md                            # Added Uniform Peers section
+servers/zyt/.gitignore            # New - protects config.json
+~/dotfiles/prompts/lino.zsh       # Repo name in prompt
 ```
 
 ## Next Up
 
-1. **Brainstorm /fazt-app ideas** showcasing storage + WebSockets
-   - Collaborative apps (Yjs-style)
-   - Real-time dashboards
-   - Chat/presence demos
+1. **Refine NEXUS dashboard**
+   - Better UI/UX polish
+   - More widgets (heatmap, line chart, table, etc.)
+   - Mobile responsiveness
+   - Real API integration for fazt analytics
 
-2. **Consider improving domain detection further**
-   - Could fetch public IP from external service as fallback
-   - But current "trust real domains" approach is simpler
+2. **Connect to fazt analytics**
+   - Build `/api/analytics/*` endpoints
+   - Wire up DataManager to real data
+
+3. **Widget library expansion**
+   - Table widget for data grids
+   - Line chart widget
+   - Heatmap widget
+   - Progress/status widgets
 
 ---
 
 ## Quick Reference
 
 ```bash
-# Rebuild and restart local server
-go build -o ~/.local/bin/fazt ./cmd/server && \
-  systemctl --user restart fazt-local
+# Deploy nexus to local
+fazt app deploy servers/zyt/nexus --to local
 
-# Test WebSocket (websocat)
-websocat ws://test.192.168.64.3:8080/_ws
-{"type":"subscribe","channel":"chat"}
+# Access dashboard
+http://nexus.192.168.64.3.nip.io:8080
 
-# Run stress tests
-go test -v ./internal/hosting/... -run "TestStress"
+# zyt apps repo
+cd servers/zyt
+git status
+gh repo create zyt-apps --private --source=. --push
 
-# Run provision tests
-go test -v ./internal/provision/...
+# Reload shell prompt
+source ~/dotfiles/prompts/lino.zsh
 ```
