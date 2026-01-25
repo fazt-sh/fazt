@@ -67,6 +67,13 @@ Initialized git repo in `servers/zyt/`:
 - `config.json` (with token) properly gitignored
 - Ready for remote: `gh repo create zyt-apps --private`
 
+### 7. WebSocket Hijack Fix
+
+Fixed `responseWriter` wrapper missing `http.Hijacker` interface:
+- Logging middleware was breaking WebSocket upgrades
+- Added `Hijack()` passthrough in `cmd/server/main.go`
+- Found while building NEXUS real-time features
+
 ## Files Created/Modified
 
 ```
@@ -80,6 +87,7 @@ servers/zyt/nexus/
 
 servers/zyt/.gitignore            # New - protects config.json
 ~/dotfiles/prompts/lino.zsh       # Repo name in prompt
+cmd/server/main.go                # WebSocket Hijack() fix
 ```
 
 ## Next Up
