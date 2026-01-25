@@ -2633,8 +2633,11 @@ func handleStartCommand() {
 	}
 
 	// Environment detection: check if stored domain matches current machine
-	// Only do this if no explicit --domain flag was provided
-	if *domain == "" && cfg.Server.Domain != "" {
+	// Only do this if:
+	// - No explicit --domain flag was provided
+	// - Not in production mode (production servers trust their config)
+	// - HTTPS is not enabled (real domains don't need detection)
+	if *domain == "" && cfg.Server.Domain != "" && cfg.Server.Env != "production" && !cfg.HTTPS.Enabled {
 		match, storedDomain := provision.DetectEnvironment(cfg.Server.Domain)
 		localIP := provision.GetPrimaryLocalIP()
 
