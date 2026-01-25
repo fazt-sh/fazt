@@ -2632,28 +2632,28 @@ func handleStartCommand() {
 		log.Printf("Warning: Failed to load config from DB: %v", err)
 	}
 
-	// Environment detection: check if stored domain matches current machine
-	// Only do this if:
-	// - No explicit --domain flag was provided
-	// - Not in production mode (production servers trust their config)
-	// - HTTPS is not enabled (real domains don't need detection)
-	if *domain == "" && cfg.Server.Domain != "" && cfg.Server.Env != "production" && !cfg.HTTPS.Enabled {
-		match, storedDomain := provision.DetectEnvironment(cfg.Server.Domain)
+	// Portable database support: auto-adjust machine-specific domains
+	// - Real domains (zyt.app, example.com): Always trusted, never touched
+	// - Wildcard DNS (*.nip.io): Check if IP matches, update if different machine
+	// - IP addresses: Check if matches local, update if not
+	// - Empty: Auto-detect local IP
+	if *domain == "" {
 		localIP := provision.GetPrimaryLocalIP()
 
-		switch match {
-		case provision.EnvMismatch:
-			// Domain in DB doesn't match this machine - likely a copied DB
-			log.Printf("Note: Stored domain '%s' doesn't match this machine (IP: %s)", storedDomain, localIP)
-			log.Printf("Using local IP instead. To update stored domain: fazt server set-config --domain %s", localIP)
-			cfg.Server.Domain = config.WrapWithWildcardDNS(localIP)
-		case provision.EnvUnconfigured:
-			// No domain configured, use detected local IP
+		if cfg.Server.Domain == "" {
+			// No domain configured - auto-detect
 			log.Printf("No domain configured, using detected IP: %s", localIP)
 			cfg.Server.Domain = config.WrapWithWildcardDNS(localIP)
-		case provision.EnvMatch:
-			// Domain matches, all good
+		} else if provision.IsPortableDomain(cfg.Server.Domain) {
+			// Machine-specific domain (IP or wildcard DNS) - check if needs update
+			match, _ := provision.DetectEnvironment(cfg.Server.Domain)
+			if match == provision.EnvMismatch {
+				log.Printf("Portable DB: Updating domain from '%s' to '%s'",
+					cfg.Server.Domain, config.WrapWithWildcardDNS(localIP))
+				cfg.Server.Domain = config.WrapWithWildcardDNS(localIP)
+			}
 		}
+		// Real domains are always trusted - no detection needed
 	}
 
 	// Validate configuration now that we have loaded everything

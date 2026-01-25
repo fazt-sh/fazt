@@ -105,3 +105,56 @@ func TestDetectEnvironment_Mismatch(t *testing.T) {
 		t.Errorf("DetectEnvironment(\"8.8.8.8\") = %v, want EnvMismatch", match)
 	}
 }
+
+func TestIsWildcardDNS(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected bool
+	}{
+		{"192.168.1.1.nip.io", true},
+		{"app.192.168.1.1.nip.io", true},
+		{"192.168.1.1.sslip.io", true},
+		{"192.168.1.1.xip.io", true},
+		{"example.com", false},
+		{"zyt.app", false},
+		{"admin.zyt.app", false},
+		{"192.168.1.1", false},
+		{"", false},
+	}
+
+	for _, test := range tests {
+		result := IsWildcardDNS(test.input)
+		if result != test.expected {
+			t.Errorf("IsWildcardDNS(%q) = %v, want %v", test.input, result, test.expected)
+		}
+	}
+}
+
+func TestIsPortableDomain(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected bool
+		desc     string
+	}{
+		// Portable domains (should be auto-updated)
+		{"192.168.1.1", true, "bare IP"},
+		{"10.0.0.5", true, "private IP"},
+		{"192.168.1.1.nip.io", true, "nip.io wildcard"},
+		{"app.192.168.1.1.nip.io", true, "nip.io with subdomain"},
+		{"10.0.0.5.sslip.io", true, "sslip.io wildcard"},
+
+		// Real domains (should be trusted)
+		{"zyt.app", false, "real domain"},
+		{"admin.zyt.app", false, "subdomain of real domain"},
+		{"example.com", false, "common domain"},
+		{"my-server.example.com", false, "subdomain"},
+	}
+
+	for _, test := range tests {
+		result := IsPortableDomain(test.input)
+		if result != test.expected {
+			t.Errorf("IsPortableDomain(%q) [%s] = %v, want %v",
+				test.input, test.desc, result, test.expected)
+		}
+	}
+}

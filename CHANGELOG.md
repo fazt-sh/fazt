@@ -4,13 +4,20 @@ All notable changes to fazt.sh will be documented in this file.
 
 ## [Unreleased]
 
+## [0.10.13] - 2026-01-25
+
+### Changed
+- **Portable Database Detection**: Smarter domain handling for uniform peers
+  - Real domains (`zyt.app`, `example.com`) are always trusted, never overridden
+  - Only machine-specific domains (IPs, `*.nip.io`) trigger auto-detection
+  - No environment variables needed - same binary works everywhere
+  - Enables copying `data.db` between machines without config changes
+
 ## [0.10.12] - 2026-01-25
 
 ### Fixed
-- **Production Environment Detection**: Skip domain detection in production mode
-  - Cloud VPS servers (DigitalOcean, etc.) have internal IPs that don't match public DNS
-  - Detection was incorrectly falling back to nip.io domains, breaking HTTPS
-  - Now skips detection when `FAZT_ENV=production` or HTTPS is enabled
+- **Production Environment Detection**: Hotfix for broken HTTPS on cloud VPS
+  - Temporary workaround, superseded by 0.10.13's proper fix
 
 ## [0.10.11] - 2026-01-25
 

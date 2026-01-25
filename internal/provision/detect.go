@@ -185,3 +185,38 @@ func DescribeEnvironment(match EnvironmentMatch, storedDomain, detectedIP string
 		return "Unknown environment state"
 	}
 }
+
+// wildcardDNSSuffixes are domains that resolve any IP embedded in the hostname
+var wildcardDNSSuffixes = []string{".nip.io", ".sslip.io", ".xip.io"}
+
+// IsWildcardDNS checks if a domain uses a wildcard DNS service
+func IsWildcardDNS(domain string) bool {
+	d := strings.ToLower(domain)
+	for _, suffix := range wildcardDNSSuffixes {
+		if strings.HasSuffix(d, suffix) {
+			return true
+		}
+	}
+	return false
+}
+
+// IsPortableDomain returns true if the domain is machine-specific
+// (IP address or wildcard DNS) and should be auto-updated when the DB is moved.
+// Real domains (zyt.app, example.com) return false and are always trusted.
+func IsPortableDomain(domain string) bool {
+	cleaned := cleanDomain(domain)
+	// IP addresses are portable
+	if IsIPAddress(cleaned) {
+		return true
+	}
+	// Wildcard DNS domains are portable
+	if IsWildcardDNS(domain) {
+		return true
+	}
+	return false
+}
+
+// CleanDomain is the exported version of cleanDomain
+func CleanDomain(domain string) string {
+	return cleanDomain(domain)
+}
