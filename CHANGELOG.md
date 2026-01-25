@@ -4,6 +4,14 @@ All notable changes to fazt.sh will be documented in this file.
 
 ## [Unreleased]
 
+## [0.10.12] - 2026-01-25
+
+### Fixed
+- **Production Environment Detection**: Skip domain detection in production mode
+  - Cloud VPS servers (DigitalOcean, etc.) have internal IPs that don't match public DNS
+  - Detection was incorrectly falling back to nip.io domains, breaking HTTPS
+  - Now skips detection when `FAZT_ENV=production` or HTTPS is enabled
+
 ## [0.10.11] - 2026-01-25
 
 ### Added
