@@ -318,6 +318,112 @@ func TestDocStore(t *testing.T) {
 			t.Errorf("expected 1 deleted, got %d", count)
 		}
 	})
+
+	t.Run("FindWithOptions", func(t *testing.T) {
+		// Use unique collection for this test
+		coll := "paged_test"
+		ds.Delete(ctx, appID, coll, map[string]interface{}{})
+
+		for i := 0; i < 10; i++ {
+			ds.Insert(ctx, appID, coll, map[string]interface{}{"idx": float64(i)})
+		}
+
+		// Test limit
+		docs, err := ds.FindWithOptions(ctx, appID, coll, map[string]interface{}{}, &FindOptions{Limit: 3})
+		if err != nil {
+			t.Fatalf("FindWithOptions failed: %v", err)
+		}
+		if len(docs) != 3 {
+			t.Errorf("expected 3 documents with limit, got %d", len(docs))
+		}
+
+		// Test offset
+		docsOffset, err := ds.FindWithOptions(ctx, appID, coll, map[string]interface{}{}, &FindOptions{Limit: 3, Offset: 5})
+		if err != nil {
+			t.Fatalf("FindWithOptions with offset failed: %v", err)
+		}
+		if len(docsOffset) != 3 {
+			t.Errorf("expected 3 documents with offset, got %d", len(docsOffset))
+		}
+
+		// Test that limit actually works (not just returning all)
+		allDocs, _ := ds.Find(ctx, appID, coll, map[string]interface{}{})
+		if len(allDocs) != 10 {
+			t.Errorf("expected 10 total documents, got %d", len(allDocs))
+		}
+	})
+
+	t.Run("Count", func(t *testing.T) {
+		// Use unique collection
+		coll := "count_test"
+		ds.Delete(ctx, appID, coll, map[string]interface{}{})
+
+		for i := 0; i < 10; i++ {
+			ds.Insert(ctx, appID, coll, map[string]interface{}{"idx": float64(i)})
+		}
+
+		count, err := ds.Count(ctx, appID, coll, map[string]interface{}{})
+		if err != nil {
+			t.Fatalf("Count failed: %v", err)
+		}
+		if count != 10 {
+			t.Errorf("expected 10, got %d", count)
+		}
+
+		// Count with query
+		countFiltered, err := ds.Count(ctx, appID, coll, map[string]interface{}{
+			"idx": map[string]interface{}{"$gt": float64(5)},
+		})
+		if err != nil {
+			t.Fatalf("Count with query failed: %v", err)
+		}
+		if countFiltered != 4 {
+			t.Errorf("expected 4 (idx > 5), got %d", countFiltered)
+		}
+	})
+
+	t.Run("DeleteOldest", func(t *testing.T) {
+		// Use unique collection
+		coll := "retention_test"
+		ds.Delete(ctx, appID, coll, map[string]interface{}{})
+
+		for i := 0; i < 20; i++ {
+			ds.Insert(ctx, appID, coll, map[string]interface{}{"seq": float64(i)})
+		}
+
+		// Verify we have 20
+		before, _ := ds.Count(ctx, appID, coll, map[string]interface{}{})
+		if before != 20 {
+			t.Fatalf("expected 20 before delete, got %d", before)
+		}
+
+		// Keep only 5 newest
+		deleted, err := ds.DeleteOldest(ctx, appID, coll, 5)
+		if err != nil {
+			t.Fatalf("DeleteOldest failed: %v", err)
+		}
+		if deleted != 15 {
+			t.Errorf("expected 15 deleted, got %d", deleted)
+		}
+
+		// Verify only 5 remain
+		remaining, _ := ds.Count(ctx, appID, coll, map[string]interface{}{})
+		if remaining != 5 {
+			t.Errorf("expected 5 remaining, got %d", remaining)
+		}
+
+		// DeleteOldest with keepCount=0 should delete all
+		ds.Insert(ctx, appID, coll, map[string]interface{}{"temp": true})
+		ds.Insert(ctx, appID, coll, map[string]interface{}{"temp": true})
+		deletedAll, _ := ds.DeleteOldest(ctx, appID, coll, 0)
+		if deletedAll != 7 { // 5 + 2 new
+			t.Errorf("expected 7 deleted with keepCount=0, got %d", deletedAll)
+		}
+		finalCount, _ := ds.Count(ctx, appID, coll, map[string]interface{}{})
+		if finalCount != 0 {
+			t.Errorf("expected 0 after deleteAll, got %d", finalCount)
+		}
+	})
 }
 
 // TestBlobStore tests the blob store.

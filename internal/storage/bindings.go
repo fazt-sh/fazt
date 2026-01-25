@@ -40,6 +40,8 @@ func InjectStorageNamespace(vm *goja.Runtime, storage *Storage, appID string, ct
 	dsObj.Set("findOne", makeDSFindOne(vm, storage.Docs, appID, ctx))
 	dsObj.Set("update", makeDSUpdate(vm, storage.Docs, appID, ctx))
 	dsObj.Set("delete", makeDSDelete(vm, storage.Docs, appID, ctx))
+	dsObj.Set("count", makeDSCount(vm, storage.Docs, appID, ctx))
+	dsObj.Set("deleteOldest", makeDSDeleteOldest(vm, storage.Docs, appID, ctx))
 	storageObj.Set("ds", dsObj)
 
 	// fazt.storage.s3
@@ -195,7 +197,36 @@ func makeDSFind(vm *goja.Runtime, ds DocStore, appID string, ctx context.Context
 			}
 		}
 
-		docs, err := ds.Find(ctx, appID, collection, query)
+		// Parse options (3rd argument): { limit, offset, order }
+		var opts *FindOptions
+		if len(call.Arguments) >= 3 && !goja.IsUndefined(call.Argument(2)) && !goja.IsNull(call.Argument(2)) {
+			optsVal := call.Argument(2).Export()
+			if o, ok := optsVal.(map[string]interface{}); ok {
+				opts = &FindOptions{}
+				if limit, ok := o["limit"].(int64); ok {
+					opts.Limit = int(limit)
+				} else if limit, ok := o["limit"].(float64); ok {
+					opts.Limit = int(limit)
+				}
+				if offset, ok := o["offset"].(int64); ok {
+					opts.Offset = int(offset)
+				} else if offset, ok := o["offset"].(float64); ok {
+					opts.Offset = int(offset)
+				}
+				if order, ok := o["order"].(string); ok {
+					opts.Order = order
+				}
+			}
+		}
+
+		// Use the extended interface if available
+		var docs []Document
+		var err error
+		if sqlDS, ok := ds.(*SQLDocStore); ok && opts != nil {
+			docs, err = sqlDS.FindWithOptions(ctx, appID, collection, query, opts)
+		} else {
+			docs, err = ds.Find(ctx, appID, collection, query)
+		}
 		debug.StorageOp("find", appID, collection, query, int64(len(docs)), time.Since(start))
 		if err != nil {
 			panic(vm.NewGoError(err))
@@ -312,6 +343,72 @@ func makeDSDelete(vm *goja.Runtime, ds DocStore, appID string, ctx context.Conte
 
 		count, err := ds.Delete(ctx, appID, collection, query)
 		debug.StorageOp("delete", appID, collection, query, count, time.Since(start))
+		if err != nil {
+			panic(vm.NewGoError(err))
+		}
+
+		return vm.ToValue(count)
+	}
+}
+
+func makeDSCount(vm *goja.Runtime, ds DocStore, appID string, ctx context.Context) func(goja.FunctionCall) goja.Value {
+	return func(call goja.FunctionCall) goja.Value {
+		start := time.Now()
+		if len(call.Arguments) < 1 {
+			panic(vm.NewGoError(fmt.Errorf("ds.count requires collection")))
+		}
+
+		collection := call.Argument(0).String()
+
+		query := make(map[string]interface{})
+		if len(call.Arguments) >= 2 && !goja.IsUndefined(call.Argument(1)) && !goja.IsNull(call.Argument(1)) {
+			queryVal := call.Argument(1).Export()
+			if q, ok := queryVal.(map[string]interface{}); ok {
+				query = q
+			}
+		}
+
+		// Use SQLDocStore.Count if available
+		var count int64
+		var err error
+		if sqlDS, ok := ds.(*SQLDocStore); ok {
+			count, err = sqlDS.Count(ctx, appID, collection, query)
+		} else {
+			// Fallback: count via Find (less efficient)
+			docs, findErr := ds.Find(ctx, appID, collection, query)
+			if findErr != nil {
+				err = findErr
+			} else {
+				count = int64(len(docs))
+			}
+		}
+		debug.StorageOp("count", appID, collection, query, count, time.Since(start))
+		if err != nil {
+			panic(vm.NewGoError(err))
+		}
+
+		return vm.ToValue(count)
+	}
+}
+
+func makeDSDeleteOldest(vm *goja.Runtime, ds DocStore, appID string, ctx context.Context) func(goja.FunctionCall) goja.Value {
+	return func(call goja.FunctionCall) goja.Value {
+		start := time.Now()
+		if len(call.Arguments) < 2 {
+			panic(vm.NewGoError(fmt.Errorf("ds.deleteOldest requires collection and keepCount")))
+		}
+
+		collection := call.Argument(0).String()
+		keepCount := int(call.Argument(1).ToInteger())
+
+		// Only SQLDocStore supports this operation
+		sqlDS, ok := ds.(*SQLDocStore)
+		if !ok {
+			panic(vm.NewGoError(fmt.Errorf("ds.deleteOldest requires SQLDocStore")))
+		}
+
+		count, err := sqlDS.DeleteOldest(ctx, appID, collection, keepCount)
+		debug.StorageOp("deleteOldest", appID, collection, map[string]interface{}{"keepCount": keepCount}, count, time.Since(start))
 		if err != nil {
 			panic(vm.NewGoError(err))
 		}

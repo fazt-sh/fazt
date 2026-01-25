@@ -77,8 +77,20 @@ func (s *SQLDocStore) Insert(ctx context.Context, appID, collection string, doc 
 	return id, nil
 }
 
+// FindOptions configures Find query behavior.
+type FindOptions struct {
+	Limit  int    // Max documents to return (0 = no limit)
+	Offset int    // Skip this many documents
+	Order  string // "asc" or "desc" (default: desc)
+}
+
 // Find retrieves documents matching a query.
 func (s *SQLDocStore) Find(ctx context.Context, appID, collection string, query map[string]interface{}) ([]Document, error) {
+	return s.FindWithOptions(ctx, appID, collection, query, nil)
+}
+
+// FindWithOptions retrieves documents with pagination and ordering.
+func (s *SQLDocStore) FindWithOptions(ctx context.Context, appID, collection string, query map[string]interface{}, opts *FindOptions) ([]Document, error) {
 	qb := NewQueryBuilder()
 	whereClause, args, err := qb.Build(query)
 	if err != nil {
@@ -90,11 +102,25 @@ func (s *SQLDocStore) Find(ctx context.Context, appID, collection string, query 
 	fullArgs = append(fullArgs, appID, collection)
 	fullArgs = append(fullArgs, args...)
 
+	// Determine order
+	order := "DESC"
+	if opts != nil && opts.Order == "asc" {
+		order = "ASC"
+	}
+
 	sqlQuery := fmt.Sprintf(`
 		SELECT id, data, created_at, updated_at FROM app_docs
 		WHERE app_id = ? AND collection = ? AND %s
-		ORDER BY created_at DESC
-	`, whereClause)
+		ORDER BY created_at %s
+	`, whereClause, order)
+
+	// Add limit/offset if specified
+	if opts != nil && opts.Limit > 0 {
+		sqlQuery += fmt.Sprintf(" LIMIT %d", opts.Limit)
+		if opts.Offset > 0 {
+			sqlQuery += fmt.Sprintf(" OFFSET %d", opts.Offset)
+		}
+	}
 
 	var rows *sql.Rows
 	err = withRetry(ctx, func() error {
@@ -277,6 +303,47 @@ func (s *SQLDocStore) Count(ctx context.Context, appID, collection string, query
 	}
 
 	return count, nil
+}
+
+// DeleteOldest removes the oldest documents beyond a retention limit.
+// Returns the number of documents deleted.
+func (s *SQLDocStore) DeleteOldest(ctx context.Context, appID, collection string, keepCount int) (int64, error) {
+	if keepCount < 0 {
+		keepCount = 0
+	}
+
+	// Use a subquery to delete all but the newest N documents
+	// This is efficient: single query, no data loaded into memory
+	sqlQuery := `
+		DELETE FROM app_docs
+		WHERE app_id = ? AND collection = ? AND id NOT IN (
+			SELECT id FROM app_docs
+			WHERE app_id = ? AND collection = ?
+			ORDER BY created_at DESC
+			LIMIT ?
+		)
+	`
+
+	var result sql.Result
+	writeOp := func() error {
+		return withRetry(ctx, func() error {
+			var err error
+			result, err = s.db.ExecContext(ctx, sqlQuery, appID, collection, appID, collection, keepCount)
+			return err
+		})
+	}
+
+	var err error
+	if s.writer != nil {
+		err = s.writer.Write(ctx, writeOp)
+	} else {
+		err = writeOp()
+	}
+	if err != nil {
+		return 0, fmt.Errorf("failed to delete oldest documents: %w", err)
+	}
+
+	return result.RowsAffected()
 }
 
 // Collections returns all collection names for an app.
