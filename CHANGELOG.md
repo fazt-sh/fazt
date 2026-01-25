@@ -4,12 +4,19 @@ All notable changes to fazt.sh will be documented in this file.
 
 ## [Unreleased]
 
+## [0.10.11] - 2026-01-25
+
 ### Added
 - **WebSocket Pub/Sub**: Real-time communication for apps
   - Channel-based subscriptions at `/_ws` endpoint
   - JSON protocol: subscribe, unsubscribe, message, ping/pong
   - Server-side API: `fazt.realtime.broadcast()`, `broadcastAll()`, `subscribers()`, `count()`, `kick()`
   - Heartbeat with 30s ping, 10s timeout
+- **WebSocket Stress Tests**: Comprehensive performance validation
+  - 1000 concurrent connections (~123k/sec)
+  - 183k subscriptions/sec throughput
+  - Channel fanout to 500 subscribers
+  - Memory: ~4KB per client
 - **Capacity Module**: New `/api/system/capacity` endpoint with VPS tier profiles
 - **Environment Detection**: Server auto-detects if stored domain matches current machine
   - New `internal/provision/detect.go` with IP detection and domain matching
@@ -33,8 +40,6 @@ All notable changes to fazt.sh will be documented in this file.
 - **Capacity Guide**: `koder/CAPACITY.md` documents performance limits and real-time scenarios
   - Models for collaborative docs, presence, chat, cursor sharing, AI monitoring
   - Key insight: broadcasts unlimited, only writes hit 800/s limit
-
-### Changed
 - **Storage Write Serialization**: All writes now go through single-writer WriteQueue
   - Eliminates SQLITE_BUSY errors under high concurrency
   - Tested: 100% write success at 2000 concurrent users
@@ -49,6 +54,7 @@ All notable changes to fazt.sh will be documented in this file.
 - **100% success rate** at 2000 concurrent users (was 80%)
 - Pure reads: 19,536 req/sec | Pure writes: 832 req/sec | Mixed (30% writes): 2,282 req/sec
 - RAM under load: ~60MB stable
+- WebSocket: 3.5µs per broadcast to 100 subscribers
 
 ## [0.10.10] - 2026-01-24
 
