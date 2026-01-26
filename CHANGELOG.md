@@ -4,6 +4,18 @@ All notable changes to fazt.sh will be documented in this file.
 
 ## [Unreleased]
 
+## [0.10.15] - 2026-01-27
+
+### Added
+- **Worker Realtime Access**: Workers can now broadcast to WebSocket clients
+  - `fazt.realtime.broadcast()` available in worker context
+  - Enables real-time data streaming from background workers
+- **Worker Idle Timeout**: Auto-stop workers when no listeners
+  - `idleTimeout: '1m'` - stop after no listeners for specified duration
+  - `idleChannel: 'mall'` - which WebSocket channel to monitor
+  - Clean stop (not treated as failure, no daemon restart)
+  - Resource-efficient: no wasted CPU/memory when nobody is watching
+
 ## [0.10.14] - 2026-01-26
 
 ### Added
