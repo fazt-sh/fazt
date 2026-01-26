@@ -1,6 +1,6 @@
 # Fazt Session Stop
 
-Close session with proper handoff for next time.
+Close session with proper handoff for next time. Leaves repo in a clean state.
 
 ## Steps
 
@@ -11,12 +11,12 @@ Close session with proper handoff for next time.
 grep "var Version" internal/config/config.go | grep -oE '[0-9]+\.[0-9]+\.[0-9]+'
 fazt --version | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+'
 
-# All remotes health
+# All remotes health (shows version column)
 fazt remote list 2>/dev/null | tail -n +3
 
 # Git state
 git status --short
-git log --oneline -5
+git log --oneline -3
 ```
 
 ### 2. Update STATE.md
@@ -83,24 +83,49 @@ If new features, commands, or workflows were added:
 - Update relevant sections in `CLAUDE.md`
 - Keep it concise - CLAUDE.md is reference, not narrative
 
-### 5. Commit and Push
+### 5. Commit Tickets (if any uncommitted)
+
+Check for uncommitted ticket files and commit them:
 
 ```bash
-git add koder/STATE.md CHANGELOG.md CLAUDE.md
-git status --short  # Verify what's staged
+# Check for uncommitted tickets
+git status --short .tickets/
 
-git commit -m "docs: Update STATE.md and CHANGELOG for session close
+# If any exist, commit them
+git add .tickets/*.md
+git diff --cached --quiet .tickets/ || git commit -m "chore: Update tickets
+
+Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
+```
+
+### 6. Commit Docs and Push
+
+```bash
+# Stage doc files (only if modified)
+git add koder/STATE.md CHANGELOG.md CLAUDE.md
+
+# Check if anything staged
+git diff --cached --quiet || git commit -m "docs: Session close - update STATE.md
 
 Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
 
+# Push all commits
 git push origin master
 ```
 
-**Note**: Only commit doc changes. If code changes are uncommitted, either:
-- Commit them separately with appropriate message
+**Note**: If code changes are uncommitted, either:
+- Commit them separately with appropriate message first
 - Or leave for next session if incomplete
 
-### 6. Output
+### 7. Verify Clean State
+
+```bash
+git status --short
+```
+
+Should show nothing (clean working tree).
+
+### 8. Output
 
 ```
 ## Session Closed
@@ -119,21 +144,19 @@ git push origin master
 | local | X.Y.Z | healthy |
 | zyt | X.Y.Z | healthy |
 
+**Git**: clean
+
 ### This Session
 - [What was done]
 
 ### Next Session
 - [What to work on]
-
-### Committed
-- [files committed, or "no changes"]
 ```
 
 ## Principles
 
-1. **STATE.md is the handoff** - Next session reads what you write
-2. **Be specific** - Future Claude needs concrete details
-3. **CHANGELOG for unreleased work** - Captures substantial changes between releases
-4. **CLAUDE.md for capability changes** - Update when features/workflows change
+1. **Clean state** - Repo should have no uncommitted changes after stop
+2. **STATE.md is the handoff** - Next session reads what you write
+3. **Be specific** - Future Claude needs concrete details
+4. **Tickets are tracked** - Always commit ticket changes
 5. **Don't over-document** - Minimal sessions need minimal updates
-6. **Clean commits** - Separate code commits from doc commits
