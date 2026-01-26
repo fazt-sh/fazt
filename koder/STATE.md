@@ -1,41 +1,54 @@
 # Fazt Implementation State
 
-**Last Updated**: 2026-01-26
+**Last Updated**: 2026-01-27
 **Current Version**: v0.10.14
 
 ## Status
 
-State: CLEAN - Worker realtime integration complete, NEXUS simulator working
+State: CLEAN - Worker idle timeout implemented, NEXUS uses workers for simulation
 
 ---
 
 ## Last Session
 
-**Worker Realtime Integration + NEXUS Mall Simulator**
+**Worker Idle Timeout + NEXUS Integration**
 
 1. **Added `fazt.realtime` to workers** (f-73d6)
    - Workers can now broadcast to WebSocket clients
-   - Added `hosting.InjectRealtimeNamespace` to worker executor
    - Enables real-time data flow from background workers
 
-2. **NEXUS Mall Simulator** (f-2ebf)
-   - Created `workers/mall-sim.js` - daemon worker that generates mall data
-   - Added API endpoints:
-     - `POST /api/simulate/start` - Start simulation worker
-     - `POST /api/simulate/stop` - Stop simulation worker
-     - `GET /api/simulate/status` - Check simulation status
-   - Updated dashboard with SIMULATE toggle button
-   - Worker stores data in document store for historical queries
-   - Worker broadcasts updates to WebSocket clients in real-time
+2. **Worker Idle Timeout** (f-361c)
+   - New JobConfig options: `idleTimeout`, `idleChannel`
+   - Worker auto-stops when no WebSocket listeners for specified duration
+   - Clean stop (not failure, no daemon restart)
+   - Resource-efficient: no wasted CPU/memory when nobody is watching
+
+3. **NEXUS Mall Simulator** (f-2ebf)
+   - Replaced external Bun process with fazt worker
+   - `workers/mall-sim.js` generates data, broadcasts via WebSocket
+   - Uses idle timeout to stop when dashboard closes
+   - Removed external `server/` directory and `nexus-simulate.ts`
+
+### API
+
+```javascript
+// Worker with idle timeout
+fazt.worker.spawn('workers/sim.js', {
+    daemon: true,
+    idleTimeout: '1m',   // Stop if no listeners for 1 minute
+    idleChannel: 'mall'  // Monitor this WebSocket channel
+});
+```
 
 ### Files Modified
 
 | File | Change |
 |------|--------|
-| `internal/worker/executor.go` | Added realtime namespace injection |
-| `servers/zyt/nexus/workers/mall-sim.js` | New mall simulation worker |
-| `servers/zyt/nexus/api/main.js` | Added simulate endpoints |
-| `servers/zyt/nexus/src/App.js` | Added simulate toggle UI |
+| `internal/worker/job.go` | Added IdleTimeout, IdleChannel to JobConfig |
+| `internal/worker/bindings.go` | Parse idleTimeout/idleChannel from JS |
+| `internal/worker/pool.go` | Added watchIdleTimeout goroutine |
+| `internal/worker/init.go` | Added SetListenerCountFunc |
+| `cmd/server/main.go` | Wired up listener count function |
 
 ---
 
@@ -45,32 +58,16 @@ State: CLEAN - Worker realtime integration complete, NEXUS simulator working
 
 Released background worker system and added UX improvements.
 
-1. **Worker System** (Plan 22)
-   - Full implementation with tests
-   - Released as v0.10.14
-
-2. **Remote List Version Column** (f-2f62)
-   - `fazt remote list` now shows VERSION column
-   - Quick visibility without separate status calls
-
-3. **fazt-stop Skill Update**
-   - Now commits uncommitted tickets before push
-   - Verifies clean repo state
-
 ---
 
 ## Next Up
 
-1. **Test NEXUS with Simulation**
-   - Access dashboard at http://nexus.192.168.64.3.nip.io:8080
-   - Click SIMULATE to start/stop the worker
-   - Verify real-time updates flow to widgets
+1. **Test NEXUS with Idle Timeout**
+   - Open dashboard, start simulation
+   - Close all browser tabs
+   - Verify worker stops after 1 minute
 
-2. **Consider Deploying to zyt.app**
-   - Test in production environment
-
-3. **NEXUS Dashboard Refinement** (optional)
-   - More widgets, polish, mobile responsiveness
+2. **Deploy to zyt.app** (optional)
 
 ---
 
@@ -91,8 +88,8 @@ fazt app deploy <dir> --to local
 
 # NEXUS simulation
 curl -X POST http://nexus.192.168.64.3.nip.io:8080/api/simulate/start
-curl -X POST http://nexus.192.168.64.3.nip.io:8080/api/simulate/stop
 curl http://nexus.192.168.64.3.nip.io:8080/api/simulate/status
+curl -X POST http://nexus.192.168.64.3.nip.io:8080/api/simulate/stop
 ```
 
 ---
@@ -101,14 +98,10 @@ curl http://nexus.192.168.64.3.nip.io:8080/api/simulate/status
 
 ### NEXUS Dashboard Refinement
 
-Return to NEXUS (`servers/zyt/nexus/`):
+- UI/UX polish
+- More widgets
+- Mobile responsiveness
+- Widget library expansion
 
-- **UI/UX polish** - Better styling, animations
-- **More widgets** - Table, line chart, heatmap, progress bars
-- **Mobile responsiveness**
-- **Real API integration** - Connect to fazt analytics
-- **Widget library expansion**
-
-Current state: Multi-layout system working (Flight Tracker, Web Analytics, Mall).
-MapWidget, DataManager, LayoutSwitcher all functional.
-Mall simulation now works via fazt workers with real-time WebSocket updates.
+Current state: Mall simulation works via fazt workers with real-time WebSocket
+updates and idle timeout for resource efficiency.
