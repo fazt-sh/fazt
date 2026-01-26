@@ -5,79 +5,120 @@
 
 ## Status
 
-State: PLANNING - Worker system with resource budget spec'd, ready to implement
+State: READY - Worker system implemented and tested
 
 ---
 
 ## Last Session
 
-**Worker Resource Budget Spec**
+**Worker System Implementation** (Plan 22)
 
-Designed and spec'd background workers with memory pool limits and daemon mode.
+Implemented background workers with memory pool limits and daemon mode.
 
-### Spec Updates
+### Files Created
 
-**`koder/ideas/specs/v0.8-kernel/limits.md`**:
-- Added resource budget model (256MB shared pool)
-- Memory-based limits instead of time-based
-- Daemon mode configuration
+```
+internal/worker/
+├── job.go          # Job struct, lifecycle, duration/memory parsing
+├── pool.go         # WorkerPool - job queue, concurrency, memory tracking
+├── budget.go       # ResourceBudget - MemStats monitoring
+├── bindings.go     # JS API: fazt.worker.spawn/get/list/cancel
+├── executor.go     # Runs worker code with job context
+├── init.go         # Global pool initialization
+├── errors.go       # Common errors
+├── stats.go        # Health endpoint stats
+├── job_test.go     # Job unit tests
+├── pool_test.go    # Pool integration tests
+├── budget_test.go  # Budget tests
+```
 
-**`koder/ideas/specs/v0.19-workers/jobs.md`**:
-- `memory: '64MB'` - request from pool
-- `timeout: null` - run indefinitely
-- `daemon: true` - restart on crash with backoff
-- `job.cancelled` - graceful shutdown flag
-- `job.checkpoint()` - crash/restart recovery
-- Traffic simulator example
+### Files Modified
 
-### Key Design Decisions
+| File | Change |
+|------|--------|
+| `internal/database/migrations/014_workers.sql` | New table |
+| `internal/database/db.go` | Added migration entry |
+| `internal/runtime/handler.go` | Added worker injector |
+| `cmd/server/main.go` | Init pool, executor, daemon restore, shutdown |
 
-| Before | After |
-|--------|-------|
-| 30 min hard timeout | Memory pool (256MB) as primary limit |
-| Reject on limit | Queue until memory available |
-| Crash = failed | Daemon mode: auto-restart with backoff |
+### Features Implemented
 
-### Implementation Plan
+**JS API (serverless handlers)**:
+```javascript
+// Spawn a job
+const job = fazt.worker.spawn('workers/sync.js', {
+    data: { userId: 123 },
+    memory: '64MB',
+    timeout: '5m',      // or null for indefinite
+    daemon: true,       // restart on crash
+    uniqueKey: 'sync-123'
+});
 
-Created `koder/plans/22_worker_resource_budget.md` with 5 phases:
-1. Core Infrastructure - WorkerPool, Job, DB migration
-2. JS API - fazt.worker.spawn(), job.* bindings
-3. Resource Budget - soft limits via MemStats
-4. Daemon Mode - restart + checkpoint recovery
-5. Polish - tests, monitoring
+// Get job status
+const job = fazt.worker.get(jobId);
+
+// List jobs
+const jobs = fazt.worker.list({ status: 'running', limit: 10 });
+
+// Cancel job
+fazt.worker.cancel(jobId);
+```
+
+**Worker context (inside workers)**:
+```javascript
+// workers/sync.js
+module.exports = function(job) {
+    let state = job.getCheckpoint() || { cursor: 0 };
+
+    while (!job.cancelled) {
+        job.progress(state.cursor);
+        job.log('Processing...');
+
+        // Save checkpoint for crash recovery
+        job.checkpoint({ cursor: state.cursor });
+
+        state.cursor++;
+        sleep(1000);
+    }
+
+    return { processed: state.cursor };
+};
+```
+
+**Resource Limits**:
+- 256MB shared memory pool
+- 20 concurrent workers total
+- 5 concurrent per app
+- 2 daemons per app max
+- Queue until memory available
+
+**Daemon Mode**:
+- Auto-restart on crash
+- Exponential backoff (1s → 60s max)
+- Checkpoint recovery
+- Restore on server restart
 
 ---
 
 ## Previous Session
 
-**Storage API Performance**
+**Worker Resource Budget Spec**
 
-Added efficient query operations to prevent memory issues:
-- `ds.find(collection, query, { limit, offset, order })`
-- `ds.count(collection, query)`
-- `ds.deleteOldest(collection, keep)`
+Designed and spec'd background workers with memory pool limits and daemon mode.
+Created `koder/plans/22_worker_resource_budget.md`.
 
 ---
 
 ## Next Up
 
-**Implement Worker System** (Plan 22)
+**Test Worker System in Production**
 
-Phase 1: Core Infrastructure
-- Create `internal/worker/` package
-- `WorkerPool` with job lifecycle
-- Migration `014_workers.sql`
-- Wire into server startup/shutdown
+1. Build and deploy to zyt
+2. Create test worker app in `servers/zyt/worker-test/`
+3. Test spawn, progress, checkpoint, daemon restart
+4. Integrate worker stats into health endpoint
 
-Start with:
-```bash
-# Create package structure
-mkdir -p internal/worker
-
-# Run existing tests first
-go test ./...
-```
+Or continue with NEXUS dashboard refinement.
 
 ---
 
@@ -97,22 +138,13 @@ journalctl --user -u fazt-local -f
 fazt app deploy <dir> --to local
 ```
 
-## Key Files for Worker Implementation
-
-| File | Purpose |
-|------|---------|
-| `internal/storage/writer.go` | Goroutine pool pattern |
-| `internal/storage/bindings.go` | JS binding factory pattern |
-| `internal/runtime/handler.go` | VM injector integration |
-| `internal/capacity/capacity.go` | MemStats tracking |
-
 ---
 
 ## Backlog
 
 ### NEXUS Dashboard Refinement
 
-After worker implementation, return to NEXUS (`servers/zyt/nexus/`):
+Return to NEXUS (`servers/zyt/nexus/`):
 
 - **UI/UX polish** - Better styling, animations
 - **More widgets** - Table, line chart, heatmap, progress bars

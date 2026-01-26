@@ -40,6 +40,7 @@ import (
 	jsruntime "github.com/fazt-sh/fazt/internal/runtime"
 	"github.com/fazt-sh/fazt/internal/security"
 	"github.com/fazt-sh/fazt/internal/storage"
+	"github.com/fazt-sh/fazt/internal/worker"
 	"github.com/fazt-sh/fazt/internal/term"
 	ignore "github.com/sabhiram/go-gitignore"
 	"golang.org/x/crypto/bcrypt"
@@ -2721,6 +2722,12 @@ func handleStartCommand() {
 	// Initialize analytics buffer
 	analytics.Init()
 
+	// Initialize worker pool
+	if err := worker.Init(database.GetDB()); err != nil {
+		log.Printf("Warning: Failed to initialize worker pool: %v", err)
+	}
+	worker.SetupGlobalExecutor(database.GetDB())
+
 	// Initialize hosting system
 	if err := hosting.Init(database.GetDB()); err != nil {
 		log.Fatalf("Failed to initialize hosting: %v", err)
@@ -2729,6 +2736,11 @@ func handleStartCommand() {
 
 	// Initialize serverless handler with storage support
 	serverlessHandler = jsruntime.NewServerlessHandler(database.GetDB())
+
+	// Restore daemon workers from previous run
+	if err := worker.RestoreDaemons(); err != nil {
+		log.Printf("Warning: Failed to restore daemon workers: %v", err)
+	}
 
 	// Generate mock data in development mode
 	if cfg.IsDevelopment() {
@@ -2962,6 +2974,13 @@ func handleStartCommand() {
 
 	// Clean up PID file
 	os.Remove(pidFile)
+
+	// Shutdown worker pool (allow jobs to complete)
+	workerCtx, workerCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	if err := worker.Shutdown(workerCtx); err != nil {
+		log.Printf("Warning: Worker pool shutdown: %v", err)
+	}
+	workerCancel()
 
 	// Flush analytics buffer
 	analytics.Shutdown()

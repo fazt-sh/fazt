@@ -14,6 +14,7 @@ import (
 	"github.com/fazt-sh/fazt/internal/debug"
 	"github.com/fazt-sh/fazt/internal/hosting"
 	"github.com/fazt-sh/fazt/internal/storage"
+	"github.com/fazt-sh/fazt/internal/worker"
 )
 
 // ServerlessHandler handles requests to /api/* paths by executing JavaScript.
@@ -172,7 +173,14 @@ func (h *ServerlessHandler) executeWithFazt(ctx context.Context, code string, re
 		return nil
 	}
 
-	return h.runtime.ExecuteWithInjectors(ctx, code, req, loader, faztInjector, storageInjector, realtimeInjector)
+	workerInjector := func(vm *goja.Runtime) error {
+		if app != nil && app.ID != "" {
+			return worker.InjectWorkerNamespace(vm, app.ID, ctx)
+		}
+		return nil
+	}
+
+	return h.runtime.ExecuteWithInjectors(ctx, code, req, loader, faztInjector, storageInjector, realtimeInjector, workerInjector)
 }
 
 // loadFile loads a file from the VFS for a given app.

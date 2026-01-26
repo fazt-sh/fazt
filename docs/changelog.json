@@ -1,5 +1,11 @@
 [
     {
+        "version": "v0.10.14",
+        "title": "Background Worker System",
+        "description": "Spawn long-running background jobs from serverless handlers. Supports daemon mode with auto-restart, checkpointing, and 256MB memory pool.",
+        "created_at": "2026-01-26"
+    },
+    {
         "version": "v0.10.5",
         "title": "LLM-Friendly CLI & Template Fixes",
         "description": "New templates (static, vue, vue-api), app validation, log streaming, and fixed vue-api serverless execution.",

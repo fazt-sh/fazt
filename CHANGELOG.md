@@ -4,13 +4,25 @@ All notable changes to fazt.sh will be documented in this file.
 
 ## [Unreleased]
 
+## [0.10.14] - 2026-01-26
+
 ### Added
-- **Worker Resource Budget Spec**: Background workers with memory pool limits
-  - 256MB shared memory pool (soft limits via MemStats)
-  - Daemon mode: long-running workers with restart on crash
-  - Checkpoint/recovery for crash survival
-  - `fazt.worker.spawn()`, `job.progress()`, `job.checkpoint()` APIs
-  - See `koder/plans/22_worker_resource_budget.md` for implementation plan
+- **Background Worker System**: Spawn long-running jobs from serverless handlers
+  - `fazt.worker.spawn()` - queue background jobs with memory/timeout limits
+  - `fazt.worker.get/list/cancel()` - job management
+  - Worker context: `job.progress()`, `job.log()`, `job.checkpoint()`
+  - Duration strings: `'5m'`, `'30s'`, `'1h'` or `null` for indefinite
+  - Memory budget: `'32MB'`, `'64MB'` (256MB shared pool)
+- **Daemon Mode**: Long-running workers that survive crashes
+  - `daemon: true` - auto-restart on crash with exponential backoff
+  - `job.checkpoint()` - save state for recovery
+  - `job.cancelled` - graceful shutdown signal
+  - Daemons restore on server restart
+- **Resource Limits**:
+  - 256MB shared memory pool
+  - 20 concurrent workers total, 5 per app
+  - 2 daemons per app max
+  - Jobs queue until memory available
 
 ## [0.10.13] - 2026-01-25
 
