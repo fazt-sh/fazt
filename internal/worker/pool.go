@@ -72,10 +72,16 @@ type Pool struct {
 
 	// Executor function (set externally, executes JS code)
 	executor JobExecutor
+
+	// Listener count function (for idle timeout checking)
+	listenerCountFn ListenerCountFunc
 }
 
 // JobExecutor executes a job and returns the result.
 type JobExecutor func(ctx context.Context, job *Job, code string) (interface{}, error)
+
+// ListenerCountFunc returns the number of WebSocket listeners for a channel.
+type ListenerCountFunc func(appID, channel string) int
 
 // NewPool creates a new worker pool.
 func NewPool(db *sql.DB, cfg PoolConfig) *Pool {
@@ -119,6 +125,11 @@ func NewPool(db *sql.DB, cfg PoolConfig) *Pool {
 // SetExecutor sets the job executor function.
 func (p *Pool) SetExecutor(exec JobExecutor) {
 	p.executor = exec
+}
+
+// SetListenerCountFunc sets the function to check WebSocket listener count.
+func (p *Pool) SetListenerCountFunc(fn ListenerCountFunc) {
+	p.listenerCountFn = fn
 }
 
 // worker is a goroutine that processes jobs from the queue.
@@ -255,6 +266,12 @@ func (p *Pool) executeJob(job *Job) {
 	// Allow job cancellation
 	job.SetCancelFunc(cancel)
 
+	// Start idle watcher if configured
+	var idleReason string
+	if job.Config.IdleTimeout != nil && job.Config.IdleChannel != "" && p.listenerCountFn != nil {
+		go p.watchIdleTimeout(ctx, cancel, job, &idleReason)
+	}
+
 	// Execute the job
 	debug.Log("worker", "job %s started: handler=%s", job.ID, job.Handler)
 
@@ -281,6 +298,12 @@ func (p *Pool) executeJob(job *Job) {
 		if ctx.Err() == context.DeadlineExceeded {
 			job.AddLog("Job timed out")
 			job.MarkFailed(fmt.Errorf("timeout exceeded"))
+		} else if idleReason != "" {
+			// Stopped due to idle timeout - this is a clean stop, not failure
+			job.AddLog(idleReason)
+			job.MarkDone(map[string]interface{}{"reason": "idle_timeout"})
+			// Disable daemon restart for idle stop
+			job.Config.Daemon = false
 		} else if ctx.Err() == context.Canceled || job.IsCancelled() {
 			job.AddLog("Job cancelled")
 			job.MarkCancelled()
@@ -834,4 +857,57 @@ func nullTime(t time.Time) interface{} {
 		return nil
 	}
 	return t.UnixMilli()
+}
+
+// watchIdleTimeout monitors listener count and cancels the job if idle for too long.
+func (p *Pool) watchIdleTimeout(ctx context.Context, cancel context.CancelFunc, job *Job, reason *string) {
+	idleTimeout := *job.Config.IdleTimeout
+	channel := job.Config.IdleChannel
+	checkInterval := 5 * time.Second
+
+	// Use shorter check interval if timeout is short
+	if idleTimeout < 30*time.Second {
+		checkInterval = idleTimeout / 6
+		if checkInterval < time.Second {
+			checkInterval = time.Second
+		}
+	}
+
+	ticker := time.NewTicker(checkInterval)
+	defer ticker.Stop()
+
+	var idleSince *time.Time
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			count := p.listenerCountFn(job.AppID, channel)
+
+			if count == 0 {
+				// No listeners
+				if idleSince == nil {
+					now := time.Now()
+					idleSince = &now
+					debug.Log("worker", "job %s: no listeners on channel '%s', will stop in %v",
+						job.ID, channel, idleTimeout)
+				} else if time.Since(*idleSince) >= idleTimeout {
+					// Idle timeout reached
+					*reason = fmt.Sprintf("No listeners on channel '%s' for %v, stopping",
+						channel, idleTimeout)
+					debug.Log("worker", "job %s: %s", job.ID, *reason)
+					cancel()
+					return
+				}
+			} else {
+				// Has listeners, reset idle timer
+				if idleSince != nil {
+					debug.Log("worker", "job %s: listeners returned (%d), resetting idle timer",
+						job.ID, count)
+					idleSince = nil
+				}
+			}
+		}
+	}
 }

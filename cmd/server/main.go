@@ -2738,6 +2738,12 @@ func handleStartCommand() {
 	}
 	log.Printf("Hosting initialized (VFS Mode)")
 
+	// Set up worker idle timeout listener count function
+	worker.SetListenerCountFunc(func(appID, channel string) int {
+		hub := hosting.GetHub(appID)
+		return hub.ChannelCount(channel)
+	})
+
 	// Initialize serverless handler with storage support
 	serverlessHandler = jsruntime.NewServerlessHandler(database.GetDB())
 

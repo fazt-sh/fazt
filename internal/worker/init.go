@@ -59,6 +59,15 @@ func SetExecutor(exec JobExecutor) {
 	}
 }
 
+// SetListenerCountFunc sets the listener count function for idle timeout checking.
+func SetListenerCountFunc(fn ListenerCountFunc) {
+	poolMu.RLock()
+	defer poolMu.RUnlock()
+	if globalPool != nil {
+		globalPool.SetListenerCountFunc(fn)
+	}
+}
+
 // Shutdown gracefully shuts down the global worker pool.
 func Shutdown(ctx context.Context) error {
 	poolMu.Lock()

@@ -133,6 +133,18 @@ func parseSpawnOptions(cfg *JobConfig, opts map[string]interface{}) {
 	if key, ok := opts["uniqueKey"].(string); ok {
 		cfg.UniqueKey = key
 	}
+
+	// idleTimeout: '1m' - stop if no listeners for this duration
+	if idle, ok := opts["idleTimeout"].(string); ok {
+		if dur, err := ParseDuration(idle); err == nil && dur != nil {
+			cfg.IdleTimeout = dur
+		}
+	}
+
+	// idleChannel: 'mall' - which WebSocket channel to monitor
+	if ch, ok := opts["idleChannel"].(string); ok {
+		cfg.IdleChannel = ch
+	}
 }
 
 // makeWorkerGet creates the fazt.worker.get() function.

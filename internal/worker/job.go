@@ -45,6 +45,10 @@ type JobConfig struct {
 
 	// Data passed to the handler
 	Data map[string]interface{} `json:"data,omitempty"`
+
+	// Idle timeout - stop if no listeners on IdleChannel for this duration
+	IdleTimeout *time.Duration `json:"idle_timeout,omitempty"`
+	IdleChannel string         `json:"idle_channel,omitempty"`
 }
 
 // DefaultJobConfig returns sensible defaults.
