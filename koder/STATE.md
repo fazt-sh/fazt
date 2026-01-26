@@ -5,11 +5,41 @@
 
 ## Status
 
-State: CLEAN - Worker system released, ready for production testing
+State: CLEAN - Worker realtime integration complete, NEXUS simulator working
 
 ---
 
 ## Last Session
+
+**Worker Realtime Integration + NEXUS Mall Simulator**
+
+1. **Added `fazt.realtime` to workers** (f-73d6)
+   - Workers can now broadcast to WebSocket clients
+   - Added `hosting.InjectRealtimeNamespace` to worker executor
+   - Enables real-time data flow from background workers
+
+2. **NEXUS Mall Simulator** (f-2ebf)
+   - Created `workers/mall-sim.js` - daemon worker that generates mall data
+   - Added API endpoints:
+     - `POST /api/simulate/start` - Start simulation worker
+     - `POST /api/simulate/stop` - Stop simulation worker
+     - `GET /api/simulate/status` - Check simulation status
+   - Updated dashboard with SIMULATE toggle button
+   - Worker stores data in document store for historical queries
+   - Worker broadcasts updates to WebSocket clients in real-time
+
+### Files Modified
+
+| File | Change |
+|------|--------|
+| `internal/worker/executor.go` | Added realtime namespace injection |
+| `servers/zyt/nexus/workers/mall-sim.js` | New mall simulation worker |
+| `servers/zyt/nexus/api/main.js` | Added simulate endpoints |
+| `servers/zyt/nexus/src/App.js` | Added simulate toggle UI |
+
+---
+
+## Previous Session
 
 **Worker System Release** (v0.10.14)
 
@@ -29,114 +59,18 @@ Released background worker system and added UX improvements.
 
 ---
 
-## Previous Session
-
-**Worker System Implementation** (Plan 22)
-
-Implemented background workers with memory pool limits and daemon mode.
-
-### Files Created
-
-```
-internal/worker/
-├── job.go          # Job struct, lifecycle, duration/memory parsing
-├── pool.go         # WorkerPool - job queue, concurrency, memory tracking
-├── budget.go       # ResourceBudget - MemStats monitoring
-├── bindings.go     # JS API: fazt.worker.spawn/get/list/cancel
-├── executor.go     # Runs worker code with job context
-├── init.go         # Global pool initialization
-├── errors.go       # Common errors
-├── stats.go        # Health endpoint stats
-├── job_test.go     # Job unit tests
-├── pool_test.go    # Pool integration tests
-├── budget_test.go  # Budget tests
-```
-
-### Files Modified
-
-| File | Change |
-|------|--------|
-| `internal/database/migrations/014_workers.sql` | New table |
-| `internal/database/db.go` | Added migration entry |
-| `internal/runtime/handler.go` | Added worker injector |
-| `cmd/server/main.go` | Init pool, executor, daemon restore, shutdown |
-
-### Features Implemented
-
-**JS API (serverless handlers)**:
-```javascript
-// Spawn a job
-const job = fazt.worker.spawn('workers/sync.js', {
-    data: { userId: 123 },
-    memory: '64MB',
-    timeout: '5m',      // or null for indefinite
-    daemon: true,       // restart on crash
-    uniqueKey: 'sync-123'
-});
-
-// Get job status
-const job = fazt.worker.get(jobId);
-
-// List jobs
-const jobs = fazt.worker.list({ status: 'running', limit: 10 });
-
-// Cancel job
-fazt.worker.cancel(jobId);
-```
-
-**Worker context (inside workers)**:
-```javascript
-// workers/sync.js
-module.exports = function(job) {
-    let state = job.getCheckpoint() || { cursor: 0 };
-
-    while (!job.cancelled) {
-        job.progress(state.cursor);
-        job.log('Processing...');
-
-        // Save checkpoint for crash recovery
-        job.checkpoint({ cursor: state.cursor });
-
-        state.cursor++;
-        sleep(1000);
-    }
-
-    return { processed: state.cursor };
-};
-```
-
-**Resource Limits**:
-- 256MB shared memory pool
-- 20 concurrent workers total
-- 5 concurrent per app
-- 2 daemons per app max
-- Queue until memory available
-
-**Daemon Mode**:
-- Auto-restart on crash
-- Exponential backoff (1s → 60s max)
-- Checkpoint recovery
-- Restore on server restart
-
----
-
-## Previous Session
-
-**Worker Resource Budget Spec**
-
-Designed and spec'd background workers with memory pool limits and daemon mode.
-Created `koder/plans/22_worker_resource_budget.md`.
-
----
-
 ## Next Up
 
-1. **Test Worker System in Production**
-   - Create test worker app in `servers/zyt/worker-test/`
-   - Test spawn, progress, checkpoint, daemon restart
-   - Integrate worker stats into health endpoint
+1. **Test NEXUS with Simulation**
+   - Access dashboard at http://nexus.192.168.64.3.nip.io:8080
+   - Click SIMULATE to start/stop the worker
+   - Verify real-time updates flow to widgets
 
-2. **NEXUS Dashboard Refinement** (optional)
+2. **Consider Deploying to zyt.app**
+   - Test in production environment
+
+3. **NEXUS Dashboard Refinement** (optional)
+   - More widgets, polish, mobile responsiveness
 
 ---
 
@@ -154,6 +88,11 @@ journalctl --user -u fazt-local -f
 
 # Deploy to local
 fazt app deploy <dir> --to local
+
+# NEXUS simulation
+curl -X POST http://nexus.192.168.64.3.nip.io:8080/api/simulate/start
+curl -X POST http://nexus.192.168.64.3.nip.io:8080/api/simulate/stop
+curl http://nexus.192.168.64.3.nip.io:8080/api/simulate/status
 ```
 
 ---
@@ -172,3 +111,4 @@ Return to NEXUS (`servers/zyt/nexus/`):
 
 Current state: Multi-layout system working (Flight Tracker, Web Analytics, Mall).
 MapWidget, DataManager, LayoutSwitcher all functional.
+Mall simulation now works via fazt workers with real-time WebSocket updates.

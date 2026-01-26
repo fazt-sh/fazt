@@ -7,6 +7,7 @@ import (
 
 	"github.com/dop251/goja"
 	"github.com/fazt-sh/fazt/internal/debug"
+	"github.com/fazt-sh/fazt/internal/hosting"
 	"github.com/fazt-sh/fazt/internal/storage"
 )
 
@@ -42,6 +43,11 @@ func (e *Executor) Execute(ctx context.Context, job *Job, code string) (interfac
 	// Inject storage namespace (fazt.storage.*)
 	if err := storage.InjectStorageNamespace(vm, e.storage, job.AppID, ctx); err != nil {
 		return nil, fmt.Errorf("failed to inject storage: %w", err)
+	}
+
+	// Inject realtime namespace (fazt.realtime.*)
+	if err := hosting.InjectRealtimeNamespace(vm, job.AppID); err != nil {
+		return nil, fmt.Errorf("failed to inject realtime: %w", err)
 	}
 
 	// Inject worker namespace for spawning child jobs (fazt.worker.*)
