@@ -105,13 +105,79 @@ email:
 
 ```yaml
 workers:
-  maxConcurrentTotal: 20          # All apps
+  # Concurrency limits
+  maxConcurrentTotal: 20          # All apps combined
   maxConcurrentPerApp: 5          # Per app
-  maxQueueDepth: 100              # Queued per app
-  maxRuntimeMinutes: 30           # Single job
-  maxDataSizeKB: 1024             # Job payload
-  resultRetentionDays: 7          # Keep completed
+  maxQueueDepth: 100              # Queued jobs per app
+
+  # Resource budget (pool model)
+  maxMemoryPoolMB: 256            # Total memory for ALL workers
+  defaultMemoryPerJobMB: 32       # Default allocation per job
+  maxMemoryPerJobMB: 256          # Single job can claim entire pool
+
+  # Time limits (optional, not primary control)
+  defaultTimeoutMinutes: 30       # Default timeout if not specified
+  allowIndefinite: true           # Jobs can run with timeout: null
+
+  # Daemon mode
+  allowDaemon: true               # Jobs can request restart-on-crash
+  maxDaemonsPerApp: 2             # Limit daemon workers per app
+
+  # Monitoring
+  memoryCheckIntervalMs: 100      # How often to sample memory
+  memoryGracePeriodMs: 500        # Time to cleanup before kill
+
+  # Payload & retention
+  maxDataSizeKB: 1024             # Job payload size
+  resultRetentionDays: 7          # Keep completed job results
 ```
+
+### Resource Budget Model
+
+Workers share a memory pool rather than having hard time limits:
+
+```
+┌─────────────────────────────────────────────────────┐
+│              Memory Pool: 256 MB                    │
+├─────────────────────────────────────────────────────┤
+│  Job A    │  Job B   │  Job C  │    Available      │
+│  64 MB    │  32 MB   │  32 MB  │      128 MB       │
+└─────────────────────────────────────────────────────┘
+```
+
+**Allocation rules:**
+- Jobs request memory at spawn time (default: 32MB)
+- If pool has room → job starts immediately
+- If pool is full → job queues until memory frees
+- One job can request the entire pool (runs alone)
+
+**Enforcement (soft limits):**
+- Memory checked every 100ms via `runtime.MemStats`
+- If job exceeds allocation → 500ms grace period → interrupt
+- Brief spikes possible (soft limit, not hard sandbox)
+
+**Why not hard limits?**
+- Go/Goja don't support per-goroutine memory isolation
+- Hard limits require OS-level isolation (cgroups, WASM)
+- Soft limits provide ~85% effectiveness with zero complexity
+
+### Daemon Workers
+
+Long-running workers that restart on crash:
+
+```javascript
+await fazt.worker.spawn('workers/stream.js', {
+    daemon: true,           // Restart if crashes
+    memory: '128MB',        // Memory budget
+    timeout: null           // Run indefinitely
+});
+```
+
+**Daemon behavior:**
+- Restart on crash (with backoff: 1s, 2s, 4s, 8s, max 60s)
+- Survive server restart (rehydrate from checkpoint)
+- Manual stop via `fazt.worker.cancel(id)` or CLI
+- Count against `maxDaemonsPerApp` limit
 
 ## Rate Limiting
 

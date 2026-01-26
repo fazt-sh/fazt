@@ -71,8 +71,14 @@ await fazt.worker.spawn(handler, {
     // Required
     data: { ... },           // Passed to handler
 
-    // Optional
-    timeout: '5m',           // Max runtime (default: 5m, max: 30m)
+    // Resource budget
+    memory: '32MB',          // Memory allocation (default: 32MB, max: pool size)
+    timeout: '5m',           // Max runtime (default: 30m, null = indefinite)
+
+    // Daemon mode (for long-running workers)
+    daemon: false,           // Restart on crash (default: false)
+
+    // Retry & scheduling
     retry: 3,                // Retry attempts (default: 0)
     retryDelay: '1m',        // Delay between retries (default: 1m)
     retryBackoff: 'exponential', // 'fixed' | 'exponential'
@@ -80,6 +86,96 @@ await fazt.worker.spawn(handler, {
     delay: '10s',            // Delay before first run
     uniqueKey: 'resize-123', // Prevent duplicate jobs
 });
+```
+
+### Resource Budget
+
+Workers draw from a shared memory pool (default: 256MB total).
+
+```javascript
+// Small job - takes 32MB from pool
+await fazt.worker.spawn('workers/thumbnail.js', {
+    data: { imageId: 123 },
+    memory: '32MB'           // Default
+});
+
+// Large job - takes 128MB, fewer concurrent jobs possible
+await fazt.worker.spawn('workers/video-encode.js', {
+    data: { videoId: 456 },
+    memory: '128MB'
+});
+
+// Greedy job - takes entire pool, runs alone
+await fazt.worker.spawn('workers/ml-inference.js', {
+    data: { model: 'large' },
+    memory: '256MB'          // Other workers queue until this finishes
+});
+```
+
+**Pool behavior:**
+- Jobs request memory at spawn time
+- If pool has capacity → starts immediately
+- If pool full → queues until memory available
+- Memory tracked via `runtime.MemStats` (soft limit)
+- Exceeded jobs get 500ms grace period, then interrupted
+
+### Daemon Mode
+
+For workers that should run continuously (traffic simulators, data streams):
+
+```javascript
+// Start a daemon worker
+const job = await fazt.worker.spawn('workers/traffic-sim.js', {
+    data: { scenario: 'rush-hour' },
+    daemon: true,            // Restart on crash
+    memory: '64MB',          // Memory budget
+    timeout: null            // Run indefinitely
+});
+
+// Daemon runs until explicitly stopped
+await fazt.worker.cancel(job.id);
+```
+
+**Daemon lifecycle:**
+```
+    spawn(daemon: true)
+           │
+           ▼
+       ┌───────┐
+       │RUNNING│ ◄─────────────────┐
+       └───┬───┘                   │
+           │                       │
+       ┌───┴───┐                   │
+       │       │                   │
+       ▼       ▼                   │
+   ┌──────┐ ┌──────┐    restart    │
+   │DONE  │ │CRASH │───────────────┘
+   └──────┘ └──────┘   (with backoff)
+       │
+       ▼
+   (explicit cancel)
+```
+
+**Restart backoff:** 1s → 2s → 4s → 8s → ... → 60s (max)
+
+**Survival:** Daemons survive server restart via checkpoint:
+```javascript
+module.exports = async function(job) {
+    // Restore state after restart
+    let state = job.checkpoint() || { tick: 0 };
+
+    while (!job.cancelled) {
+        state.tick++;
+        await doWork(state);
+
+        // Checkpoint every 100 ticks for crash recovery
+        if (state.tick % 100 === 0) {
+            job.checkpoint(state);
+        }
+
+        await sleep(1000);
+    }
+};
 ```
 
 ## Worker Handler
@@ -120,12 +216,16 @@ module.exports = async function(job) {
 ### Job Object (in handler)
 
 ```javascript
-job.id          // Job ID
-job.data        // Data passed to spawn()
-job.attempt     // Current attempt (1, 2, 3...)
-job.progress(n) // Report progress 0-100
-job.log(msg)    // Add log entry
-job.checkpoint(state) // Save state for resume
+job.id              // Job ID
+job.data            // Data passed to spawn()
+job.attempt         // Current attempt (1, 2, 3...)
+job.cancelled       // Boolean: true if cancel requested (for daemon loops)
+job.memory          // Allocated memory in bytes
+job.daemon          // Boolean: true if daemon mode
+
+job.progress(n)     // Report progress 0-100
+job.log(msg)        // Add log entry
+job.checkpoint(state) // Save state for resume/crash recovery
 ```
 
 ### Checkpointing (Resume on Failure)
@@ -231,11 +331,14 @@ CREATE TABLE worker_jobs (
     result TEXT,            -- JSON
     error TEXT,
     logs TEXT,              -- JSON array
-    checkpoint TEXT,        -- JSON
+    checkpoint TEXT,        -- JSON state for resume/crash recovery
     attempt INTEGER DEFAULT 1,
     max_attempts INTEGER DEFAULT 1,
     priority INTEGER DEFAULT 0,
-    timeout_ms INTEGER,
+    timeout_ms INTEGER,     -- NULL = indefinite
+    memory_bytes INTEGER,   -- Allocated memory budget
+    daemon INTEGER DEFAULT 0, -- 1 = restart on crash
+    daemon_backoff_ms INTEGER, -- Current backoff delay
     created_at INTEGER,
     started_at INTEGER,
     completed_at INTEGER,
@@ -244,6 +347,7 @@ CREATE TABLE worker_jobs (
 
 CREATE INDEX idx_jobs_app_status ON worker_jobs(app_uuid, status);
 CREATE INDEX idx_jobs_queue ON worker_jobs(status, priority DESC, created_at);
+CREATE INDEX idx_jobs_daemon ON worker_jobs(daemon, status);
 ```
 
 ### Cleanup
@@ -257,20 +361,27 @@ fazt config set limits.workers.resultRetentionDays 7
 
 ## Limits
 
-| Limit                 | Default | Description         |
-| --------------------- | ------- | ------------------- |
-| `maxConcurrentTotal`  | 20      | All apps combined   |
-| `maxConcurrentPerApp` | 5       | Per app             |
-| `maxQueueDepth`       | 100     | Queued jobs per app |
-| `maxRuntimeMinutes`   | 30      | Single job          |
-| `maxDataSizeKB`       | 1024    | Job data payload    |
-| `resultRetentionDays` | 7       | Keep completed jobs |
+| Limit                   | Default | Description                    |
+| ----------------------- | ------- | ------------------------------ |
+| `maxConcurrentTotal`    | 20      | All apps combined              |
+| `maxConcurrentPerApp`   | 5       | Per app                        |
+| `maxQueueDepth`         | 100     | Queued jobs per app            |
+| `maxMemoryPoolMB`       | 256     | Total memory for all workers   |
+| `defaultMemoryPerJobMB` | 32      | Default per-job allocation     |
+| `maxMemoryPerJobMB`     | 256     | Max single job can request     |
+| `defaultTimeoutMinutes` | 30      | Default timeout (null=forever) |
+| `maxDaemonsPerApp`      | 2       | Max daemon workers per app     |
+| `maxDataSizeKB`         | 1024    | Job data payload               |
+| `resultRetentionDays`   | 7       | Keep completed jobs            |
 
 ### Limit Behavior
 
 - **Queue full**: `spawn()` returns error
 - **Concurrent limit**: Job waits in queue
-- **Timeout exceeded**: Job killed, marked failed
+- **Memory pool full**: Job waits until memory available
+- **Memory exceeded**: 500ms grace period, then interrupted
+- **Timeout exceeded**: Job interrupted, marked failed (unless daemon)
+- **Daemon crash**: Auto-restart with backoff
 - **At 80%**: Warning logged
 
 ## Concurrency Control
@@ -309,11 +420,26 @@ await fazt.worker.spawn('workers/urgent.js', {
 # List jobs
 fazt worker list --app app_uuid --status running
 
+# List daemon workers
+fazt worker list --daemon
+
 # View job
 fazt worker show job_abc
 
-# Cancel job
+# Cancel job (stops daemon permanently)
 fazt worker cancel job_abc
+
+# View resource usage
+fazt worker pool
+# Output:
+# Memory Pool: 256 MB
+# Allocated:   128 MB (50%)
+# Available:   128 MB
+# Active jobs: 4
+#   job_abc (daemon)  64 MB  workers/traffic-sim.js
+#   job_def           32 MB  workers/resize.js
+#   job_ghi           16 MB  workers/notify.js
+#   job_jkl           16 MB  workers/sync.js
 
 # View dead-letter queue
 fazt worker dead-letter list
@@ -445,3 +571,118 @@ client.Add(ResizeImage{ImageURL: url, Sizes: sizes}).
 - Transaction support (spawn in app's transaction)
 - No polling (notification pattern)
 - ~50KB binary impact
+
+## Example: Traffic Simulator (Daemon)
+
+A long-running worker that generates simulated traffic data and broadcasts
+via WebSocket:
+
+```javascript
+// api/simulator.js - HTTP endpoint to start/stop simulator
+module.exports = async function(req) {
+    if (req.method === 'POST') {
+        // Start daemon
+        const job = await fazt.worker.spawn('workers/traffic-sim.js', {
+            data: {
+                scenario: req.json.scenario || 'normal',
+                tickMs: req.json.tickMs || 1000
+            },
+            daemon: true,        // Restart on crash
+            memory: '64MB',      // Memory budget
+            timeout: null,       // Run forever
+            uniqueKey: 'traffic-sim'  // Only one instance
+        });
+        return { json: { jobId: job.id, status: 'started' } };
+    }
+
+    if (req.method === 'DELETE') {
+        // Stop daemon
+        const jobs = await fazt.worker.list({
+            uniqueKey: 'traffic-sim',
+            status: 'running'
+        });
+        if (jobs.length > 0) {
+            await fazt.worker.cancel(jobs[0].id);
+            return { json: { status: 'stopped' } };
+        }
+        return { status: 404, json: { error: 'Not running' } };
+    }
+
+    // GET - check status
+    const jobs = await fazt.worker.list({
+        uniqueKey: 'traffic-sim'
+    });
+    return { json: { running: jobs.some(j => j.status === 'running') } };
+};
+```
+
+```javascript
+// workers/traffic-sim.js - The daemon worker
+module.exports = async function(job) {
+    const { scenario, tickMs } = job.data;
+
+    // Restore state from checkpoint (survives crash/restart)
+    let state = job.checkpoint() || {
+        tick: 0,
+        vehicles: generateInitialVehicles(scenario)
+    };
+
+    job.log(`Starting traffic simulator: ${scenario}`);
+
+    // Main loop - runs until cancelled
+    while (!job.cancelled) {
+        state.tick++;
+
+        // Simulate traffic movement
+        state.vehicles = simulateStep(state.vehicles, scenario);
+
+        // Broadcast to connected WebSocket clients
+        await fazt.realtime.broadcast('traffic', {
+            tick: state.tick,
+            vehicles: state.vehicles.length,
+            avgSpeed: calculateAvgSpeed(state.vehicles),
+            congestion: calculateCongestion(state.vehicles)
+        });
+
+        // Checkpoint every 100 ticks for crash recovery
+        if (state.tick % 100 === 0) {
+            job.checkpoint(state);
+            job.log(`Checkpoint at tick ${state.tick}`);
+        }
+
+        // Wait for next tick
+        await sleep(tickMs);
+    }
+
+    job.log('Simulator stopped');
+    return { finalTick: state.tick };
+};
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+```
+
+```javascript
+// Client-side: connect to traffic stream
+const ws = new WebSocket('wss://my-app.domain.com/_ws');
+
+ws.onopen = () => {
+    ws.send(JSON.stringify({ type: 'subscribe', channel: 'traffic' }));
+};
+
+ws.onmessage = (event) => {
+    const msg = JSON.parse(event.data);
+    if (msg.channel === 'traffic') {
+        updateDashboard(msg.data);
+    }
+};
+```
+
+**Key patterns:**
+- `daemon: true` - restarts on crash with backoff
+- `timeout: null` - runs indefinitely
+- `uniqueKey` - ensures only one instance
+- `job.cancelled` - checked in loop for graceful shutdown
+- `job.checkpoint()` - survives server restart
+- `fazt.realtime.broadcast()` - streams to WebSocket clients
