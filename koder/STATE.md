@@ -1,15 +1,35 @@
 # Fazt Implementation State
 
 **Last Updated**: 2026-01-26
-**Current Version**: v0.10.13
+**Current Version**: v0.10.14
 
 ## Status
 
-State: READY - Worker system implemented and tested
+State: CLEAN - Worker system released, ready for production testing
 
 ---
 
 ## Last Session
+
+**Worker System Release** (v0.10.14)
+
+Released background worker system and added UX improvements.
+
+1. **Worker System** (Plan 22)
+   - Full implementation with tests
+   - Released as v0.10.14
+
+2. **Remote List Version Column** (f-2f62)
+   - `fazt remote list` now shows VERSION column
+   - Quick visibility without separate status calls
+
+3. **fazt-stop Skill Update**
+   - Now commits uncommitted tickets before push
+   - Verifies clean repo state
+
+---
+
+## Previous Session
 
 **Worker System Implementation** (Plan 22)
 
@@ -111,14 +131,12 @@ Created `koder/plans/22_worker_resource_budget.md`.
 
 ## Next Up
 
-**Test Worker System in Production**
+1. **Test Worker System in Production**
+   - Create test worker app in `servers/zyt/worker-test/`
+   - Test spawn, progress, checkpoint, daemon restart
+   - Integrate worker stats into health endpoint
 
-1. Build and deploy to zyt
-2. Create test worker app in `servers/zyt/worker-test/`
-3. Test spawn, progress, checkpoint, daemon restart
-4. Integrate worker stats into health endpoint
-
-Or continue with NEXUS dashboard refinement.
+2. **NEXUS Dashboard Refinement** (optional)
 
 ---
 
