@@ -781,8 +781,8 @@ func handleRemoteList() {
 		return
 	}
 
-	fmt.Printf("%-12s %-30s %-10s %-10s\n", "NAME", "URL", "STATUS", "DEFAULT")
-	fmt.Println("────────────────────────────────────────────────────────────────")
+	fmt.Printf("%-12s %-26s %-10s %-10s %-8s\n", "NAME", "URL", "STATUS", "VERSION", "DEFAULT")
+	fmt.Println("────────────────────────────────────────────────────────────────────────")
 	for _, p := range peers {
 		defaultMark := ""
 		if p.IsDefault {
@@ -792,12 +792,16 @@ func handleRemoteList() {
 		if status == "" {
 			status = "-"
 		}
+		version := p.LastVersion
+		if version == "" {
+			version = "-"
+		}
 		// Truncate URL if too long
 		displayURL := p.URL
-		if len(displayURL) > 28 {
-			displayURL = displayURL[:25] + "..."
+		if len(displayURL) > 24 {
+			displayURL = displayURL[:21] + "..."
 		}
-		fmt.Printf("%-12s %-30s %-10s %-10s\n", p.Name, displayURL, status, defaultMark)
+		fmt.Printf("%-12s %-26s %-10s %-10s %-8s\n", p.Name, displayURL, status, version, defaultMark)
 	}
 }
 

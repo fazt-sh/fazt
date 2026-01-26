@@ -112,7 +112,12 @@ git push origin master
 | Source    | X.Y.Z   | -      |
 | Binary    | X.Y.Z   | ✓      |
 
-**Remotes**: [all healthy / X unreachable]
+**Remotes**:
+
+| Name | Version | Status |
+|------|---------|--------|
+| local | X.Y.Z | healthy |
+| zyt | X.Y.Z | healthy |
 
 ### This Session
 - [What was done]
