@@ -4,6 +4,14 @@ All notable changes to fazt.sh will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- **Worker Resource Budget Spec**: Background workers with memory pool limits
+  - 256MB shared memory pool (soft limits via MemStats)
+  - Daemon mode: long-running workers with restart on crash
+  - Checkpoint/recovery for crash survival
+  - `fazt.worker.spawn()`, `job.progress()`, `job.checkpoint()` APIs
+  - See `koder/plans/22_worker_resource_budget.md` for implementation plan
+
 ## [0.10.13] - 2026-01-25
 
 ### Changed
