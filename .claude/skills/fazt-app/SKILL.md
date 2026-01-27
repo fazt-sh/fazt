@@ -1,6 +1,6 @@
 ---
 name: fazt-app
-description: Build and deploy polished Vue+API apps to fazt instances. Creates PWA-ready apps with advanced storage, session management, and production-quality UX. Use when building new fazt apps.
+description: Build and deploy polished Vue+API apps to fazt instances. Creates PWA-ready apps with advanced storage, session management, authentication, and production-quality UX. Use when building new fazt apps.
 context: fork
 ---
 
@@ -19,6 +19,19 @@ This skill includes reference materials:
 - **koder/CAPACITY.md** - Performance limits and real-time capability guide
 
 Reference these files when building apps to follow established patterns.
+
+## Authentication Note
+
+Fazt has built-in authentication with OAuth (Google, GitHub, Discord, Microsoft).
+To use auth in apps, the instance must have at least one provider configured:
+
+```bash
+# Configure provider (run once per instance)
+fazt auth provider google --client-id XXX --client-secret YYY --db <path>
+fazt auth provider google --enable --db <path>
+```
+
+See the **Authentication** section below for integration patterns.
 
 ## Standard Assets
 
@@ -543,6 +556,252 @@ onMounted(() => {
 
 ---
 
+## Authentication
+
+Fazt provides built-in authentication with OAuth providers (Google, GitHub, etc.)
+and cookie-based SSO across subdomains.
+
+### When to Use Auth vs Sessions
+
+| Use Case | Approach |
+|----------|----------|
+| Public app, shareable links | URL sessions (`?s=cat-blue-river`) |
+| User accounts, personal data | Fazt auth (`fazt.auth.*`) |
+| Multi-device sync | Fazt auth (user has account) |
+| Anonymous collaboration | URL sessions |
+
+You can combine both: auth for user identity, sessions for shareable workspaces.
+
+### Auth API Reference (Serverless)
+
+```javascript
+// api/main.js - Server-side auth checks
+
+// Get current user (null if not logged in)
+var user = fazt.auth.getUser()
+// Returns: { id, email, name, picture, role, provider }
+
+// Check auth state
+fazt.auth.isLoggedIn()   // boolean
+fazt.auth.isOwner()      // boolean (role === 'owner')
+fazt.auth.isAdmin()      // boolean (role === 'owner' or 'admin')
+fazt.auth.hasRole('admin')  // boolean
+
+// Require auth (redirects to login if not authenticated)
+fazt.auth.requireLogin()     // Throws redirect to /auth/login
+fazt.auth.requireAdmin()     // Throws 403 if not admin
+fazt.auth.requireOwner()     // Throws 403 if not owner
+fazt.auth.requireRole('admin')  // Throws 403 if missing role
+
+// Get auth URLs
+fazt.auth.getLoginURL('/dashboard')   // Login URL with redirect
+fazt.auth.getLogoutURL()              // Logout URL
+```
+
+### Protected API Pattern
+
+```javascript
+// api/main.js - Protect entire API
+fazt.auth.requireLogin()  // All requests require auth
+
+var user = fazt.auth.getUser()
+var ds = fazt.storage.ds
+
+var parts = request.path.split('/').filter(Boolean)
+var resource = parts[1]
+var id = parts[2]
+
+if (resource === 'me') {
+  // Return current user
+  respond({ user: user })
+
+} else if (resource === 'items') {
+  if (request.method === 'GET') {
+    // User's items only
+    respond({ items: ds.find('items', { userId: user.id }) })
+  } else if (request.method === 'POST') {
+    var item = {
+      id: Date.now().toString(36),
+      userId: user.id,
+      ...request.body,
+      created: Date.now()
+    }
+    ds.insert('items', item)
+    respond(201, item)
+  }
+}
+```
+
+### Vue Auth Composable
+
+```javascript
+// src/lib/auth.js
+import { ref, readonly } from 'vue'
+
+const user = ref(null)
+const loading = ref(true)
+const error = ref(null)
+
+let initialized = false
+
+export function useAuth() {
+  async function init() {
+    if (initialized) return
+    initialized = true
+
+    try {
+      const res = await fetch('/api/me')
+      if (res.ok) {
+        const data = await res.json()
+        user.value = data.user
+      }
+    } catch (e) {
+      error.value = e.message
+    } finally {
+      loading.value = false
+    }
+  }
+
+  function login(redirect = window.location.pathname) {
+    window.location.href = '/auth/login?redirect=' + encodeURIComponent(redirect)
+  }
+
+  function logout() {
+    window.location.href = '/auth/logout'
+  }
+
+  // Auto-init on first use
+  init()
+
+  return {
+    user: readonly(user),
+    loading: readonly(loading),
+    error: readonly(error),
+    isLoggedIn: () => !!user.value,
+    isAdmin: () => user.value?.role === 'owner' || user.value?.role === 'admin',
+    isOwner: () => user.value?.role === 'owner',
+    login,
+    logout
+  }
+}
+```
+
+### Protected Page Pattern
+
+```javascript
+// src/pages/Dashboard.js
+import { useAuth } from '../lib/auth.js'
+
+export default {
+  template: `
+    <div v-if="loading" class="flex items-center justify-center h-full">
+      <div class="animate-spin rounded-full h-8 w-8 border-2 border-blue-500 border-t-transparent"></div>
+    </div>
+
+    <div v-else-if="!user" class="flex flex-col items-center justify-center h-full gap-4">
+      <p class="text-neutral-500">Please sign in to continue</p>
+      <button @click="login" class="px-4 py-2 bg-blue-500 text-white rounded-lg">
+        Sign In
+      </button>
+    </div>
+
+    <div v-else class="p-6">
+      <h1 class="text-2xl font-bold">Welcome, {{ user.name }}</h1>
+      <button @click="logout" class="mt-4 text-sm text-neutral-500 hover:text-neutral-700">
+        Sign Out
+      </button>
+    </div>
+  `,
+
+  setup() {
+    const { user, loading, login, logout } = useAuth()
+    return { user, loading, login, logout }
+  }
+}
+```
+
+### Auth + Sessions Combined
+
+For apps that need both user identity AND shareable workspaces:
+
+```javascript
+// src/lib/api.js
+import { getSession } from './session.js'
+import { useAuth } from './auth.js'
+
+export const api = {
+  session: null,
+
+  init() {
+    this.session = getSession()
+    return this.session
+  },
+
+  async get(path) {
+    // Session in URL, auth in cookie (automatic)
+    const sep = path.includes('?') ? '&' : '?'
+    return fetch(`${path}${sep}session=${encodeURIComponent(this.session)}`)
+      .then(r => r.json())
+  }
+}
+
+// api/main.js - Server side
+var user = fazt.auth.getUser()  // May be null
+var session = request.query.session
+
+// User-owned data requires auth
+if (resource === 'user-settings') {
+  fazt.auth.requireLogin()
+  respond(ds.findOne('settings', { userId: user.id }))
+}
+
+// Session data is accessible to anyone with the session ID
+if (resource === 'workspace') {
+  respond(ds.find('items', { session: session }))
+}
+```
+
+### Auth UI Components
+
+```javascript
+// src/components/AuthStatus.js
+import { useAuth } from '../lib/auth.js'
+
+export default {
+  template: `
+    <div class="flex items-center gap-3">
+      <template v-if="loading">
+        <div class="w-8 h-8 rounded-full bg-neutral-200 dark:bg-neutral-700 animate-pulse"></div>
+      </template>
+
+      <template v-else-if="user">
+        <img v-if="user.picture" :src="user.picture" class="w-8 h-8 rounded-full">
+        <div v-else class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-sm font-medium">
+          {{ user.name?.[0]?.toUpperCase() || '?' }}
+        </div>
+        <span class="text-sm hidden sm:inline">{{ user.name }}</span>
+        <button @click="logout" class="text-sm text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300">
+          Sign Out
+        </button>
+      </template>
+
+      <template v-else>
+        <button @click="login" class="px-3 py-1.5 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600">
+          Sign In
+        </button>
+      </template>
+    </div>
+  `,
+
+  setup() {
+    const { user, loading, login, logout } = useAuth()
+    return { user, loading, login, logout }
+  }
+}
+```
+
+---
+
 ## Storage Reference
 
 ```javascript
@@ -578,24 +837,28 @@ When user invokes `/fazt-app`:
 
 1. **Check peers**: Run `fazt remote list` to see configured peers
 2. **Parse** the description to understand what to build
-3. **Scaffold** in correct location:
+3. **Determine auth needs**:
+   - Personal/private data → Use fazt auth
+   - Shareable links/collaboration → Use URL sessions
+   - Both user accounts + sharing → Combine both
+4. **Scaffold** in correct location:
    ```bash
    mkdir -p servers/zyt/<name>
    ```
    **NEVER create apps in repo root!** Always use `servers/<peer>/<name>` path.
-4. **Customize fully** using templates from this skill:
+5. **Customize fully** using templates from this skill:
    - `index.html` - PWA meta, fonts, dark mode, import maps, full-height layout
    - `src/main.js` - Vue app with Pinia, router
    - `src/stores/` - Pinia stores for state management
    - `src/pages/` - Page components (Home, Settings, etc.)
    - `src/components/ui/` - Reusable UI components
-   - `src/lib/` - Utilities (api.js, session.js, settings.js)
-   - `api/main.js` - Session-scoped serverless API
-5. **Deploy to local**: `fazt app deploy servers/zyt/<name> --to local`
-6. **STOP** - Present local URL to user: `http://<name>.192.168.64.3.nip.io:8080`
-7. **Wait for approval** before production deploy
-8. After approval: `fazt app deploy servers/zyt/<name> --to <production-peer>`
-9. Report production URL (e.g., `https://<name>.zyt.app`)
+   - `src/lib/` - Utilities (api.js, session.js, settings.js, auth.js)
+   - `api/main.js` - Session-scoped or auth-protected serverless API
+6. **Deploy to local**: `fazt app deploy servers/zyt/<name> --to local`
+7. **STOP** - Present local URL to user: `http://<name>.192.168.64.3.nip.io:8080`
+8. **Wait for approval** before production deploy
+9. After approval: `fazt app deploy servers/zyt/<name> --to <production-peer>`
+10. Report production URL (e.g., `https://<name>.zyt.app`)
 
 **Note**: The fazt system generates proper app_ids (like `app_7f3k9x2m`).
 The app name (like "cashflow") becomes the **alias/subdomain**, not the ID.

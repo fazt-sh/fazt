@@ -5,69 +5,136 @@
 
 ## Status
 
-State: PLANNING - Auth primitive designed, ready for implementation
+State: IN_PROGRESS - Auth primitive implemented, needs real-world testing
 
 ---
 
 ## Last Session
 
-**Auth Primitive Design**
+**Auth Primitive Implementation (Plan 23) + fazt-app Skill Update**
 
-1. **Vision Evolution**
-   - Fazt: single-owner compute node that can serve multiple users
-   - Not multi-tenant, but owner can run apps with users (chat, docs, etc.)
-   - Each fazt instance is sovereign, sets up their own OAuth providers
+1. **Implemented Complete Auth System** (`internal/auth/`)
+   - `service.go` - Main AuthService orchestrator
+   - `users.go` - User CRUD operations with roles (owner/admin/user)
+   - `sessions_db.go` - SQLite-backed session management
+   - `providers.go` - OAuth configs (Google, GitHub, Discord, Microsoft)
+   - `oauth.go` - State management, CSRF protection
+   - `handlers.go` - HTTP handlers for login, callback, logout
+   - `invites.go` - Invite code system for password users
+   - `service_test.go` - Unit tests (all passing)
 
-2. **OpenAuth Analysis**
-   - Reviewed ~/Projects/openauth as reference
-   - Decision: Extract patterns, implement in pure Go
-   - No runtime dependency on Node.js
+2. **Database Migration**
+   - `internal/database/migrations/015_auth.sql` - Schema for auth tables
 
-3. **Specs Created/Updated** (`koder/ideas/specs/v0.15-identity/`)
-   - `README.md` - Updated with architecture diagram
-   - `sso.md` - Clarified cookie-based approach
-   - `users.md` - NEW: Multi-user support, roles, invites
-   - `oauth.md` - NEW: Social login (Google, GitHub, Discord, Microsoft)
-   - `issuer.md` - NEW: OIDC provider (SPEC ONLY, deferred)
+3. **Runtime Integration**
+   - `internal/runtime/auth_bindings.go` - JS API (`fazt.auth.*`)
+   - Modified `handler.go` - AuthContext injection
 
-4. **Implementation Plan**
-   - Created `koder/plans/23_auth_primitive.md`
-   - ~1,350 lines of Go for full implementation
-   - 8 phases from core to admin operations
+4. **CLI Commands**
+   - `cmd/server/auth.go` - `fazt auth provider|users|invite` commands
+   - Modified `main.go` - Auth service init, routes registration
+
+5. **Updated fazt-app Skill**
+   - Added authentication patterns documentation
+   - Vue `useAuth` composable pattern
+   - Protected API and page patterns
+   - Auth + Sessions combined pattern
+   - Updated instructions for auth decisions
+
+## Files Created
+
+```
+internal/auth/
+  service.go         # Main auth service
+  users.go           # User CRUD
+  sessions_db.go     # SQLite session management
+  providers.go       # OAuth provider configs
+  oauth.go           # OAuth flow (state, callback)
+  handlers.go        # HTTP handlers
+  invites.go         # Invite code system
+  bindings.go        # JS API bindings (unused - runtime one is used)
+  service_test.go    # Tests
+
+internal/runtime/
+  auth_bindings.go   # Runtime auth injection
+
+internal/database/migrations/
+  015_auth.sql       # Database schema
+
+cmd/server/
+  auth.go            # CLI commands
+```
+
+## Files Modified
+
+- `cmd/server/main.go` - Auth service init, routes, CLI command
+- `internal/runtime/handler.go` - AuthContext, auth injector
+- `.claude/skills/fazt-app/SKILL.md` - Auth patterns documentation
 
 ---
 
-## Key Decisions
+## What Works
 
-| Decision | Rationale |
-|----------|-----------|
-| Cookie-based SSO | Simpler than OIDC, covers subdomain apps |
-| Social login only | No email verification needed |
-| OIDC provider deferred | Wait until mobile/third-party needed |
-| 4 providers | Google, GitHub, Discord, Microsoft (free, covers 95%) |
-| Invite codes | For password users without email |
+- [x] Database schema and migrations
+- [x] User creation (first user = owner)
+- [x] OAuth provider configuration via CLI
+- [x] OAuth state management (CSRF protection)
+- [x] Session creation and validation
+- [x] Domain-wide SSO cookies
+- [x] JS runtime bindings (`fazt.auth.*`)
+- [x] Invite code generation and redemption
+- [x] Password user signup via invites
+- [x] Login/logout HTTP handlers
+- [x] CLI commands for user/invite management
+- [x] All unit tests passing
+
+---
+
+## Next Up
+
+1. **Commit auth implementation** - Stage and commit all auth files
+2. **Test on zyt.app** with real OAuth provider (Google)
+3. **Build test app** using `/fazt-app` with auth patterns
+4. **Consider v0.11 release** with auth system
+
+---
+
+## Testing Notes
+
+**Cannot be tested automatically (requires real OAuth credentials):**
+- OAuth flow with real providers
+- Subdomain SSO (requires real domain)
+- Cookie behavior in browser
+
+**To test on zyt.app:**
+```bash
+# 1. Configure a provider
+fazt auth provider google \
+  --client-id "xxx.apps.googleusercontent.com" \
+  --client-secret "GOCSPX-xxx" \
+  --db servers/zyt/data.db
+fazt auth provider google --enable --db servers/zyt/data.db
+
+# 2. Visit https://zyt.app/auth/login
+
+# 3. Test JS API in an app
+```
 
 ---
 
 ## Quick Reference
 
 ```bash
-# Read the plan
-cat koder/plans/23_auth_primitive.md
+# Configure provider
+fazt auth provider google --client-id XXX --client-secret YYY
+fazt auth provider google --enable
 
-# Read the specs
-ls koder/ideas/specs/v0.15-identity/
+# List users
+fazt auth users
+
+# Create invite
+fazt auth invite --role user
+
+# View invites
+fazt auth invites
 ```
-
----
-
-## Next Up
-
-1. **Implement Plan 23** - Auth primitive
-   - Start with Phase 1: Core infrastructure
-   - Follow plan phases sequentially
-   - Estimated ~1,350 LoC
-
-2. **After auth is done**
-   - Build a sample multi-user app to test
-   - Consider v0.16 release with auth
