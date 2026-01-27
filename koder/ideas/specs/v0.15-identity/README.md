@@ -1,34 +1,107 @@
 # v0.15 - Identity
 
-**Theme**: Sovereign identity and authentication.
+**Theme**: Sovereign identity, multi-user support, and authentication.
 
 ## Summary
 
-v0.15 makes identity a kernel-level primitive. The owner has a hardware-bound
-"Persona" that provides seamless SSO across all apps—no OAuth dances, no
-password managers, no configuration.
+v0.15 evolves fazt from a personal server to a single-owner compute node that
+can serve multiple users. The owner retains full control via the hardware-bound
+Persona, while users authenticate via social logins and share sessions across
+all subdomain apps.
 
 ## Documents
 
-- `persona.md` - Hardware-bound identity
-- `sso.md` - Zero-handshake single sign-on
+| Document | Status | Description |
+|----------|--------|-------------|
+| `persona.md` | Implement | Hardware-bound owner identity |
+| `sso.md` | Implement | Cookie-based subdomain SSO |
+| `users.md` | Implement | Multi-user support |
+| `oauth.md` | Implement | Social login (Google, GitHub, etc.) |
+| `issuer.md` | Spec Only | OIDC provider (future) |
 
 ## Key Capabilities
 
-### Persona
+### Owner (Persona)
 
 - Cryptographic identity tied to kernel
 - Not a password—a keypair
 - Signs assertions for verification
+- Full admin access to all apps
 
-### Sovereign SSO
+### Users
 
-- Auth at `os.<domain>` propagates to all subdomains
-- Apps call `fazt.security.getPersona()` to get owner info
-- No redirects, no OAuth, no secrets
+- Managed by owner, stored in SQLite
+- Authenticate via social providers (Google, GitHub, Discord)
+- Or via password + invite code (no email required)
+- Roles: `owner`, `admin`, `user`
 
-## Future: OIDC Bridge
+### Social Login (OAuth Consumer)
 
-v0.18+ could expose the Persona as an OIDC provider:
-- "Sign in with Fazt" for external sites
-- Your domain becomes your identity
+- Accept Google, GitHub, Discord logins
+- No email verification needed (providers handle it)
+- Frictionless signup for app users
+
+### Subdomain SSO
+
+- Login at `abc.com` propagates to all subdomains
+- Cookie-based (`.abc.com` domain cookie)
+- No OAuth dance between fazt apps
+- Apps call `fazt.auth.getUser()` to get current user
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Apps: notion.abc.com, chat.abc.com, docs.abc.com          │
+│  JS Runtime: fazt.auth.getUser(), fazt.auth.requireLogin() │
+└──────────────────────────┬──────────────────────────────────┘
+                           │ cookie-based SSO
+┌──────────────────────────▼──────────────────────────────────┐
+│  Auth Layer (abc.com)                                       │
+│  - Social login handlers (Google, GitHub, Discord)          │
+│  - Session management (domain-wide cookies)                 │
+│  - User storage (SQLite)                                    │
+└──────────────────────────┬──────────────────────────────────┘
+                           │
+┌──────────────────────────▼──────────────────────────────────┐
+│  Kernel                                                     │
+│  - Persona (owner identity)                                 │
+│  - Session validation middleware                            │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## JS Runtime API
+
+```javascript
+// Get current user (works on any subdomain)
+const user = await fazt.auth.getUser();
+// { id, email, name, picture, role, provider }
+
+// Check if logged in
+if (await fazt.auth.isLoggedIn()) { ... }
+
+// Require login (redirects if not authenticated)
+await fazt.auth.requireLogin();
+
+// Check role
+if (await fazt.auth.hasRole('admin')) { ... }
+
+// Check if current user is owner
+if (await fazt.auth.isOwner()) { ... }
+
+// Logout
+await fazt.auth.logout();
+```
+
+## Future: OIDC Provider (v0.18+)
+
+Spec'd in `issuer.md` but NOT implementing in v0.15.
+
+When needed:
+- Mobile apps that can't share cookies
+- Third-party integrations
+- "Sign in with ABC Corp" for external sites
+
+## Dependencies
+
+- v0.14 (Security): Persona, session infrastructure

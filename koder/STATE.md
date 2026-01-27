@@ -5,53 +5,69 @@
 
 ## Status
 
-State: CLEAN - Released v0.10.15 with worker realtime and idle timeout
+State: PLANNING - Auth primitive designed, ready for implementation
 
 ---
 
 ## Last Session
 
-**Worker Realtime & Idle Timeout Release**
+**Auth Primitive Design**
 
-1. **Worker Realtime Access** (f-73d6)
-   - Workers can now broadcast to WebSocket clients
-   - `fazt.realtime.broadcast()` available in worker context
+1. **Vision Evolution**
+   - Fazt: single-owner compute node that can serve multiple users
+   - Not multi-tenant, but owner can run apps with users (chat, docs, etc.)
+   - Each fazt instance is sovereign, sets up their own OAuth providers
 
-2. **Worker Idle Timeout** (f-361c)
-   - `idleTimeout: '1m'` - stop if no listeners for duration
-   - `idleChannel: 'mall'` - which channel to monitor
-   - Clean stop (not failure, no daemon restart)
+2. **OpenAuth Analysis**
+   - Reviewed ~/Projects/openauth as reference
+   - Decision: Extract patterns, implement in pure Go
+   - No runtime dependency on Node.js
 
-3. **NEXUS Mall Simulator**
-   - Replaced external Bun process with fazt worker
-   - Dashboard has SIMULATE toggle button
-   - Uses idle timeout for resource efficiency
-   - Removed external `server/` and `nexus-simulate.ts`
+3. **Specs Created/Updated** (`koder/ideas/specs/v0.15-identity/`)
+   - `README.md` - Updated with architecture diagram
+   - `sso.md` - Clarified cookie-based approach
+   - `users.md` - NEW: Multi-user support, roles, invites
+   - `oauth.md` - NEW: Social login (Google, GitHub, Discord, Microsoft)
+   - `issuer.md` - NEW: OIDC provider (SPEC ONLY, deferred)
 
-4. **Released v0.10.15**
-   - Built and uploaded to GitHub
-   - Upgraded zyt.app and local
+4. **Implementation Plan**
+   - Created `koder/plans/23_auth_primitive.md`
+   - ~1,350 lines of Go for full implementation
+   - 8 phases from core to admin operations
+
+---
+
+## Key Decisions
+
+| Decision | Rationale |
+|----------|-----------|
+| Cookie-based SSO | Simpler than OIDC, covers subdomain apps |
+| Social login only | No email verification needed |
+| OIDC provider deferred | Wait until mobile/third-party needed |
+| 4 providers | Google, GitHub, Discord, Microsoft (free, covers 95%) |
+| Invite codes | For password users without email |
 
 ---
 
 ## Quick Reference
 
 ```bash
-# Worker with idle timeout
-fazt.worker.spawn('workers/sim.js', {
-    daemon: true,
-    idleTimeout: '1m',
-    idleChannel: 'mall'
-});
+# Read the plan
+cat koder/plans/23_auth_primitive.md
 
-# Release script (note: needs explicit export)
-source .env && export GITHUB_PAT_FAZT && ./scripts/release.sh vX.Y.Z
+# Read the specs
+ls koder/ideas/specs/v0.15-identity/
 ```
 
 ---
 
 ## Next Up
 
-1. **Test idle timeout** - Close browser, verify worker stops
-2. **Deploy NEXUS to zyt.app** (optional)
-3. **NEXUS refinement** - More widgets, polish
+1. **Implement Plan 23** - Auth primitive
+   - Start with Phase 1: Core infrastructure
+   - Follow plan phases sequentially
+   - Estimated ~1,350 LoC
+
+2. **After auth is done**
+   - Build a sample multi-user app to test
+   - Consider v0.16 release with auth
