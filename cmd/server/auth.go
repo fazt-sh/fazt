@@ -9,6 +9,7 @@ import (
 
 	"github.com/fazt-sh/fazt/internal/auth"
 	"github.com/fazt-sh/fazt/internal/database"
+	"github.com/fazt-sh/fazt/internal/remote"
 )
 
 // handleAuthCommand handles auth-related subcommands
@@ -422,4 +423,129 @@ SUPPORTED PROVIDERS:
   github     GitHub OAuth
   discord    Discord OAuth
   microsoft  Microsoft (Personal accounts)`)
+}
+
+// handleAuthCommandWithPeer handles auth commands for a remote peer via API
+func handleAuthCommandWithPeer(peerName string, args []string) {
+	if len(args) < 1 {
+		fmt.Println("Error: auth subcommand required")
+		fmt.Println("Usage: fazt @<peer> auth <command> [options]")
+		fmt.Println("Commands: provider, providers")
+		os.Exit(1)
+	}
+
+	// Load peer configuration
+	db := getClientDB()
+	defer database.Close()
+
+	peer, err := remote.ResolvePeer(db, peerName)
+	if err != nil {
+		fmt.Printf("Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	client := remote.NewClient(peer)
+	subcommand := args[0]
+	subArgs := args[1:]
+
+	switch subcommand {
+	case "provider":
+		handleRemoteAuthProvider(client, subArgs)
+	case "providers":
+		handleRemoteAuthProviders(client)
+	default:
+		fmt.Printf("Error: auth command '%s' cannot be executed remotely\n", subcommand)
+		fmt.Println("Remote commands: provider, providers")
+		os.Exit(1)
+	}
+}
+
+// handleRemoteAuthProvider configures a provider on a remote peer
+func handleRemoteAuthProvider(client *remote.Client, args []string) {
+	if len(args) < 1 {
+		fmt.Println("Error: provider name is required")
+		fmt.Println("Usage: fazt @<peer> auth provider <name> [options]")
+		fmt.Println("Providers: google, github, discord, microsoft")
+		os.Exit(1)
+	}
+
+	providerName := strings.ToLower(args[0])
+
+	// Validate provider name
+	if _, ok := auth.Providers[providerName]; !ok {
+		fmt.Printf("Unknown provider: %s\n", providerName)
+		fmt.Println("Available providers: google, github, discord, microsoft")
+		os.Exit(1)
+	}
+
+	flags := flag.NewFlagSet("auth provider", flag.ExitOnError)
+	clientID := flags.String("client-id", "", "OAuth client ID")
+	clientSecret := flags.String("client-secret", "", "OAuth client secret")
+	enable := flags.Bool("enable", false, "Enable the provider")
+	disable := flags.Bool("disable", false, "Disable the provider")
+	flags.Parse(args[1:])
+
+	// Build enable flag
+	var enablePtr *bool
+	if *enable {
+		t := true
+		enablePtr = &t
+	} else if *disable {
+		f := false
+		enablePtr = &f
+	}
+
+	// Call remote API
+	cfg, err := client.ConfigureAuthProvider(providerName, *clientID, *clientSecret, enablePtr)
+	if err != nil {
+		fmt.Printf("Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Show results
+	if *clientID != "" && *clientSecret != "" {
+		fmt.Printf("Provider '%s' configured.\n", providerName)
+	}
+	if *enable {
+		fmt.Printf("Provider '%s' enabled.\n", providerName)
+	} else if *disable {
+		fmt.Printf("Provider '%s' disabled.\n", providerName)
+	}
+
+	// Show current status
+	if !cfg.Configured {
+		fmt.Printf("\nProvider '%s': not configured\n", providerName)
+	} else {
+		status := "disabled"
+		if cfg.Enabled {
+			status = "enabled"
+		}
+		fmt.Printf("\nProvider '%s':\n", providerName)
+		fmt.Printf("  Status:    %s\n", status)
+	}
+}
+
+// handleRemoteAuthProviders lists providers on a remote peer
+func handleRemoteAuthProviders(client *remote.Client) {
+	providers, err := client.ListAuthProviders()
+	if err != nil {
+		fmt.Printf("Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	if len(providers) == 0 {
+		fmt.Println("No providers configured.")
+		fmt.Println("Run: fazt @<peer> auth provider <name> --client-id <id> --client-secret <secret>")
+		return
+	}
+
+	fmt.Printf("%-12s %-10s %-40s\n", "PROVIDER", "STATUS", "CLIENT ID")
+	fmt.Println(strings.Repeat("-", 65))
+	for _, cfg := range providers {
+		status := "disabled"
+		if cfg.Enabled {
+			status = "enabled"
+		}
+		fmt.Printf("%-12s %-10s %-40s\n", cfg.Name, status, cfg.ClientID)
+	}
 }

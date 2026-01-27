@@ -136,9 +136,12 @@ func handlePeerCommand(peerName string, args []string) {
 			fmt.Printf("Error: only 'server info' can be executed remotely\n")
 			os.Exit(1)
 		}
+	case "auth":
+		// Auth commands via remote API
+		handleAuthCommandWithPeer(peerName, cmdArgs)
 	default:
 		fmt.Printf("Error: command '%s' cannot be executed remotely\n", command)
-		fmt.Println("Remote execution supported for: app, server info")
+		fmt.Println("Remote execution supported for: app, auth, server info")
 		os.Exit(1)
 	}
 }

@@ -429,6 +429,79 @@ func (c *Client) GetAppFileContent(appName, filePath string) ([]byte, error) {
 	return io.ReadAll(resp.Body)
 }
 
+// ProviderConfig represents an OAuth provider configuration
+type ProviderConfig struct {
+	Name        string `json:"name"`
+	DisplayName string `json:"display_name"`
+	Enabled     bool   `json:"enabled"`
+	ClientID    string `json:"client_id,omitempty"`
+	Configured  bool   `json:"configured,omitempty"`
+}
+
+// ListAuthProviders lists configured auth providers
+func (c *Client) ListAuthProviders() ([]ProviderConfig, error) {
+	resp, err := c.doRequest("GET", "/api/auth/providers", nil)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var apiResp APIResponse
+	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	if apiResp.Error != nil {
+		return nil, fmt.Errorf("%s: %s", apiResp.Error.Code, apiResp.Error.Message)
+	}
+
+	var providers []ProviderConfig
+	if err := json.Unmarshal(apiResp.Data, &providers); err != nil {
+		return nil, fmt.Errorf("failed to decode providers: %w", err)
+	}
+
+	return providers, nil
+}
+
+// ConfigureAuthProvider configures an OAuth provider
+func (c *Client) ConfigureAuthProvider(name, clientID, clientSecret string, enable *bool) (*ProviderConfig, error) {
+	reqBody := map[string]interface{}{}
+	if clientID != "" && clientSecret != "" {
+		reqBody["client_id"] = clientID
+		reqBody["client_secret"] = clientSecret
+	}
+	if enable != nil {
+		reqBody["enable"] = *enable
+	}
+
+	body, err := json.Marshal(reqBody)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := c.doRequest("PUT", "/api/auth/providers/"+name, bytes.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var apiResp APIResponse
+	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	if apiResp.Error != nil {
+		return nil, fmt.Errorf("%s: %s", apiResp.Error.Code, apiResp.Error.Message)
+	}
+
+	var cfg ProviderConfig
+	if err := json.Unmarshal(apiResp.Data, &cfg); err != nil {
+		return nil, fmt.Errorf("failed to decode provider config: %w", err)
+	}
+
+	return &cfg, nil
+}
+
 // doRequest performs an authenticated HTTP request
 func (c *Client) doRequest(method, path string, body io.Reader) (*http.Response, error) {
 	req, err := http.NewRequest(method, c.peer.URL+path, body)

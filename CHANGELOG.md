@@ -4,6 +4,25 @@ All notable changes to fazt.sh will be documented in this file.
 
 ## [Unreleased]
 
+## [0.11.1] - 2026-01-28
+
+### Added
+- **Remote Auth Commands**: Configure OAuth providers remotely
+  - `fazt @peer auth provider <name>` - configure providers via API
+  - `fazt @peer auth providers` - list configured providers
+  - New API endpoints: `GET/PUT /api/auth/providers/{name}`
+
+## [0.11.0] - 2026-01-27
+
+### Added
+- **Auth Primitive**: Complete authentication system
+  - OAuth providers: Google, GitHub, Discord, Microsoft
+  - SQLite-backed sessions with domain-wide SSO cookies
+  - JS runtime bindings: `fazt.auth.getUser()`, `requireAuth()`, etc.
+  - Invite code system for controlled signups
+  - CLI: `fazt auth provider|users|invite` commands
+  - First user becomes owner, role hierarchy (owner > admin > user)
+
 ## [0.10.15] - 2026-01-27
 
 ### Added

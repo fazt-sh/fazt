@@ -40,6 +40,10 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /auth/invite", h.CreateInvite)
 	mux.HandleFunc("GET /auth/invites", h.ListInvites)
 	mux.HandleFunc("GET /auth/providers", h.ListProvidersHandler)
+
+	// API routes (require API token - used by CLI)
+	mux.HandleFunc("GET /api/auth/providers", h.APIListProviders)
+	mux.HandleFunc("PUT /api/auth/providers/{name}", h.APIConfigureProvider)
 }
 
 // LoginPage renders the login page with provider buttons
@@ -526,4 +530,104 @@ func (h *Handler) renderErrorPage(w http.ResponseWriter, errorMsg string) {
 </html>`, errorMsg)
 
 	w.Write([]byte(html))
+}
+
+// API handlers (require Bearer token authentication)
+
+// APIListProviders returns all configured providers (for CLI)
+func (h *Handler) APIListProviders(w http.ResponseWriter, r *http.Request) {
+	providers, err := h.service.ListProviders()
+	if err != nil {
+		api.InternalError(w, err)
+		return
+	}
+
+	// Include all provider info for admin view
+	var result []map[string]interface{}
+	for _, cfg := range providers {
+		displayName := cfg.Name
+		if provider, ok := Providers[cfg.Name]; ok {
+			displayName = provider.DisplayName
+		}
+		clientIDDisplay := cfg.ClientID
+		if len(clientIDDisplay) > 20 {
+			clientIDDisplay = clientIDDisplay[:17] + "..."
+		}
+		result = append(result, map[string]interface{}{
+			"name":         cfg.Name,
+			"display_name": displayName,
+			"enabled":      cfg.Enabled,
+			"client_id":    clientIDDisplay,
+		})
+	}
+
+	api.Success(w, http.StatusOK, result)
+}
+
+// APIConfigureProvider configures an OAuth provider (for CLI)
+func (h *Handler) APIConfigureProvider(w http.ResponseWriter, r *http.Request) {
+	providerName := r.PathValue("name")
+	if providerName == "" {
+		api.BadRequest(w, "provider name required")
+		return
+	}
+
+	// Validate provider name
+	if _, ok := Providers[providerName]; !ok {
+		api.BadRequest(w, "unknown provider: "+providerName)
+		return
+	}
+
+	var req struct {
+		ClientID     string `json:"client_id"`
+		ClientSecret string `json:"client_secret"`
+		Enable       *bool  `json:"enable,omitempty"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		api.InvalidJSON(w, "Invalid request body")
+		return
+	}
+
+	// If credentials provided, set them
+	if req.ClientID != "" && req.ClientSecret != "" {
+		if err := h.service.SetProviderConfig(providerName, req.ClientID, req.ClientSecret); err != nil {
+			api.InternalError(w, err)
+			return
+		}
+	}
+
+	// Handle enable/disable
+	if req.Enable != nil {
+		if *req.Enable {
+			if err := h.service.EnableProvider(providerName); err != nil {
+				api.BadRequest(w, err.Error())
+				return
+			}
+		} else {
+			if err := h.service.DisableProvider(providerName); err != nil {
+				api.InternalError(w, err)
+				return
+			}
+		}
+	}
+
+	// Return current status
+	cfg, err := h.service.GetProviderConfig(providerName)
+	if err == ErrProviderDisabled {
+		api.Success(w, http.StatusOK, map[string]interface{}{
+			"name":       providerName,
+			"configured": false,
+		})
+		return
+	}
+	if err != nil {
+		api.InternalError(w, err)
+		return
+	}
+
+	api.Success(w, http.StatusOK, map[string]interface{}{
+		"name":       cfg.Name,
+		"enabled":    cfg.Enabled,
+		"configured": true,
+	})
 }
