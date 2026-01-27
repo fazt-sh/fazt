@@ -4,6 +4,11 @@ All notable changes to fazt.sh will be documented in this file.
 
 ## [Unreleased]
 
+## [0.11.3] - 2026-01-28
+
+### Fixed
+- Auth routes (`/auth/*`) now public - were blocked by auth middleware
+
 ## [0.11.2] - 2026-01-28
 
 ### Fixed

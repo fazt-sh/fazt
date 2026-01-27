@@ -81,6 +81,7 @@ func requiresAuth(path string) bool {
 		"/api/login",
 		"/api/deploy",
 		"/health",
+		"/auth/",
 	}
 
 	// Check if path matches any public path
