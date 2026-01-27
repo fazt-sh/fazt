@@ -1,11 +1,11 @@
 # Fazt Implementation State
 
 **Last Updated**: 2026-01-27
-**Current Version**: v0.10.15
+**Current Version**: v0.11.0
 
 ## Status
 
-State: IN_PROGRESS - Auth primitive implemented, needs real-world testing
+State: RELEASED - Auth primitive deployed to zyt.app, ready for testing
 
 ---
 
@@ -92,10 +92,9 @@ cmd/server/
 
 ## Next Up
 
-1. **Commit auth implementation** - Stage and commit all auth files
-2. **Test on zyt.app** with real OAuth provider (Google)
+1. **Configure OAuth on zyt.app** - Set up Google OAuth provider
+2. **Test auth flow** - Visit https://zyt.app/auth/login
 3. **Build test app** using `/fazt-app` with auth patterns
-4. **Consider v0.11 release** with auth system
 
 ---
 
