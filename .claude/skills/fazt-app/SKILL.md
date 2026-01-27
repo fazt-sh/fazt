@@ -20,6 +20,33 @@ This skill includes reference materials:
 
 Reference these files when building apps to follow established patterns.
 
+## Standard Assets
+
+Use the fazt branding assets from `.claude/fazt-assets/` for all apps unless
+the user specifies custom branding:
+
+```
+.claude/fazt-assets/
+├── apple-touch-icon.png   # 180x180 iOS home screen icon
+├── favicon.png            # Browser tab icon
+├── logo.png               # Full logo with background
+├── logo.svg               # Vector logo
+├── logo-transparent.png   # Logo with transparency
+└── social_preview.png     # OpenGraph/social sharing image
+```
+
+**Copy these to your app's root or `static/` directory:**
+```bash
+cp .claude/fazt-assets/favicon.png servers/zyt/<app>/
+cp .claude/fazt-assets/apple-touch-icon.png servers/zyt/<app>/
+```
+
+**Reference in index.html:**
+```html
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+```
+
 ## Capacity Awareness
 
 Before building, understand fazt's limits (see `koder/CAPACITY.md`):
@@ -73,6 +100,10 @@ Common peers (from CLAUDE.md):
 # CORRECT - create in servers/<peer>/ (typically servers/zyt/ for production apps)
 mkdir -p servers/zyt/<name>
 cd servers/zyt/<name>
+
+# Copy standard assets (favicon, icons)
+cp .claude/fazt-assets/favicon.png servers/zyt/<name>/
+cp .claude/fazt-assets/apple-touch-icon.png servers/zyt/<name>/
 
 # WRONG - never create in repo root!
 # This pollutes the fazt source code
@@ -138,6 +169,10 @@ Example: `fazt app deploy servers/zyt/myapp --to zyt` → `https://myapp.zyt.app
   <meta name="apple-mobile-web-app-title" content="App Name">
   <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)">
+
+  <!-- Favicon (copy from .claude/fazt-assets/) -->
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 
   <title>App Name</title>
 
