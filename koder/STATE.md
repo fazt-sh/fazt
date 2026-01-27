@@ -1,139 +1,105 @@
 # Fazt Implementation State
 
-**Last Updated**: 2026-01-27
-**Current Version**: v0.11.0
+**Last Updated**: 2026-01-28
+**Current Version**: v0.11.5
 
 ## Status
 
-State: RELEASED - Auth primitive deployed to zyt.app, ready for testing
+State: RELEASED - Auth working end-to-end, guestbook app functional
 
 ---
 
 ## Last Session
 
-**Auth Primitive Implementation (Plan 23) + fazt-app Skill Update**
+**Guestbook App + Auth Fixes (v0.11.1 - v0.11.5)**
 
-1. **Implemented Complete Auth System** (`internal/auth/`)
-   - `service.go` - Main AuthService orchestrator
-   - `users.go` - User CRUD operations with roles (owner/admin/user)
-   - `sessions_db.go` - SQLite-backed session management
-   - `providers.go` - OAuth configs (Google, GitHub, Discord, Microsoft)
-   - `oauth.go` - State management, CSRF protection
-   - `handlers.go` - HTTP handlers for login, callback, logout
-   - `invites.go` - Invite code system for password users
-   - `service_test.go` - Unit tests (all passing)
+1. **Remote Auth Commands** (v0.11.1)
+   - `fazt @peer auth provider <name>` - configure providers via API
+   - New API endpoints: `GET/PUT /api/auth/providers/{name}`
 
-2. **Database Migration**
-   - `internal/database/migrations/015_auth.sql` - Schema for auth tables
+2. **Auth Migration Fix** (v0.11.2)
+   - Migration 015_auth.sql wasn't in migrations array
 
-3. **Runtime Integration**
-   - `internal/runtime/auth_bindings.go` - JS API (`fazt.auth.*`)
-   - Modified `handler.go` - AuthContext injection
+3. **Auth Routes Public** (v0.11.3)
+   - Added `/auth/` to public paths in middleware
 
-4. **CLI Commands**
-   - `cmd/server/auth.go` - `fazt auth provider|users|invite` commands
-   - Modified `main.go` - Auth service init, routes registration
+4. **Auth on All Subdomains** (v0.11.4)
+   - Auth routes work on any subdomain, not just admin
+   - OAuth users always get 'user' role (owner separate)
 
-5. **Updated fazt-app Skill**
-   - Added authentication patterns documentation
-   - Vue `useAuth` composable pattern
-   - Protected API and page patterns
-   - Auth + Sessions combined pattern
-   - Updated instructions for auth decisions
+5. **OAuth Subdomain Fix** (v0.11.5)
+   - Callback URLs always use root domain (zyt.app)
+   - Fixes redirect_uri_mismatch when logging in from subdomains
 
-## Files Created
+6. **Guestbook App** (`servers/zyt/guestbook/`)
+   - Full auth-protected guestbook with Google sign-in
+   - Uses `fazt.storage.ds.*` for message storage
+   - Avatar-based auth UI with popup/dropdown
+   - Messages only visible when signed in
 
-```
-internal/auth/
-  service.go         # Main auth service
-  users.go           # User CRUD
-  sessions_db.go     # SQLite session management
-  providers.go       # OAuth provider configs
-  oauth.go           # OAuth flow (state, callback)
-  handlers.go        # HTTP handlers
-  invites.go         # Invite code system
-  bindings.go        # JS API bindings (unused - runtime one is used)
-  service_test.go    # Tests
+## Key Learnings
 
-internal/runtime/
-  auth_bindings.go   # Runtime auth injection
+- Serverless entry point must be `api/main.js` (not per-route files)
+- Must call `handler(request)` at end of main.js (runtime doesn't auto-invoke)
+- Storage API: `fazt.storage.ds.find()` / `fazt.storage.ds.insert()` (not query/put)
+- `fazt.uuid()` doesn't exist - let ds.insert auto-generate IDs
+- OAuth callbacks must use root domain for all subdomains
 
-internal/database/migrations/
-  015_auth.sql       # Database schema
+---
 
-cmd/server/
-  auth.go            # CLI commands
-```
+## Next Explorations
 
-## Files Modified
+### Guestbook Improvements
 
-- `cmd/server/main.go` - Auth service init, routes, CLI command
-- `internal/runtime/handler.go` - AuthContext, auth injector
-- `.claude/skills/fazt-app/SKILL.md` - Auth patterns documentation
+- [ ] Remove "Welcome Sign in to leave messages" - just show sign-in button
+- [ ] Pagination - show 20 messages per page
+- [ ] FAB + modal for adding entries (better UX than inline form)
+- [ ] Inner page version - guestbook as route on zyt.app vs subdomain
+
+### Auth DX Improvements
+
+- [ ] **Runtime helpers**: Fold common auth patterns into JS runtime
+  - Auto-redirect to login?
+  - `fazt.auth.requireUser()` that handles the flow?
+  - Session refresh helpers?
+
+- [ ] **Headless components**: Reusable patterns for auth flows
+  - Sign-in button component
+  - Auth state provider
+  - Protected route wrapper
+
+- [ ] **Update /fazt-app skill**: Capture patterns from guestbook
+  - Document the working flow
+  - Storage API usage patterns
+  - Auth integration patterns
+  - Common pitfalls (main.js, handler call, etc.)
 
 ---
 
 ## What Works
 
-- [x] Database schema and migrations
-- [x] User creation (first user = owner)
-- [x] OAuth provider configuration via CLI
-- [x] OAuth state management (CSRF protection)
-- [x] Session creation and validation
-- [x] Domain-wide SSO cookies
-- [x] JS runtime bindings (`fazt.auth.*`)
-- [x] Invite code generation and redemption
-- [x] Password user signup via invites
-- [x] Login/logout HTTP handlers
-- [x] CLI commands for user/invite management
-- [x] All unit tests passing
-
----
-
-## Next Up
-
-1. **Configure OAuth on zyt.app** - Set up Google OAuth provider
-2. **Test auth flow** - Visit https://zyt.app/auth/login
-3. **Build test app** using `/fazt-app` with auth patterns
-
----
-
-## Testing Notes
-
-**Cannot be tested automatically (requires real OAuth credentials):**
-- OAuth flow with real providers
-- Subdomain SSO (requires real domain)
-- Cookie behavior in browser
-
-**To test on zyt.app:**
-```bash
-# 1. Configure a provider
-fazt auth provider google \
-  --client-id "xxx.apps.googleusercontent.com" \
-  --client-secret "GOCSPX-xxx" \
-  --db servers/zyt/data.db
-fazt auth provider google --enable --db servers/zyt/data.db
-
-# 2. Visit https://zyt.app/auth/login
-
-# 3. Test JS API in an app
-```
+- [x] OAuth with Google (configured on zyt.app)
+- [x] Domain-wide SSO cookies (`.zyt.app`)
+- [x] Auth from any subdomain (redirects properly)
+- [x] JS runtime bindings (`fazt.auth.getUser()`)
+- [x] Document storage (`fazt.storage.ds.*`)
+- [x] Guestbook app end-to-end
 
 ---
 
 ## Quick Reference
 
 ```bash
-# Configure provider
-fazt auth provider google --client-id XXX --client-secret YYY
-fazt auth provider google --enable
+# Configure OAuth provider remotely
+fazt @zyt auth provider google --client-id XXX --client-secret YYY
+fazt @zyt auth provider google --enable
 
-# List users
-fazt auth users
+# Deploy app
+fazt app deploy servers/zyt/guestbook --to zyt
 
-# Create invite
-fazt auth invite --role user
+# Check server status
+fazt remote status zyt
 
-# View invites
-fazt auth invites
+# Upgrade server
+fazt remote upgrade zyt
 ```
