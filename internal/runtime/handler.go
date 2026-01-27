@@ -17,11 +17,24 @@ import (
 	"github.com/fazt-sh/fazt/internal/worker"
 )
 
+// AuthContext holds authentication information for a request
+type AuthContext struct {
+	User      interface{} // *auth.User
+	SessionID string
+}
+
+// AuthProvider is an interface for getting auth from a request
+type AuthProvider interface {
+	GetSessionFromRequest(r *http.Request) (interface{}, error)
+	Domain() string
+}
+
 // ServerlessHandler handles requests to /api/* paths by executing JavaScript.
 type ServerlessHandler struct {
-	runtime *Runtime
-	db      *sql.DB
-	storage *storage.Storage
+	runtime      *Runtime
+	db           *sql.DB
+	storage      *storage.Storage
+	authProvider AuthProvider
 }
 
 // NewServerlessHandler creates a new serverless handler.
@@ -31,6 +44,11 @@ func NewServerlessHandler(db *sql.DB) *ServerlessHandler {
 		db:      db,
 		storage: storage.New(db),
 	}
+}
+
+// SetAuthProvider sets the auth provider for extracting user from requests
+func (h *ServerlessHandler) SetAuthProvider(provider AuthProvider) {
+	h.authProvider = provider
 }
 
 // NewServerlessHandlerWithRuntime creates a handler with a custom runtime.
@@ -76,17 +94,43 @@ func (h *ServerlessHandler) HandleRequest(w http.ResponseWriter, r *http.Request
 		Name: appName,
 	}
 
+	// Extract auth context from request if auth provider is configured
+	var authCtx *AuthContext
+	if h.authProvider != nil {
+		if user, err := h.authProvider.GetSessionFromRequest(r); err == nil && user != nil {
+			authCtx = &AuthContext{User: user}
+		}
+	}
+
 	// Execute with a timeout
 	execCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	result := h.executeWithFazt(execCtx, mainJS, req, loader, app, env)
+	result := h.executeWithFazt(execCtx, mainJS, req, loader, app, env, authCtx)
 
 	// Persist logs to database
 	h.persistLogs(appID, result.Logs, result.Error)
 
 	// Handle errors
 	if result.Error != nil {
+		// Check for auth redirect errors
+		if redirect, ok := IsAuthRedirectError(result.Error); ok {
+			debug.RuntimeReq(reqID, appName, r.URL.Path, 302, time.Since(start))
+			http.Redirect(w, r, redirect.URL, http.StatusTemporaryRedirect)
+			return
+		}
+
+		// Check for auth forbidden errors
+		if forbidden, ok := IsAuthForbiddenError(result.Error); ok {
+			debug.RuntimeReq(reqID, appName, r.URL.Path, 403, time.Since(start))
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusForbidden)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"error": forbidden.Error(),
+			})
+			return
+		}
+
 		w.Header().Set("Content-Type", "application/json")
 
 		// Check for retryable errors (overload, timeout)
@@ -151,7 +195,7 @@ func generateRequestID() string {
 }
 
 // executeWithFazt executes code with the fazt namespace injected.
-func (h *ServerlessHandler) executeWithFazt(ctx context.Context, code string, req *Request, loader FileLoader, app *AppContext, env EnvVars) *ExecuteResult {
+func (h *ServerlessHandler) executeWithFazt(ctx context.Context, code string, req *Request, loader FileLoader, app *AppContext, env EnvVars, authCtx *AuthContext) *ExecuteResult {
 	// Create injectors for fazt namespace and storage
 	result := &ExecuteResult{Logs: make([]LogEntry, 0)}
 
@@ -180,7 +224,11 @@ func (h *ServerlessHandler) executeWithFazt(ctx context.Context, code string, re
 		return nil
 	}
 
-	return h.runtime.ExecuteWithInjectors(ctx, code, req, loader, faztInjector, storageInjector, realtimeInjector, workerInjector)
+	authInjector := func(vm *goja.Runtime) error {
+		return InjectAuthNamespace(vm, authCtx, app)
+	}
+
+	return h.runtime.ExecuteWithInjectors(ctx, code, req, loader, faztInjector, storageInjector, realtimeInjector, workerInjector, authInjector)
 }
 
 // loadFile loads a file from the VFS for a given app.

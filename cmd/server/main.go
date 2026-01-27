@@ -101,6 +101,8 @@ func main() {
 		handleDeployCommand() // Alias for client deploy
 	case "upgrade":
 		handleUpgradeCommand()
+	case "auth":
+		handleAuthCommand(os.Args[2:])
 	default:
 		fmt.Printf("Unknown command: %s\n\n", command)
 		printUsage()
@@ -2711,6 +2713,16 @@ func handleStartCommand() {
 	// Initialize auth handlers with session store and rate limiter
 	handlers.InitAuth(sessionStore, rateLimiter, config.Version)
 
+	// Initialize multi-user auth service (v0.16)
+	isSecure := cfg.Server.Env == "production" || cfg.HTTPS.Enabled
+	authService := auth.NewService(database.GetDB(), cfg.Server.Domain, isSecure)
+	authHandler := auth.NewHandler(authService)
+
+	// Start auth cleanup routine
+	authStopChan := make(chan struct{})
+	authService.StartCleanupRoutine(authStopChan)
+	defer close(authStopChan)
+
 	// Display auth status (v0.4.0: auth always required)
 	fmt.Printf("  Authentication: ✓ Enabled (user: %s)\n", cfg.Auth.Username)
 	fmt.Println()
@@ -2747,6 +2759,9 @@ func handleStartCommand() {
 	// Initialize serverless handler with storage support
 	serverlessHandler = jsruntime.NewServerlessHandler(database.GetDB())
 
+	// Connect auth service to serverless handler for fazt.auth.* bindings
+	serverlessHandler.SetAuthProvider(auth.NewAuthProviderAdapter(authService))
+
 	// Restore daemon workers from previous run
 	if err := worker.RestoreDaemons(); err != nil {
 		log.Printf("Warning: Failed to restore daemon workers: %v", err)
@@ -2772,11 +2787,14 @@ func handleStartCommand() {
 	// Create dashboard router (existing dashboard functionality)
 	dashboardMux := http.NewServeMux()
 
-	// Authentication routes
+	// Authentication routes (admin dashboard)
 	dashboardMux.HandleFunc("/api/login", handlers.LoginHandler)
 	dashboardMux.HandleFunc("/api/logout", handlers.LogoutHandler)
 	dashboardMux.HandleFunc("/api/auth/status", handlers.AuthStatusHandler)
 	dashboardMux.HandleFunc("/api/user/me", handlers.UserMeHandler)
+
+	// Multi-user auth routes (v0.16)
+	authHandler.RegisterRoutes(dashboardMux)
 
 	// API routes - Tracking
 	dashboardMux.HandleFunc("/track", handlers.TrackHandler)
