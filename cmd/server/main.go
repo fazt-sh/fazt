@@ -1306,7 +1306,7 @@ func printVersion() {
 
 // - Requests to subdomains go to the site handler
 
-func createRootHandler(cfg *config.Config, dashboardMux *http.ServeMux, sessionStore *auth.SessionStore) http.Handler {
+func createRootHandler(cfg *config.Config, dashboardMux *http.ServeMux, sessionStore *auth.SessionStore, authHandler *auth.Handler) http.Handler {
 
 	// Parse the main domain from config
 
@@ -1345,6 +1345,13 @@ func createRootHandler(cfg *config.Config, dashboardMux *http.ServeMux, sessionS
 			// Rewrite the request path and serve the app
 			r.URL.Path = remaining
 			siteHandler(w, r, appID)
+			return
+		}
+
+		// Auth routes (/auth/*) available on root domain and all subdomains
+		// This enables OAuth login for app users across the entire domain
+		if strings.HasPrefix(r.URL.Path, "/auth/") {
+			authHandler.ServeHTTP(w, r)
 			return
 		}
 
@@ -2904,7 +2911,7 @@ func handleStartCommand() {
 	})
 
 	// Create the root handler with host-based routing
-	rootHandler := createRootHandler(cfg, dashboardMux, sessionStore)
+	rootHandler := createRootHandler(cfg, dashboardMux, sessionStore, authHandler)
 
 	// Apply middleware (order: tracing -> logging -> body limit -> security -> cors -> recovery -> root)
 	handler := middleware.RequestTracing(

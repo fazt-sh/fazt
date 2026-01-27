@@ -12,11 +12,37 @@ import (
 // Handler wraps the auth service for HTTP handlers
 type Handler struct {
 	service *Service
+	mux     *http.ServeMux
 }
 
 // NewHandler creates a new auth handler
 func NewHandler(service *Service) *Handler {
-	return &Handler{service: service}
+	h := &Handler{
+		service: service,
+		mux:     http.NewServeMux(),
+	}
+	// Register routes on internal mux for ServeHTTP
+	h.registerInternalRoutes()
+	return h
+}
+
+// ServeHTTP implements http.Handler for standalone auth routing
+func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	h.mux.ServeHTTP(w, r)
+}
+
+// registerInternalRoutes registers auth routes on the internal mux
+func (h *Handler) registerInternalRoutes() {
+	// Public routes (OAuth flow)
+	h.mux.HandleFunc("GET /auth/login", h.LoginPage)
+	h.mux.HandleFunc("GET /auth/login/{provider}", h.StartLogin)
+	h.mux.HandleFunc("GET /auth/callback/{provider}", h.Callback)
+	h.mux.HandleFunc("GET /auth/session", h.Session)
+	h.mux.HandleFunc("POST /auth/logout", h.Logout)
+
+	// Invite routes
+	h.mux.HandleFunc("GET /auth/invite/{code}", h.InvitePage)
+	h.mux.HandleFunc("POST /auth/invite/{code}", h.RedeemInvite)
 }
 
 // RegisterRoutes registers auth routes on a mux

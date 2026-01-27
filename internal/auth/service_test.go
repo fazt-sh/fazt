@@ -84,22 +84,22 @@ func TestCreateUser(t *testing.T) {
 	db := setupTestDB(t)
 	service := NewService(db, "test.com", false)
 
-	// First user should become owner
-	user, err := service.CreateUser("owner@test.com", "Owner", "", "google", nil)
+	// All OAuth users should be regular users (owner is the server admin, separate auth)
+	user, err := service.CreateUser("first@test.com", "First User", "", "google", nil)
 	if err != nil {
 		t.Fatalf("Failed to create user: %v", err)
 	}
-	if user.Role != "owner" {
-		t.Errorf("Expected first user to be owner, got %s", user.Role)
+	if user.Role != "user" {
+		t.Errorf("Expected OAuth user to be user, got %s", user.Role)
 	}
 
-	// Second user should be regular user
-	user2, err := service.CreateUser("user@test.com", "User", "", "github", nil)
+	// Second user should also be regular user
+	user2, err := service.CreateUser("second@test.com", "Second User", "", "github", nil)
 	if err != nil {
 		t.Fatalf("Failed to create second user: %v", err)
 	}
 	if user2.Role != "user" {
-		t.Errorf("Expected second user to be user, got %s", user2.Role)
+		t.Errorf("Expected second OAuth user to be user, got %s", user2.Role)
 	}
 }
 

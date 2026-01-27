@@ -4,6 +4,13 @@ All notable changes to fazt.sh will be documented in this file.
 
 ## [Unreleased]
 
+## [0.11.4] - 2026-01-28
+
+### Changed
+- Auth routes (`/auth/*`) now available on root domain and all subdomains
+- OAuth users are always `user` role (owner is separate server admin)
+- Cleaner separation: server admin vs app users
+
 ## [0.11.3] - 2026-01-28
 
 ### Fixed

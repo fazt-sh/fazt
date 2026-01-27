@@ -43,13 +43,9 @@ func (s *Service) CreateUser(email, name, picture, provider string, providerID *
 	id := generateUUID()
 	now := time.Now().Unix()
 
-	// First user becomes owner
+	// OAuth users are always regular users
+	// Owner is the server admin (separate auth flow)
 	role := "user"
-	var count int
-	s.db.QueryRow(`SELECT COUNT(*) FROM auth_users`).Scan(&count)
-	if count == 0 {
-		role = "owner"
-	}
 
 	_, err := s.db.Exec(`
 		INSERT INTO auth_users (id, email, name, picture, provider, provider_id, role, created_at, last_login)
@@ -90,13 +86,9 @@ func (s *Service) CreatePasswordUser(email, name, password, invitedBy string) (*
 	id := generateUUID()
 	now := time.Now().Unix()
 
-	// First user becomes owner
+	// Password users via invite are always regular users
+	// Owner is the server admin (separate auth flow)
 	role := "user"
-	var count int
-	s.db.QueryRow(`SELECT COUNT(*) FROM auth_users`).Scan(&count)
-	if count == 0 {
-		role = "owner"
-	}
 
 	var invitedByPtr *string
 	if invitedBy != "" {
