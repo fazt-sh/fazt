@@ -109,13 +109,13 @@ func (h *Handler) StartLogin(w http.ResponseWriter, r *http.Request) {
 	}
 	appID := r.URL.Query().Get("app")
 
-	// Build callback URL
+	// Build callback URL - always use root domain for OAuth
 	scheme := "https"
 	if !h.service.IsSecure() {
 		scheme = "http"
 	}
-	host := r.Host
-	callbackURL := fmt.Sprintf("%s://%s/auth/callback/%s", scheme, host, providerName)
+	// Use configured domain (root), not request host (could be subdomain)
+	callbackURL := fmt.Sprintf("%s://%s/auth/callback/%s", scheme, h.service.Domain(), providerName)
 
 	// Start OAuth flow
 	authURL, err := h.service.StartOAuthFlow(providerName, redirectTo, appID, callbackURL)
@@ -155,8 +155,8 @@ func (h *Handler) Callback(w http.ResponseWriter, r *http.Request) {
 	if !h.service.IsSecure() {
 		scheme = "http"
 	}
-	host := r.Host
-	callbackURL := fmt.Sprintf("%s://%s/auth/callback/%s", scheme, host, providerName)
+	// Use configured domain (root), not request host (could be subdomain)
+	callbackURL := fmt.Sprintf("%s://%s/auth/callback/%s", scheme, h.service.Domain(), providerName)
 
 	// Complete OAuth flow
 	sessionToken, _, redirectTo, err := h.service.CompleteOAuthFlow(providerName, code, state, callbackURL)

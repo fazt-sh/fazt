@@ -4,6 +4,11 @@ All notable changes to fazt.sh will be documented in this file.
 
 ## [Unreleased]
 
+## [0.11.5] - 2026-01-28
+
+### Fixed
+- OAuth callback URLs now always use root domain (fixes login from subdomains)
+
 ## [0.11.4] - 2026-01-28
 
 ### Changed
