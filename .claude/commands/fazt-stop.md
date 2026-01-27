@@ -117,7 +117,46 @@ git push origin master
 - Commit them separately with appropriate message first
 - Or leave for next session if incomplete
 
-### 7. Verify Clean State
+### 7. Consider Release
+
+**Always explicitly reason about whether to release.** Ask:
+
+1. **Was code committed this session?** If no, skip release.
+
+2. **Can the changes be tested without deployment?**
+   - Unit tests only → Maybe defer release
+   - Requires server/browser/real APIs → Release needed to test
+
+3. **What's the risk of releasing untested?**
+   - Low risk (additive, isolated) → Release and test
+   - High risk (breaking changes) → Defer if possible
+
+**Decision matrix:**
+
+| Changes | Testable Locally? | Action |
+|---------|-------------------|--------|
+| Bug fix | Yes | Release after local test |
+| Bug fix | No (needs server) | Release to test |
+| New feature | Yes | Test first, then release |
+| New feature | No (needs server) | Release to test |
+| Refactor | Yes | Test first, then release |
+
+**If releasing:** Use `/fazt-release` skill.
+
+**If not releasing:** Document why in the session output:
+```
+### Release
+Not released: [reason - e.g., "No code changes" or "Can test locally first"]
+```
+
+**Common "needs deployment to test" scenarios:**
+- OAuth/auth flows (need real redirect URIs)
+- Cookie/session handling (need real domains)
+- TLS/HTTPS behavior
+- Domain routing
+- External API integrations
+
+### 8. Verify Clean State
 
 ```bash
 git status --short
@@ -125,7 +164,7 @@ git status --short
 
 Should show nothing (clean working tree).
 
-### 8. Output
+### 9. Output
 
 ```
 ## Session Closed
@@ -145,6 +184,9 @@ Should show nothing (clean working tree).
 | zyt | X.Y.Z | healthy |
 
 **Git**: clean
+
+### Release
+[Released vX.Y.Z] or [Not released: reason]
 
 ### This Session
 - [What was done]
