@@ -56,18 +56,11 @@ Or if not installed:
 ```
 ## Session Ready
 
-**Version**: vX.Y.Z
-
-| Component | Version | Status |
-|-----------|---------|--------|
-| Source    | X.Y.Z   | -      |
-| Binary    | X.Y.Z   | ✓      |
-
-**Remotes**:
-| Name | Status | Default |
-|------|--------|---------|
-| local | healthy | |
-| <name> | healthy | * |
+| Component | Version | Status  |
+|-----------|---------|---------|
+| Source    | X.Y.Z   | -       |
+| Local     | X.Y.Z   | healthy |
+| Remote    | X.Y.Z   | healthy |
 
 **Git**: clean | X uncommitted changes
 
@@ -79,8 +72,8 @@ Or if not installed:
 ```
 
 If versions mismatch:
-- Source != Binary → Rebuild: `go build -o ~/.local/bin/fazt ./cmd/server`
-- Binary out of sync with remote → Restart local or consider release
+- Source != Local → Rebuild: `go build -o ~/.local/bin/fazt ./cmd/server`
+- Source != Remote → Consider release
 
 ## Quick Commands
 
