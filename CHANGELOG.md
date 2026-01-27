@@ -4,6 +4,11 @@ All notable changes to fazt.sh will be documented in this file.
 
 ## [Unreleased]
 
+## [0.11.2] - 2026-01-28
+
+### Fixed
+- Auth migration (015_auth.sql) not running - was missing from migration registry
+
 ## [0.11.1] - 2026-01-28
 
 ### Added
