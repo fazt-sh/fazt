@@ -1,4 +1,4 @@
-# Fazt Session Stop
+# Fazt Session Close
 
 Close session with proper handoff for next time. Leaves repo in a clean state.
 

@@ -1,4 +1,4 @@
-# Fazt Session Start
+# Fazt Session Open
 
 Get up to speed quickly at the beginning of a work session.
 
