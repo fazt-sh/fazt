@@ -1,61 +1,70 @@
 # Fazt Implementation State
 
-**Last Updated**: 2026-01-28
+**Last Updated**: 2026-01-29
 **Current Version**: v0.11.5
 
 ## Status
 
-State: CLEAN - Skills reorganized, moved to global ~/.claude/
+State: CLEAN - fazt-app skill restructured, mock OAuth planned
+
+---
+
+## Next Up
+
+### Plan 24: Mock OAuth Provider
+
+Enable full auth flow testing locally without code changes.
+
+```
+Local:  "Sign in" → Dev form → Session → fazt.auth.getUser() ✓
+Remote: "Sign in" → Google   → Session → fazt.auth.getUser() ✓
+```
+
+Same code. Same API. Different provider.
+
+**Key features:**
+- Dev login form at `/auth/dev/login` (local only)
+- Creates real session (same as production OAuth)
+- Role selection for testing admin/owner flows
+- Blocked on HTTPS (production safe)
+
+See: `koder/plans/24_mock_oauth.md`
 
 ---
 
 ## Last Session
 
-**Skills & Commands Reorganization**
+**fazt-app Skill Restructuring**
 
-1. **Created /fazt-app skill** (comprehensive)
-   - Full Vue + Pinia + Tailwind stack
-   - Patterns: layout, modals, testing, google-oauth
-   - Examples: cashflow reference app
-   - Templates: complete app scaffold
-   - Auth workflow with provider check
+1. **Restructured into granular files** (was 938 lines, now 16 files)
+   - `fazt/` - Platform docs (overview, cli-*, deployment)
+   - `references/` - APIs, auth integration, design system
+   - `patterns/` - Layout, modals, testing
+   - `examples/` - Cashflow reference app
 
-2. **Moved skills to global ~/.claude/**
-   - `~/.claude/skills/fazt-app/` - app development
-   - `~/.claude/skills/agent-browser/` - browser automation
-   - `~/.claude/fazt-assets/` - branding assets
+2. **Made skill generic** (removed zyt.app references)
+   - Uses `<peer>`, `<remote-peer>`, `<domain>` placeholders
+   - Anyone can use with their own fazt setup
 
-3. **Renamed repo commands** (shorter names)
-   - `/fazt-start` → `/open`
-   - `/fazt-stop` → `/close`
-   - `/fazt-release` → `/release`
-   - `/fazt-ideate` → `/ideate`
-   - `/fazt-lite-extract` → `/lite-extract`
+3. **Added key documentation:**
+   - "Build free, but buildable" paradigm explained
+   - Auth evaluation workflow (when to ask user)
+   - OAuth requires remote (HTTPS) - clearly documented
+   - Always deploy `dist/` for production
 
-4. **Cleaned up repo's .claude/**
-   - Removed skills/ (now global)
-   - Removed fazt-assets/ (now global)
-   - Only repo-specific commands remain
+4. **Updated philosophy** (from scratch/01_fork-to-multiuser.md)
+   - "Single-owner compute node that can support multiple users"
+   - Comparable to Supabase/Vercel in value, fully self-contained
 
-## Key Learnings
+## Ideas for Later
 
-- Skills format: `~/.claude/skills/<name>/SKILL.md` with YAML frontmatter
-- Commands format: `~/.claude/commands/<name>.md` (simpler)
-- `fazt @<peer> auth providers` - check if OAuth configured
-- Global skills work across all repos
+### Docs as Claude Skill (`fazt ai skill`)
 
----
-
-## Next Explorations
-
-### Guestbook Improvements (from previous session)
-- [ ] Pagination - show 20 messages per page
-- [ ] FAB + modal for adding entries
-- [ ] Inner page version - guestbook as route on zyt.app
-
-### Auth DX
-- [ ] Runtime helpers for common auth patterns
-- [ ] Headless auth components
+Instead of building help search into CLI, ship docs as installable skill:
+- Docs live with source (always synced)
+- `fazt ai skill install --global` copies to ~/.claude/skills/fazt/
+- LLM does search/comprehension (no CLI complexity)
+- See: `koder/ideas/specs/v0.12-agentic/skill.md`
 
 ---
 
@@ -73,5 +82,5 @@ State: CLEAN - Skills reorganized, moved to global ~/.claude/
 /qwen-research          # Deep research
 
 # Check OAuth status
-fazt @zyt auth providers
+fazt @<peer> auth providers
 ```
