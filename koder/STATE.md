@@ -71,6 +71,39 @@ See: `koder/plans/25_sql_command.md`
    - `fazt sql` for local/remote database queries
    - Debugging without SSH or direct db access
 
+## Issues Found (Lens Integration)
+
+Real-world OAuth integration uncovered these fazt issues:
+
+### 1. Deploy Doesn't Auto-Include api/ Folder
+
+`fazt app deploy` only deploys the build output directory (`dist/`). Projects with `api/` at root must manually copy it into dist.
+
+**Current workaround:** `"build": "vite build && cp -r api dist/"`
+
+**Expected:** fazt should auto-detect `api/` at project root and merge with build output.
+
+### 2. Serverless Code Has Quirks
+
+- `return` statements cause "Illegal return statement" error
+- Complex if/else chains can cause timeouts
+- `fazt.auth.getUser()` intermittently times out (cold start?)
+
+**Current workaround:** Keep API code minimal, single respond() call. Frontend needs retry logic.
+
+**Expected:** More robust JS execution, better error messages.
+
+### 3. Logout Requires POST (Not Documented)
+
+`/auth/logout` returns 405 on GET. Must use POST. Not mentioned in skill docs.
+
+**Fix:** Update auth docs to show POST requirement:
+```javascript
+fetch('/auth/logout', { method: 'POST' })
+```
+
+---
+
 ## Ideas for Later
 
 ### Docs as Claude Skill (`fazt ai skill`)
