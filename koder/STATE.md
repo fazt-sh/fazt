@@ -5,7 +5,7 @@
 
 ## Status
 
-State: CLEAN - fazt-app skill restructured, mock OAuth planned
+State: CLEAN - skill docs fixed, SQL command planned
 
 ---
 
@@ -30,31 +30,46 @@ Same code. Same API. Different provider.
 
 See: `koder/plans/24_mock_oauth.md`
 
+### Plan 25: SQL Command
+
+Debug local and remote fazt instances with direct SQL queries.
+
+```bash
+fazt sql "SELECT * FROM apps"              # Local
+fazt @zyt sql "SELECT * FROM auth_users"   # Remote
+```
+
+**Key features:**
+- Read-only by default, `--write` flag for mutations
+- Table, JSON, CSV output formats
+- API endpoint `POST /api/sql` for remote
+- Same syntax local and remote
+
+See: `koder/plans/25_sql_command.md`
+
 ---
 
 ## Last Session
 
-**fazt-app Skill Restructuring**
+**fazt-app Skill Documentation Fixes**
 
-1. **Restructured into granular files** (was 938 lines, now 16 files)
-   - `fazt/` - Platform docs (overview, cli-*, deployment)
-   - `references/` - APIs, auth integration, design system
-   - `patterns/` - Layout, modals, testing
-   - `examples/` - Cashflow reference app
+1. **Fixed deployment docs** - `fazt app deploy` has built-in build
+   - Point at project root, not `dist/`
+   - Auto-detects package.json, runs build, deploys output
+   - Updated SKILL.md, deployment.md, cli-app.md
 
-2. **Made skill generic** (removed zyt.app references)
-   - Uses `<peer>`, `<remote-peer>`, `<domain>` placeholders
-   - Anyone can use with their own fazt setup
+2. **Fixed OAuth redirect bug in docs**
+   - OAuth flows through root domain
+   - Relative redirects (`/path`) lose subdomain after callback
+   - Must use absolute URLs (`window.location.href`)
+   - Updated auth-integration.md, SKILL.md, patterns/google-oauth.md
 
-3. **Added key documentation:**
-   - "Build free, but buildable" paradigm explained
-   - Auth evaluation workflow (when to ask user)
-   - OAuth requires remote (HTTPS) - clearly documented
-   - Always deploy `dist/` for production
+3. **Removed hardcoded zyt.app references**
+   - Replaced with generic `<domain>`, `example.com` placeholders
 
-4. **Updated philosophy** (from scratch/01_fork-to-multiuser.md)
-   - "Single-owner compute node that can support multiple users"
-   - Comparable to Supabase/Vercel in value, fully self-contained
+4. **Created Plan 25: SQL Command**
+   - `fazt sql` for local/remote database queries
+   - Debugging without SSH or direct db access
 
 ## Ideas for Later
 
