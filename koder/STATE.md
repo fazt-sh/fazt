@@ -5,7 +5,18 @@
 
 ## Status
 
-State: **ACTION REQUIRED** - security vulnerabilities identified by harness
+State: **ACTION REQUIRED** - security vulnerabilities block production readiness
+
+---
+
+## Vision Reminder
+
+Fazt aims to be **Supabase/Vercel-level capability** in a single binary + SQLite:
+- Target: $6 VPS handling real production traffic
+- Standard: "Install & it just works" - no config nightmare
+- Bar: If it's not production-ready, it's not ready
+
+These findings are **BLOCKERS**, not nice-to-haves.
 
 ---
 

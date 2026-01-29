@@ -6,6 +6,33 @@
 
 ---
 
+## Vision Context
+
+**What fazt is aiming to be:**
+- Supabase/Vercel-level capability in a single binary + SQLite
+- For individuals and small teams who want complete stack control
+- "Install & it just works" - no configuration nightmare
+- Target deployment: $6 VPS that handles real production traffic
+- Immaculate performance, security, and developer experience
+
+**Development philosophy:**
+- We dig deep and work hard on fazt internals
+- We increase fazt complexity to simplify consumer experience
+- Every rough edge we encounter, we polish until it's elegant
+- If it's not production-ready, it's not ready
+
+**This means these findings are BLOCKERS, not nice-to-haves.**
+
+A $6 VPS exposed to the internet will face:
+- Bot traffic, scrapers, vulnerability scanners
+- Opportunistic attackers trying common exploits
+- Traffic spikes from legitimate usage
+- All of the above simultaneously
+
+Fazt must handle this gracefully out of the box.
+
+---
+
 ## Executive Summary
 
 Integration test harness (Plan 26) revealed security and resilience gaps that
@@ -339,38 +366,93 @@ significantly faster (~10-40k RPS based on earlier tests).
 
 ## 7. Action Plan
 
-### Phase 1: Critical Security (This Week)
+### The Bar We're Setting
 
-1. **Add HTTP server timeouts**
-   - ReadHeaderTimeout: 5s
-   - ReadTimeout: 10s
-   - WriteTimeout: 30s
-   - IdleTimeout: 60s
+| Area | Current State | Target (Supabase/Vercel level) |
+|------|---------------|-------------------------------|
+| **Slowloris** | 0% requests during attack | 90%+ requests succeed |
+| **Rate limiting** | None | Configurable, smart defaults |
+| **Recovery** | 3-5 seconds | <500ms |
+| **Throughput** | 3k RPS serverless | 5k+ RPS serverless, 50k+ static |
+| **Latency P99** | 1ms | <10ms under load |
+| **Memory** | Unknown under load | Bounded, predictable |
 
-2. **Verify rate limiting**
-   - Check if exists
-   - Enable/configure if disabled
-   - Implement if missing
+### Phase 1: Critical Security (Immediate)
 
-### Phase 2: Resilience (Next Week)
+**Goal: Survive being exposed to the internet**
 
-3. **Runtime pooling**
-   - Profile current behavior
-   - Implement pool if beneficial
+1. **Add HTTP server timeouts** - BLOCKS RELEASE
+   ```go
+   ReadHeaderTimeout: 5 * time.Second
+   ReadTimeout:       10 * time.Second
+   WriteTimeout:      30 * time.Second
+   IdleTimeout:       60 * time.Second
+   ```
+   This alone fixes slowloris and slow header attacks.
 
-4. **Request backpressure**
-   - Add queue with max size
+2. **Implement rate limiting** - BLOCKS RELEASE
+   - Per-IP token bucket (golang.org/x/time/rate)
+   - Default: 100 req/s burst, 20 req/s sustained
+   - Configurable via fazt config
+   - Return 429 with Retry-After header
+
+3. **Connection limits per IP**
+   - Max 50 concurrent connections per IP
+   - Prevents resource exhaustion
+
+### Phase 2: Resilience (This Week)
+
+**Goal: Handle traffic spikes gracefully**
+
+4. **Runtime pooling for Goja**
+   - Pool of pre-warmed runtimes
+   - Bound pool size to available memory
+   - Reuse instead of create/destroy
+
+5. **Request queue with backpressure**
+   - Bounded queue (1000 requests?)
    - Return 503 when full
+   - Shed load gracefully
 
-### Phase 3: Validation
+6. **Graceful degradation**
+   - Circuit breaker for serverless
+   - Static files always served (never blocked by runtime issues)
 
-5. **Re-run full test suite**
-   - All security tests should pass
-   - No warnings about vulnerabilities
+### Phase 3: Performance (Next Week)
 
-6. **Run admin tests separately**
-   - Validate auth flows
-   - Validate KV storage
+**Goal: Maximize what a $6 VPS can do**
+
+7. **Profile and optimize hot paths**
+   - pprof under load
+   - Identify allocations
+   - Reduce GC pressure
+
+8. **Connection pooling for SQLite**
+   - Verify WAL mode enabled
+   - Optimize busy timeout
+   - Consider read replicas for reads
+
+9. **Static file optimizations**
+   - In-memory cache for hot files
+   - Proper ETag/If-None-Match
+   - Compression (gzip/brotli)
+
+### Phase 4: Validation & Polish
+
+10. **Full test suite passes**
+    - No warnings about vulnerabilities
+    - All security tests green
+    - Performance baselines met
+
+11. **Load testing on $6 VPS**
+    - Actual target hardware
+    - Realistic traffic patterns
+    - 24-hour soak test
+
+12. **Documentation**
+    - Security hardening guide
+    - Performance tuning guide
+    - "What to expect" benchmarks
 
 ---
 
