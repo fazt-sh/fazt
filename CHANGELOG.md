@@ -4,6 +4,19 @@ All notable changes to fazt.sh will be documented in this file.
 
 ## [Unreleased]
 
+## [0.11.6] - 2026-01-29
+
+### Security
+- **HTTP Server Timeouts**: Added ReadHeaderTimeout (5s) to prevent slowloris attacks
+- **Rate Limiting**: Per-IP token bucket rate limiter (500 req/s sustained, 1000 burst)
+- **Connection Limiting**: Max 200 concurrent connections per IP
+- Adjusted WriteTimeout (30s) and ReadTimeout (10s) for better protection
+
+### Added
+- New middleware: `internal/middleware/ratelimit.go`
+  - `RateLimiter` - token bucket rate limiting with automatic cleanup
+  - `ConnectionLimiter` - concurrent connection limiting per IP
+
 ## [0.11.5] - 2026-01-28
 
 ### Fixed

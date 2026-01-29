@@ -2913,26 +2913,37 @@ func handleStartCommand() {
 	// Create the root handler with host-based routing
 	rootHandler := createRootHandler(cfg, dashboardMux, sessionStore, authHandler)
 
-	// Apply middleware (order: tracing -> logging -> body limit -> security -> cors -> recovery -> root)
-	handler := middleware.RequestTracing(
-		loggingMiddleware(
-			middleware.BodySizeLimit(middleware.MaxBodySize)(
-				middleware.SecurityHeaders(
-					corsMiddleware(
-						recoveryMiddleware(rootHandler),
+	// Initialize global rate limiter (20 req/s sustained, 100 burst)
+	globalRateLimiter := middleware.NewRateLimiter(middleware.DefaultRateLimit, middleware.DefaultBurst)
+
+	// Initialize connection limiter (50 concurrent connections per IP)
+	connLimiter := middleware.NewConnectionLimiter(middleware.DefaultMaxConnectionsPerIP)
+
+	// Apply middleware (order: conn limit -> rate limit -> tracing -> logging -> body limit -> security -> cors -> recovery -> root)
+	handler := connLimiter.Middleware(
+		globalRateLimiter.Middleware(
+			middleware.RequestTracing(
+				loggingMiddleware(
+					middleware.BodySizeLimit(middleware.MaxBodySize)(
+						middleware.SecurityHeaders(
+							corsMiddleware(
+								recoveryMiddleware(rootHandler),
+							),
+						),
 					),
 				),
 			),
 		),
 	)
 
-	// Create server
+	// Create server with timeouts to prevent slowloris attacks
 	srv := &http.Server{
-		Addr:         ":" + cfg.Server.Port,
-		Handler:      handler,
-		ReadTimeout:  15 * time.Second,
-		WriteTimeout: 15 * time.Second,
-		IdleTimeout:  60 * time.Second,
+		Addr:              ":" + cfg.Server.Port,
+		Handler:           handler,
+		ReadHeaderTimeout: 5 * time.Second,  // Prevent slowloris
+		ReadTimeout:       10 * time.Second, // Time to read entire request
+		WriteTimeout:      30 * time.Second, // Time to write response
+		IdleTimeout:       60 * time.Second, // Keep-alive timeout
 	}
 
 	// Write PID file for stop command
