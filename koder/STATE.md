@@ -40,17 +40,44 @@ Each app exercises different fazt capabilities and helps find gaps.
 ### 3. `fazt @peer` Pattern Audit
 - Review all commands for `@peer` support
 - `fazt app list` seems incomplete - should show better results
-- Ensure consistency across CLI
+- Ensure CLI ↔ API 1:1 parity (all CLI commands have API equivalents)
 
 ### 4. Analytics Deep Dive
 - Audit: are all analytics properly collected & stored?
-- Need a way to visualize/display analytics
-- Dashboard or export functionality
+- Can analytics track users for comprehensive data flow view?
+- Evaluate: is every state change captured? Should it be? (perf tradeoffs)
+- Consider config options to disable some analytics for efficiency
+- Need visualization/dashboard
 
 ### 5. Role-Based Access Control (RBAC)
-- Investigate feasibility for fazt
-- Current: owner vs user (OAuth)
-- Desired: granular permissions per app/resource?
+- Can owner also Google sign-in and system recognizes them by email?
+- Granular permissions per app/resource
+- Current: owner vs user (OAuth) - needs refinement
+
+### 6. App Audit
+- Verify all docs are synced
+- List all deployed apps
+- Enhance apps with Google sign-in
+- Games should have high score tracking
+
+### 7. Documentation Overhaul
+- Build comprehensive markdown-based, multi-file fazt documentation
+- Organize as a Claude skill (usable directly in Claude Code)
+- Structure should:
+  - Sync with API/CLI changes
+  - Generate documentation site
+  - Drive development vision
+- README.md is outdated - needs refresh
+
+### 8. License Discussion
+- Reconsider MIT license
+- Proposed model: **Fair Code License**
+  - MIT/free for everyone doing <$1M revenue
+  - $1000 per $1M revenue above threshold
+- Questions to resolve:
+  - Is $1000/$1M too high? Too low?
+  - How to enforce/verify?
+  - Precedents (Elastic, MongoDB, etc.)?
 
 ---
 
