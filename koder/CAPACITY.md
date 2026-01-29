@@ -339,6 +339,53 @@ onMouseMove(e) {
 
 ---
 
+## Security Protection Stack (v0.11.9)
+
+Fazt includes defense-in-depth protection against slowloris and DoS attacks.
+
+### Protection Layers
+
+| Layer | Mechanism | Limit | Impact |
+|-------|-----------|-------|--------|
+| 1 | TCP_DEFER_ACCEPT | Kernel-level | Zero overhead |
+| 2 | ConnLimiter | 50 conns/IP | Prevents goroutine exhaustion |
+| 3 | TLS (HTTPS) | After ConnLimiter | Full protection in HTTPS mode |
+| 4 | ReadHeaderTimeout | 5 seconds | Kills slow header attacks |
+| 5 | Rate Limiting | 500 req/s/IP | Prevents request floods |
+
+### Capacity Impact
+
+The protection stack has **minimal overhead** for legitimate traffic:
+
+| Scenario | Without Protection | With Protection | Overhead |
+|----------|-------------------|-----------------|----------|
+| Reads | ~40,000 req/s | ~40,000 req/s | <1% |
+| Mixed | ~2,300 req/s | ~2,300 req/s | <1% |
+| Per-IP burst | Unlimited | 500 req/s | By design |
+
+### Multi-tenant Reality
+
+The per-IP rate limit (500 req/s) only affects single-IP attack scenarios.
+In production with 1,000 employees from different IPs:
+- Each user gets their own 500 req/s budget
+- Total capacity: 500,000 req/s theoretical (limited by other factors)
+
+### Stress Test Results (v0.11.9)
+
+```
+Local (192.168.64.3:8080):
+  500 users @ 1 req/s: 90.6% success (rate-limited by single IP)
+  Throughput: 497 req/s
+  Latency: 3.0 ms
+
+Production (zyt.app via Cloudflare):
+  100 users @ 1 req/s: 100% success
+  Throughput: 69 req/s (network-bound)
+  Latency: 350 ms (VM → DigitalOcean round-trip)
+```
+
+---
+
 ## Summary
 
 Fazt on a $6 VPS handles more traffic than most personal projects will ever
