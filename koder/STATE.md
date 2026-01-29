@@ -5,23 +5,11 @@
 
 ## Status
 
-State: PENDING REFACTOR - harness needs conversion to integration tests
+State: READY - harness refactored to integration tests
 
 ---
 
 ## Next Up
-
-### Plan 26: Harness Refactor (PRIORITY)
-
-Test harness was incorrectly embedded in fazt binary. Refactor to proper Go
-integration tests using `_test.go` files with `//go:build integration` tag.
-
-```bash
-# After refactor
-FAZT_TARGET=http://localhost:8080 go test -tags=integration ./internal/harness/...
-```
-
-See: `koder/plans/26_harness_refactor.md`
 
 ### Plan 24: Mock OAuth Provider
 
@@ -51,54 +39,84 @@ See: `koder/plans/25_sql_command.md`
 
 ## Last Session
 
-**Test Harness + Timeout Budget System**
+**Plan 26: Harness Refactor (COMPLETED)**
 
-### Committed Work
+Converted test harness from embedded binary code to proper Go integration
+tests using `_test.go` files with `//go:build integration` tag.
+
+### Changes Made
+
+1. **Created integration test files**
+   - `testutil.go` - Shared test helpers (getTarget, HTTP client, assertions)
+   - `requests_test.go` - Static, API read/write, auth, serverless tests
+   - `resilience_test.go` - Memory, timeout, queue tests
+   - `baseline_test.go` - Latency, throughput, resource tests
+   - `security_test.go` - Rate limit, payload, slowloris tests
+
+2. **Created test-harness app** (`servers/local/test-harness/`)
+   - Serverless endpoints: `/api/health`, `/api/hello`, `/api/echo`, `/api/slow`, `/api/timeout`
+   - Uses nip.io wildcard DNS for subdomain routing
+   - Deploy: `fazt app deploy servers/local/test-harness --to local`
+
+3. **Removed dead code**
+   - `cmd/server/harness.go` - CLI handler
+   - `internal/harness/harness.go` - Orchestrator
+   - `internal/harness/baseline/`, `requests/`, `resilience/`, `security/` directories
+
+4. **Kept as library code**
+   - `config.go` - Types (Expected, Actual, TestResult, etc.)
+   - `report.go` - Report generation
+   - `gaps/` - Gap tracking
+
+### Usage
+
+```bash
+# Deploy test app first
+fazt app deploy servers/local/test-harness --to local
+
+# Run integration tests
+FAZT_TARGET="http://test-harness.192.168.64.3.nip.io:8080" \
+FAZT_TOKEN="<api-key>" \
+FAZT_TEST_APP="test-harness.192.168.64.3.nip.io" \
+go test -v -tags=integration ./internal/harness/...
+```
+
+### Test Categories
+
+| Category | Tests | Purpose |
+|----------|-------|---------|
+| Baseline | HealthLatency, Throughput, MixedWorkload | Performance baselines |
+| Static | Health, DotfileBlocked, PathTraversal | Static file security |
+| API | Health, NonexistentEndpoint, HealthLatency | API behavior |
+| Serverless | BasicExecution, RequestBody, Timeout | Runtime validation |
+| Resilience | HighConcurrency, SustainedLoad, GCPressure | Stress testing |
+| Security | RateLimit, Slowloris, ConnectionFlood | Attack resilience |
+
+Tests that require admin endpoints or KV storage skip gracefully when
+running against a test app.
+
+### Benefits
+
+- **No binary bloat** - `_test.go` never compiled into release
+- **Standard tooling** - Works with `go test`, CI, coverage
+- **Selective execution** - Build tags separate unit/integration
+- **Better reporting** - `go test -json` for structured output
+
+---
+
+## Previous Session
+
+**Test Harness + Timeout Budget System**
 
 1. **Timeout/Budget System** (`internal/timeout/`)
    - `budget.go` - Budget tracking for serverless execution
    - `budget_test.go` - Unit tests (passing)
    - Storage bindings updated to use budget for admission control
 
-2. **Test Harness** (`internal/harness/`)
-   - Full implementation committed
-   - Has design flaw: embedded in binary (should be `_test.go` files)
-   - Plan 26 documents the refactor needed
-   - Next session: execute Plan 26 to convert
-
-### Harness Performance Results (localhost:8080)
-
-Before refactoring, the harness validated these baselines:
-
-- Static read: 44,119 RPS @ 100 concurrency
-- API read: 39,649 RPS @ 100 concurrency
-- P50 latency: 176-304µs
-- P99 latency: 500µs-1ms
-
-### Harness Structure (to be refactored)
-
-```
-internal/harness/
-├── harness.go           # Main orchestrator → merge into tests
-├── config.go            # Configuration → keep as library
-├── report.go            # Report generation → keep as library
-├── baseline/            # → baseline_test.go
-├── requests/            # → requests_test.go
-├── resilience/          # → resilience_test.go
-├── security/            # → security_test.go
-└── gaps/                # Gap tracker → keep as library
-```
-
----
-
-## Previous Session
-
-**fazt-app Skill Documentation Fixes**
-
-1. **Fixed deployment docs** - `fazt app deploy` has built-in build
-2. **Fixed OAuth redirect bug in docs** - Must use absolute URLs
-3. **Removed hardcoded zyt.app references**
-4. **Created Plan 25: SQL Command**
+2. **Test Harness** (original implementation, now refactored)
+   - Performance baselines: 44k RPS static, 40k RPS API @ 100 concurrent
+   - P50 latency: 176-304µs
+   - P99 latency: 500µs-1ms
 
 ---
 
@@ -112,6 +130,9 @@ internal/harness/
 
 # Global skills (any repo)
 /fazt-app               # Build fazt apps
+
+# Integration tests
+FAZT_TARGET=http://localhost:8080 go test -tags=integration ./internal/harness/...
 
 # Check OAuth status
 fazt @<peer> auth providers
