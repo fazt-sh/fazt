@@ -124,3 +124,13 @@ fazt @zyt sql "SELECT * FROM auth_users"   # Remote
 - Evaluate making repo private until license figured out
 - Will any dependencies break?
 - Impact on current users?
+
+---
+
+## Vision
+
+### V1. Philosophy Rewrite
+- Update `koder/philosophy/` docs
+- Fazt has evolved significantly (see `koder/scratch/03_whats-fazt.md`)
+- Rewrite for new vision & direction
+- Should reflect: sovereign compute, single binary, hyperscaler alternative
