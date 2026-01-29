@@ -5,11 +5,23 @@
 
 ## Status
 
-State: CLEAN - skill docs fixed, SQL command planned
+State: UNCOMMITTED WORK - timeout/budget system + harness (needs refactor)
 
 ---
 
 ## Next Up
+
+### Plan 26: Harness Refactor (PRIORITY)
+
+Test harness was incorrectly embedded in fazt binary. Refactor to proper Go
+integration tests using `_test.go` files with `//go:build integration` tag.
+
+```bash
+# After refactor
+FAZT_TARGET=http://localhost:8080 go test -tags=integration ./internal/harness/...
+```
+
+See: `koder/plans/26_harness_refactor.md`
 
 ### Plan 24: Mock OAuth Provider
 
@@ -22,12 +34,6 @@ Remote: "Sign in" → Google   → Session → fazt.auth.getUser() ✓
 
 Same code. Same API. Different provider.
 
-**Key features:**
-- Dev login form at `/auth/dev/login` (local only)
-- Creates real session (same as production OAuth)
-- Role selection for testing admin/owner flows
-- Blocked on HTTPS (production safe)
-
 See: `koder/plans/24_mock_oauth.md`
 
 ### Plan 25: SQL Command
@@ -39,80 +45,63 @@ fazt sql "SELECT * FROM apps"              # Local
 fazt @zyt sql "SELECT * FROM auth_users"   # Remote
 ```
 
-**Key features:**
-- Read-only by default, `--write` flag for mutations
-- Table, JSON, CSV output formats
-- API endpoint `POST /api/sql` for remote
-- Same syntax local and remote
-
 See: `koder/plans/25_sql_command.md`
 
 ---
 
 ## Last Session
 
-**fazt-app Skill Documentation Fixes**
+**Test Harness + Timeout Budget System**
 
-1. **Fixed deployment docs** - `fazt app deploy` has built-in build
-   - Point at project root, not `dist/`
-   - Auto-detects package.json, runs build, deploys output
-   - Updated SKILL.md, deployment.md, cli-app.md
+### Uncommitted Work
 
-2. **Fixed OAuth redirect bug in docs**
-   - OAuth flows through root domain
-   - Relative redirects (`/path`) lose subdomain after callback
-   - Must use absolute URLs (`window.location.href`)
-   - Updated auth-integration.md, SKILL.md, patterns/google-oauth.md
+Two pieces of work exist but are not committed:
 
-3. **Removed hardcoded zyt.app references**
-   - Replaced with generic `<domain>`, `example.com` placeholders
+1. **Timeout/Budget System** (`internal/timeout/`)
+   - `budget.go` - Budget tracking for serverless execution
+   - `budget_test.go` - Unit tests (passing)
+   - Storage bindings updated to use budget for admission control
+   - This is ready to commit
 
-4. **Created Plan 25: SQL Command**
-   - `fazt sql` for local/remote database queries
-   - Debugging without SSH or direct db access
+2. **Test Harness** (`internal/harness/`)
+   - Full implementation exists but has design flaw
+   - Embedded in binary (wrong) - should be `_test.go` files
+   - Plan 26 documents the refactor needed
+   - DO NOT commit as-is
 
-## Issues Found (Lens Integration)
+### Harness Performance Results (localhost:8080)
 
-Real-world OAuth integration uncovered these fazt issues:
+Before refactoring, the harness validated these baselines:
 
-### 1. Deploy Doesn't Auto-Include api/ Folder
+- Static read: 44,119 RPS @ 100 concurrency
+- API read: 39,649 RPS @ 100 concurrency
+- P50 latency: 176-304µs
+- P99 latency: 500µs-1ms
 
-`fazt app deploy` only deploys the build output directory (`dist/`). Projects with `api/` at root must manually copy it into dist.
+### Harness Structure (to be refactored)
 
-**Current workaround:** `"build": "vite build && cp -r api dist/"`
-
-**Expected:** fazt should auto-detect `api/` at project root and merge with build output.
-
-### 2. Serverless Code Has Quirks
-
-- `return` statements cause "Illegal return statement" error
-- Complex if/else chains can cause timeouts
-- `fazt.auth.getUser()` intermittently times out (cold start?)
-
-**Current workaround:** Keep API code minimal, single respond() call. Frontend needs retry logic.
-
-**Expected:** More robust JS execution, better error messages.
-
-### 3. Logout Requires POST (Not Documented)
-
-`/auth/logout` returns 405 on GET. Must use POST. Not mentioned in skill docs.
-
-**Fix:** Update auth docs to show POST requirement:
-```javascript
-fetch('/auth/logout', { method: 'POST' })
+```
+internal/harness/
+├── harness.go           # Main orchestrator → merge into tests
+├── config.go            # Configuration → keep as library
+├── report.go            # Report generation → keep as library
+├── baseline/            # → baseline_test.go
+├── requests/            # → requests_test.go
+├── resilience/          # → resilience_test.go
+├── security/            # → security_test.go
+└── gaps/                # Gap tracker → keep as library
 ```
 
 ---
 
-## Ideas for Later
+## Previous Session
 
-### Docs as Claude Skill (`fazt ai skill`)
+**fazt-app Skill Documentation Fixes**
 
-Instead of building help search into CLI, ship docs as installable skill:
-- Docs live with source (always synced)
-- `fazt ai skill install --global` copies to ~/.claude/skills/fazt/
-- LLM does search/comprehension (no CLI complexity)
-- See: `koder/ideas/specs/v0.12-agentic/skill.md`
+1. **Fixed deployment docs** - `fazt app deploy` has built-in build
+2. **Fixed OAuth redirect bug in docs** - Must use absolute URLs
+3. **Removed hardcoded zyt.app references**
+4. **Created Plan 25: SQL Command**
 
 ---
 
@@ -126,8 +115,6 @@ Instead of building help search into CLI, ship docs as installable skill:
 
 # Global skills (any repo)
 /fazt-app               # Build fazt apps
-/agent-browser          # Browser automation
-/qwen-research          # Deep research
 
 # Check OAuth status
 fazt @<peer> auth providers
