@@ -5,11 +5,46 @@
 
 ## Status
 
-State: READY - harness refactored to integration tests
+State: **ACTION REQUIRED** - security vulnerabilities identified by harness
+
+---
+
+## Critical Findings (Plan 27)
+
+| Severity | Issue | Status |
+|----------|-------|--------|
+| **CRITICAL** | Slowloris vulnerability - 20 slow connections block all traffic | ❌ Unmitigated |
+| **HIGH** | No rate limiting detected | ❌ Unmitigated |
+| **MEDIUM** | Slow recovery after load (3-5s) | ❌ Unmitigated |
+| **LOW** | No header read timeout | ❌ Unmitigated |
+
+**See**: `koder/plans/27_harness_findings.md` for full analysis and remediation plan.
+
+### Immediate Action Required
+
+```go
+// cmd/server/server.go - Add these timeouts
+server := &http.Server{
+    ReadHeaderTimeout: 5 * time.Second,
+    ReadTimeout:       10 * time.Second,
+    WriteTimeout:      30 * time.Second,
+    IdleTimeout:       60 * time.Second,
+}
+```
 
 ---
 
 ## Next Up
+
+### Plan 27: Harness Findings Remediation (PRIORITY)
+
+Fix security and resilience gaps identified by test harness.
+
+1. Add HTTP server timeouts (fixes slowloris + slow headers)
+2. Verify/implement rate limiting
+3. Improve runtime recovery under load
+
+See: `koder/plans/27_harness_findings.md`
 
 ### Plan 24: Mock OAuth Provider
 
