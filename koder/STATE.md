@@ -26,6 +26,34 @@ Each app exercises different fazt capabilities and helps find gaps.
 
 ---
 
+## Tomorrow's Directions
+
+### 1. Google Sign-in Redirect
+- Currently always redirects to root after OAuth
+- Either fix the redirect to original page, or make the landing page pretty
+
+### 2. Nexus App (Stress Test All Capabilities)
+- Find/build an app idea that uses ALL fazt capabilities
+- Consider making Nexus do this
+- Goal: comprehensive stress test of the platform
+
+### 3. `fazt @peer` Pattern Audit
+- Review all commands for `@peer` support
+- `fazt app list` seems incomplete - should show better results
+- Ensure consistency across CLI
+
+### 4. Analytics Deep Dive
+- Audit: are all analytics properly collected & stored?
+- Need a way to visualize/display analytics
+- Dashboard or export functionality
+
+### 5. Role-Based Access Control (RBAC)
+- Investigate feasibility for fazt
+- Current: owner vs user (OAuth)
+- Desired: granular permissions per app/resource?
+
+---
+
 ## Pending Plans
 
 ### Plan 24: Mock OAuth Provider
