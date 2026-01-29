@@ -14,6 +14,7 @@ import (
 	"github.com/fazt-sh/fazt/internal/debug"
 	"github.com/fazt-sh/fazt/internal/hosting"
 	"github.com/fazt-sh/fazt/internal/storage"
+	"github.com/fazt-sh/fazt/internal/timeout"
 	"github.com/fazt-sh/fazt/internal/worker"
 )
 
@@ -102,11 +103,13 @@ func (h *ServerlessHandler) HandleRequest(w http.ResponseWriter, r *http.Request
 		}
 	}
 
-	// Execute with a timeout
-	execCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	// Execute with a timeout and budget tracking
+	cfg := timeout.DefaultConfig()
+	execCtx, cancel := context.WithTimeout(ctx, cfg.RequestTimeout)
 	defer cancel()
+	budget := timeout.NewBudget(execCtx, cfg)
 
-	result := h.executeWithFazt(execCtx, mainJS, req, loader, app, env, authCtx)
+	result := h.executeWithFazt(execCtx, mainJS, req, loader, app, env, authCtx, budget)
 
 	// Persist logs to database
 	h.persistLogs(appID, result.Logs, result.Error)
@@ -133,11 +136,12 @@ func (h *ServerlessHandler) HandleRequest(w http.ResponseWriter, r *http.Request
 
 		w.Header().Set("Content-Type", "application/json")
 
-		// Check for retryable errors (overload, timeout)
+		// Check for retryable errors (overload, timeout, insufficient time)
 		errMsg := result.Error.Error()
 		if storage.IsRetryableError(result.Error) ||
 			strings.Contains(errMsg, "queue full") ||
-			strings.Contains(errMsg, "SQLITE_BUSY") {
+			strings.Contains(errMsg, "SQLITE_BUSY") ||
+			strings.Contains(errMsg, "insufficient time") {
 			// Return 503 Service Unavailable with Retry-After hint
 			debug.RuntimeReq(reqID, appName, r.URL.Path, 503, time.Since(start))
 			w.Header().Set("Retry-After", "1")
@@ -195,7 +199,7 @@ func generateRequestID() string {
 }
 
 // executeWithFazt executes code with the fazt namespace injected.
-func (h *ServerlessHandler) executeWithFazt(ctx context.Context, code string, req *Request, loader FileLoader, app *AppContext, env EnvVars, authCtx *AuthContext) *ExecuteResult {
+func (h *ServerlessHandler) executeWithFazt(ctx context.Context, code string, req *Request, loader FileLoader, app *AppContext, env EnvVars, authCtx *AuthContext, budget *timeout.Budget) *ExecuteResult {
 	// Create injectors for fazt namespace and storage
 	result := &ExecuteResult{Logs: make([]LogEntry, 0)}
 
@@ -205,7 +209,7 @@ func (h *ServerlessHandler) executeWithFazt(ctx context.Context, code string, re
 
 	storageInjector := func(vm *goja.Runtime) error {
 		if app != nil && app.ID != "" {
-			return storage.InjectStorageNamespace(vm, h.storage, app.ID, ctx)
+			return storage.InjectStorageNamespace(vm, h.storage, app.ID, ctx, budget)
 		}
 		return nil
 	}

@@ -41,7 +41,8 @@ func (e *Executor) Execute(ctx context.Context, job *Job, code string) (interfac
 	}
 
 	// Inject storage namespace (fazt.storage.*)
-	if err := storage.InjectStorageNamespace(vm, e.storage, job.AppID, ctx); err != nil {
+	// Workers don't use a Budget since they have different timeout requirements
+	if err := storage.InjectStorageNamespace(vm, e.storage, job.AppID, ctx, nil); err != nil {
 		return nil, fmt.Errorf("failed to inject storage: %w", err)
 	}
 

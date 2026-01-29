@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sync"
 	"sync/atomic"
+	"time"
 )
 
 // WriteQueue serializes all write operations to prevent SQLITE_BUSY errors.
@@ -95,7 +96,26 @@ func (wq *WriteQueue) worker() {
 
 // Write queues a write operation and waits for completion.
 // Returns ErrQueueFull if the queue is at capacity.
+// Returns ErrInsufficientTime if deadline won't allow operation to complete.
 func (wq *WriteQueue) Write(ctx context.Context, fn func() error) error {
+	// Admission control: check if we have enough time before queueing
+	if deadline, ok := ctx.Deadline(); ok {
+		remaining := time.Until(deadline)
+		// Estimate queue wait based on current depth (30ms per queued op estimate)
+		queueDepth := atomic.LoadInt32(&wq.queueLen)
+		estimatedWait := time.Duration(queueDepth) * 30 * time.Millisecond
+		// Need estimated wait time + 500ms minimum for the operation itself
+		minRequired := estimatedWait + 500*time.Millisecond
+
+		if remaining < minRequired {
+			return &StorageError{
+				Op:        "write_queue",
+				Cause:     fmt.Errorf("insufficient time: need %v, have %v (queue depth: %d)", minRequired, remaining, queueDepth),
+				Retryable: true,
+			}
+		}
+	}
+
 	done := make(chan error, 1)
 	op := writeOp{
 		fn:   fn,
