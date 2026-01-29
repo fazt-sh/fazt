@@ -5,11 +5,90 @@
 
 ## Status
 
-State: **READY** - Full TCP-level slowloris protection (HTTP + HTTPS)
+State: **APP BUILDING** - Testing capabilities through real apps
 
 ---
 
-## Security Architecture (Plan 27 Complete)
+## Current Focus
+
+Building apps to stress-test fazt's capabilities and discover edge cases.
+This validates the security hardening (Plan 27) under real workloads.
+
+**Target apps** (small startup IT suite):
+- Meet (scheduling)
+- Docs (collaborative editing)
+- Chat (real-time messaging)
+- Notes (Notion-like)
+- Sign (document signing)
+- Files (file sharing)
+
+Each app exercises different fazt capabilities and helps find gaps.
+
+---
+
+## Pending Plans
+
+### Plan 24: Mock OAuth Provider
+
+**Status**: NOT IMPLEMENTED
+**Purpose**: Enable full auth flow testing locally without code changes
+
+Key features:
+- Dev login form at `/auth/dev/login` (local only)
+- Creates real sessions (same as production OAuth)
+- Role selection for testing admin/owner flows
+- Zero code changes when deploying to production
+
+**Why needed**: Currently can't test auth flows locally without HTTPS.
+
+### Plan 25: SQL Command
+
+**Status**: NOT IMPLEMENTED
+**Purpose**: Debug and inspect databases without SSH
+
+```bash
+fazt sql "SELECT * FROM apps"              # Local
+fazt @zyt sql "SELECT * FROM auth_users"   # Remote
+```
+
+Key features:
+- Read-only by default, `--write` flag for mutations
+- Output formats: table, json, csv
+- Works locally and remotely via API
+
+**Why needed**: Currently requires SSH + sqlite3 for remote debugging.
+
+---
+
+## Completed Plans
+
+### Plan 27: Security Hardening (v0.11.9)
+
+All critical security issues from harness testing are fixed:
+
+| Issue | Fix | Status |
+|-------|-----|--------|
+| Slowloris vulnerability | TCP-level ConnLimiter + TCP_DEFER_ACCEPT | ✅ |
+| No rate limiting | Per-IP token bucket (500 req/s) | ✅ |
+| Connection exhaustion | 50 conns/IP limit at TCP Accept | ✅ |
+| No header timeout | 5s ReadHeaderTimeout | ✅ |
+| HTTPS protection | CertMagic + ManageAsync() integration | ✅ |
+
+Protection stack:
+```
+TCP_DEFER_ACCEPT → ConnLimiter → TLS → ReadHeaderTimeout → Rate Limit
+```
+
+### Plan 26: Harness Refactor
+
+Converted test harness from CLI command to proper Go integration tests:
+- `internal/harness/*_test.go` with `//go:build integration`
+- Removed `cmd/server/harness.go` from binary
+- Standard `go test` tooling
+
+---
+
+## Security Architecture
 
 ### Protection Stack (HTTP + HTTPS)
 
@@ -32,15 +111,6 @@ State: **READY** - Full TCP-level slowloris protection (HTTP + HTTPS)
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### Security Status
-
-| Severity | Issue | Status |
-|----------|-------|--------|
-| **CRITICAL** | Slowloris vulnerability | ✅ Defense-in-depth |
-| **HIGH** | No rate limiting | ✅ Fixed (per-IP token bucket) |
-| **MEDIUM** | Connection exhaustion | ✅ Fixed (TCP-level limits) |
-| **LOW** | No header read timeout | ✅ Fixed (5s ReadHeaderTimeout) |
-
 ### Implementation Files
 
 | File | Purpose |
@@ -48,81 +118,21 @@ State: **READY** - Full TCP-level slowloris protection (HTTP + HTTPS)
 | `internal/listener/connlimit.go` | TCP-level per-IP connection limiter |
 | `internal/listener/tcp.go` | TCP_DEFER_ACCEPT wrapper (Linux) |
 | `internal/middleware/ratelimit.go` | Request-level rate limiting |
-| `cmd/server/main.go:2955-3015` | Server startup with protection stack |
+| `cmd/server/main.go:2955-3070` | Server startup with protection stack |
 
 ---
 
-## Last Session
+## Capacity Verified (v0.11.9)
 
-**Plan 27: TCP-Level Slowloris Protection (v0.11.9)**
+| Metric | Value | Notes |
+|--------|-------|-------|
+| Local throughput | ~40,000 req/s | Read-only health checks |
+| Mixed workload | ~2,300 req/s | 30% writes |
+| 500 concurrent users | 90%+ success | 1 req/s each (rate-limited by single IP) |
+| Production (zyt.app) | 100% success | Network-bound at 70 req/s |
+| Slowloris protection | PASS | Connections killed after 5s |
 
-### Completed
-
-1. **Deep research on Go slowloris protection**
-   - Confirmed: niche use case, most use reverse proxies
-   - Found: `hashicorp/go-connlimit`, `valyala/tcplisten`
-   - Decision: Custom implementation (~70 lines) + tcplisten
-
-2. **Implemented TCP-level connection limiter**
-   - `internal/listener/connlimit.go` - custom `net.Listener` wrapper
-   - Per-IP tracking with `map[string]int` + `sync.Mutex`
-   - Atomic counters for total connections
-   - Connection rejected at Accept() before goroutine spawns
-
-3. **Added TCP_DEFER_ACCEPT for Linux**
-   - `internal/listener/tcp.go` using `valyala/tcplisten`
-   - Kernel filters connections that connect but never send
-   - Graceful fallback to `net.Listen` on non-Linux
-
-4. **Integrated into server startup (HTTP + HTTPS)**
-   - v0.11.7: Initial implementation (broke HTTPS with nil pointer panic)
-   - v0.11.8: Reverted HTTPS to certmagic.HTTPS() (lost TCP protection)
-   - v0.11.9: Proper CertMagic integration with ManageAsync()
-
-5. **HTTPS mode fix (v0.11.9)**
-   - Root cause: `magic.TLSConfig()` returned nil cache because
-     CertMagic wasn't initialized
-   - Fix: Call `magic.ManageAsync()` before getting TLSConfig()
-   - HTTP-01 challenge server on port 80 also protected
-
-### Test Results
-
-- TCP-level rejection working (logs show `per_ip_limit` rejections)
-- SlowHeaders test: PASS (server closes slow connections)
-- SlowBody test: PASS in 0.10s (was 7s before TCP_DEFER_ACCEPT)
-- All unit tests: PASS
-- HTTPS mode: Deployed to zyt.app, verified healthy
-
----
-
-## Research Artifacts
-
-Created research query framework:
-```
-koder/researches/
-├── queries/
-│   ├── 01_go-slowloris-protection.md   # Pure technical query
-│   └── 02_fazt-slowloris-integration.md # Implementation-focused
-└── reports/
-    ├── 01_go-slowloris-protection/     # Research results
-    └── 02_fazt-slowloris-integration/
-```
-
-Key findings documented in research reports.
-
----
-
-## Next Up
-
-### Plan 27 Phase 2: Performance Optimization (Optional)
-
-- Runtime pooling improvements for Goja
-- Request queue with backpressure
-- Circuit breaker for serverless
-
-### Plan 24: Mock OAuth Provider (Deferred)
-
-### Plan 25: SQL Command (Deferred)
+**Startup capacity**: <1000 employees using fair-use IT apps = ~1% of capacity.
 
 ---
 
@@ -132,12 +142,17 @@ Key findings documented in research reports.
 # Run integration tests
 FAZT_TARGET="http://test-harness.192.168.64.3.nip.io:8080" \
 FAZT_TOKEN="gvfg2rynqizdwilw" \
-FAZT_TEST_APP="test-harness.192.168.64.3.nip.io" \
 go test -v -tags=integration ./internal/harness/...
 
-# Check connection limiter logs
-journalctl --user -u fazt-local | grep "reject"
+# Check zyt status
+fazt remote status zyt
 
-# Test per-IP limit (open 60 conns, limit is 50)
-for i in {1..60}; do (nc -q 10 192.168.64.3 8080 &); done
+# Upgrade zyt
+fazt remote upgrade zyt
+
+# SSH to zyt (when remote upgrade fails)
+ssh root@165.227.11.46
+
+# Local server logs
+journalctl --user -u fazt-local -f
 ```
