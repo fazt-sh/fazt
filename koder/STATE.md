@@ -5,7 +5,7 @@
 
 ## Status
 
-State: UNCOMMITTED WORK - timeout/budget system + harness (needs refactor)
+State: PENDING REFACTOR - harness needs conversion to integration tests
 
 ---
 
@@ -53,21 +53,18 @@ See: `koder/plans/25_sql_command.md`
 
 **Test Harness + Timeout Budget System**
 
-### Uncommitted Work
-
-Two pieces of work exist but are not committed:
+### Committed Work
 
 1. **Timeout/Budget System** (`internal/timeout/`)
    - `budget.go` - Budget tracking for serverless execution
    - `budget_test.go` - Unit tests (passing)
    - Storage bindings updated to use budget for admission control
-   - This is ready to commit
 
 2. **Test Harness** (`internal/harness/`)
-   - Full implementation exists but has design flaw
-   - Embedded in binary (wrong) - should be `_test.go` files
+   - Full implementation committed
+   - Has design flaw: embedded in binary (should be `_test.go` files)
    - Plan 26 documents the refactor needed
-   - DO NOT commit as-is
+   - Next session: execute Plan 26 to convert
 
 ### Harness Performance Results (localhost:8080)
 
