@@ -5,6 +5,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"crypto/tls"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -33,6 +34,7 @@ import (
 	"github.com/fazt-sh/fazt/internal/database"
 	"github.com/fazt-sh/fazt/internal/handlers"
 	"github.com/fazt-sh/fazt/internal/hosting"
+	"github.com/fazt-sh/fazt/internal/listener"
 	"github.com/fazt-sh/fazt/internal/mcp"
 	"github.com/fazt-sh/fazt/internal/middleware"
 	"github.com/fazt-sh/fazt/internal/provision"
@@ -2913,22 +2915,20 @@ func handleStartCommand() {
 	// Create the root handler with host-based routing
 	rootHandler := createRootHandler(cfg, dashboardMux, sessionStore, authHandler)
 
-	// Initialize global rate limiter (20 req/s sustained, 100 burst)
+	// Initialize global rate limiter (500 req/s sustained, 1000 burst per IP)
 	globalRateLimiter := middleware.NewRateLimiter(middleware.DefaultRateLimit, middleware.DefaultBurst)
 
-	// Initialize connection limiter (50 concurrent connections per IP)
-	connLimiter := middleware.NewConnectionLimiter(middleware.DefaultMaxConnectionsPerIP)
+	// Note: Per-IP connection limiting is now at TCP level (internal/listener/connlimit.go)
+	// This provides better protection by rejecting connections before they consume goroutines
 
-	// Apply middleware (order: conn limit -> rate limit -> tracing -> logging -> body limit -> security -> cors -> recovery -> root)
-	handler := connLimiter.Middleware(
-		globalRateLimiter.Middleware(
-			middleware.RequestTracing(
-				loggingMiddleware(
-					middleware.BodySizeLimit(middleware.MaxBodySize)(
-						middleware.SecurityHeaders(
-							corsMiddleware(
-								recoveryMiddleware(rootHandler),
-							),
+	// Apply middleware (order: rate limit -> tracing -> logging -> body limit -> security -> cors -> recovery -> root)
+	handler := globalRateLimiter.Middleware(
+		middleware.RequestTracing(
+			loggingMiddleware(
+				middleware.BodySizeLimit(middleware.MaxBodySize)(
+					middleware.SecurityHeaders(
+						corsMiddleware(
+							recoveryMiddleware(rootHandler),
 						),
 					),
 				),
@@ -2957,27 +2957,40 @@ func handleStartCommand() {
 		log.Printf("Server starting on :%s", cfg.Server.Port)
 		log.Printf("Dashboard: %s", cfg.Server.Domain)
 
+		// Create base TCP listener with kernel-level optimizations
+		// On Linux: TCP_DEFER_ACCEPT filters connections that never send data
+		baseListener, err := listener.ListenTCP("tcp", ":"+cfg.Server.Port)
+		if err != nil {
+			log.Fatalf("Failed to create listener: %v", err)
+		}
+
+		// Wrap with per-IP connection limiter (defense at Accept level)
+		protectedListener := listener.NewConnLimiter(baseListener, listener.ConnLimiterConfig{
+			MaxConnsPerIP: 50,    // Max concurrent connections per IP
+			MaxTotalConns: 10000, // Max total concurrent connections
+			OnReject:      listener.DefaultOnReject,
+		})
+
+		if runtime.GOOS == "linux" {
+			log.Println("TCP_DEFER_ACCEPT enabled (kernel-level slowloris defense)")
+		}
+		log.Println("Per-IP connection limiting enabled (50 max per IP)")
+
 		if cfg.HTTPS.Enabled {
 			// Configure CertMagic
 			log.Println("HTTPS Enabled: Using CertMagic")
-			
+
 			// Initialize SQL Storage
 			certStorage := database.NewSQLCertStorage(database.GetDB())
-			
+
 			certmagic.DefaultACME.Email = cfg.HTTPS.Email
 			if cfg.HTTPS.Staging {
 				certmagic.DefaultACME.CA = certmagic.LetsEncryptStagingCA
 			}
-			
+
 			// Use our SQL storage
 			certmagic.Default.Storage = certStorage
 
-			// Get allowed domains
-			// We want to serve the main domain and any hosted subdomains.
-			// CertMagic OnDemand allows serving any domain we have permission for.
-			// But we need to restrict it to prevent abuse.
-			// For personal PaaS, we might only allow *.domain.com and domain.com.
-			
 			// Configure OnDemand TLS
 			cfgDomain := extractDomain(cfg.Server.Domain)
 			certmagic.Default.OnDemand = &certmagic.OnDemandConfig{
@@ -2988,27 +3001,28 @@ func handleStartCommand() {
 					}
 					// Allow subdomains of main domain
 					if strings.HasSuffix(name, "."+cfgDomain) {
-						// Optionally check if site exists in DB?
-						// if !hosting.SiteExists(extractSubdomain(name, cfgDomain)) { return fmt.Errorf("unknown site") }
 						return nil
 					}
 					return fmt.Errorf("domain not allowed")
 				},
 			}
 
-			// Start HTTPS server
-			// certmagic.HTTPS blocks, so we wrap the handler
-			// Note: CertMagic listens on :80 and :443 by default.
-			// If cfg.Server.Port is not 443, this might be confusing.
-			// CertMagic manages the listeners.
-			
-			err := certmagic.HTTPS([]string{cfgDomain}, handler)
-			if err != nil {
+			// Get TLS config from CertMagic (handles cert provisioning)
+			tlsConfig := certmagic.Default.TLSConfig()
+			tlsConfig.NextProtos = []string{"h2", "http/1.1"} // Enable HTTP/2
+
+			// Wrap our protected listener with TLS
+			tlsListener := tls.NewListener(protectedListener, tlsConfig)
+
+			// Serve using our fully protected listener chain:
+			// TCP_DEFER_ACCEPT → ConnLimiter → TLS → HTTP Server
+			if err := srv.Serve(tlsListener); err != nil && err != http.ErrServerClosed {
 				log.Fatalf("HTTPS Server failed: %v", err)
 			}
 		} else {
-			// Standard HTTP
-			if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			// Standard HTTP with protected listener
+			// TCP_DEFER_ACCEPT → ConnLimiter → HTTP Server
+			if err := srv.Serve(protectedListener); err != nil && err != http.ErrServerClosed {
 				log.Fatalf("Server failed to start: %v", err)
 			}
 		}

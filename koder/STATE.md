@@ -1,49 +1,104 @@
 # Fazt Implementation State
 
 **Last Updated**: 2026-01-29
-**Current Version**: v0.11.6
+**Current Version**: v0.11.7
 
 ## Status
 
-State: **READY** - Security hardening complete, ready for production
+State: **READY** - Defense-in-depth slowloris protection complete
 
 ---
 
-## Vision Reminder
+## Security Architecture (Plan 27 Complete)
 
-Fazt aims to be **Supabase/Vercel-level capability** in a single binary + SQLite:
-- Target: $6 VPS handling real production traffic
-- Standard: "Install & it just works" - no config nightmare
-- Bar: If it's not production-ready, it's not ready
+### Protection Stack
 
----
+```
+┌─────────────────────────────────────────────────────────────┐
+│ Layer 1: TCP_DEFER_ACCEPT (Linux kernel)                    │
+│          Connections that never send data → kernel drops    │
+├─────────────────────────────────────────────────────────────┤
+│ Layer 2: ConnLimiter (TCP Accept level)                     │
+│          >50 conns from same IP → rejected before goroutine │
+├─────────────────────────────────────────────────────────────┤
+│ Layer 3: ReadHeaderTimeout (net/http)                       │
+│          Slow header senders → killed in 5 seconds          │
+├─────────────────────────────────────────────────────────────┤
+│ Layer 4: Rate Limiting Middleware (Handler)                 │
+│          >500 req/s from same IP → 429 response             │
+└─────────────────────────────────────────────────────────────┘
+```
 
-## Security Status (Plan 27)
+### Security Status
 
 | Severity | Issue | Status |
 |----------|-------|--------|
-| **CRITICAL** | Slowloris vulnerability | ✅ Mitigated (ReadHeaderTimeout) |
+| **CRITICAL** | Slowloris vulnerability | ✅ Defense-in-depth |
 | **HIGH** | No rate limiting | ✅ Fixed (per-IP token bucket) |
-| **MEDIUM** | Connection exhaustion | ✅ Fixed (connection limits) |
+| **MEDIUM** | Connection exhaustion | ✅ Fixed (TCP-level limits) |
 | **LOW** | No header read timeout | ✅ Fixed (5s ReadHeaderTimeout) |
 
-### Security Measures Implemented
+### Implementation Files
 
-1. **HTTP Server Timeouts** (cmd/server/main.go)
-   - ReadHeaderTimeout: 5s (prevents slowloris)
-   - ReadTimeout: 10s
-   - WriteTimeout: 30s
-   - IdleTimeout: 60s
+| File | Purpose |
+|------|---------|
+| `internal/listener/connlimit.go` | TCP-level per-IP connection limiter |
+| `internal/listener/tcp.go` | TCP_DEFER_ACCEPT wrapper (Linux) |
+| `internal/middleware/ratelimit.go` | Request-level rate limiting |
+| `cmd/server/main.go:2955-3015` | Server startup with protection stack |
 
-2. **Rate Limiting** (internal/middleware/ratelimit.go)
-   - Per-IP token bucket algorithm
-   - 500 req/s sustained, 1000 burst
-   - Returns 429 with Retry-After header
-   - Automatic cleanup of stale entries
+---
 
-3. **Connection Limiting** (internal/middleware/ratelimit.go)
-   - Max 200 concurrent connections per IP
-   - Returns 503 when limit exceeded
+## Last Session
+
+**Plan 27: TCP-Level Slowloris Protection (v0.11.7)**
+
+### Completed
+
+1. **Deep research on Go slowloris protection**
+   - Confirmed: niche use case, most use reverse proxies
+   - Found: `hashicorp/go-connlimit`, `valyala/tcplisten`
+   - Decision: Custom implementation (~70 lines) + tcplisten
+
+2. **Implemented TCP-level connection limiter**
+   - `internal/listener/connlimit.go` - custom `net.Listener` wrapper
+   - Per-IP tracking with `map[string]int` + `sync.Mutex`
+   - Atomic counters for total connections
+   - Connection rejected at Accept() before goroutine spawns
+
+3. **Added TCP_DEFER_ACCEPT for Linux**
+   - `internal/listener/tcp.go` using `valyala/tcplisten`
+   - Kernel filters connections that connect but never send
+   - Graceful fallback to `net.Listen` on non-Linux
+
+4. **Integrated into server startup**
+   - Both HTTP and HTTPS modes use protected listener
+   - HTTPS: TLS wraps protected listener (CertMagic for certs)
+   - Removed redundant middleware-level connection limiter
+
+### Test Results
+
+- TCP-level rejection working (logs show `per_ip_limit` rejections)
+- SlowHeaders test: PASS (server closes slow connections)
+- SlowBody test: PASS in 0.10s (was 7s before TCP_DEFER_ACCEPT)
+- All unit tests: PASS
+
+---
+
+## Research Artifacts
+
+Created research query framework:
+```
+koder/researches/
+├── queries/
+│   ├── 01_go-slowloris-protection.md   # Pure technical query
+│   └── 02_fazt-slowloris-integration.md # Implementation-focused
+└── reports/
+    ├── 01_go-slowloris-protection/     # Research results
+    └── 02_fazt-slowloris-integration/
+```
+
+Key findings documented in research reports.
 
 ---
 
@@ -51,57 +106,13 @@ Fazt aims to be **Supabase/Vercel-level capability** in a single binary + SQLite
 
 ### Plan 27 Phase 2: Performance Optimization (Optional)
 
-These are enhancements, not blockers:
-
-1. Runtime pooling improvements for Goja
-2. Request queue with backpressure
-3. Circuit breaker for serverless
+- Runtime pooling improvements for Goja
+- Request queue with backpressure
+- Circuit breaker for serverless
 
 ### Plan 24: Mock OAuth Provider (Deferred)
 
 ### Plan 25: SQL Command (Deferred)
-
----
-
-## Last Session
-
-**Plan 27: Security Hardening Release (v0.11.6)**
-
-### Completed
-
-1. **Added HTTP server timeouts**
-   - ReadHeaderTimeout: 5s (key slowloris fix)
-   - Adjusted other timeouts for better protection
-
-2. **Implemented rate limiting middleware**
-   - Per-IP token bucket (golang.org/x/time/rate)
-   - RWMutex for performance (read-heavy workload)
-   - Automatic cleanup goroutine
-
-3. **Implemented connection limiting**
-   - Per-IP concurrent connection tracking
-   - Prevents resource exhaustion
-
-4. **Integration test verification**
-   - SlowHeaders test: PASS (server closes slow connections)
-   - Rate limiting: Working (429 responses confirmed)
-   - All unit tests: PASS
-
-### Test Results (Post-Fix)
-
-| Test | Result | Notes |
-|------|--------|-------|
-| SlowHeaders | ✅ PASS | Server closes slow header connections |
-| ConnectionFlood | ✅ PASS | 200/200 success |
-| RateLimitRecovery | ✅ PASS | 4/5 succeeded after cooldown |
-| ServiceDuringSlowloris | ⚠️ Warning | Expected - requires reverse proxy for full protection |
-
-### Notes
-
-- Slowloris test still shows warning (0/10 during attack)
-- This is expected behavior for Go's net/http without a reverse proxy
-- For full slowloris protection, deploy behind Caddy/nginx
-- The ReadHeaderTimeout fix prevents the most common attack variant
 
 ---
 
@@ -114,12 +125,9 @@ FAZT_TOKEN="gvfg2rynqizdwilw" \
 FAZT_TEST_APP="test-harness.192.168.64.3.nip.io" \
 go test -v -tags=integration ./internal/harness/...
 
-# Security tests only
-go test -v -tags=integration -run "TestSecurity" ./internal/harness/...
+# Check connection limiter logs
+journalctl --user -u fazt-local | grep "reject"
 
-# Deploy test app
-fazt app deploy servers/local/test-harness --to local
-
-# Check remote status
-fazt remote list
+# Test per-IP limit (open 60 conns, limit is 50)
+for i in {1..60}; do (nc -q 10 192.168.64.3 8080 &); done
 ```

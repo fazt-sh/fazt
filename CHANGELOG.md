@@ -4,6 +4,24 @@ All notable changes to fazt.sh will be documented in this file.
 
 ## [Unreleased]
 
+## [0.11.7] - 2026-01-29
+
+### Security
+- **TCP-level connection limiting**: Per-IP connection limits enforced at Accept level
+  - Rejects connections before they consume goroutines (true slowloris protection)
+  - 50 max concurrent connections per IP, 10000 max total
+  - Custom `net.Listener` wrapper in `internal/listener/connlimit.go`
+
+- **TCP_DEFER_ACCEPT** (Linux): Kernel-level slowloris defense
+  - Kernel only wakes Go when client sends data
+  - Filters "connect but never send" attacks at kernel level
+  - Uses `github.com/valyala/tcplisten`
+
+### Changed
+- Connection limiting moved from HTTP middleware to TCP Accept level
+- Removed redundant middleware-level `ConnectionLimiter` (now at TCP level)
+- Protection stack: TCP_DEFER_ACCEPT → ConnLimiter → ReadHeaderTimeout → Rate Limiting
+
 ## [0.11.6] - 2026-01-29
 
 ### Security
