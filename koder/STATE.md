@@ -54,16 +54,10 @@ TCP_DEFER_ACCEPT → ConnLimiter → TLS → ReadHeaderTimeout → Rate Limit
 
 ## Quick Reference
 
+See `CLAUDE.md` for full command reference.
+
 ```bash
-# Integration tests
-FAZT_TARGET="http://test-harness.192.168.64.3.nip.io:8080" \
-go test -v -tags=integration ./internal/harness/...
-
-# Remote management
-fazt remote status zyt
-fazt remote upgrade zyt
-ssh root@165.227.11.46  # Emergency access
-
-# Local server
-journalctl --user -u fazt-local -f
+fazt remote status zyt          # Check production
+ssh root@165.227.11.46          # Emergency SSH
+journalctl --user -u fazt-local -f  # Local logs
 ```

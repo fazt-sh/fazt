@@ -3,7 +3,7 @@
 **Fazt** is sovereign compute infrastructure for individuals—a single Go binary
 + SQLite database that runs anywhere from phones to servers to IoT devices.
 
-**Current Version**: 0.10.13
+**Current Version**: 0.11.9
 **This Repo**: Source code for fazt development
 
 ## Uniform Peers
@@ -271,36 +271,22 @@ Access: `https://my-app.zyt.app/api/hello`
 **Limitations**: Basic JS only, no npm modules, no async/await yet.
 See `koder/ideas/specs/v0.10-runtime/` for future enhancements.
 
-## Current Capabilities (v0.9.x)
+## Current Capabilities (v0.11.x)
 
-| Feature | Status | Description |
-|---------|--------|-------------|
-| Static Hosting | Done | VFS-backed site hosting |
-| Multi-site | Done | Subdomain routing |
-| Admin Dashboard | Done | React SPA at admin.* |
-| Analytics | Done | Event tracking + dashboard |
-| Serverless Runtime | Done | JavaScript via Goja |
-| Peers Table | Done | All config in SQLite |
-| `fazt remote` | Done | Native node-to-node communication |
-| MCP Server | Done | 5 tools for Claude Code |
-| Remote Upgrade | Done | `/api/upgrade` endpoint |
-| Claude Skills | Done | `/fazt-*` commands |
+| Feature | Status |
+|---------|--------|
+| Static Hosting | ✅ VFS-backed, subdomain routing |
+| Admin Dashboard | ✅ React SPA at admin.* |
+| Serverless Runtime | ✅ JavaScript via Goja |
+| OAuth (Google) | ✅ App-level user auth |
+| Storage API | ✅ KV, Docs, Blobs |
+| Analytics | ✅ Event tracking |
+| Remote Management | ✅ `fazt remote` CLI |
+| Security | ✅ Slowloris protection, rate limiting |
 
-## Future Roadmap (in `koder/ideas/specs/`)
+## Roadmap
 
-Many features are spec'd but not implemented:
-
-- **v0.9**: Storage layer (blobs, documents)
-- **v0.10**: Runtime enhancements (stdlib, sandbox)
-- **v0.11**: Distribution (marketplace, manifest)
-- **v0.12**: Agentic (AI harness, ai-shim)
-- **v0.13**: Network (domains, VPN)
-- **v0.14**: Security (RLS, notary, halt)
-- **v0.15**: Identity (persona)
-- **v0.16**: Mesh (P2P, protocols)
-- **v0.17-v0.20**: WebSocket, Email, Workers, Services
-
-Read `koder/ideas/ROADMAP.md` and `koder/ideas/SURFACE.md` for details.
+See `koder/ideas/ROADMAP.md` for future specs (v0.12+).
 
 ## Managing Fazt: Skills vs MCP
 
@@ -396,23 +382,23 @@ internal/
 └── analytics/        # Event buffering
 admin/                # React SPA (Vite + Tailwind)
 koder/
-├── start.md          # Bootstrap entry point
-├── STATE.md          # Implementation progress
-├── plans/            # Implementation plans
-├── ideas/            # Specs for future versions
-└── philosophy/       # Vision docs
+├── STATE.md              # Current work (lightweight)
+├── THINKING_DIRECTIONS.md # Strategic directions to explore
+├── CAPACITY.md           # Performance limits
+├── plans/                # Implementation plans
+├── ideas/                # Specs for future versions
+└── philosophy/           # Vision docs
 ```
 
 ## Documentation Maintenance
 
-**Keep docs up to date**:
-
 | Doc | Purpose | Update When |
 |-----|---------|-------------|
-| `CHANGELOG.md` | Version history | Every release |
-| `koder/STATE.md` | Implementation progress | After significant work |
-| `CLAUDE.md` | Assistant context | When capabilities change |
-| `koder/ideas/*.md` | Feature specs | When planning new features |
+| `CLAUDE.md` | Stable reference | Capabilities change |
+| `koder/STATE.md` | Current work | Each session |
+| `koder/THINKING_DIRECTIONS.md` | Strategic ideas | New directions emerge |
+| `koder/CAPACITY.md` | Performance data | After benchmarks |
+| `CHANGELOG.md` | Version history | Each release |
 
 ## Core Philosophy
 
