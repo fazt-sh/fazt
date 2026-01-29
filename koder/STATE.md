@@ -78,6 +78,32 @@ Each app exercises different fazt capabilities and helps find gaps.
   - Is $1000/$1M too high? Too low?
   - How to enforce/verify?
   - Precedents (Elastic, MongoDB, etc.)?
+- Cloud provider consideration:
+  - DigitalOcean, MS, Google may want one-click installer
+  - Don't scare them off - perhaps volume/partnership deals?
+- **Evaluate making repo private** until license is figured out
+  - Will any dependencies break?
+  - Impact on current users?
+
+### 9. Strategic Positioning
+- **Capability comparison**: Re-evaluate vs Supabase & Vercel
+  - What do they have that we don't?
+  - What do we have that they don't?
+  - Where's the gap?
+
+- **Concept: "Break hyperscaler stack to independent nodes"**
+  - Can fazt be the unit of compute that replaces cloud lock-in?
+  - Each fazt = sovereign, portable, interconnectable
+
+- **Vertical scaling evaluation**
+  - Current: $6 VPS handles 2,300 req/s
+  - What about $50 VPS? $500 VPS?
+  - At what point does horizontal > vertical?
+
+- **External integration value matrix**
+  - Rank by value-add: S3, Litestream, Turso, Cloudflare, others
+  - Which integration unlocks most capability?
+  - Which has best effort/reward ratio?
 
 ---
 
