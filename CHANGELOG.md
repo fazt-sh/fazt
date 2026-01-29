@@ -4,6 +4,16 @@ All notable changes to fazt.sh will be documented in this file.
 
 ## [Unreleased]
 
+## [0.11.8] - 2026-01-29
+
+### Fixed
+- **HTTPS mode**: Reverted to certmagic.HTTPS() for proper certificate management
+  - TCP-level protection not available in HTTPS mode (CertMagic manages listeners)
+  - HTTP mode retains full TCP-level protection stack
+
+### Changed
+- Added SSH access documentation to CLAUDE.md for emergency server recovery
+
 ## [0.11.7] - 2026-01-29
 
 ### Security

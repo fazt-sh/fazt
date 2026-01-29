@@ -5,7 +5,6 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"crypto/tls"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -2977,8 +2976,14 @@ func handleStartCommand() {
 		log.Println("Per-IP connection limiting enabled (50 max per IP)")
 
 		if cfg.HTTPS.Enabled {
-			// Configure CertMagic
+			// HTTPS mode: CertMagic manages its own listeners for HTTP-01 challenges
+			// TCP-level protection not available in HTTPS mode (CertMagic limitation)
+			// Protection relies on: ReadHeaderTimeout + Rate Limiting middleware
 			log.Println("HTTPS Enabled: Using CertMagic")
+			log.Println("Note: TCP-level connection limiting not available in HTTPS mode")
+
+			// Close the listener we created (CertMagic will create its own)
+			baseListener.Close()
 
 			// Initialize SQL Storage
 			certStorage := database.NewSQLCertStorage(database.GetDB())
@@ -3007,16 +3012,8 @@ func handleStartCommand() {
 				},
 			}
 
-			// Get TLS config from CertMagic (handles cert provisioning)
-			tlsConfig := certmagic.Default.TLSConfig()
-			tlsConfig.NextProtos = []string{"h2", "http/1.1"} // Enable HTTP/2
-
-			// Wrap our protected listener with TLS
-			tlsListener := tls.NewListener(protectedListener, tlsConfig)
-
-			// Serve using our fully protected listener chain:
-			// TCP_DEFER_ACCEPT → ConnLimiter → TLS → HTTP Server
-			if err := srv.Serve(tlsListener); err != nil && err != http.ErrServerClosed {
+			// Use CertMagic's HTTPS which manages listeners and certificates
+			if err := certmagic.HTTPS([]string{cfgDomain}, handler); err != nil {
 				log.Fatalf("HTTPS Server failed: %v", err)
 			}
 		} else {

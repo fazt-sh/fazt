@@ -32,6 +32,20 @@ This means:
 - **OS**: Ubuntu (development machine)
 - **Live Instance**: zyt.app (personal fazt server, test bed for development)
 
+### Remote Server Access
+
+Production instances run behind Cloudflare. For SSH access, use the actual
+server IP (not the domain). IPs are stored in `.env`:
+
+```bash
+source .env
+ssh root@$ZYT_IP   # SSH into production server
+```
+
+The VM has SSH access to remote servers. Use this for emergency recovery
+or manual deployments when the `fazt remote upgrade` command can't reach
+the server.
+
 ### Local Paths
 
 | What | Path |
