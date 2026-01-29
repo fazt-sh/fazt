@@ -5,6 +5,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"crypto/tls"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -2953,12 +2954,18 @@ func handleStartCommand() {
 
 	// Start server in a goroutine
 	go func() {
-		log.Printf("Server starting on :%s", cfg.Server.Port)
+		// Determine port: HTTPS uses 443, HTTP uses configured port
+		port := cfg.Server.Port
+		if cfg.HTTPS.Enabled {
+			port = "443"
+		}
+
+		log.Printf("Server starting on :%s", port)
 		log.Printf("Dashboard: %s", cfg.Server.Domain)
 
 		// Create base TCP listener with kernel-level optimizations
 		// On Linux: TCP_DEFER_ACCEPT filters connections that never send data
-		baseListener, err := listener.ListenTCP("tcp", ":"+cfg.Server.Port)
+		baseListener, err := listener.ListenTCP("tcp", ":"+port)
 		if err != nil {
 			log.Fatalf("Failed to create listener: %v", err)
 		}
@@ -2976,44 +2983,89 @@ func handleStartCommand() {
 		log.Println("Per-IP connection limiting enabled (50 max per IP)")
 
 		if cfg.HTTPS.Enabled {
-			// HTTPS mode: CertMagic manages its own listeners for HTTP-01 challenges
-			// TCP-level protection not available in HTTPS mode (CertMagic limitation)
-			// Protection relies on: ReadHeaderTimeout + Rate Limiting middleware
-			log.Println("HTTPS Enabled: Using CertMagic")
-			log.Println("Note: TCP-level connection limiting not available in HTTPS mode")
+			// HTTPS mode with full TCP-level protection
+			// Stack: TCP_DEFER_ACCEPT → ConnLimiter → TLS (CertMagic) → HTTP Server
+			log.Println("HTTPS Enabled: Using CertMagic with TCP-level protection")
 
-			// Close the listener we created (CertMagic will create its own)
-			baseListener.Close()
+			cfgDomain := extractDomain(cfg.Server.Domain)
 
-			// Initialize SQL Storage
+			// Initialize SQL Storage for certificates
 			certStorage := database.NewSQLCertStorage(database.GetDB())
 
-			certmagic.DefaultACME.Email = cfg.HTTPS.Email
+			// Create a new CertMagic instance (don't use Default to avoid state issues)
+			magic := certmagic.NewDefault()
+			magic.Storage = certStorage
+
+			// Configure ACME
+			acmeIssuer := certmagic.NewACMEIssuer(magic, certmagic.ACMEIssuer{
+				Email:  cfg.HTTPS.Email,
+				Agreed: true,
+			})
 			if cfg.HTTPS.Staging {
-				certmagic.DefaultACME.CA = certmagic.LetsEncryptStagingCA
+				acmeIssuer.CA = certmagic.LetsEncryptStagingCA
 			}
+			magic.Issuers = []certmagic.Issuer{acmeIssuer}
 
-			// Use our SQL storage
-			certmagic.Default.Storage = certStorage
-
-			// Configure OnDemand TLS
-			cfgDomain := extractDomain(cfg.Server.Domain)
-			certmagic.Default.OnDemand = &certmagic.OnDemandConfig{
+			// Configure OnDemand TLS for subdomains
+			magic.OnDemand = &certmagic.OnDemandConfig{
 				DecisionFunc: func(ctx context.Context, name string) error {
-					// Allow main domain
-					if name == cfgDomain {
+					if name == cfgDomain || strings.HasSuffix(name, "."+cfgDomain) {
 						return nil
 					}
-					// Allow subdomains of main domain
-					if strings.HasSuffix(name, "."+cfgDomain) {
-						return nil
-					}
-					return fmt.Errorf("domain not allowed")
+					return fmt.Errorf("domain not allowed: %s", name)
 				},
 			}
 
-			// Use CertMagic's HTTPS which manages listeners and certificates
-			if err := certmagic.HTTPS([]string{cfgDomain}, handler); err != nil {
+			// Start HTTP-01 challenge server on port 80 (required for ACME)
+			// This runs in background and handles /.well-known/acme-challenge/
+			go func() {
+				httpListener, err := listener.ListenTCP("tcp", ":80")
+				if err != nil {
+					log.Printf("Warning: Could not start HTTP-01 challenge server on :80: %v", err)
+					log.Println("ACME HTTP-01 challenges may fail. Ensure port 80 is available.")
+					return
+				}
+				// Wrap with connection limiter for port 80 too
+				httpProtected := listener.NewConnLimiter(httpListener, listener.ConnLimiterConfig{
+					MaxConnsPerIP: 50,
+					MaxTotalConns: 10000,
+				})
+				challengeHandler := acmeIssuer.HTTPChallengeHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					// Redirect non-challenge requests to HTTPS
+					http.Redirect(w, r, "https://"+r.Host+r.URL.Path, http.StatusMovedPermanently)
+				}))
+				challengeSrv := &http.Server{
+					Handler:           challengeHandler,
+					ReadHeaderTimeout: 5 * time.Second,
+					ReadTimeout:       10 * time.Second,
+					WriteTimeout:      10 * time.Second,
+				}
+				log.Println("HTTP-01 challenge server listening on :80")
+				if err := challengeSrv.Serve(httpProtected); err != nil && err != http.ErrServerClosed {
+					log.Printf("HTTP-01 challenge server error: %v", err)
+				}
+			}()
+
+			// Provision certificates for the main domain
+			// This initializes the cache and fetches/renews certs as needed
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			if err := magic.ManageAsync(ctx, []string{cfgDomain}); err != nil {
+				cancel()
+				log.Fatalf("Failed to provision certificates: %v", err)
+			}
+			cancel()
+			log.Printf("Certificate management started for %s", cfgDomain)
+
+			// Get TLS config from the properly initialized CertMagic instance
+			tlsConfig := magic.TLSConfig()
+			tlsConfig.NextProtos = []string{"h2", "http/1.1"} // Enable HTTP/2
+
+			// Wrap our protected listener with TLS
+			// Full stack: TCP_DEFER_ACCEPT → ConnLimiter → TLS → HTTP Server
+			tlsListener := tls.NewListener(protectedListener, tlsConfig)
+
+			log.Println("Full protection stack: TCP_DEFER_ACCEPT → ConnLimiter → TLS → HTTP")
+			if err := srv.Serve(tlsListener); err != nil && err != http.ErrServerClosed {
 				log.Fatalf("HTTPS Server failed: %v", err)
 			}
 		} else {

@@ -1,17 +1,17 @@
 # Fazt Implementation State
 
 **Last Updated**: 2026-01-29
-**Current Version**: v0.11.7
+**Current Version**: v0.11.9
 
 ## Status
 
-State: **READY** - Defense-in-depth slowloris protection complete
+State: **READY** - Full TCP-level slowloris protection (HTTP + HTTPS)
 
 ---
 
 ## Security Architecture (Plan 27 Complete)
 
-### Protection Stack
+### Protection Stack (HTTP + HTTPS)
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -21,10 +21,13 @@ State: **READY** - Defense-in-depth slowloris protection complete
 │ Layer 2: ConnLimiter (TCP Accept level)                     │
 │          >50 conns from same IP → rejected before goroutine │
 ├─────────────────────────────────────────────────────────────┤
-│ Layer 3: ReadHeaderTimeout (net/http)                       │
+│ Layer 3: TLS (HTTPS mode only, via CertMagic)               │
+│          TLS wraps protected listener, not raw TCP          │
+├─────────────────────────────────────────────────────────────┤
+│ Layer 4: ReadHeaderTimeout (net/http)                       │
 │          Slow header senders → killed in 5 seconds          │
 ├─────────────────────────────────────────────────────────────┤
-│ Layer 4: Rate Limiting Middleware (Handler)                 │
+│ Layer 5: Rate Limiting Middleware (Handler)                 │
 │          >500 req/s from same IP → 429 response             │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -51,7 +54,7 @@ State: **READY** - Defense-in-depth slowloris protection complete
 
 ## Last Session
 
-**Plan 27: TCP-Level Slowloris Protection (v0.11.7)**
+**Plan 27: TCP-Level Slowloris Protection (v0.11.9)**
 
 ### Completed
 
@@ -71,10 +74,16 @@ State: **READY** - Defense-in-depth slowloris protection complete
    - Kernel filters connections that connect but never send
    - Graceful fallback to `net.Listen` on non-Linux
 
-4. **Integrated into server startup**
-   - Both HTTP and HTTPS modes use protected listener
-   - HTTPS: TLS wraps protected listener (CertMagic for certs)
-   - Removed redundant middleware-level connection limiter
+4. **Integrated into server startup (HTTP + HTTPS)**
+   - v0.11.7: Initial implementation (broke HTTPS with nil pointer panic)
+   - v0.11.8: Reverted HTTPS to certmagic.HTTPS() (lost TCP protection)
+   - v0.11.9: Proper CertMagic integration with ManageAsync()
+
+5. **HTTPS mode fix (v0.11.9)**
+   - Root cause: `magic.TLSConfig()` returned nil cache because
+     CertMagic wasn't initialized
+   - Fix: Call `magic.ManageAsync()` before getting TLSConfig()
+   - HTTP-01 challenge server on port 80 also protected
 
 ### Test Results
 
@@ -82,6 +91,7 @@ State: **READY** - Defense-in-depth slowloris protection complete
 - SlowHeaders test: PASS (server closes slow connections)
 - SlowBody test: PASS in 0.10s (was 7s before TCP_DEFER_ACCEPT)
 - All unit tests: PASS
+- HTTPS mode: Deployed to zyt.app, verified healthy
 
 ---
 

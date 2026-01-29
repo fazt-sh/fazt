@@ -4,6 +4,19 @@ All notable changes to fazt.sh will be documented in this file.
 
 ## [Unreleased]
 
+## [0.11.9] - 2026-01-29
+
+### Security
+- **Full HTTPS slowloris protection**: TCP-level protection now works with HTTPS mode
+  - Properly integrated CertMagic with custom listeners using `ManageAsync()`
+  - Protection stack: TCP_DEFER_ACCEPT → ConnLimiter → TLS → ReadHeaderTimeout
+  - HTTP-01 ACME challenge server on port 80 also protected
+
+### Fixed
+- CertMagic nil pointer panic when using custom TLS listeners
+  - Root cause: TLSConfig() called before ManageAsync() initialized the cache
+  - Fix: Call `magic.ManageAsync()` to provision certificates before serving
+
 ## [0.11.8] - 2026-01-29
 
 ### Fixed
