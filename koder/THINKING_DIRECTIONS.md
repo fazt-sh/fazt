@@ -65,6 +65,15 @@ fazt @zyt sql "SELECT * FROM auth_users"   # Remote
 - Read-only by default, `--write` flag for mutations
 - Why: Currently requires SSH + sqlite3 for remote debugging
 
+### E6. Qor Extraction Evaluation
+- Review `~/Projects/qor` for reusable components
+- Identify patterns, utilities, or features worth extracting into fazt
+- Use `/lite-extract` skill for evaluation
+- Questions:
+  - What does qor do well that fazt lacks?
+  - Any battle-tested code worth porting?
+  - Architectural patterns to consider?
+
 ---
 
 ## Documentation
