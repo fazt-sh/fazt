@@ -5,7 +5,7 @@
 
 ## Status
 
-State: **CLEAN** - Plan 29 released, all docs updated
+State: **CLEAN** - Plan 30 designed, CLAUDE.md refactored
 
 ---
 
@@ -14,9 +14,9 @@ State: **CLEAN** - Plan 29 released, all docs updated
 See `koder/THINKING_DIRECTIONS.md` for full list.
 
 **Next up**:
-- P2: Nexus App (stress test all capabilities including private/)
+- Plan 30: User Isolation & Analytics (ready to implement)
+- P2: Nexus App (stress test all capabilities)
 - E4: Plan 24 - Mock OAuth (local auth testing)
-- E5: Plan 25 - SQL Command (remote DB debugging)
 
 ---
 
@@ -24,7 +24,7 @@ See `koder/THINKING_DIRECTIONS.md` for full list.
 
 | Plan | Status | Purpose |
 |------|--------|---------|
-| 30: User Isolation & Analytics | Planning | User data isolation, analytics, GDPR |
+| 30: User Isolation & Analytics | Designed | User data isolation, analytics, GDPR |
 | 29: Private Directory | ✅ Released v0.13.0 | `private/` with dual access |
 | 24: Mock OAuth | Not started | Local auth testing |
 | 25: SQL Command | Not started | Remote DB debugging |
@@ -52,9 +52,11 @@ Full RBAC was discussed but deferred. Key points:
 
 ## Current Session (2026-01-30)
 
-**Plan 30: User Isolation & Analytics - Design Discussion**
+**Plan 30 Design + CLAUDE.md Refactor**
 
-### Key Decisions
+### Plan 30: User Isolation & Analytics
+
+Comprehensive design for v0.14.0:
 
 1. **API Namespace (Option C2)**
    - `fazt.app.user.*` - User's private data (auto-scoped)
@@ -83,59 +85,30 @@ Full RBAC was discussed but deferred. Key points:
    - Multiple admins allowed
    - Simple roles: owner/admin/user
 
-### Plan Created
+### CLAUDE.md Refactor
 
-`koder/plans/30_user_isolation_analytics.md`
+Split CLAUDE.md for ~80% token reduction:
 
----
+| Before | After |
+|--------|-------|
+| 456 lines (~3.9k tokens) | 85 lines (~800 tokens) |
 
-## Previous Session (2026-01-30)
+**New structure:**
+```
+knowledge-base/
+├── agent-context/         # Fazt development context
+│   ├── setup.md           # Local server, SSH
+│   ├── architecture.md    # How fazt works
+│   ├── api.md             # API endpoints, CLI
+│   └── tooling.md         # Skills, releasing
+└── skills/app/            # App development
+```
 
-**Plan 29: Private Directory - Full Implementation**
+### Files Created/Changed
 
-### Features Delivered
-
-1. **Dual Access Model**
-   - HTTP `GET /private/*` → Auth check → stream (401 if not logged in)
-   - Serverless `fazt.private.*` → Direct read for code logic
-   - Large files stream without serverless overhead
-   - Small data files processed by serverless
-
-2. **Serverless API**
-   - `fazt.private.read(path)` → string (undefined if missing)
-   - `fazt.private.readJSON(path)` → object (null if missing)
-   - `fazt.private.exists(path)` → boolean
-   - `fazt.private.list()` → string[]
-
-3. **Deploy Flag `--include-private`**
-   - Warns when `private/` is gitignored but exists
-   - Use flag to explicitly include gitignored private files
-   - Prevents accidental deployment of sensitive data
-
-### Files Changed
-
-- `cmd/server/main.go` - Auth-gated serving, `createDeployZipWithOptions`
-- `cmd/server/app.go` - `--include-private` flag
-- `internal/runtime/private_bindings.go` - Serverless API (new)
-- `internal/runtime/private_bindings_test.go` - 37 tests (new)
-- `internal/runtime/handler.go` - Private injector
-- `internal/config/config.go` - Version bump
-
-### Knowledge-Base Updates
-
-- `cli-app.md` - Added `--include-private` flag
-- `deployment.md` - New "Private Directory" section
-- `frontend-patterns.md` - Added `private/` to project structure
-- `serverless-api.md` - Full `fazt.private.*` documentation
-- `version.json` - Bumped to 0.13.0
-
-### Future Enhancement Notes (in plan)
-
-| Library | Enables | Use Case |
-|---------|---------|----------|
-| YAML parser | `readYAML()` | Config in YAML |
-| sql.js | SQLite queries | `private/app.db` |
-| CSV parser | `readCSV()` | Spreadsheet data |
+- `koder/plans/30_user_isolation_analytics.md` - Full implementation plan
+- `CLAUDE.md` - Lean core (~85 lines)
+- `knowledge-base/agent-context/*.md` - Detailed context files
 
 ---
 
@@ -146,8 +119,9 @@ Full RBAC was discussed but deferred. Key points:
 fazt app deploy ./my-app --to zyt --include-private
 
 # Access private in serverless
-var config = fazt.private.readJSON('config.json')
+var config = fazt.app.private.readJSON('config.json')  # Future API
 
-# HTTP access (requires auth)
-curl https://my-app.zyt.app/private/data.json  # 401 if not logged in
+# Plan 30 new API examples
+fazt.app.user.ds.insert('settings', { theme: 'dark' })
+fazt.admin.users.delete('fazt_usr_Nf4rFeUfNV2H')
 ```
