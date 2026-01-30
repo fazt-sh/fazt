@@ -37,12 +37,16 @@ respond(200, data, { "X-Custom": "value" })
 
 ## Storage APIs
 
-### Document Store (fazt.storage.ds)
+Two namespaces available:
+- `fazt.app.*` - Shared app storage (all users see same data)
+- `fazt.app.user.*` - User-scoped storage (automatic isolation per user)
+
+### Document Store (fazt.app.ds)
 
 Primary storage for structured data.
 
 ```javascript
-var ds = fazt.storage.ds
+var ds = fazt.app.ds
 
 // Insert
 ds.insert('items', { id: 'abc', name: 'Test', value: 42 })
@@ -60,12 +64,12 @@ ds.update('items', { id: 'abc' }, { value: 100 })
 ds.delete('items', { id: 'abc' })
 ```
 
-### Key-Value Store (fazt.storage.kv)
+### Key-Value Store (fazt.app.kv)
 
 Simple key-value lookups, caches, counters.
 
 ```javascript
-var kv = fazt.storage.kv
+var kv = fazt.app.kv
 
 // Set
 kv.set('user:123:token', 'abc123')
@@ -83,12 +87,12 @@ kv.delete('user:123:token')
 var keys = kv.list('user:123:')
 ```
 
-### Blob Storage (fazt.storage.s3)
+### Blob Storage (fazt.app.s3)
 
 File/binary storage.
 
 ```javascript
-var s3 = fazt.storage.s3
+var s3 = fazt.app.s3
 
 // Store file
 s3.put('uploads/image.png', binaryData, 'image/png')
@@ -102,6 +106,40 @@ s3.delete('uploads/image.png')
 // List by prefix
 var files = s3.list('uploads/')
 ```
+
+### User-Scoped Storage (fazt.app.user.*)
+
+Storage automatically isolated per authenticated user. Requires login.
+
+```javascript
+// User's private key-value store
+fazt.app.user.kv.set('preferences', { theme: 'dark' })
+var prefs = fazt.app.user.kv.get('preferences')
+
+// User's private documents
+fazt.app.user.ds.insert('notes', { title: 'My Note' })
+var myNotes = fazt.app.user.ds.find('notes', {})
+
+// User's private files
+fazt.app.user.s3.put('avatar.png', imageData, 'image/png')
+```
+
+**Key difference**: With `fazt.app.user.*`, you don't need to include user ID in queries - isolation is automatic. Two users calling `fazt.app.user.kv.set('key', 'value')` will each have their own separate `key`.
+
+```javascript
+// Old pattern (manual scoping)
+var userId = fazt.auth.getUser().id
+fazt.app.ds.insert('notes', { userId: userId, title: 'Note' })
+fazt.app.ds.find('notes', { userId: userId })
+
+// New pattern (automatic scoping)
+fazt.app.user.ds.insert('notes', { title: 'Note' })
+fazt.app.user.ds.find('notes', {})  // Only returns this user's notes
+```
+
+### Legacy: fazt.storage.* (deprecated)
+
+The old `fazt.storage.kv/ds/s3` namespace still works but is deprecated. Use `fazt.app.*` instead.
 
 ## Authentication APIs
 

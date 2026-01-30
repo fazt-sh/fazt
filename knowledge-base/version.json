@@ -1,8 +1,8 @@
 {
-  "version": "0.15.0",
-  "commit": "f0ec268",
-  "updated_at": "2026-01-30",
+  "version": "0.16.0",
+  "commit": "91653f3",
+  "updated_at": "2026-01-31",
   "sections": {
-    "skills/app": "0.15.0"
+    "skills/app": "0.16.0"
   }
 }
