@@ -5,33 +5,22 @@
 
 ## Status
 
-State: **CLEAN** - v0.14.0 released, Plan 30a complete
+State: **CLEAN** - Bug fix committed, ready for next session
 
 ---
 
 ## Last Session (2026-01-30)
 
-**Plan 30a: Config Consolidation + v0.14.0 Release**
+**Session Open + Bug Fix**
 
-1. **Unified DB Path Resolution** (`internal/database/path.go`)
-   - `database.ResolvePath(explicit)` - single source of truth
-   - Priority: `--db` flag > `FAZT_DB_PATH` env > `./data.db` default
+1. **Fixed reserved alias 404 bug** (`cmd/server/main.go`)
+   - System sites (admin, root, 404) were returning 404 even when files existed
+   - The `siteHandler` checked alias type "reserved" before checking if site exists
+   - Now checks `hosting.SiteExists()` first, only 404s if no files found
 
-2. **Config Migration** (`internal/config/migrate.go`)
-   - `MigrateFromFile()` - migrates `~/.config/fazt/config.json` to DB
-   - Auto-migrates legacy client DB peers (`~/.config/fazt/data.db`)
-   - Renames migrated files to `.bak` / `.migrated`
-
-3. **Removed Legacy Code**
-   - Deleted `internal/mcp/` (skills replace MCP)
-   - Deleted `internal/clientconfig/` (config in DB now)
-   - Removed `fazt servers` → use `fazt remote`
-   - Removed `fazt deploy` → use `fazt app deploy`
-   - Removed `fazt client apps` → use `fazt app list`
-
-4. **Released v0.14.0**
-   - All platforms built and uploaded
-   - zyt upgraded and healthy
+2. **Fixed local server domain config**
+   - DB had `server.domain=localhost`, updated to `192.168.64.3.nip.io`
+   - Local server now accessible and healthy
 
 ---
 
@@ -62,16 +51,9 @@ State: **CLEAN** - v0.14.0 released, Plan 30a complete
 ## Quick Reference
 
 ```bash
-# DB path resolution (new in v0.14.0)
-fazt server start --db ~/myproject/data.db
-FAZT_DB_PATH=~/data.db fazt remote list
+# Local server domain is configured in DB
+sqlite3 servers/local/data.db "SELECT * FROM configurations WHERE key='server.domain';"
 
-# Remote commands (replacing fazt servers)
-fazt remote list
-fazt remote add <name> --url <url> --token <token>
-fazt remote status <name>
-
-# App commands (replacing fazt deploy)
-fazt app deploy ./my-app --to zyt
-fazt app list zyt
+# Reset admin dashboard if needed
+FAZT_DB_PATH=servers/local/data.db fazt server reset-admin
 ```
