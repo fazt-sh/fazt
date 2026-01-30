@@ -63,3 +63,4 @@ cookies.txt
 servers/
 system/
 stdlib/node_modules
+.tickets/
