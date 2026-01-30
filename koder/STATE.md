@@ -1,46 +1,51 @@
 # Fazt Implementation State
 
 **Last Updated**: 2026-01-30
-**Current Version**: v0.14.0
+**Current Version**: v0.15.0
 
 ## Status
 
-State: **CLEAN** - Plan 30a regression fixed, ready for next session
+State: **CLEAN** - v0.15.0 released, config architecture simplified
 
 ---
 
 ## Last Session (2026-01-30)
 
-**Fixed Plan 30a Regression: CLI --domain flag ignored**
+**Simplified Config Architecture + v0.15.0 Release**
 
-1. **Root cause**: Plan 30a introduced `OverlayDB` which loads config from DB after CLI flags were applied, overwriting `--domain`
+1. **Fixed CLI `--domain` flag bug**: Flag was being overwritten by DB values because `Domain` wasn't in `CLIFlags` struct
 
-2. **Fix** (`internal/config/config.go`, `cmd/server/main.go`):
-   - Added `Domain` field to `CLIFlags` struct
-   - Updated `applyCLIFlags` to apply Domain (highest priority)
-   - OverlayDB now correctly re-applies CLI flags after loading DB values
+2. **Removed legacy config file support** (-333 lines):
+   - Deleted `internal/config/migrate.go`
+   - Removed `LoadFromFile`, `SaveToFile`, `applyEnvVars`
+   - Removed `--config` flag and `ConfigPath` from CLIFlags
 
-3. **Config priority now works correctly**:
+3. **Simplified config architecture**:
+   - `config.Load()` - creates defaults, resolves DB path
+   - `config.LoadFromDB()` - loads from DB, applies CLI overrides
+   - Renamed `OverlayDB` → `LoadFromDB` for clarity
+
+4. **Config priority now clear**:
    ```
-   CLI flags (--domain, --port)  ← highest
+   CLI flags (--domain, --port)  ← temporary overrides
    ↓
-   Database (configurations table)
+   Database (configurations table) ← source of truth
    ↓
-   Config file (config.json)
-   ↓
-   Defaults                      ← lowest
+   Defaults
    ```
+
+5. **Released v0.15.0** - tested with clean install
 
 ---
 
 ## Next Up
 
-1. **Plan 30b: User Data Foundation** (v0.15.0)
+1. **Plan 30b: User Data Foundation** (v0.16.0)
    - User isolation in storage
    - User IDs (`fazt_usr_*`)
    - Per-user analytics
 
-2. **Plan 30c: Access Control** (v0.16.0)
+2. **Plan 30c: Access Control** (v0.17.0)
    - RBAC with hierarchical roles
    - Email domain gating
 
@@ -51,18 +56,6 @@ State: **CLEAN** - Plan 30a regression fixed, ready for next session
 | Plan | Status | Purpose | Target |
 |------|--------|---------|--------|
 | 30a: Config Consolidation | ✅ Released | Single DB philosophy | v0.14.0 |
-| 30b: User Data Foundation | Ready | User isolation, IDs | v0.15.0 |
-| 30c: Access Control | Ready | RBAC, domain gating | v0.16.0 |
+| 30b: User Data Foundation | Ready | User isolation, IDs | v0.16.0 |
+| 30c: Access Control | Ready | RBAC, domain gating | v0.17.0 |
 | 24: Mock OAuth | Not started | Local auth testing | - |
-
----
-
-## Quick Reference
-
-```bash
-# Config priority: CLI > DB > file > defaults
-# OverlayDB loads from DB then re-applies CLI flags
-
-# Local server domain (CLI flag overrides this)
-sqlite3 servers/local/data.db "SELECT * FROM configurations WHERE key='server.domain';"
-```
