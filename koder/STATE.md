@@ -24,13 +24,72 @@ See `koder/THINKING_DIRECTIONS.md` for full list.
 
 | Plan | Status | Purpose |
 |------|--------|---------|
+| 30: User Isolation & Analytics | Planning | User data isolation, analytics, GDPR |
 | 29: Private Directory | ✅ Released v0.13.0 | `private/` with dual access |
 | 24: Mock OAuth | Not started | Local auth testing |
 | 25: SQL Command | Not started | Remote DB debugging |
 
 ---
 
-## Last Session (2026-01-30)
+## RBAC Notes (For Future Discussion)
+
+Full RBAC was discussed but deferred. Key points:
+
+**Pros:**
+- Fine-grained permissions (`posts:create`, `posts:delete:own`)
+- Custom roles per app (`editor`, `moderator`, `viewer`)
+- Framework-level enforcement
+
+**Cons:**
+- Significant API complexity
+- Most apps need only owner/admin/user
+- Can be implemented at app level if needed
+- Delays other features
+
+**Decision:** Keep simple roles (owner/admin/user). Revisit when needed.
+
+---
+
+## Current Session (2026-01-30)
+
+**Plan 30: User Isolation & Analytics - Design Discussion**
+
+### Key Decisions
+
+1. **API Namespace (Option C2)**
+   - `fazt.app.user.*` - User's private data (auto-scoped)
+   - `fazt.app.*` - App's shared data
+   - `fazt.app.private.*` - Bundled private files
+   - `fazt.auth.*` - Authentication
+   - `fazt.admin.*` - Admin operations
+   - `fazt.analytics.*` - Event tracking
+
+2. **ID Format (Stripe-style)**
+   - `fazt_usr_<12 chars>` - User
+   - `fazt_app_<12 chars>` - App
+   - `fazt_tok_<12 chars>` - Token
+   - `fazt_ses_<12 chars>` - Session
+
+3. **Analytics Enhancement**
+   - Add `app_id`, `user_id` to events table
+   - Query by app, user, or both
+   - Track user journey across apps
+
+4. **GDPR Compliance**
+   - `fazt.admin.users.delete(userId)` removes all data
+
+5. **Role Model**
+   - One owner per instance
+   - Multiple admins allowed
+   - Simple roles: owner/admin/user
+
+### Plan Created
+
+`koder/plans/30_user_isolation_analytics.md`
+
+---
+
+## Previous Session (2026-01-30)
 
 **Plan 29: Private Directory - Full Implementation**
 
