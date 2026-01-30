@@ -40,6 +40,10 @@ func (h *Handler) registerInternalRoutes() {
 	h.mux.HandleFunc("GET /auth/session", h.Session)
 	h.mux.HandleFunc("POST /auth/logout", h.Logout)
 
+	// Dev login routes (local only)
+	h.mux.HandleFunc("GET /auth/dev/login", h.DevLoginForm)
+	h.mux.HandleFunc("POST /auth/dev/callback", h.DevLoginCallback)
+
 	// Invite routes
 	h.mux.HandleFunc("GET /auth/invite/{code}", h.InvitePage)
 	h.mux.HandleFunc("POST /auth/invite/{code}", h.RedeemInvite)
@@ -53,6 +57,10 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /auth/callback/{provider}", h.Callback)
 	mux.HandleFunc("GET /auth/session", h.Session)
 	mux.HandleFunc("POST /auth/logout", h.Logout)
+
+	// Dev login routes (local only)
+	mux.HandleFunc("GET /auth/dev/login", h.DevLoginForm)
+	mux.HandleFunc("POST /auth/dev/callback", h.DevLoginCallback)
 
 	// Invite routes
 	mux.HandleFunc("GET /auth/invite/{code}", h.InvitePage)
@@ -86,13 +94,13 @@ func (h *Handler) LoginPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// If no providers configured, show setup message
-	if len(providers) == 0 {
-		h.renderLoginPage(w, nil, redirectTo, "No login providers configured. Contact the administrator.")
+	// If no providers configured and not in local mode, show setup message
+	if len(providers) == 0 && !IsLocalMode(r) {
+		h.renderLoginPageWithRequest(w, r, nil, redirectTo, "No login providers configured. Contact the administrator.")
 		return
 	}
 
-	h.renderLoginPage(w, providers, redirectTo, "")
+	h.renderLoginPageWithRequest(w, r, providers, redirectTo, "")
 }
 
 // StartLogin initiates the OAuth flow for a provider
@@ -371,6 +379,10 @@ func (h *Handler) ListProvidersHandler(w http.ResponseWriter, r *http.Request) {
 // HTML rendering helpers
 
 func (h *Handler) renderLoginPage(w http.ResponseWriter, providers []*ProviderConfig, redirectTo, errorMsg string) {
+	h.renderLoginPageWithRequest(w, nil, providers, redirectTo, errorMsg)
+}
+
+func (h *Handler) renderLoginPageWithRequest(w http.ResponseWriter, r *http.Request, providers []*ProviderConfig, redirectTo, errorMsg string) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 
@@ -385,6 +397,17 @@ func (h *Handler) renderLoginPage(w http.ResponseWriter, providers []*ProviderCo
       <a href="%s" class="provider-btn %s">
         Continue with %s
       </a>`, loginURL, cfg.Name, provider.DisplayName))
+	}
+
+	// Add dev login option if in local mode
+	devLoginHTML := ""
+	if r != nil && IsLocalMode(r) {
+		devLoginHTML = fmt.Sprintf(`
+    <div class="divider"><span>Development</span></div>
+    <a href="/auth/dev/login?redirect=%s" class="provider-btn dev">
+      Dev Login
+    </a>
+    <p class="hint">Simulates OAuth for local testing</p>`, redirectTo)
 	}
 
 	errorHTML := ""
@@ -470,6 +493,35 @@ func (h *Handler) renderLoginPage(w http.ResponseWriter, providers []*ProviderCo
       background: #0078D4;
       color: #fff;
     }
+    .provider-btn.dev {
+      background: #444;
+      color: #fff;
+    }
+    .divider {
+      display: flex;
+      align-items: center;
+      margin: 24px 0 16px;
+      color: #666;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .divider::before,
+    .divider::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: #333;
+    }
+    .divider span {
+      padding: 0 12px;
+    }
+    .hint {
+      color: #666;
+      font-size: 12px;
+      text-align: center;
+      margin-top: 8px;
+    }
     .footer {
       margin-top: 32px;
       text-align: center;
@@ -486,10 +538,11 @@ func (h *Handler) renderLoginPage(w http.ResponseWriter, providers []*ProviderCo
     <div class="providers">
       %s
     </div>
+    %s
     <p class="footer">Powered by Fazt</p>
   </div>
 </body>
-</html>`, h.service.Domain(), errorHTML, providerButtons.String())
+</html>`, h.service.Domain(), errorHTML, providerButtons.String(), devLoginHTML)
 
 	w.Write([]byte(html))
 }
