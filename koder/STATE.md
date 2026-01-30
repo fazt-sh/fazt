@@ -5,22 +5,31 @@
 
 ## Status
 
-State: **CLEAN** - Bug fix committed, ready for next session
+State: **CLEAN** - Plan 30a regression fixed, ready for next session
 
 ---
 
 ## Last Session (2026-01-30)
 
-**Session Open + Bug Fix**
+**Fixed Plan 30a Regression: CLI --domain flag ignored**
 
-1. **Fixed reserved alias 404 bug** (`cmd/server/main.go`)
-   - System sites (admin, root, 404) were returning 404 even when files existed
-   - The `siteHandler` checked alias type "reserved" before checking if site exists
-   - Now checks `hosting.SiteExists()` first, only 404s if no files found
+1. **Root cause**: Plan 30a introduced `OverlayDB` which loads config from DB after CLI flags were applied, overwriting `--domain`
 
-2. **Fixed local server domain config**
-   - DB had `server.domain=localhost`, updated to `192.168.64.3.nip.io`
-   - Local server now accessible and healthy
+2. **Fix** (`internal/config/config.go`, `cmd/server/main.go`):
+   - Added `Domain` field to `CLIFlags` struct
+   - Updated `applyCLIFlags` to apply Domain (highest priority)
+   - OverlayDB now correctly re-applies CLI flags after loading DB values
+
+3. **Config priority now works correctly**:
+   ```
+   CLI flags (--domain, --port)  ← highest
+   ↓
+   Database (configurations table)
+   ↓
+   Config file (config.json)
+   ↓
+   Defaults                      ← lowest
+   ```
 
 ---
 
@@ -51,9 +60,9 @@ State: **CLEAN** - Bug fix committed, ready for next session
 ## Quick Reference
 
 ```bash
-# Local server domain is configured in DB
-sqlite3 servers/local/data.db "SELECT * FROM configurations WHERE key='server.domain';"
+# Config priority: CLI > DB > file > defaults
+# OverlayDB loads from DB then re-applies CLI flags
 
-# Reset admin dashboard if needed
-FAZT_DB_PATH=servers/local/data.db fazt server reset-admin
+# Local server domain (CLI flag overrides this)
+sqlite3 servers/local/data.db "SELECT * FROM configurations WHERE key='server.domain';"
 ```
