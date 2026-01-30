@@ -237,7 +237,7 @@ func AppCreateHandlerV2(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Generate new app ID
-	newID := appid.Generate()
+	newID := appid.GenerateApp()
 
 	// Build tags JSON
 	tagsJSON := "[]"
@@ -532,7 +532,7 @@ func AppForkHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Generate new app ID
-	newID := appid.Generate()
+	newID := appid.GenerateApp()
 
 	// Build tags JSON
 	tagsJSON := "[]"

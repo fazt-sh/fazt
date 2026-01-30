@@ -207,9 +207,29 @@ func (h *ServerlessHandler) executeWithFazt(ctx context.Context, code string, re
 		return InjectFaztNamespace(vm, app, env, result)
 	}
 
+	// LEGACY_CODE: fazt.storage.* - use fazt.app.* instead
 	storageInjector := func(vm *goja.Runtime) error {
 		if app != nil && app.ID != "" {
 			return storage.InjectStorageNamespace(vm, h.storage, app.ID, ctx, budget)
+		}
+		return nil
+	}
+
+	// New fazt.app.* namespace with user isolation
+	appStorageInjector := func(vm *goja.Runtime) error {
+		if app != nil && app.ID != "" {
+			userID := ""
+			if authCtx != nil && authCtx.User != nil {
+				// Extract user ID from auth context
+				if u, ok := authCtx.User.(interface{ GetID() string }); ok {
+					userID = u.GetID()
+				} else if m, ok := authCtx.User.(map[string]interface{}); ok {
+					if id, ok := m["id"].(string); ok {
+						userID = id
+					}
+				}
+			}
+			return storage.InjectAppNamespace(vm, h.db, storage.GetWriter(), app.ID, userID, ctx, budget)
 		}
 		return nil
 	}
@@ -240,7 +260,7 @@ func (h *ServerlessHandler) executeWithFazt(ctx context.Context, code string, re
 		return nil
 	}
 
-	return h.runtime.ExecuteWithInjectors(ctx, code, req, loader, faztInjector, storageInjector, realtimeInjector, workerInjector, authInjector, privateInjector)
+	return h.runtime.ExecuteWithInjectors(ctx, code, req, loader, faztInjector, storageInjector, appStorageInjector, realtimeInjector, workerInjector, authInjector, privateInjector)
 }
 
 // loadFile loads a file from the VFS for a given app.

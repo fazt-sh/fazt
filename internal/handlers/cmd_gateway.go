@@ -521,7 +521,7 @@ func cmdAppFork(db interface{}, args []string) (interface{}, error) {
 	}
 
 	// Generate new ID
-	newID := appid.Generate()
+	newID := appid.GenerateApp()
 
 	// Build tags JSON
 	tagsJSON := "[]"

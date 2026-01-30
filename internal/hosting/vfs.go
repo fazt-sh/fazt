@@ -1,7 +1,6 @@
 package hosting
 
 import (
-	"crypto/rand"
 	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
@@ -11,6 +10,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/fazt-sh/fazt/internal/appid"
 )
 
 // FileSystem defines the interface for site storage
@@ -304,7 +305,7 @@ func (fs *SQLFileSystem) EnsureApp(name string, source *SourceInfo) error {
 
 	if err == sql.ErrNoRows {
 		// Create new app with generated ID
-		appID := generateAppID()
+		appID := appid.GenerateApp()
 		query := `
 			INSERT INTO apps (id, title, source, source_url, source_ref, source_commit, created_at, updated_at)
 			VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
@@ -337,23 +338,6 @@ func (fs *SQLFileSystem) EnsureApp(name string, source *SourceInfo) error {
 	`
 	_, err = fs.db.Exec(query, sourceType, sourceURL, sourceRef, sourceCommit, existingID)
 	return err
-}
-
-// generateAppID creates a unique app ID like "app_7f3k9x2m"
-func generateAppID() string {
-	const charset = "0123456789abcdefghijklmnopqrstuvwxyz"
-	b := make([]byte, 8)
-	for i := range b {
-		b[i] = charset[randInt(len(charset))]
-	}
-	return "app_" + string(b)
-}
-
-// randInt returns a random int in [0, max)
-func randInt(max int) int {
-	var b [1]byte
-	rand.Read(b[:])
-	return int(b[0]) % max
 }
 
 // GetAppSource returns source tracking info for an app

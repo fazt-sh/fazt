@@ -70,11 +70,11 @@ func hashToken(token string) string {
 	return hex.EncodeToString(h[:])
 }
 
-// generateUUID generates a simple UUID v4
+// LEGACY_CODE: generateUUID - use appid.Generate* functions instead
+// Keeping for backwards compatibility with existing UUIDs in database
 func generateUUID() string {
 	b := make([]byte, 16)
 	rand.Read(b)
-	// Set version (4) and variant bits
 	b[6] = (b[6] & 0x0f) | 0x40
 	b[8] = (b[8] & 0x3f) | 0x80
 	return hex.EncodeToString(b[:4]) + "-" +

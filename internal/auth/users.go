@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/fazt-sh/fazt/internal/appid"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -40,7 +41,7 @@ func (s *Service) CreateUser(email, name, picture, provider string, providerID *
 		return nil, ErrUserExists
 	}
 
-	id := generateUUID()
+	id := appid.GenerateUser()
 	now := time.Now().Unix()
 
 	// OAuth users are always regular users
@@ -83,7 +84,7 @@ func (s *Service) CreatePasswordUser(email, name, password, invitedBy string) (*
 		return nil, err
 	}
 
-	id := generateUUID()
+	id := appid.GenerateUser()
 	now := time.Now().Unix()
 
 	// Password users via invite are always regular users
