@@ -10,6 +10,7 @@ Reference specific sections from STATE.md when actively pursuing them.
 ### P1. Google Sign-in Redirect
 - Currently always redirects to root after OAuth
 - Either fix the redirect to original page, or make the landing page pretty
+- **Update**: Mostly solved by Plan 28 (SPA Routing) - clean URLs simplify OAuth redirects
 
 ### P2. Nexus App (Stress Test All Capabilities)
 - Find/build an app idea that uses ALL fazt capabilities
@@ -73,6 +74,22 @@ fazt @zyt sql "SELECT * FROM auth_users"   # Remote
   - What does qor do well that fazt lacks?
   - Any battle-tested code worth porting?
   - Architectural patterns to consider?
+
+### E7. Plan 28: SPA Routing (Clean URLs)
+- BFBB apps default to hash routing (static-hostable)
+- `--spa` flag at deploy enables clean URLs (`/dashboard` vs `/#/dashboard`)
+- Build-time switch: `import.meta.env.VITE_SPA_ROUTING`
+- Server-side: `spa: true` in manifest triggers index.html fallback
+- Preserves BFBB philosophy: source works anywhere, built output gets clean URLs
+- See: `koder/plans/28_spa_routing.md`
+
+### E8. Plan 29: Private Directory
+- Reserved `private/` directory for server-only data
+- HTTP access blocked (403), serverless can read via `fazt.private.read()`
+- Use cases: seed data, config, mock data, fixtures
+- Enables rapid PoC iteration with versioned data files
+- Future: auto-generate mock REST APIs from JSON files
+- See: `koder/plans/29_private_directory.md`
 
 ---
 
