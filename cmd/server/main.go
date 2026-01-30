@@ -1372,9 +1372,13 @@ func siteHandler(w http.ResponseWriter, r *http.Request, subdomain string) {
 	// Handle alias types
 	switch aliasType {
 	case "reserved":
-		// Reserved subdomain - return 404
-		serveSiteNotFound(w, r, subdomain)
-		return
+		// Reserved subdomain - only serve if system site exists (admin, root, 404)
+		// This allows system sites to be reserved from user apps while still serving content
+		if !hosting.SiteExists(subdomain) {
+			serveSiteNotFound(w, r, subdomain)
+			return
+		}
+		// Fall through to serve the system site
 	case "redirect":
 		// Get redirect URL and redirect
 		redirectURL, err := handlers.GetRedirectURL(subdomain)
