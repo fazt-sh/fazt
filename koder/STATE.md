@@ -5,7 +5,7 @@
 
 ## Status
 
-State: **APP BUILDING** - Testing capabilities through real apps
+State: **CLEAN** - Plan 28 complete, released v0.12.0
 
 ---
 
@@ -13,15 +13,13 @@ State: **APP BUILDING** - Testing capabilities through real apps
 
 See `koder/THINKING_DIRECTIONS.md` for full list.
 
-**Currently pursuing**:
-- E8: Plan 29 - Private Directory (server-only data files)
-
 **Next up**:
+- E8: Plan 29 - Private Directory (server-only data files)
 - P2: Nexus App (stress test all capabilities)
 - E4: Plan 24 - Mock OAuth (local auth testing)
 
-**On hold**:
-- P1: Google Sign-in redirect → solved by Plan 28
+**Resolved**:
+- P1: Google Sign-in redirect → solved by Plan 28 SPA routing
 
 ---
 
@@ -29,7 +27,6 @@ See `koder/THINKING_DIRECTIONS.md` for full list.
 
 | Plan | Status | Purpose |
 |------|--------|---------|
-| 28: SPA Routing | **Done** | Clean URLs via `--spa` flag |
 | 29: Private Directory | Ready | `private/` for server-only data files |
 | 24: Mock OAuth | Not started | Local auth testing |
 | 25: SQL Command | Not started | Remote DB debugging |
@@ -38,52 +35,35 @@ See `koder/THINKING_DIRECTIONS.md` for full list.
 
 ## Last Session (2026-01-30)
 
-**Plan 28: SPA Routing Implemented**
+**Plan 28: SPA Routing - Released v0.12.0**
 
-1. **Database**: Migration 016 adds `spa` column to apps table
-2. **VFS**: `GetAppSPA`/`SetAppSPA` methods for reading/writing spa flag
-3. **Handler**: SPA fallback in `ServeVFS` - serves index.html for non-file routes
-4. **Build**: `EnvVars` option sets `VITE_SPA_ROUTING=true` during build
-5. **CLI**: `--spa` flag on `fazt app deploy` command
-6. **Remote**: `DeployWithOptions` passes spa flag to server
+Implemented clean URL support for SPAs:
 
-**Usage**:
-```bash
-fazt app deploy ./my-spa --to zyt --spa
-```
+1. **`--spa` flag**: `fazt app deploy ./my-app --to zyt --spa`
+2. **Server fallback**: Returns `index.html` for routes without file extensions
+3. **Trailing slash redirect**: 301 from `/path/` to `/path` for SEO
+4. **Build env var**: `VITE_SPA_ROUTING=true` during `--spa` builds
+5. **BFBB pattern**: Hash routing in dev, history routing in prod
 
-The app's router should check `import.meta.env.VITE_SPA_ROUTING` to switch
-between hash routing (default) and history routing (SPA mode).
+**Files changed**:
+- `internal/database/migrations/016_spa_routing.sql` - spa column
+- `internal/hosting/vfs.go` - GetAppSPA/SetAppSPA methods
+- `internal/hosting/handler.go` - SPA fallback + trailing slash redirect
+- `cmd/server/app.go` - --spa flag on deploy command
+- `internal/build/build.go` - EnvVars option for build
+- `internal/remote/client.go` - DeployWithOptions
 
-**Tested**: Clean URLs work (e.g., `/dashboard` returns index.html).
-Without `--spa`, same route returns 404.
-
----
-
-## Recent Completions
-
-### v0.11.9 - Security Hardening
-
-Protection stack complete:
-```
-TCP_DEFER_ACCEPT → ConnLimiter → TLS → ReadHeaderTimeout → Rate Limit
-```
-
-| Issue | Status |
-|-------|--------|
-| Slowloris | ✅ Fixed |
-| Rate limiting | ✅ 500 req/s/IP |
-| Connection exhaustion | ✅ 50 conns/IP |
-| Header timeout | ✅ 5s |
+**Skill docs updated**: `~/.claude/skills/fazt-app/`
+- `fazt/hosting-quirks.md` - SPA routing section + BFBB pattern
+- `fazt/cli-app.md` - --spa flag documentation
+- `SKILL.md` - Quick reference with --spa
 
 ---
 
 ## Quick Reference
 
-See `CLAUDE.md` for full command reference.
-
 ```bash
 fazt remote status zyt          # Check production
-ssh root@165.227.11.46          # Emergency SSH
-journalctl --user -u fazt-local -f  # Local logs
+fazt app deploy ./app --to zyt --spa  # Deploy with clean URLs
+journalctl --user -u fazt-local -f    # Local logs
 ```
