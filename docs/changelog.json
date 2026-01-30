@@ -1,5 +1,11 @@
 [
     {
+        "version": "v0.14.0",
+        "title": "Config Consolidation",
+        "description": "Single DB philosophy: all config in SQLite. Unified DB path resolution, auto-migration from legacy files. Removed MCP server and legacy commands (fazt servers, fazt deploy).",
+        "created_at": "2026-01-30"
+    },
+    {
         "version": "v0.13.0",
         "title": "Private Directory Support",
         "description": "Auth-gated private/ folder for server-only files. HTTP streaming for large files, serverless API for data processing. Deploy flag --include-private for gitignored files.",

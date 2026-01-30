@@ -4,6 +4,23 @@ All notable changes to fazt.sh will be documented in this file.
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-01-30
+
+### Changed
+- **Config consolidation (Plan 30a)**: Single DB philosophy - all config in SQLite
+  - Unified DB path resolution: `--db` flag > `FAZT_DB_PATH` env > `./data.db`
+  - Auto-migration of `~/.config/fazt/config.json` to database on startup
+  - Auto-migration of legacy client DB (`~/.config/fazt/data.db`) peers
+  - Migrated files renamed to `.bak` / `.migrated`
+
+### Removed
+- **MCP server**: Removed `/mcp/*` routes and `internal/mcp/` package (skills replace MCP)
+- **clientconfig package**: Removed `internal/clientconfig/` (config in DB now)
+- **Legacy commands**:
+  - `fazt servers` → use `fazt remote`
+  - `fazt deploy` / `fazt client deploy` → use `fazt app deploy`
+  - `fazt client apps` → use `fazt app list`
+
 ## [0.13.0] - 2026-01-30
 
 ### Added
