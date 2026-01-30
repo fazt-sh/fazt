@@ -1,11 +1,11 @@
 # Fazt Implementation State
 
 **Last Updated**: 2026-01-30
-**Current Version**: v0.12.0
+**Current Version**: v0.13.0
 
 ## Status
 
-State: **IN PROGRESS** - Plan 29 implemented with auth-gated streaming
+State: **CLEAN** - Plan 29 released, all docs updated
 
 ---
 
@@ -13,12 +13,10 @@ State: **IN PROGRESS** - Plan 29 implemented with auth-gated streaming
 
 See `koder/THINKING_DIRECTIONS.md` for full list.
 
-**Current**:
-- E8: Plan 29 - Private Directory ✅ Complete
-
 **Next up**:
-- P2: Nexus App (stress test all capabilities)
+- P2: Nexus App (stress test all capabilities including private/)
 - E4: Plan 24 - Mock OAuth (local auth testing)
+- E5: Plan 25 - SQL Command (remote DB debugging)
 
 ---
 
@@ -26,84 +24,71 @@ See `koder/THINKING_DIRECTIONS.md` for full list.
 
 | Plan | Status | Purpose |
 |------|--------|---------|
-| 29: Private Directory | ✅ Complete | `private/` with dual access modes |
+| 29: Private Directory | ✅ Released v0.13.0 | `private/` with dual access |
 | 24: Mock OAuth | Not started | Local auth testing |
 | 25: SQL Command | Not started | Remote DB debugging |
 
 ---
 
-## Current Session (2026-01-30)
+## Last Session (2026-01-30)
 
-**Plan 29: Private Directory (Enhanced)**
+**Plan 29: Private Directory - Full Implementation**
 
-### Dual Access Model
+### Features Delivered
 
-| Access Mode | Use Case | Behavior |
-|-------------|----------|----------|
-| HTTP `GET /private/*` | Serve files to users | Auth check → stream (401 if not logged in) |
-| Serverless `fazt.private.*` | Process data in code | Direct read for logic |
+1. **Dual Access Model**
+   - HTTP `GET /private/*` → Auth check → stream (401 if not logged in)
+   - Serverless `fazt.private.*` → Direct read for code logic
+   - Large files stream without serverless overhead
+   - Small data files processed by serverless
 
-### Implementation
+2. **Serverless API**
+   - `fazt.private.read(path)` → string (undefined if missing)
+   - `fazt.private.readJSON(path)` → object (null if missing)
+   - `fazt.private.exists(path)` → boolean
+   - `fazt.private.list()` → string[]
 
-1. **Auth-gated HTTP** (changed from 403)
-   - Unauthenticated → 401 Unauthorized
-   - Authenticated → Stream file directly
-   - Supports large files (video, images) without serverless overhead
+3. **Deploy Flag `--include-private`**
+   - Warns when `private/` is gitignored but exists
+   - Use flag to explicitly include gitignored private files
+   - Prevents accidental deployment of sensitive data
 
-2. **Serverless API** (`fazt.private.*`)
-   - `read(path)` - returns file as string
-   - `readJSON(path)` - parses JSON
-   - `exists(path)` - returns boolean
-   - `list()` - returns array of filenames
+### Files Changed
 
-3. **Files Changed**
-   - `cmd/server/main.go` - Auth-gated serving, global `siteAuthService`
-   - `internal/runtime/private_bindings.go` - Serverless API
-   - `internal/runtime/private_bindings_test.go` - 37 test cases
-   - `internal/runtime/handler.go` - Inject private namespace
-   - `knowledge-base/skills/app/references/serverless-api.md` - Docs
-   - `koder/plans/29_private_directory.md` - Updated spec
+- `cmd/server/main.go` - Auth-gated serving, `createDeployZipWithOptions`
+- `cmd/server/app.go` - `--include-private` flag
+- `internal/runtime/private_bindings.go` - Serverless API (new)
+- `internal/runtime/private_bindings_test.go` - 37 tests (new)
+- `internal/runtime/handler.go` - Private injector
+- `internal/config/config.go` - Version bump
 
-4. **Testing**
-   - Unit tests: All pass (37 cases including edge cases, traversal, isolation)
-   - HTTP 401: Verified
-   - Serverless access: Verified
+### Knowledge-Base Updates
 
-### Deploy: `--include-private` Flag
+- `cli-app.md` - Added `--include-private` flag
+- `deployment.md` - New "Private Directory" section
+- `frontend-patterns.md` - Added `private/` to project structure
+- `serverless-api.md` - Full `fazt.private.*` documentation
+- `version.json` - Bumped to 0.13.0
 
-| `private/` state | Flag | Behavior |
-|------------------|------|----------|
-| Not gitignored | - | Deploy normally |
-| Gitignored | (none) | Warn + skip |
-| Gitignored | `--include-private` | Info + include |
+### Future Enhancement Notes (in plan)
 
-```bash
-# Warning shown when private/ is gitignored
-fazt app deploy ./my-app --to zyt
-# Warning: private/ is gitignored but exists
-#   Use --include-private to deploy private files
-
-# Explicitly include gitignored private/
-fazt app deploy ./my-app --to zyt --include-private
-# Including gitignored private/ (5 files)
-```
-
-### Future: JS Library Expansion
-
-| Library | Enables | Files |
-|---------|---------|-------|
+| Library | Enables | Use Case |
+|---------|---------|----------|
 | YAML parser | `readYAML()` | Config in YAML |
 | sql.js | SQLite queries | `private/app.db` |
 | CSV parser | `readCSV()` | Spreadsheet data |
-
-**Ready for v0.13.0 release.**
 
 ---
 
 ## Quick Reference
 
 ```bash
-fazt remote status zyt          # Check production
-fazt app deploy ./app --to zyt  # Deploy app
-cat knowledge-base/version.json # Check KB version
+# Deploy with private files
+fazt app deploy ./my-app --to zyt --include-private
+
+# Access private in serverless
+var config = fazt.private.readJSON('config.json')
+
+# HTTP access (requires auth)
+curl https://my-app.zyt.app/private/data.json  # 401 if not logged in
 ```
