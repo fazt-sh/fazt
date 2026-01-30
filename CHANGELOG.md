@@ -4,6 +4,17 @@ All notable changes to fazt.sh will be documented in this file.
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-01-30
+
+### Added
+- **SPA routing support**: Deploy SPAs with clean URLs using `--spa` flag
+  - `fazt app deploy ./my-app --to zyt --spa`
+  - Server returns `index.html` for routes without file extensions
+  - Enables `/dashboard` instead of `/#/dashboard` URLs
+- **Trailing slash normalization**: 301 redirect from `/path/` to `/path` for SEO
+- **Build environment variables**: `VITE_SPA_ROUTING=true` passed during `--spa` builds
+- Database migration 016: `spa` column in apps table
+
 ## [0.11.9] - 2026-01-29
 
 ### Security
