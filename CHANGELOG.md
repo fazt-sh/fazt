@@ -4,6 +4,16 @@ All notable changes to fazt.sh will be documented in this file.
 
 ## [Unreleased]
 
+## [0.17.0] - 2026-01-31
+
+### Added
+- **Dev OAuth provider (Plan 24)**: Local auth testing without HTTPS
+  - New dev login form at `/auth/dev/login` (local mode only)
+  - Automatic local-mode detection (no TLS required)
+  - Role selection for testing admin/owner flows
+  - Creates real sessions and users with `provider: "dev"`
+  - Blocked on production/HTTPS instances for security
+
 ## [0.16.0] - 2026-01-30
 
 ### Added
