@@ -31,22 +31,14 @@ func CheckFilePermissions(path string, expectedPerms os.FileMode) error {
 	return nil
 }
 
-// EnsureSecurePermissions ensures config and database files have secure permissions
-func EnsureSecurePermissions(configPath, dbPath string) {
-	// Config file should be 0600 (owner read/write only)
-	if err := CheckFilePermissions(configPath, 0600); err != nil {
-		log.Printf("Warning: Could not secure config file permissions: %v", err)
-	}
-
+// EnsureSecurePermissions ensures database files have secure permissions
+func EnsureSecurePermissions(dbPath string) {
 	// Database file should be 0600 (owner read/write only)
 	if err := CheckFilePermissions(dbPath, 0600); err != nil {
 		log.Printf("Warning: Could not secure database file permissions: %v", err)
 	}
 
 	// WAL and SHM files too
-	walPath := dbPath + "-wal"
-	shmPath := dbPath + "-shm"
-
-	CheckFilePermissions(walPath, 0600)
-	CheckFilePermissions(shmPath, 0600)
+	CheckFilePermissions(dbPath+"-wal", 0600)
+	CheckFilePermissions(dbPath+"-shm", 0600)
 }

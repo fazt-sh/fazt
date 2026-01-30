@@ -3,7 +3,6 @@ package config
 import (
 	"database/sql"
 	"fmt"
-	"log"
 )
 
 // DBConfigStore handles database operations for configuration
@@ -49,33 +48,30 @@ func (s *DBConfigStore) Set(key, value string) error {
 	return err
 }
 
-// OverlayDB loads config from DB and overlays it onto the current appConfig.
-// It effectively merges: Defaults < ConfigFile < Env < DB < Flags
-// Note: We re-apply flags after DB load to ensure Flags have highest priority.
-func OverlayDB(db *sql.DB, flags *CLIFlags) error {
+// LoadFromDB loads config from SQLite database and applies CLI flag overrides.
+// Config priority: CLI flags > Database > Defaults
+// The database is the source of truth. CLI flags are for temporary overrides.
+func LoadFromDB(db *sql.DB, flags *CLIFlags) error {
 	if appConfig == nil {
-		return fmt.Errorf("config not initialized, call Load() first")
+		return fmt.Errorf("config not initialized")
 	}
 
 	store := NewDBConfigStore(db)
 	dbConfig, err := store.Load()
 	if err != nil {
-		// If table doesn't exist yet (very first run before migration), this might fail.
-		// However, OverlayDB should be called AFTER database.Init(), which runs migrations.
 		return err
 	}
 
+	// Apply DB config
 	applyDBMap(appConfig, dbConfig)
-	
-	// RE-APPLY flags to ensure they override DB values
+
+	// Apply CLI flags (highest priority - for temporary overrides)
 	applyCLIFlags(appConfig, flags)
-	
-	// Validate again to ensure the combination is valid
+
 	if err := appConfig.Validate(); err != nil {
-		return fmt.Errorf("invalid configuration after DB overlay: %w", err)
+		return fmt.Errorf("invalid configuration: %w", err)
 	}
 
-	log.Printf("Configuration overlaid from Database")
 	return nil
 }
 

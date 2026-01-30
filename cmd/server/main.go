@@ -2299,31 +2299,22 @@ func handleUpgradeCommand() {
 // handleStartCommand handles the start subcommand
 func handleStartCommand() {
 	flags := flag.NewFlagSet("start", flag.ExitOnError)
-	port := flags.String("port", "", "Server port (overrides config)")
-	db := flags.String("db", "", "Database file path (overrides config)")
-	configFile := flags.String("config", "", "Config file path")
-	domain := flags.String("domain", "", "Server domain (overrides config)")
+	port := flags.String("port", "", "Server port (overrides DB config)")
+	db := flags.String("db", "", "Database file path")
+	domain := flags.String("domain", "", "Server domain (overrides DB config)")
 
 	flags.Usage = func() {
 		fmt.Println("Usage: fazt server start [options]")
 		fmt.Println()
-		fmt.Println("Starts the fazt.sh server.")
+		fmt.Println("Starts the fazt.sh server. Config is stored in the database.")
 		fmt.Println()
-		fmt.Println("Domain Configuration:")
-		fmt.Println("  Default: https://fazt.sh (for project use)")
-		fmt.Println("  Override: --domain yourdomain.com")
-		fmt.Println("  Environment: FAZT_DOMAIN environment variable")
-		fmt.Println()
+		fmt.Println("Options:")
 		flags.PrintDefaults()
 		fmt.Println()
 		fmt.Println("Examples:")
-		fmt.Println("  cc-server server start")
-		fmt.Println("  cc-server server start --port 8080")
-		fmt.Println("  cc-server server start --domain mysite.com")
-		fmt.Println("  cc-server server start --config /path/to/config.json")
-		fmt.Println()
-		fmt.Println("Environment Variables:")
-		fmt.Println("  FAZT_DOMAIN=fazt.sh cc-server server start")
+		fmt.Println("  fazt server start")
+		fmt.Println("  fazt server start --db /path/to/data.db")
+		fmt.Println("  fazt server start --port 8080 --domain mysite.com")
 	}
 
 	if err := flags.Parse(os.Args[3:]); err != nil {
@@ -2347,9 +2338,6 @@ func handleStartCommand() {
 	if *db != "" {
 		cliFlags.DBPath = *db
 	}
-	if *configFile != "" {
-		cliFlags.ConfigPath = *configFile
-	}
 	// Load configuration
 	cfg, err := config.Load(cliFlags)
 	if err != nil {
@@ -2368,14 +2356,8 @@ func handleStartCommand() {
 	}
 	defer database.Close()
 
-	// Migrate config from JSON file to DB (one-time migration)
-	if err := config.MigrateFromFile(database.GetDB()); err != nil {
-		log.Printf("Warning: Failed to migrate config from file: %v", err)
-	}
-
-	// Overlay configuration from database
-	if err := config.OverlayDB(database.GetDB(), cliFlags); err != nil {
-		// Log warning but don't fail
+	// Load configuration from database (source of truth)
+	if err := config.LoadFromDB(database.GetDB(), cliFlags); err != nil {
 		log.Printf("Warning: Failed to load config from DB: %v", err)
 	}
 
@@ -2409,7 +2391,7 @@ func handleStartCommand() {
 	}
 
 	// Ensure secure file permissions
-	security.EnsureSecurePermissions(config.ExpandPath(cliFlags.ConfigPath), cfg.Database.Path)
+	security.EnsureSecurePermissions(cfg.Database.Path)
 
 	// Display startup information
 	term.Banner()

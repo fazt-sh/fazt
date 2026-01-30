@@ -2,13 +2,32 @@
 
 **Sovereign compute** - Single Go binary + SQLite database that runs anywhere.
 
-**Version**: 0.13.0 | **State**: `koder/STATE.md`
+**Version**: 0.14.0 | **State**: `koder/STATE.md`
 
 ## Philosophy
 
-- **No backward compatibility** - Rapidly iterating, single user. Break and evolve.
+- **No backward compatibility** - Single user, rapidly iterating. Break things freely.
+- **No legacy support** - Remove old code paths. Don't maintain deprecated features.
+- **No hacks** - Build for millions of future users, not the current problem. If you see architectural dissonance, push back hard.
+- **Elegant solutions** - Fix the binary, not the instance. The system should work elegantly.
+- **Single DB philosophy** - Everything in SQLite. No config files. The database IS the instance.
 - **Static hosting first** - Serverless is enhancement, never blocks static deploy.
 - **Apps are throw-away** - Fix fazt, not workarounds. Apps test fazt.
+
+## Architecture: Config
+
+```
+Config Priority:
+  CLI flags (--domain, --port)  ← temporary overrides
+  ↓
+  Database (configurations table) ← source of truth
+  ↓
+  Defaults
+```
+
+- **Database is truth**: `fazt server start --db /path/to/data.db` should be enough
+- **CLI flags are overrides**: For debugging/testing, not persistent
+- **No config files**: Removed. Everything in SQLite.
 
 ## Environment
 

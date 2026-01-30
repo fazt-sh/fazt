@@ -1,7 +1,6 @@
 package config
 
 import (
-	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -130,50 +129,39 @@ type APIKeyConfig struct {
 
 var appConfig *Config
 
-// CLIFlags holds command-line flags
+// CLIFlags holds command-line flags for temporary overrides.
+// The database is the source of truth. CLI flags override DB values.
 type CLIFlags struct {
-	ConfigPath string
-	DBPath     string
-	Port       string
-	Domain     string
-	Username   string
-	Password   string
+	DBPath   string
+	Port     string
+	Domain   string
+	Username string
+	Password string
 }
 
-// ParseFlags parses command-line flags (for backward compatibility)
+// ParseFlags parses command-line flags
 func ParseFlags() *CLIFlags {
 	flags := &CLIFlags{}
-
-	// Get default config path
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		homeDir = "."
-	}
-	defaultConfigPath := filepath.Join(homeDir, ".config", "fazt", "config.json")
-
-	flag.StringVar(&flags.ConfigPath, "config", defaultConfigPath, "Path to config file")
-	flag.StringVar(&flags.DBPath, "db", "", "Database file path (overrides config)")
-	flag.StringVar(&flags.Port, "port", "", "Server port (overrides config)")
-	flag.StringVar(&flags.Username, "username", "", "Set/update username (updates config)")
-	flag.StringVar(&flags.Password, "password", "", "Set/update password (updates config)")
-
+	flag.StringVar(&flags.DBPath, "db", "", "Database file path")
+	flag.StringVar(&flags.Port, "port", "", "Server port")
+	flag.StringVar(&flags.Username, "username", "", "Admin username")
+	flag.StringVar(&flags.Password, "password", "", "Admin password")
 	flag.Parse()
-
 	return flags
 }
 
-// Load reads configuration from multiple sources with priority:
-// 1. CLI flags (highest)
-// 2. JSON config file
-// 3. Environment variables
-// 4. Built-in defaults (lowest)
+// Load initializes config with defaults and resolves DB path.
+// Config priority: CLI flags > Database > Defaults
+// The database is the source of truth. Use LoadFromDB after database init.
 func Load(flags *CLIFlags) (*Config, error) {
 	if appConfig != nil {
 		return appConfig, nil
 	}
 
-	// 1. Resolve Database Path First (Critical for "Config in DB")
-	// Priority: Flag > Env > Default
+	// Start with defaults
+	cfg := CreateDefaultConfig()
+
+	// Resolve database path: Flag > Env > Default
 	dbPath := "./data.db"
 	if envPath := os.Getenv("FAZT_DB_PATH"); envPath != "" {
 		dbPath = envPath
@@ -181,77 +169,10 @@ func Load(flags *CLIFlags) (*Config, error) {
 	if flags.DBPath != "" {
 		dbPath = ExpandPath(flags.DBPath)
 	}
-	// Expand home dir if needed
-	dbPath = ExpandPath(dbPath)
-
-	// Expand home directory in config path
-	configPath := ExpandPath(flags.ConfigPath)
-
-	// Try to load from JSON file (Legacy/Transition)
-	cfg, err := LoadFromFile(configPath)
-	if err != nil {
-		// If file doesn't exist, create default config
-		if os.IsNotExist(err) {
-			// Don't create default config file automatically anymore if we are moving to DB
-			// But for now, we keep the behavior but point to new defaults
-			cfg = CreateDefaultConfig()
-		} else {
-			return nil, fmt.Errorf("failed to load config: %w", err)
-		}
-	}
-
-	// FORCE the resolved DB path
-	cfg.Database.Path = dbPath
-
-	// Apply environment variables (backward compatibility)
-	applyEnvVars(cfg)
-
-	// Apply CLI flags (highest priority)
-	applyCLIFlags(cfg, flags)
+	cfg.Database.Path = ExpandPath(dbPath)
 
 	appConfig = cfg
-	log.Printf("Configuration loaded: Environment=%s, Port=%s, DB=%s",
-		cfg.Server.Env, cfg.Server.Port, cfg.Database.Path)
-
 	return appConfig, nil
-}
-
-// LoadFromFile loads configuration from a JSON file (exported for use in main.go)
-func LoadFromFile(path string) (*Config, error) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-
-	var cfg Config
-	if err := json.Unmarshal(data, &cfg); err != nil {
-		return nil, fmt.Errorf("failed to parse config JSON: %w", err)
-	}
-
-	return &cfg, nil
-}
-
-// SaveToFile saves configuration to a JSON file
-func SaveToFile(cfg *Config, path string) error {
-	// Ensure directory exists
-	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0700); err != nil {
-		return fmt.Errorf("failed to create config directory: %w", err)
-	}
-
-	// Marshal to JSON with indentation
-	data, err := json.MarshalIndent(cfg, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to marshal config: %w", err)
-	}
-
-	// Write to file with restrictive permissions
-	if err := os.WriteFile(path, data, 0600); err != nil {
-		return fmt.Errorf("failed to write config file: %w", err)
-	}
-
-	log.Printf("Config saved to %s", path)
-	return nil
 }
 
 // CreateDefaultConfig creates a default configuration (exported for use in main.go)
@@ -281,28 +202,6 @@ func CreateDefaultConfig() *Config {
 			Email:   "",
 			Staging: true,
 		},
-	}
-}
-
-// applyEnvVars applies environment variables to config (backward compatibility)
-func applyEnvVars(cfg *Config) {
-	if port := os.Getenv("PORT"); port != "" {
-		cfg.Server.Port = port
-	}
-	if dbPath := os.Getenv("DB_PATH"); dbPath != "" {
-		cfg.Database.Path = dbPath
-	}
-	if env := os.Getenv("ENV"); env != "" {
-		cfg.Server.Env = env
-	}
-	if domain := os.Getenv("FAZT_DOMAIN"); domain != "" {
-		cfg.Server.Domain = domain
-	}
-	if ntfyTopic := os.Getenv("NTFY_TOPIC"); ntfyTopic != "" {
-		cfg.Ntfy.Topic = ntfyTopic
-	}
-	if ntfyURL := os.Getenv("NTFY_URL"); ntfyURL != "" {
-		cfg.Ntfy.URL = ntfyURL
 	}
 }
 
