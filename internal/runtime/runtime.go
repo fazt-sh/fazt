@@ -114,6 +114,7 @@ func (r *Runtime) Execute(ctx context.Context, code string, req *Request) *Execu
 
 	// Set up timeout
 	done := make(chan struct{})
+	exited := make(chan struct{})
 	var timeoutCtx context.Context
 	var cancel context.CancelFunc
 
@@ -126,6 +127,7 @@ func (r *Runtime) Execute(ctx context.Context, code string, req *Request) *Execu
 
 	// Interrupt handler for timeout
 	go func() {
+		defer close(exited)
 		select {
 		case <-timeoutCtx.Done():
 			vm.Interrupt("execution timeout")
@@ -135,6 +137,7 @@ func (r *Runtime) Execute(ctx context.Context, code string, req *Request) *Execu
 
 	defer func() {
 		close(done)
+		<-exited // Wait for goroutine to exit before returning VM to pool
 		vm.ClearInterrupt()
 	}()
 
@@ -311,6 +314,7 @@ func (r *Runtime) ExecuteWithFiles(ctx context.Context, mainCode string, req *Re
 
 	// Set up timeout
 	done := make(chan struct{})
+	exited := make(chan struct{})
 	var timeoutCtx context.Context
 	var cancel context.CancelFunc
 
@@ -323,6 +327,7 @@ func (r *Runtime) ExecuteWithFiles(ctx context.Context, mainCode string, req *Re
 
 	// Interrupt handler for timeout
 	go func() {
+		defer close(exited)
 		select {
 		case <-timeoutCtx.Done():
 			vm.Interrupt("execution timeout")
@@ -332,6 +337,7 @@ func (r *Runtime) ExecuteWithFiles(ctx context.Context, mainCode string, req *Re
 
 	defer func() {
 		close(done)
+		<-exited // Wait for goroutine to exit before returning VM to pool
 		vm.ClearInterrupt()
 	}()
 
@@ -484,6 +490,7 @@ func (r *Runtime) ExecuteWithInjectors(ctx context.Context, mainCode string, req
 
 	// Set up timeout
 	done := make(chan struct{})
+	exited := make(chan struct{})
 	var timeoutCtx context.Context
 	var cancel context.CancelFunc
 
@@ -496,6 +503,7 @@ func (r *Runtime) ExecuteWithInjectors(ctx context.Context, mainCode string, req
 
 	// Interrupt handler for timeout
 	go func() {
+		defer close(exited)
 		select {
 		case <-timeoutCtx.Done():
 			vm.Interrupt("execution timeout")
@@ -505,6 +513,7 @@ func (r *Runtime) ExecuteWithInjectors(ctx context.Context, mainCode string, req
 
 	defer func() {
 		close(done)
+		<-exited // Wait for goroutine to exit before returning VM to pool
 		vm.ClearInterrupt()
 	}()
 

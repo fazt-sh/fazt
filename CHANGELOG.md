@@ -4,6 +4,25 @@ All notable changes to fazt.sh will be documented in this file.
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-01-30
+
+### Added
+- **User data foundation (Plan 30b)**: User-scoped storage with automatic isolation
+  - New `fazt.app.user.kv/ds/s3.*` namespace - user's private data
+  - New `fazt.app.kv/ds/s3.*` namespace - shared app data (replaces `fazt.storage.*`)
+  - Automatic user isolation via key/collection/path prefixing
+  - Requires login - throws error if not authenticated
+
+- **New fazt ID format**: Stripe-style IDs
+  - Format: `fazt_<type>_<12 base62 chars>` (e.g., `fazt_usr_Nf4rFeUfNV2H`)
+  - Types: `usr` (user), `app` (app), `tok` (token), `ses` (session), `inv` (invite)
+  - 20 chars total, URL-safe, double-click selectable
+
+- **Migration 017**: Adds `user_id` column to `app_kv`, `app_docs`, `app_blobs` tables
+
+### Deprecated
+- `fazt.storage.*` namespace - use `fazt.app.*` instead (marked LEGACY_CODE)
+
 ## [0.15.0] - 2026-01-30
 
 ### Changed
