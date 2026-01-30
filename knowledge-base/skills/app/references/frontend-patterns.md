@@ -24,6 +24,9 @@ my-app/
 │       └── auth.js      # Authentication
 ├── api/
 │   └── main.js          # Serverless API
+├── private/             # Server-only files (auth-gated HTTP, serverless access)
+│   ├── config.json      # App configuration
+│   └── seed-data.json   # Initial/seed data
 ├── version.json         # Generated at build time
 └── dist/                # Built output (deploy this)
 ```

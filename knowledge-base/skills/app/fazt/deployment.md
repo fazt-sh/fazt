@@ -201,6 +201,73 @@ fazt @<remote-peer> auth providers
 
 If Google is already enabled, you can test auth immediately on remote.
 
+## Private Directory
+
+The `private/` directory stores server-only files with dual access:
+
+| Access | Use Case | Behavior |
+|--------|----------|----------|
+| HTTP `GET /private/*` | Serve to users | Requires auth (401 if not logged in) |
+| Serverless `fazt.private.*` | Process in code | Direct read for logic |
+
+### Use Cases
+
+- **Large files** (video, images): Stream to authenticated users via HTTP
+- **Data files** (JSON, config): Process in serverless API
+- **Seed data**: Bundle initial data with app
+
+### Project Structure
+
+```
+my-app/
+├── src/                 # Vue/React source
+├── api/
+│   └── main.js          # Serverless handler
+├── private/             # Server-only files
+│   ├── config.json      # App configuration
+│   ├── seed-data.json   # Initial data
+│   └── videos/          # Protected media
+└── public/              # Static assets
+```
+
+### Deployment
+
+By default, if `private/` is gitignored, it won't be deployed:
+
+```bash
+# Warning shown when private/ exists but is gitignored
+$ fazt app deploy ./my-app --to zyt
+Warning: private/ is gitignored but exists
+  Use --include-private to deploy private files
+  Skipping private/...
+
+# Explicitly include gitignored private/
+$ fazt app deploy ./my-app --to zyt --include-private
+Including gitignored private/ (5 files)
+```
+
+### Accessing Private Files
+
+**Serverless API** (for data processing):
+```javascript
+// api/main.js
+var config = fazt.private.readJSON('config.json')
+var users = fazt.private.readJSON('seed-data.json')
+
+if (fazt.private.exists('feature-flags.json')) {
+  var flags = fazt.private.readJSON('feature-flags.json')
+}
+```
+
+**HTTP** (for authenticated users):
+```
+GET /private/video.mp4
+→ 401 Unauthorized (not logged in)
+→ Streams video (logged in)
+```
+
+See [serverless-api.md](../references/serverless-api.md) for full `fazt.private.*` API.
+
 ## Debug Endpoints (Local Only)
 
 When deployed locally, these endpoints help debug:

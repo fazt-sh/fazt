@@ -28,7 +28,7 @@ Deploy a directory to a peer. **Builds automatically** if `package.json` has
 a build script.
 
 ```bash
-fazt app deploy <directory> [--to <peer>] [--no-build] [--spa]
+fazt app deploy <directory> [--to <peer>] [--no-build] [--spa] [--include-private]
 ```
 
 **How it works:**
@@ -42,6 +42,7 @@ fazt app deploy <directory> [--to <peer>] [--no-build] [--spa]
 |------|-------------|
 | `--no-build` | Skip build step, deploy directory as-is |
 | `--spa` | Enable SPA routing (clean URLs, serves index.html for unknown routes) |
+| `--include-private` | Include gitignored `private/` directory in deployment |
 
 **Examples:**
 ```bash
@@ -54,6 +55,9 @@ fazt app deploy ./my-app --to local --no-build
 
 # SPA routing for clean URLs (/dashboard instead of /#/dashboard)
 fazt app deploy ./my-app --to <remote-peer> --spa
+
+# Include gitignored private/ directory
+fazt app deploy ./my-app --to <remote-peer> --include-private
 ```
 
 See [deployment.md](deployment.md) and [hosting-quirks.md](hosting-quirks.md)
@@ -216,3 +220,4 @@ fazt app lineage --id <app_id> --on <peer>
 | `--with-forks` | Include forked apps in operation |
 | `--spa` | Enable SPA routing (deploy only) |
 | `--no-build` | Skip automatic build (deploy only) |
+| `--include-private` | Include gitignored private/ (deploy only) |
