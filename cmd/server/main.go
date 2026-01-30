@@ -13,7 +13,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"mime/multipart"
 	"net"
 	"net/http"
 	"net/url"
@@ -29,13 +28,11 @@ import (
 	"github.com/fazt-sh/fazt/internal/analytics"
 	"github.com/fazt-sh/fazt/internal/audit"
 	"github.com/fazt-sh/fazt/internal/auth"
-	"github.com/fazt-sh/fazt/internal/clientconfig"
 	"github.com/fazt-sh/fazt/internal/config"
 	"github.com/fazt-sh/fazt/internal/database"
 	"github.com/fazt-sh/fazt/internal/handlers"
 	"github.com/fazt-sh/fazt/internal/hosting"
 	"github.com/fazt-sh/fazt/internal/listener"
-	"github.com/fazt-sh/fazt/internal/mcp"
 	"github.com/fazt-sh/fazt/internal/middleware"
 	"github.com/fazt-sh/fazt/internal/provision"
 	"github.com/fazt-sh/fazt/internal/remote"
@@ -455,225 +452,17 @@ func handleServerCommand(args []string) {
 	}
 }
 
-// handleServersCommand handles multi-server configuration commands
+// handleServersCommand redirects to fazt remote (deprecated)
 func handleServersCommand(args []string) {
-	if len(args) < 1 {
-		handleServersList()
-		return
-	}
-
-	subcommand := args[0]
-	switch subcommand {
-	case "add":
-		handleServersAdd(args[1:])
-	case "list":
-		handleServersList()
-	case "default":
-		handleServersDefault(args[1:])
-	case "remove":
-		handleServersRemove(args[1:])
-	case "ping":
-		handleServersPing(args[1:])
-	case "--help", "-h", "help":
-		printServersHelp()
-	default:
-		fmt.Printf("Unknown servers command: %s\n\n", subcommand)
-		printServersHelp()
-		os.Exit(1)
-	}
-}
-
-func handleServersAdd(args []string) {
-	// Support: fazt servers add <name> --url <url> --token <token>
-	// The name comes first, then flags
-	if len(args) < 1 {
-		fmt.Println("Error: server name is required")
-		fmt.Println("Usage: fazt servers add <name> --url <url> --token <token>")
-		os.Exit(1)
-	}
-
-	name := args[0]
-	flagArgs := args[1:]
-
-	flags := flag.NewFlagSet("servers add", flag.ExitOnError)
-	urlFlag := flags.String("url", "", "Server URL (required)")
-	tokenFlag := flags.String("token", "", "API token (required)")
-	flags.Parse(flagArgs)
-
-	if *urlFlag == "" || *tokenFlag == "" {
-		fmt.Println("Error: --url and --token are required")
-		fmt.Println("Usage: fazt servers add <name> --url <url> --token <token>")
-		os.Exit(1)
-	}
-
-	cfg, err := clientconfig.Load()
-	if err != nil {
-		fmt.Printf("Error loading config: %v\n", err)
-		os.Exit(1)
-	}
-
-	if err := cfg.AddServer(name, *urlFlag, *tokenFlag); err != nil {
-		fmt.Printf("Error adding server: %v\n", err)
-		os.Exit(1)
-	}
-
-	if err := cfg.Save(); err != nil {
-		fmt.Printf("Error saving config: %v\n", err)
-		os.Exit(1)
-	}
-
-	fmt.Printf("Server '%s' added successfully!\n", name)
-	if cfg.DefaultServer == name {
-		fmt.Printf("  (set as default)\n")
-	}
-}
-
-func handleServersList() {
-	cfg, err := clientconfig.Load()
-	if err != nil {
-		fmt.Printf("Error loading config: %v\n", err)
-		os.Exit(1)
-	}
-
-	servers := cfg.ListServers()
-	if len(servers) == 0 {
-		fmt.Println("No servers configured.")
-		fmt.Println("Run: fazt servers add <name> --url <url> --token <token>")
-		return
-	}
-
-	fmt.Println("NAME\t\tURL\t\t\t\tDEFAULT")
-	fmt.Println("----\t\t---\t\t\t\t-------")
-	for _, srv := range servers {
-		defaultMarker := ""
-		if srv.IsDefault {
-			defaultMarker = "*"
-		}
-		// Truncate URL for display if too long
-		displayURL := srv.URL
-		if len(displayURL) > 30 {
-			displayURL = displayURL[:27] + "..."
-		}
-		fmt.Printf("%s\t\t%s\t\t%s\n", srv.Name, displayURL, defaultMarker)
-	}
-}
-
-func handleServersDefault(args []string) {
-	if len(args) < 1 {
-		fmt.Println("Error: server name is required")
-		fmt.Println("Usage: fazt servers default <name>")
-		os.Exit(1)
-	}
-
-	name := args[0]
-
-	cfg, err := clientconfig.Load()
-	if err != nil {
-		fmt.Printf("Error loading config: %v\n", err)
-		os.Exit(1)
-	}
-
-	if err := cfg.SetDefault(name); err != nil {
-		fmt.Printf("Error: %v\n", err)
-		os.Exit(1)
-	}
-
-	if err := cfg.Save(); err != nil {
-		fmt.Printf("Error saving config: %v\n", err)
-		os.Exit(1)
-	}
-
-	fmt.Printf("Default server set to '%s'\n", name)
-}
-
-func handleServersRemove(args []string) {
-	if len(args) < 1 {
-		fmt.Println("Error: server name is required")
-		fmt.Println("Usage: fazt servers remove <name>")
-		os.Exit(1)
-	}
-
-	name := args[0]
-
-	cfg, err := clientconfig.Load()
-	if err != nil {
-		fmt.Printf("Error loading config: %v\n", err)
-		os.Exit(1)
-	}
-
-	if err := cfg.RemoveServer(name); err != nil {
-		fmt.Printf("Error: %v\n", err)
-		os.Exit(1)
-	}
-
-	if err := cfg.Save(); err != nil {
-		fmt.Printf("Error saving config: %v\n", err)
-		os.Exit(1)
-	}
-
-	fmt.Printf("Server '%s' removed\n", name)
-}
-
-func handleServersPing(args []string) {
-	var serverName string
-	if len(args) > 0 {
-		serverName = args[0]
-	}
-
-	cfg, err := clientconfig.Load()
-	if err != nil {
-		fmt.Printf("Error loading config: %v\n", err)
-		os.Exit(1)
-	}
-
-	srv, name, err := cfg.GetServer(serverName)
-	if err != nil {
-		fmt.Printf("Error: %v\n", err)
-		os.Exit(1)
-	}
-
-	fmt.Printf("Pinging %s (%s)...\n", name, srv.URL)
-
-	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Get(srv.URL + "/health")
-	if err != nil {
-		fmt.Printf("Error: %v\n", err)
-		os.Exit(1)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == http.StatusOK {
-		fmt.Printf("Server '%s' is healthy!\n", name)
-	} else {
-		fmt.Printf("Server '%s' returned status %d\n", name, resp.StatusCode)
-	}
-}
-
-func printServersHelp() {
-	fmt.Println(`Fazt.sh - Server Management
-
-USAGE:
-  fazt servers <command> [options]
-
-COMMANDS:
-  add <name>     Add a new server configuration
-  list           List configured servers
-  default <name> Set the default server
-  remove <name>  Remove a server configuration
-  ping [name]    Test connection to a server
-
-EXAMPLES:
-  # Add a server
-  fazt servers add prod --url https://zyt.app --token fzt_abc123...
-
-  # List servers
-  fazt servers list
-
-  # Set default server
-  fazt servers default prod
-
-  # Test connection
-  fazt servers ping prod`)
+	fmt.Fprintln(os.Stderr, "ERROR: 'fazt servers' has been removed.")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "Use 'fazt remote' instead:")
+	fmt.Fprintln(os.Stderr, "  fazt remote add <name> --url <url> --token <token>")
+	fmt.Fprintln(os.Stderr, "  fazt remote list")
+	fmt.Fprintln(os.Stderr, "  fazt remote remove <name>")
+	fmt.Fprintln(os.Stderr, "  fazt remote default <name>")
+	fmt.Fprintln(os.Stderr, "  fazt remote status [name]")
+	os.Exit(1)
 }
 
 // ===================================================================================
@@ -717,18 +506,104 @@ func handleRemoteCommand(args []string) {
 }
 
 func getClientDB() *sql.DB {
-	// Use XDG config path for client database
-	configDir := os.Getenv("XDG_CONFIG_HOME")
-	if configDir == "" {
-		configDir = filepath.Join(os.Getenv("HOME"), ".config")
-	}
-	dbPath := filepath.Join(configDir, "fazt", "data.db")
+	// Use unified DB path resolution: --db flag > FAZT_DB_PATH env > ./data.db
+	// This consolidates client and server into a single database.
+	dbPath := database.ResolvePath("")
 
 	if err := database.Init(dbPath); err != nil {
 		fmt.Printf("Error initializing database: %v\n", err)
 		os.Exit(1)
 	}
-	return database.GetDB()
+
+	db := database.GetDB()
+
+	// Migrate peers from legacy sources:
+	// 1. ~/.fazt/config.json (old clientconfig format)
+	if err := remote.MigrateOldConfig(db); err != nil {
+		log.Printf("Warning: failed to migrate ~/.fazt/config.json: %v", err)
+	}
+	// 2. ~/.config/fazt/data.db (old client DB)
+	migrateLegacyClientDB(db)
+
+	return db
+}
+
+// migrateLegacyClientDB migrates peers from the legacy ~/.config/fazt/data.db
+// to the current database. This is a one-time migration for users who had
+// the old split client/server DB setup.
+func migrateLegacyClientDB(targetDB *sql.DB) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return
+	}
+
+	// Check for legacy client DB
+	legacyPath := filepath.Join(home, ".config", "fazt", "data.db")
+	if _, err := os.Stat(legacyPath); os.IsNotExist(err) {
+		return // No legacy DB
+	}
+
+	// Skip if current DB is the same as legacy (user still using old path)
+	currentPath := database.ResolvePath("")
+	absLegacy, _ := filepath.Abs(legacyPath)
+	absCurrent, _ := filepath.Abs(currentPath)
+	if absLegacy == absCurrent {
+		return // Same database, no migration needed
+	}
+
+	// Check if target already has peers (don't overwrite)
+	var count int
+	if err := targetDB.QueryRow("SELECT COUNT(*) FROM peers").Scan(&count); err == nil && count > 0 {
+		return // Target already has peers
+	}
+
+	// Open legacy DB and migrate peers
+	legacyDB, err := sql.Open("sqlite", legacyPath)
+	if err != nil {
+		return
+	}
+	defer legacyDB.Close()
+
+	// Query peers from legacy DB
+	rows, err := legacyDB.Query(`
+		SELECT name, url, token, description, is_default
+		FROM peers
+	`)
+	if err != nil {
+		return // No peers table or other error
+	}
+	defer rows.Close()
+
+	migrated := 0
+	for rows.Next() {
+		var name, url string
+		var token, description sql.NullString
+		var isDefault int
+
+		if err := rows.Scan(&name, &url, &token, &description, &isDefault); err != nil {
+			continue
+		}
+
+		// Insert into target DB
+		_, err := targetDB.Exec(`
+			INSERT INTO peers (name, url, token, description, is_default)
+			VALUES (?, ?, ?, ?, ?)
+		`, name, url, token.String, description.String, isDefault)
+		if err != nil {
+			continue // Skip duplicates or errors
+		}
+		migrated++
+	}
+
+	if migrated > 0 {
+		log.Printf("Migrated %d peers from legacy client DB (%s)", migrated, legacyPath)
+
+		// Rename legacy DB to indicate migration completed
+		migratedPath := legacyPath + ".migrated"
+		if err := os.Rename(legacyPath, migratedPath); err != nil {
+			log.Printf("Warning: could not rename legacy DB: %v", err)
+		}
+	}
 }
 
 func handleRemoteAdd(args []string) {
@@ -2098,197 +1973,14 @@ func handleSetAuthToken() {
 	fmt.Printf("  Token:  %s...\n", (*token)[:4])
 }
 func handleDeployCommand() {
-	flags := flag.NewFlagSet("deploy", flag.ExitOnError)
-	path := flags.String("path", "", "Directory to deploy (required)")
-	domain := flags.String("domain", "", "Domain/subdomain for the site (required)")
-	toServer := flags.String("to", "", "Target server name (from 'fazt servers list')")
-	server := flags.String("server", "", "Server URL override (deprecated, use --to)")
-
-	flags.Usage = func() {
-		fmt.Println("Usage: fazt deploy --path <PATH> --domain <SUBDOMAIN> [--to <SERVER>]")
-		fmt.Println()
-		fmt.Println("Deploys a directory to a fazt.sh server.")
-		fmt.Println()
-		flags.PrintDefaults()
-		fmt.Println()
-		fmt.Println("Examples:")
-		fmt.Println("  fazt deploy --path . --domain my-site")
-		fmt.Println("  fazt deploy --path . --domain my-site --to prod")
-		fmt.Println("  fazt client deploy --path ~/Desktop/site --domain example")
-	}
-
-	// Determine args offset based on whether this is "deploy" or "client deploy"
-	argsOffset := 3
-	if len(os.Args) > 1 && os.Args[1] == "deploy" {
-		argsOffset = 2
-	}
-
-	if err := flags.Parse(os.Args[argsOffset:]); err != nil {
-		os.Exit(1)
-	}
-
-	deployPath := *path
-	if deployPath == "" {
-		fmt.Println("Error: --path is required")
-		flags.Usage()
-		os.Exit(1)
-	}
-
-	if *domain == "" {
-		fmt.Println("Error: --domain is required")
-		flags.Usage()
-		os.Exit(1)
-	}
-
-	// Validate the path exists
-	if _, err := os.Stat(deployPath); os.IsNotExist(err) {
-		fmt.Printf("Error: Path '%s' does not exist\n", deployPath)
-		os.Exit(1)
-	}
-
-	// Try new config first (~/.fazt/config.json)
-	var serverURL, token string
-	cfg, err := clientconfig.Load()
-	if err == nil && cfg.ServerCount() > 0 {
-		// Use new config system
-		srv, _, err := cfg.GetServer(*toServer)
-		if err != nil {
-			fmt.Printf("Error: %v\n", err)
-			os.Exit(1)
-		}
-		serverURL = srv.URL
-		token = srv.Token
-	} else {
-		// Fall back to old data.db config for backwards compatibility
-		dbPath := "./data.db"
-		if envPath := os.Getenv("FAZT_DB_PATH"); envPath != "" {
-			dbPath = envPath
-		}
-
-		if err := database.Init(dbPath); err != nil {
-			fmt.Println("Error: No servers configured")
-			fmt.Println("Run: fazt servers add <name> --url <url> --token <token>")
-			os.Exit(1)
-		}
-		defer database.Close()
-
-		store := config.NewDBConfigStore(database.GetDB())
-		dbMap, _ := store.Load()
-		token = dbMap["api_key.token"]
-
-		if token == "" {
-			fmt.Println("Error: No API key found in configuration")
-			fmt.Println("Run: fazt servers add <name> --url <url> --token <token>")
-			os.Exit(1)
-		}
-
-		serverURL = "http://localhost:4698"
-		if dbURL, ok := dbMap["client.server_url"]; ok && dbURL != "" {
-			serverURL = dbURL
-		}
-	}
-
-	// Allow --server flag to override (for backwards compat)
-	if *server != "" {
-		serverURL = *server
-	}
-
-	fmt.Printf("Deploying %s to %s as '%s'...\n", deployPath, serverURL, *domain)
-
-	// Change to the deploy directory
-	originalDir, _ := os.Getwd()
-	if err := os.Chdir(deployPath); err != nil {
-		fmt.Printf("Error changing to directory %s: %v\n", deployPath, err)
-		os.Exit(1)
-	}
-	defer os.Chdir(originalDir)
-
-	// Create ZIP of the directory
-	zipBuffer, fileCount, err := createDeployZip(".")
-	if err != nil {
-		fmt.Printf("Error creating ZIP: %v\n", err)
-		os.Exit(1)
-	}
-
-	fmt.Printf("Zipped %d files (%d bytes)\n", fileCount, zipBuffer.Len())
-
-	// Create HTTP request
-	var body bytes.Buffer
-	writer := multipart.NewWriter(&body)
-
-	// Add domain field
-	if err := writer.WriteField("site_name", *domain); err != nil {
-		fmt.Printf("Error creating form: %v\n", err)
-		os.Exit(1)
-	}
-
-	// Add file field
-	part, err := writer.CreateFormFile("file", "deploy.zip")
-	if err != nil {
-		fmt.Printf("Error creating file field: %v\n", err)
-		os.Exit(1)
-	}
-	if _, err := io.Copy(part, zipBuffer); err != nil {
-		fmt.Printf("Error writing file: %v\n", err)
-		os.Exit(1)
-	}
-	writer.Close()
-
-	// Make request
-	req, err := http.NewRequest("POST", serverURL+"/api/deploy", &body)
-	if err != nil {
-		fmt.Printf("Error creating request: %v\n", err)
-		os.Exit(1)
-	}
-	req.Header.Set("Content-Type", writer.FormDataContentType())
-	req.Header.Set("Authorization", "Bearer "+token)
-	// Send request
-	client := &http.Client{Timeout: 30 * time.Second}
-	resp, err := client.Do(req)
-	if err != nil {
-		fmt.Printf("Error deploying: %v\n", err)
-		os.Exit(1)
-	}
-	defer resp.Body.Close()
-
-	// Read response
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Printf("Error reading response: %v\n", err)
-		os.Exit(1)
-	}
-
-	// Check response
-	if resp.StatusCode != http.StatusOK {
-		fmt.Printf("✗ Deployment failed!\n")
-		fmt.Printf("  Status: %s\n", resp.Status)
-		fmt.Printf("  Error: %s\n", string(respBody))
-		os.Exit(1)
-	}
-
-	// Parse success response
-	var result map[string]interface{}
-	if err := json.Unmarshal(respBody, &result); err == nil {
-		if success, ok := result["success"].(bool); ok && success {
-			fmt.Printf("✓ Deployment successful!\n")
-			if site, ok := result["site"].(string); ok {
-				// Extract server URL for display
-				serverURL := *server
-				serverURL = strings.TrimPrefix(serverURL, "http://")
-				serverURL = strings.TrimPrefix(serverURL, "https://")
-				fmt.Printf("  Site: http://%s.%s\n", site, serverURL)
-			}
-			if fileCount, ok := result["file_count"].(float64); ok {
-				fmt.Printf("  Files: %.0f\n", fileCount)
-			}
-			if sizeBytes, ok := result["size_bytes"].(float64); ok {
-				fmt.Printf("  Size: %.0f bytes\n", sizeBytes)
-			}
-			return
-		}
-	}
-
-	fmt.Printf("✓ Deployment completed! (Status: %s)\n", resp.Status)
+	fmt.Fprintln(os.Stderr, "ERROR: 'fazt deploy' has been removed.")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "Use 'fazt app deploy' instead:")
+	fmt.Fprintln(os.Stderr, "  fazt app deploy ./my-app --to <peer>")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "Example:")
+	fmt.Fprintln(os.Stderr, "  fazt app deploy . --to zyt")
+	os.Exit(1)
 }
 
 // handleLogsCommand handles the logs subcommand
@@ -2488,90 +2180,16 @@ func handleSitesCommand() {
 	}
 }
 
-// handleAppsCommand handles the apps list subcommand (new API)
+// handleAppsCommand redirects to fazt app list (deprecated)
 func handleAppsCommand() {
-	flags := flag.NewFlagSet("apps", flag.ExitOnError)
-	toServer := flags.String("to", "", "Target server (or default)")
-
-	flags.Usage = func() {
-		fmt.Println("Usage: fazt client apps [options]")
-		fmt.Println()
-		fmt.Println("List all deployed apps.")
-		fmt.Println()
-		flags.PrintDefaults()
-	}
-
-	if err := flags.Parse(os.Args[3:]); err != nil {
-		os.Exit(1)
-	}
-
-	// Load client config
-	cfg, err := clientconfig.Load()
-	if err != nil {
-		fmt.Printf("Error loading config: %v\n", err)
-		os.Exit(1)
-	}
-
-	// Get target server
-	srv, serverName, err := cfg.GetServer(*toServer)
-	if err != nil {
-		fmt.Printf("Error: %v\n", err)
-		os.Exit(1)
-	}
-
-	req, err := http.NewRequest("GET", srv.URL+"/api/apps", nil)
-	if err != nil {
-		fmt.Printf("Error creating request: %v\n", err)
-		os.Exit(1)
-	}
-	req.Header.Set("Authorization", "Bearer "+srv.Token)
-
-	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Do(req)
-	if err != nil {
-		fmt.Printf("Error fetching apps: %v\n", err)
-		os.Exit(1)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		fmt.Printf("Error: %s\n", string(body))
-		os.Exit(1)
-	}
-
-	var result struct {
-		Data []struct {
-			ID        string `json:"id"`
-			Name      string `json:"name"`
-			Source    string `json:"source"`
-			FileCount int    `json:"file_count"`
-			SizeBytes int64  `json:"size_bytes"`
-			CreatedAt string `json:"created_at"`
-		} `json:"data"`
-		Error interface{} `json:"error"`
-	}
-
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		fmt.Printf("Error parsing response: %v\n", err)
-		os.Exit(1)
-	}
-
-	if result.Error != nil {
-		fmt.Printf("API Error: %v\n", result.Error)
-		os.Exit(1)
-	}
-
-	fmt.Printf("Apps on %s:\n\n", serverName)
-	fmt.Printf("%-20s %-10s %-10s %-10s\n", "NAME", "SOURCE", "FILES", "SIZE")
-	fmt.Println("────────────────────────────────────────────────────")
-	for _, app := range result.Data {
-		source := app.Source
-		if source == "" {
-			source = "deploy"
-		}
-		fmt.Printf("%-20s %-10s %-10d %-10d\n", app.Name, source, app.FileCount, app.SizeBytes)
-	}
+	fmt.Fprintln(os.Stderr, "ERROR: 'fazt client apps' has been removed.")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "Use 'fazt app list' instead:")
+	fmt.Fprintln(os.Stderr, "  fazt app list [peer]")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "Example:")
+	fmt.Fprintln(os.Stderr, "  fazt app list zyt")
+	os.Exit(1)
 }
 
 // handleDeleteCommand handles the delete site subcommand
@@ -2741,10 +2359,21 @@ func handleStartCommand() {
 	}
 
 	// Initialize database EARLY to load config
-	if err := database.Init(cfg.Database.Path); err != nil {
+	// Use unified path resolution: --db flag > FAZT_DB_PATH env > config file path > default
+	dbPath := database.ResolvePath(cliFlags.DBPath)
+	if dbPath == "" || dbPath == database.DefaultDBPath {
+		// Fall back to config file's DB path if set
+		dbPath = cfg.Database.Path
+	}
+	if err := database.Init(dbPath); err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}
 	defer database.Close()
+
+	// Migrate config from JSON file to DB (one-time migration)
+	if err := config.MigrateFromFile(database.GetDB()); err != nil {
+		log.Printf("Warning: Failed to migrate config from file: %v", err)
+	}
 
 	// Overlay configuration from database
 	if err := config.OverlayDB(database.GetDB(), cliFlags); err != nil {
@@ -2980,16 +2609,6 @@ func handleStartCommand() {
 
 	// System upgrade endpoint (requires API key auth)
 	dashboardMux.HandleFunc("POST /api/upgrade", handlers.UpgradeHandler)
-
-	// MCP (Model Context Protocol) routes
-	mcpServer, err := mcp.NewServer()
-	if err != nil {
-		log.Printf("Warning: MCP server not initialized: %v", err)
-	} else {
-		dashboardMux.HandleFunc("POST /mcp/initialize", mcpServer.HandleInitialize)
-		dashboardMux.HandleFunc("POST /mcp/tools/list", mcpServer.HandleToolsList)
-		dashboardMux.HandleFunc("POST /mcp/tools/call", mcpServer.HandleToolsCall)
-	}
 
 	// Dashboard (Admin VFS Site)
 	dashboardMux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {

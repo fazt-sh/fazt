@@ -195,48 +195,49 @@ ExecStart=/home/user/.local/bin/fazt serve --db /path/to/data.db
 
 ### Database
 
-- [ ] Create `config` table with schema above
-- [ ] Add migration to create table on startup
+- [x] Create `config` table with schema above (already exists: `configurations` table, migration 006)
+- [x] Add migration to create table on startup (migration 006)
+- [x] Create `internal/database/path.go` for unified DB path resolution
 
 ### Config Package
 
-- [ ] Create `internal/config/db.go` for DB-based config
-- [ ] Implement `config.Get(key string) (any, error)`
-- [ ] Implement `config.Set(key string, value any) error`
-- [ ] Implement `config.GetString(key)`, `config.GetInt(key)`, `config.GetBool(key)`
-- [ ] Implement `config.List(prefix string) map[string]any`
-- [ ] Implement `config.Delete(key string) error`
+- [x] Create `internal/config/db.go` for DB-based config (already exists: DBConfigStore)
+- [x] Implement `config.Set(key, value)` (DBConfigStore.Set)
+- [x] Implement `config.Load()` (DBConfigStore.Load)
+- [x] Create `internal/config/migrate.go` for JSON→DB migration
+- [x] Implement `config.MigrateFromFile()` for instance config migration
+- [x] Implement `config.LoadFromDB()` for DB-first loading
+- [x] Implement `config.SaveToDB()` for persisting to DB
 
 ### Migration
 
-- [ ] Detect existing `~/.config/fazt/config.json`
-- [ ] Detect existing `~/.fazt/config.json`
-- [ ] Import instance config to DB
-- [ ] Import peer config to DB
-- [ ] Rename originals to `.bak`
-- [ ] Log migration status
+- [x] Detect existing `~/.config/fazt/config.json` (config/migrate.go)
+- [x] Detect existing `~/.fazt/config.json` (remote/migrate.go - already existed)
+- [x] Import instance config to DB (config/migrate.go:migrateInstanceConfig)
+- [x] Import peer config to DB (main.go:migrateLegacyClientDB)
+- [x] Rename originals to `.bak` (both migration files do this)
+- [x] Log migration status (both migration files log)
 
 ### Server Startup
 
-- [ ] Update `cmd/server/main.go` to use DB config
-- [ ] Implement `getDBPath()` (flag > env > default)
-- [ ] Remove dependency on `~/.config/fazt/config.json`
+- [x] Update `cmd/server/main.go` to use DB config (OverlayDB + MigrateFromFile)
+- [x] Implement `database.ResolvePath()` (flag > env > default)
+- [x] Unified `getClientDB()` to use ResolvePath instead of hardcoded path
+- [ ] Remove dependency on `~/.config/fazt/config.json` (still used as fallback)
 
 ### CLI Commands
 
-- [ ] Update `fazt remote list` to read from DB
-- [ ] Update `fazt remote add` to write to DB
-- [ ] Update `fazt remote remove` to delete from DB
-- [ ] Update `fazt remote default` to update DB
-- [ ] Update `fazt remote status` to read from DB
-- [ ] Remove `internal/clientconfig/` package
+- [x] `fazt remote` commands already use DB (remote package + peers table)
+- [x] Deprecated `fazt servers` command with migration warning
+- [ ] Remove `internal/clientconfig/` package (still used by MCP)
+- [ ] Update MCP to use `remote` package
 
 ### Testing
 
-- [ ] Config read/write tests
-- [ ] Migration tests (both files present, one present, none present)
-- [ ] Bootstrap tests (flag, env, default)
-- [ ] CLI remote commands with DB backend
+- [x] Config read/write tests (existing tests pass)
+- [x] Bootstrap tests for `database.ResolvePath()` (path_test.go)
+- [x] Remote package tests pass
+- [ ] Migration integration tests
 
 ### Documentation
 

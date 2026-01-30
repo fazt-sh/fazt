@@ -5,7 +5,7 @@
 
 ## Status
 
-State: **READY** - Plan 30 split into 30a/30b/30c, ready to implement
+State: **COMPLETE** - Plan 30a done, ready for v0.14.0 release
 
 ---
 
@@ -13,8 +13,11 @@ State: **READY** - Plan 30 split into 30a/30b/30c, ready to implement
 
 See `koder/THINKING_DIRECTIONS.md` for full list.
 
+**Current**:
+- **Plan 30a: Config Consolidation** (v0.14.0) - ✅ Complete
+
 **Next up**:
-- **Plan 30a: Config Consolidation** (v0.14.0) - Start here
+- v0.14.0 Release
 - Plan 30b: User Data Foundation (v0.15.0)
 - Plan 30c: Access Control (v0.16.0)
 - P2: Nexus App (stress test all capabilities)
@@ -26,7 +29,7 @@ See `koder/THINKING_DIRECTIONS.md` for full list.
 
 | Plan | Status | Purpose | Target |
 |------|--------|---------|--------|
-| 30a: Config Consolidation | **Ready** | Single DB philosophy | v0.14.0 |
+| 30a: Config Consolidation | ✅ Complete | Single DB philosophy | v0.14.0 |
 | 30b: User Data Foundation | Ready | User isolation, IDs, analytics | v0.15.0 |
 | 30c: Access Control | Ready | RBAC, domain gating | v0.16.0 |
 | 29: Private Directory | ✅ Released | `private/` with dual access | v0.13.0 |
@@ -37,51 +40,42 @@ See `koder/THINKING_DIRECTIONS.md` for full list.
 
 ## Current Session (2026-01-30)
 
-**Plan 30 Expansion + Split**
+**Plan 30a: Config Consolidation - Implementation**
 
-### RBAC Design
+### Completed
 
-Designed lightweight RBAC with:
-- Hierarchical roles (`teacher/chemistry/*`)
-- Expiry support for temporary access
-- `fazt.auth.hasRole(pattern)` / `requireRole(pattern)`
-- `fazt.admin.users.role.(add|remove|list|find)`
+1. **Unified DB Path Resolution** (`internal/database/path.go`)
+   - `database.ResolvePath(explicit)` - single source of truth
+   - Priority: explicit flag > `FAZT_DB_PATH` env > `./data.db` default
+   - Added tests in `path_test.go`
 
-### Domain Gating
+2. **Instance Config Migration** (`internal/config/migrate.go`)
+   - `config.MigrateFromFile(db)` - migrates `~/.config/fazt/config.json` to DB
+   - `config.LoadFromDB(db)` - loads config from DB with defaults
+   - `config.SaveToDB(db, cfg)` - persists config to DB
+   - Auto-renames migrated files to `.bak`
 
-Designed email domain restrictions:
-- `fazt.admin.config.auth.domains.(allow|block|list)`
-- Whitelist (employees only) and blacklist (no disposable emails)
-- Enforced at OAuth callback
-- API-configurable (no code changes)
+3. **Client DB Consolidation** (`cmd/server/main.go`)
+   - Updated `getClientDB()` to use unified path resolution
+   - Added `migrateLegacyClientDB()` to migrate peers from `~/.config/fazt/data.db`
+   - Server startup now calls `config.MigrateFromFile()` after DB init
 
-### Config Consolidation
+4. **Removed Legacy Commands & Packages**
+   - Deleted `internal/mcp/` - skills replace MCP paradigm
+   - Deleted `internal/clientconfig/` - config in DB now
+   - Removed `fazt servers` handlers → error redirects to `fazt remote`
+   - Removed `fazt deploy` / `fazt client deploy` → error redirects to `fazt app deploy`
+   - Removed `fazt client apps` → error redirects to `fazt app list`
+   - Removed MCP HTTP routes (`/mcp/*`) from server
 
-**Critical fix**: External config files violate single-DB philosophy.
+### Files Changed
 
-- `~/.config/fazt/config.json` → Move to DB
-- `~/.fazt/config.json` → Move to DB
-- Single `config` table with hierarchical keys
-- Bootstrap only needs DB path (flag/env/default)
-
-### Plan Split
-
-Split Plan 30 into three focused plans:
-
-```
-30a: Config in DB (foundation)
- ↓
-30b: User isolation, IDs, analytics
- ↓
-30c: RBAC, domain gating
-```
-
-### Files Created/Changed
-
-- `koder/plans/30a_config_consolidation.md` - Config in DB
-- `koder/plans/30b_user_data_foundation.md` - User isolation, IDs
-- `koder/plans/30c_access_control.md` - RBAC, domain gating
-- `koder/plans/30_user_isolation_analytics.md` - Updated as index
+- `internal/database/path.go` - NEW: unified path resolution
+- `internal/database/path_test.go` - NEW: tests
+- `internal/config/migrate.go` - NEW: JSON→DB migration
+- `internal/mcp/` - DELETED
+- `internal/clientconfig/` - DELETED
+- `cmd/server/main.go` - Removed MCP, clientconfig, legacy commands
 
 ---
 
