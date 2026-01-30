@@ -43,12 +43,15 @@ knowledge-base/
         └── templates/  # Code templates
 ```
 
-**When to update:**
+**When to update content:**
 - New CLI flag/command → `knowledge-base/skills/app/fazt/cli-*.md`
 - New serverless API → `knowledge-base/skills/app/references/serverless-api.md`
 - New pattern/workflow → `knowledge-base/skills/app/patterns/`
 
-**After updates**, bump `knowledge-base/version.json` to match fazt version.
+**Version syncing:**
+- **Always** bump `knowledge-base/version.json` to match fazt version on release
+- KB version is a sync marker, not just a content change indicator
+- Ensures KB is verified as compatible with the released binary version
 
 ## Releasing
 

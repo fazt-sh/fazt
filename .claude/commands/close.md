@@ -98,7 +98,9 @@ If new features, commands, or workflows were added:
 | Bug fix only | No |
 | Internal refactor | No |
 
-**If knowledge-base was updated**, bump `knowledge-base/version.json`:
+**Always bump `knowledge-base/version.json` on release** (even if content unchanged):
+- KB version is a sync marker that tracks compatibility with binary version
+- Indicates KB has been verified against the released version
 
 ```bash
 # Get current version and commit
