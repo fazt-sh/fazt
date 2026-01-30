@@ -1,17 +1,17 @@
 # Fazt Implementation State
 
-**Last Updated**: 2026-01-30
-**Current Version**: v0.15.0 → v0.16.0
+**Last Updated**: 2026-01-31
+**Current Version**: v0.16.0
 
 ## Status
 
-State: **CLEAN** - Plan 30b implemented, ready for release
+State: **CLEAN** - Released v0.16.0
 
 ---
 
-## Last Session (2026-01-30)
+## Last Session (2026-01-31)
 
-**Plan 30b: User Data Foundation**
+**Released v0.16.0: User Data Foundation**
 
 1. **New fazt ID format** (`internal/appid/appid.go`):
    - Format: `fazt_<type>_<12 base62 chars>` (e.g., `fazt_usr_Nf4rFeUfNV2H`)
@@ -27,7 +27,8 @@ State: **CLEAN** - Plan 30b implemented, ready for release
 
 4. **Migration 017** - adds `user_id` column to storage tables
 
-5. **Updated ID generation** across auth, hosting, handlers
+5. **Fixed runtime race condition** (`internal/runtime/runtime.go`):
+   - Added goroutine exit synchronization before returning VM to pool
 
 ---
 
