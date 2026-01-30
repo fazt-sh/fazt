@@ -4,6 +4,26 @@ All notable changes to fazt.sh will be documented in this file.
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-01-30
+
+### Changed
+- **Simplified config architecture**: Database is the source of truth
+  - `config.Load()` now only creates defaults and resolves DB path
+  - `config.LoadFromDB()` loads from database, applies CLI flag overrides
+  - Renamed `OverlayDB` → `LoadFromDB` for clarity
+  - Config priority: CLI flags > Database > Defaults
+
+### Fixed
+- **CLI `--domain` flag now properly overrides DB config**: Flag was being overwritten by database values
+
+### Removed
+- **Legacy config file support**: No more JSON config files
+  - Removed `internal/config/migrate.go` (config file migration)
+  - Removed `LoadFromFile`, `SaveToFile` functions
+  - Removed `applyEnvVars` (legacy env var support)
+  - Removed `--config` flag from `fazt server start`
+  - Removed `ConfigPath` from CLIFlags struct
+
 ## [0.14.0] - 2026-01-30
 
 ### Changed
