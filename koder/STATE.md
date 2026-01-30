@@ -15,6 +15,8 @@ See `koder/THINKING_DIRECTIONS.md` for full list.
 
 **Next up**:
 - Plan 30: User Isolation & Analytics (ready to implement)
+  - **Include RBAC evaluation** - Consider if minimal or full RBAC fits naturally
+  - Revisit RBAC notes below during implementation
 - P2: Nexus App (stress test all capabilities)
 - E4: Plan 24 - Mock OAuth (local auth testing)
 
@@ -31,9 +33,9 @@ See `koder/THINKING_DIRECTIONS.md` for full list.
 
 ---
 
-## RBAC Notes (For Future Discussion)
+## RBAC Notes (Evaluate During Plan 30)
 
-Full RBAC was discussed but deferred. Key points:
+**Status**: Revisit during Plan 30 implementation
 
 **Pros:**
 - Fine-grained permissions (`posts:create`, `posts:delete:own`)
@@ -44,9 +46,26 @@ Full RBAC was discussed but deferred. Key points:
 - Significant API complexity
 - Most apps need only owner/admin/user
 - Can be implemented at app level if needed
-- Delays other features
 
-**Decision:** Keep simple roles (owner/admin/user). Revisit when needed.
+**Questions to answer during Plan 30:**
+1. Does user isolation naturally lead to RBAC patterns?
+2. Can we add minimal RBAC (resource-level permissions) without complexity?
+3. What's the minimal RBAC that enables real use cases?
+4. Does `fazt.admin.*` namespace already provide enough role separation?
+
+**Possible minimal RBAC:**
+```javascript
+// Resource-level: user can only access their own data
+fazt.app.user.*  // Already planned - automatic
+
+// Role checks: already exist
+fazt.auth.isOwner()
+fazt.auth.isAdmin()
+fazt.auth.hasRole('editor')  // Could add custom roles
+
+// Permission checks: potential addition
+fazt.auth.can('posts', 'delete')  // Check permission
+```
 
 ---
 
