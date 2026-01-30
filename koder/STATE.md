@@ -1,61 +1,70 @@
 # Fazt Implementation State
 
 **Last Updated**: 2026-01-30
-**Current Version**: v0.15.0
+**Current Version**: v0.15.0 → v0.16.0
 
 ## Status
 
-State: **CLEAN** - v0.15.0 released, config architecture simplified
+State: **CLEAN** - Plan 30b implemented, ready for release
 
 ---
 
 ## Last Session (2026-01-30)
 
-**Simplified Config Architecture + v0.15.0 Release**
+**Plan 30b: User Data Foundation**
 
-1. **Fixed CLI `--domain` flag bug**: Flag was being overwritten by DB values because `Domain` wasn't in `CLIFlags` struct
+1. **New fazt ID format** (`internal/appid/appid.go`):
+   - Format: `fazt_<type>_<12 base62 chars>` (e.g., `fazt_usr_Nf4rFeUfNV2H`)
+   - Types: `usr`, `app`, `tok`, `ses`, `inv`
 
-2. **Removed legacy config file support** (-333 lines):
-   - Deleted `internal/config/migrate.go`
-   - Removed `LoadFromFile`, `SaveToFile`, `applyEnvVars`
-   - Removed `--config` flag and `ConfigPath` from CLIFlags
+2. **User-scoped storage** (`internal/storage/scoped.go`):
+   - `UserScopedKV`, `UserScopedDocs`, `UserScopedBlobs`
+   - Automatic isolation via key/collection/path prefixing
 
-3. **Simplified config architecture**:
-   - `config.Load()` - creates defaults, resolves DB path
-   - `config.LoadFromDB()` - loads from DB, applies CLI overrides
-   - Renamed `OverlayDB` → `LoadFromDB` for clarity
+3. **New `fazt.app.*` namespace** (`internal/storage/app_bindings.go`):
+   - `fazt.app.ds/kv/s3.*` - shared app storage
+   - `fazt.app.user.ds/kv/s3.*` - user's private storage
 
-4. **Config priority now clear**:
-   ```
-   CLI flags (--domain, --port)  ← temporary overrides
-   ↓
-   Database (configurations table) ← source of truth
-   ↓
-   Defaults
-   ```
+4. **Migration 017** - adds `user_id` column to storage tables
 
-5. **Released v0.15.0** - tested with clean install
+5. **Updated ID generation** across auth, hosting, handlers
+
+---
+
+## Testing Notes
+
+**Tested:**
+- `fazt.app.kv.set/get` (shared) - works
+- `fazt.app.user.*` without login - correctly errors
+- Migration 017 - applied
+- All unit tests pass
+
+**Needs testing** (requires logged-in user):
+- `fazt.app.user.*` with authenticated user
+- User isolation between users
+
+Test app: `test-user-storage` on local
 
 ---
 
 ## Next Up
 
-1. **Plan 30b: User Data Foundation** (v0.16.0)
-   - User isolation in storage
-   - User IDs (`fazt_usr_*`)
-   - Per-user analytics
-
-2. **Plan 30c: Access Control** (v0.17.0)
+1. **Plan 30c: Access Control** (v0.17.0)
    - RBAC with hierarchical roles
    - Email domain gating
 
+2. **Plan 24: Mock OAuth** - enables local auth testing
+
 ---
 
-## Pending Plans
+## LEGACY_CODE Markers
 
-| Plan | Status | Purpose | Target |
-|------|--------|---------|--------|
-| 30a: Config Consolidation | ✅ Released | Single DB philosophy | v0.14.0 |
-| 30b: User Data Foundation | Ready | User isolation, IDs | v0.16.0 |
-| 30c: Access Control | Ready | RBAC, domain gating | v0.17.0 |
-| 24: Mock OAuth | Not started | Local auth testing | - |
+```bash
+grep -rn "LEGACY_CODE" internal/
+```
+
+- `internal/storage/bindings.go` - `fazt.storage.*` namespace
+- `internal/appid/appid.go` - old `app_*` format
+- `internal/auth/service.go` - `generateUUID()`
+
+See `koder/LEGACY.md` for removal guide.

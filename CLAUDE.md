@@ -2,12 +2,13 @@
 
 **Sovereign compute** - Single Go binary + SQLite database that runs anywhere.
 
-**Version**: 0.14.0 | **State**: `koder/STATE.md`
+**Version**: 0.15.0 | **State**: `koder/STATE.md`
 
 ## Philosophy
 
 - **No backward compatibility** - Single user, rapidly iterating. Break things freely.
 - **No legacy support** - Remove old code paths. Don't maintain deprecated features.
+- **LEGACY_CODE markers** - When adding new APIs alongside old ones, mark old code with `// LEGACY_CODE: <reason>` comments. Periodically grep for these and remove them.
 - **No hacks** - Build for millions of future users, not the current problem. If you see architectural dissonance, push back hard.
 - **Elegant solutions** - Fix the binary, not the instance. The system should work elegantly.
 - **Single DB philosophy** - Everything in SQLite. No config files. The database IS the instance.
