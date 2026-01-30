@@ -48,8 +48,10 @@ internal/
 └── storage/          # KV, Docs, Blobs
 koder/
 ├── STATE.md          # Current work
-├── plans/            # Implementation plans
-└── agent-context/    # Detailed context (below)
+└── plans/            # Implementation plans
+knowledge-base/
+├── agent-context/    # Detailed dev context
+└── skills/app/       # App development patterns
 ```
 
 ## Deep Context
@@ -59,10 +61,10 @@ Read these **as needed**, not every session:
 | File | When to Read |
 |------|--------------|
 | `koder/STATE.md` | Start of session - current work |
-| `koder/agent-context/setup.md` | Local server setup, SSH access |
-| `koder/agent-context/architecture.md` | How fazt works, app model |
-| `koder/agent-context/api.md` | API endpoints, CLI commands |
-| `koder/agent-context/tooling.md` | Skills, knowledge-base, releasing |
+| `knowledge-base/agent-context/setup.md` | Local server setup, SSH access |
+| `knowledge-base/agent-context/architecture.md` | How fazt works, app model |
+| `knowledge-base/agent-context/api.md` | API endpoints, CLI commands |
+| `knowledge-base/agent-context/tooling.md` | Skills, knowledge-base, releasing |
 | `knowledge-base/skills/app/` | App development patterns |
 
 ## Quick Reference
