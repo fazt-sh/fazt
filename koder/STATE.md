@@ -5,56 +5,58 @@
 
 ## Status
 
-State: **CLEAN** - Released v0.16.0
+State: **IN_PROGRESS** - Plan 24 implementation complete, uncommitted
 
 ---
 
 ## Last Session (2026-01-31)
 
-**Released v0.16.0: User Data Foundation**
+**Implemented Plan 24: Mock OAuth Provider**
 
-1. **New fazt ID format** (`internal/appid/appid.go`):
-   - Format: `fazt_<type>_<12 base62 chars>` (e.g., `fazt_usr_Nf4rFeUfNV2H`)
-   - Types: `usr`, `app`, `tok`, `ses`, `inv`
+1. **Dev login routes** (`internal/auth/dev_provider.go`):
+   - `GET /auth/dev/login` - dev login form
+   - `POST /auth/dev/callback` - process dev login
+   - `IsLocalMode(r)` - detects local/HTTP mode
 
-2. **User-scoped storage** (`internal/storage/scoped.go`):
-   - `UserScopedKV`, `UserScopedDocs`, `UserScopedBlobs`
-   - Automatic isolation via key/collection/path prefixing
+2. **Login page update** (`internal/auth/handlers.go`):
+   - Shows "Dev Login" button when in local mode
+   - Separated "Development" section with divider
 
-3. **New `fazt.app.*` namespace** (`internal/storage/app_bindings.go`):
-   - `fazt.app.ds/kv/s3.*` - shared app storage
-   - `fazt.app.user.ds/kv/s3.*` - user's private storage
+3. **Full session creation**:
+   - Creates real user with `provider: "dev"`
+   - Creates valid session cookie
+   - Supports role selection (user/admin/owner)
 
-4. **Migration 017** - adds `user_id` column to storage tables
-
-5. **Fixed runtime race condition** (`internal/runtime/runtime.go`):
-   - Added goroutine exit synchronization before returning VM to pool
+4. **Verified user storage works**:
+   - `fazt.app.user.kv.*` works with dev-authenticated user
+   - Test app: `test-user-storage` on local
 
 ---
 
 ## Testing Notes
 
 **Tested:**
-- `fazt.app.kv.set/get` (shared) - works
-- `fazt.app.user.*` without login - correctly errors
-- Migration 017 - applied
-- All unit tests pass
+- Dev login form renders at `/auth/dev/login`
+- Dev login blocked on HTTPS (403 Forbidden)
+- Session cookie set correctly
+- `fazt.auth.getUser()` returns dev user
+- `fazt.app.user.kv.set/get` works with authenticated user
+- All unit tests pass (including new dev provider tests)
 
-**Needs testing** (requires logged-in user):
-- `fazt.app.user.*` with authenticated user
-- User isolation between users
-
-Test app: `test-user-storage` on local
+**Not tested:**
+- User isolation between different dev users (needs second session)
 
 ---
 
 ## Next Up
 
-1. **Plan 30c: Access Control** (v0.17.0)
+1. **Commit Plan 24 changes**
+   - Review and commit dev provider implementation
+   - Consider: Should this be v0.16.1 or v0.17.0?
+
+2. **Plan 30c: Access Control** (v0.17.0)
    - RBAC with hierarchical roles
    - Email domain gating
-
-2. **Plan 24: Mock OAuth** - enables local auth testing
 
 ---
 
