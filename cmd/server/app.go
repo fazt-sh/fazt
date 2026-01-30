@@ -102,9 +102,10 @@ func handleAppDeploy(args []string) {
 	siteName := flags.String("name", "", "App name (defaults to directory name)")
 	peerFlag := flags.String("to", "", "Target peer name")
 	noBuild := flags.Bool("no-build", false, "Skip build step")
+	spaFlag := flags.Bool("spa", false, "Enable SPA routing (clean URLs)")
 
 	flags.Usage = func() {
-		fmt.Println("Usage: fazt app deploy <directory> [--name <app>] [--to <peer>] [--no-build]")
+		fmt.Println("Usage: fazt app deploy <directory> [--name <app>] [--to <peer>] [--no-build] [--spa]")
 		fmt.Println()
 		flags.PrintDefaults()
 	}
@@ -149,7 +150,14 @@ func handleAppDeploy(args []string) {
 	if *noBuild {
 		fmt.Println("Skipping build (--no-build)")
 	} else {
-		buildResult, err := build.Build(dir, &build.Options{Verbose: true})
+		// Set build environment variables
+		buildOpts := &build.Options{Verbose: true}
+		if *spaFlag {
+			buildOpts.EnvVars = map[string]string{
+				"VITE_SPA_ROUTING": "true",
+			}
+		}
+		buildResult, err := build.Build(dir, buildOpts)
 		if err != nil {
 			if err == build.ErrBuildRequired {
 				fmt.Println("Error: app requires building but no package manager available")
@@ -211,7 +219,12 @@ func handleAppDeploy(args []string) {
 	fmt.Printf("Zipped %d files (%s)\n", fileCount, formatSize(int64(zipBuffer.Len())))
 
 	client := remote.NewClient(peer)
-	result, err := client.Deploy(tmpFile.Name(), name)
+	var result *remote.DeployResponse
+	if *spaFlag {
+		result, err = client.DeployWithOptions(tmpFile.Name(), name, &remote.DeployOptions{SPA: true})
+	} else {
+		result, err = client.Deploy(tmpFile.Name(), name)
+	}
 	if err != nil {
 		fmt.Printf("Error deploying: %v\n", err)
 		os.Exit(1)
@@ -221,6 +234,9 @@ func handleAppDeploy(args []string) {
 	fmt.Printf("Deployed: %s\n", result.Site)
 	fmt.Printf("Files:    %d\n", result.FileCount)
 	fmt.Printf("Size:     %s\n", formatSize(result.SizeBytes))
+	if *spaFlag {
+		fmt.Println("SPA:      enabled (clean URLs)")
+	}
 }
 
 // handleAppInfo shows details about an app
@@ -705,6 +721,8 @@ OPTIONS:
   --to <peer>        Target peer for deploy/install
   --from <peer>      Source peer for pull/remove/upgrade
   --name <name>      Override app name
+  --spa              Enable SPA routing (clean URLs like /dashboard)
+  --no-build         Skip build step, deploy source as-is
   --check            Check for updates only (upgrade)
   --json             Output validation results as JSON
   -f                 Follow log output (stream)
@@ -720,6 +738,9 @@ EXAMPLES:
 
   # Deploy local directory
   fazt app deploy ./my-site --to zyt
+
+  # Deploy with SPA routing (clean URLs)
+  fazt app deploy ./my-spa --to zyt --spa
 
   # Install from GitHub
   fazt app install github.com/user/repo --to zyt

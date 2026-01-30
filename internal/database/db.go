@@ -103,6 +103,7 @@ func runMigrations() error {
 		{13, "storage_perf", "migrations/013_storage_perf.sql"},
 		{14, "workers", "migrations/014_workers.sql"},
 		{15, "auth", "migrations/015_auth.sql"},
+		{16, "spa_routing", "migrations/016_spa_routing.sql"},
 	}
 
 	// Run each migration if not already applied

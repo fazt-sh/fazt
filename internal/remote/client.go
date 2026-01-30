@@ -250,6 +250,84 @@ func (c *Client) Deploy(zipPath, siteName string) (*DeployResponse, error) {
 	return &deploy, nil
 }
 
+// DeployOptions configures deployment behavior
+type DeployOptions struct {
+	SPA bool // Enable SPA routing (clean URLs)
+}
+
+// DeployWithOptions deploys a ZIP file with additional options
+func (c *Client) DeployWithOptions(zipPath, siteName string, opts *DeployOptions) (*DeployResponse, error) {
+	// Open the zip file
+	file, err := os.Open(zipPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open zip file: %w", err)
+	}
+	defer file.Close()
+
+	// Create multipart form
+	var buf bytes.Buffer
+	writer := multipart.NewWriter(&buf)
+
+	// Add site_name field
+	if err := writer.WriteField("site_name", siteName); err != nil {
+		return nil, fmt.Errorf("failed to write site_name: %w", err)
+	}
+
+	// Add spa field if enabled
+	if opts != nil && opts.SPA {
+		if err := writer.WriteField("spa", "true"); err != nil {
+			return nil, fmt.Errorf("failed to write spa: %w", err)
+		}
+	}
+
+	// Add file
+	part, err := writer.CreateFormFile("file", filepath.Base(zipPath))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create form file: %w", err)
+	}
+	if _, err := io.Copy(part, file); err != nil {
+		return nil, fmt.Errorf("failed to copy file: %w", err)
+	}
+
+	if err := writer.Close(); err != nil {
+		return nil, fmt.Errorf("failed to close writer: %w", err)
+	}
+
+	// Create request
+	req, err := http.NewRequest("POST", c.peer.URL+"/api/deploy", &buf)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	if c.peer.Token != "" {
+		req.Header.Set("Authorization", "Bearer "+c.peer.Token)
+	}
+
+	// Execute request
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	var apiResp APIResponse
+	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	if apiResp.Error != nil {
+		return nil, fmt.Errorf("%s: %s", apiResp.Error.Code, apiResp.Error.Message)
+	}
+
+	var deploy DeployResponse
+	if err := json.Unmarshal(apiResp.Data, &deploy); err != nil {
+		return nil, fmt.Errorf("failed to decode deploy response: %w", err)
+	}
+
+	return &deploy, nil
+}
+
 // DeleteApp deletes an app from the remote peer
 func (c *Client) DeleteApp(name string) error {
 	resp, err := c.doRequest("DELETE", "/api/apps/"+name, nil)

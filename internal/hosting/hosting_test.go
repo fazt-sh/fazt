@@ -64,6 +64,7 @@ func setupTestDB(t *testing.T) *sql.DB {
 		source_url TEXT,
 		source_ref TEXT,
 		source_commit TEXT,
+		spa INTEGER DEFAULT 0,
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 	);
@@ -459,5 +460,59 @@ func TestParseAppPath(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestSPARouting(t *testing.T) {
+	db := setupTestDB(t)
+	defer db.Close()
+
+	sqlFS := NewSQLFileSystem(db)
+
+	// Create an app with index.html
+	content := []byte("<html><body>SPA App</body></html>")
+	err := sqlFS.WriteFile("spa-app", "index.html", bytes.NewReader(content), int64(len(content)), "text/html")
+	if err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
+
+	// Create an app entry in the database
+	_, err = db.Exec(`INSERT INTO apps (id, title) VALUES (?, ?)`, "spa-app", "spa-app")
+	if err != nil {
+		t.Fatalf("Failed to create app entry: %v", err)
+	}
+
+	// Test: SPA disabled by default
+	spa, err := sqlFS.GetAppSPA("spa-app")
+	if err != nil {
+		t.Fatalf("GetAppSPA failed: %v", err)
+	}
+	if spa {
+		t.Error("SPA should be disabled by default")
+	}
+
+	// Test: Enable SPA
+	err = sqlFS.SetAppSPA("spa-app", true)
+	if err != nil {
+		t.Fatalf("SetAppSPA failed: %v", err)
+	}
+
+	spa, err = sqlFS.GetAppSPA("spa-app")
+	if err != nil {
+		t.Fatalf("GetAppSPA failed after enable: %v", err)
+	}
+	if !spa {
+		t.Error("SPA should be enabled after SetAppSPA(true)")
+	}
+
+	// Test: Disable SPA
+	err = sqlFS.SetAppSPA("spa-app", false)
+	if err != nil {
+		t.Fatalf("SetAppSPA(false) failed: %v", err)
+	}
+
+	spa, _ = sqlFS.GetAppSPA("spa-app")
+	if spa {
+		t.Error("SPA should be disabled after SetAppSPA(false)")
 	}
 }

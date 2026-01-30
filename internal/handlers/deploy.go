@@ -137,6 +137,17 @@ func DeployHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Handle SPA flag
+	spaFlag := r.FormValue("spa")
+	if spaFlag == "true" {
+		fs := hosting.GetFileSystem()
+		if sqlFS, ok := fs.(*hosting.SQLFileSystem); ok {
+			if err := sqlFS.SetAppSPA(siteName, true); err != nil {
+				log.Printf("Warning: failed to set SPA flag for %s: %v", siteName, err)
+			}
+		}
+	}
+
 	// Record deployment
 	deployedBy := keyName
 	if err := hosting.RecordDeployment(db, result.SiteID, result.SizeBytes, result.FileCount, deployedBy); err != nil {

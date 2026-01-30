@@ -87,10 +87,24 @@ func ServeVFS(w http.ResponseWriter, r *http.Request, siteID string) {
 	if !strings.HasPrefix(path, "/") {
 		path = "/" + path
 	}
-	
-	// Default to index.html for root or directories
-	if path == "/" || strings.HasSuffix(path, "/") {
-		path += "index.html"
+
+	// Normalize: redirect trailing slash to non-trailing slash (except root)
+	// e.g., /about/ -> /about (301 redirect for SEO consistency)
+	if path != "/" && strings.HasSuffix(path, "/") {
+		target := strings.TrimSuffix(path, "/")
+		if r.URL.RawQuery != "" {
+			target += "?" + r.URL.RawQuery
+		}
+		http.Redirect(w, r, target, http.StatusMovedPermanently)
+		return
+	}
+
+	// Track if original path looks like a route (no extension) for SPA fallback
+	isRouteLikePath := filepath.Ext(path) == ""
+
+	// Default to index.html for root
+	if path == "/" {
+		path = "/index.html"
 	}
 
 	// Clean path
@@ -115,11 +129,23 @@ func ServeVFS(w http.ResponseWriter, r *http.Request, siteID string) {
 			idxPath = filepath.ToSlash(idxPath)
 			file, err = fs.ReadFile(siteID, idxPath)
 		}
-		
-		// 3. If still not found, 404
+
+		// 3. If still not found, check for SPA fallback
 		if err != nil {
-			http.NotFound(w, r)
-			return
+			// SPA fallback: if original path looked like a route (no extension) and app has SPA enabled
+			if isRouteLikePath {
+				if sqlFS, ok := fs.(*SQLFileSystem); ok {
+					if spa, spaErr := sqlFS.GetAppSPA(siteID); spaErr == nil && spa {
+						file, err = fs.ReadFile(siteID, "index.html")
+					}
+				}
+			}
+
+			// 4. If still not found, 404
+			if err != nil {
+				http.NotFound(w, r)
+				return
+			}
 		}
 	}
 	defer file.Content.Close()

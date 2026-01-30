@@ -23,7 +23,8 @@ type Result struct {
 
 // Options configures the build process
 type Options struct {
-	Verbose bool // Print build output
+	Verbose bool              // Print build output
+	EnvVars map[string]string // Environment variables to set during build
 }
 
 // Build prepares an app directory for deployment.
@@ -101,6 +102,11 @@ func buildWithPackageManager(srcDir string, opts *Options) (*Result, error) {
 	}
 	cmd := exec.Command(pm.Binary, pm.BuildCmd...)
 	cmd.Dir = srcDir
+	// Set environment variables (inherit current env + custom vars)
+	cmd.Env = os.Environ()
+	for k, v := range opts.EnvVars {
+		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v))
+	}
 	if opts.Verbose {
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr

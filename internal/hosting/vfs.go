@@ -501,6 +501,26 @@ func (fs *SQLFileSystem) ExistsByAppID(appID, path string) (bool, error) {
 	return count > 0, err
 }
 
+// GetAppSPA returns whether an app has SPA routing enabled
+func (fs *SQLFileSystem) GetAppSPA(name string) (bool, error) {
+	var spa int
+	err := fs.db.QueryRow(`SELECT COALESCE(spa, 0) FROM apps WHERE id = ? OR title = ?`, name, name).Scan(&spa)
+	if err != nil {
+		return false, err
+	}
+	return spa == 1, nil
+}
+
+// SetAppSPA sets the SPA routing flag for an app
+func (fs *SQLFileSystem) SetAppSPA(name string, enabled bool) error {
+	val := 0
+	if enabled {
+		val = 1
+	}
+	_, err := fs.db.Exec(`UPDATE apps SET spa = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? OR title = ?`, val, name, name)
+	return err
+}
+
 // GetMimeType returns the MIME type for a file path
 func GetMimeType(path string) string {
 	ext := strings.ToLower(filepath.Ext(path))
