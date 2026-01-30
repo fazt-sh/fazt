@@ -135,6 +135,7 @@ type CLIFlags struct {
 	ConfigPath string
 	DBPath     string
 	Port       string
+	Domain     string
 	Username   string
 	Password   string
 }
@@ -309,6 +310,9 @@ func applyEnvVars(cfg *Config) {
 func applyCLIFlags(cfg *Config, flags *CLIFlags) {
 	if flags.Port != "" {
 		cfg.Server.Port = flags.Port
+	}
+	if flags.Domain != "" {
+		cfg.Server.Domain = flags.Domain
 	}
 	if flags.DBPath != "" {
 		cfg.Database.Path = ExpandPath(flags.DBPath)

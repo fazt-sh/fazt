@@ -1372,13 +1372,9 @@ func siteHandler(w http.ResponseWriter, r *http.Request, subdomain string) {
 	// Handle alias types
 	switch aliasType {
 	case "reserved":
-		// Reserved subdomain - only serve if system site exists (admin, root, 404)
-		// This allows system sites to be reserved from user apps while still serving content
-		if !hosting.SiteExists(subdomain) {
-			serveSiteNotFound(w, r, subdomain)
-			return
-		}
-		// Fall through to serve the system site
+		// Reserved subdomain - return 404
+		serveSiteNotFound(w, r, subdomain)
+		return
 	case "redirect":
 		// Get redirect URL and redirect
 		redirectURL, err := handlers.GetRedirectURL(subdomain)
@@ -2344,6 +2340,10 @@ func handleStartCommand() {
 	if *port != "" {
 		cliFlags.Port = *port
 	}
+	if *domain != "" {
+		// Wrap with wildcard DNS if it's an IP address
+		cliFlags.Domain = config.WrapWithWildcardDNS(*domain)
+	}
 	if *db != "" {
 		cliFlags.DBPath = *db
 	}
@@ -2354,12 +2354,6 @@ func handleStartCommand() {
 	cfg, err := config.Load(cliFlags)
 	if err != nil {
 		log.Fatalf("Failed to load configuration: %v", err)
-	}
-
-	// Apply domain override if provided (highest priority)
-	// Wrap with wildcard DNS if it's an IP address
-	if *domain != "" {
-		cfg.Server.Domain = config.WrapWithWildcardDNS(*domain)
 	}
 
 	// Initialize database EARLY to load config
