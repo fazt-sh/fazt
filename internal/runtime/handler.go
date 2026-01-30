@@ -232,7 +232,15 @@ func (h *ServerlessHandler) executeWithFazt(ctx context.Context, code string, re
 		return InjectAuthNamespace(vm, authCtx, app)
 	}
 
-	return h.runtime.ExecuteWithInjectors(ctx, code, req, loader, faztInjector, storageInjector, realtimeInjector, workerInjector, authInjector)
+	privateInjector := func(vm *goja.Runtime) error {
+		if app != nil && app.ID != "" {
+			privateLoader := NewPrivateFileLoader(h.db, app.ID)
+			return InjectPrivateNamespace(vm, privateLoader)
+		}
+		return nil
+	}
+
+	return h.runtime.ExecuteWithInjectors(ctx, code, req, loader, faztInjector, storageInjector, realtimeInjector, workerInjector, authInjector, privateInjector)
 }
 
 // loadFile loads a file from the VFS for a given app.

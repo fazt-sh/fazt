@@ -163,6 +163,99 @@ var loginUrl = fazt.auth.getLoginURL('/dashboard')
 var logoutUrl = fazt.auth.getLogoutURL()
 ```
 
+## Private Files (fazt.private)
+
+Read files from the `private/` directory. These files have **two access modes**:
+
+| Access | Use Case | Behavior |
+|--------|----------|----------|
+| HTTP `GET /private/*` | Serve to users | Auth required (401 if not logged in) |
+| Serverless `fazt.private.*` | Process in code | Direct access for logic |
+
+This enables:
+- Large files (video, images) served to authenticated users via HTTP
+- Small data files (JSON, config) processed by serverless logic
+
+### File Structure
+
+```
+my-app/
+├── api/main.js
+├── private/           # Server-only files
+│   ├── config.json
+│   ├── seed-data.json
+│   └── data/
+│       └── users.json
+└── index.html
+```
+
+### API
+
+```javascript
+// Read file as string
+var content = fazt.private.read('config.json')
+
+// Read and parse JSON
+var config = fazt.private.readJSON('config.json')
+var users = fazt.private.readJSON('data/users.json')
+
+// Check if file exists
+if (fazt.private.exists('feature-flags.json')) {
+  var flags = fazt.private.readJSON('feature-flags.json')
+}
+
+// List all private files
+var files = fazt.private.list()
+// Returns: ['config.json', 'seed-data.json', 'data/users.json']
+```
+
+### Return Values
+
+| Method | Found | Not Found |
+|--------|-------|-----------|
+| `read()` | string | undefined |
+| `readJSON()` | object/array | null |
+| `exists()` | true | false |
+| `list()` | string[] | [] |
+
+### Use Cases
+
+| Use Case | Example |
+|----------|---------|
+| Seed data | `private/initial-users.json` |
+| Config | `private/settings.json` |
+| Mock data | `private/products.json` |
+| Fixtures | `private/test-scenarios.json` |
+| Lookup tables | `private/countries.json` |
+| Protected media | `private/video.mp4` (via HTTP) |
+
+### Deployment
+
+If `private/` is gitignored, use `--include-private` to deploy:
+
+```bash
+# Warns and skips gitignored private/
+fazt app deploy ./my-app --to zyt
+
+# Explicitly includes gitignored private/
+fazt app deploy ./my-app --to zyt --include-private
+```
+
+### Example: Data Seeding
+
+```javascript
+// api/main.js
+var ds = fazt.storage.ds
+
+if (request.path === '/api/seed' && request.method === 'POST') {
+  var users = fazt.private.readJSON('seed-data.json')
+  for (var i = 0; i < users.length; i++) {
+    ds.insert('users', users[i])
+  }
+  respond({ seeded: users.length })
+}
+```
+
 ## Common Patterns
 
 ### Session-Scoped API

@@ -58,34 +58,54 @@ my-app/
 
 ---
 
-## Part 2: HTTP Blocking
+## Part 2: HTTP Access (Auth-Gated Streaming)
 
-### 2.1 Request Handling
+### 2.1 Design Rationale
+
+Private files have **two access modes**:
+
+| Access Method | Use Case | Behavior |
+|---------------|----------|----------|
+| HTTP `GET /private/*` | Serve file to user | Auth check → stream directly |
+| Serverless `fazt.private.*` | Process data in code | Read into JS runtime |
+
+This enables:
+- 100MB video served to authenticated users (HTTP streaming, no serverless)
+- 8MB JSON processed by serverless logic (loaded into JS)
+- Same directory, complementary access patterns
+
+### 2.2 Request Handling
 
 **File:** `cmd/server/main.go` (siteHandler)
 
-Add check before static file serving:
+Auth-gated serving (not blocking):
 
 ```go
-// Block private directory access
-if strings.HasPrefix(r.URL.Path, "/private/") {
-    http.Error(w, "Forbidden", http.StatusForbidden)
+// Auth-gated private directory access
+if strings.HasPrefix(r.URL.Path, "/private/") || r.URL.Path == "/private" {
+    // Check authentication
+    user, err := authProvider.GetSessionFromRequest(r)
+    if err != nil || user == nil {
+        http.Error(w, "Unauthorized", http.StatusUnauthorized)
+        return
+    }
+    // Stream file directly to authenticated user
+    servePrivateFile(w, r, siteID)
     return
 }
 ```
 
-### 2.2 Alternative: 404 Instead of 403
+### 2.3 File Type Handling
 
-Could return 404 to not reveal directory existence:
+| File Type | HTTP | Serverless |
+|-----------|------|------------|
+| Large binary (video, audio) | ✅ Stream | ❌ Too large |
+| Images | ✅ Stream | ⚠️ Possible but no use case |
+| JSON < 10MB | ✅ Stream | ✅ `readJSON()` |
+| YAML < 10MB | ✅ Stream | ⚠️ Needs YAML lib |
+| SQLite < 10MB | ✅ Download | ⚠️ Needs sql.js lib |
 
-```go
-if strings.HasPrefix(r.URL.Path, "/private/") {
-    http.NotFound(w, r)
-    return
-}
-```
-
-**Recommendation:** Use 403 - clearer for developers debugging.
+**Key insight**: HTTP = delivery, Serverless = processing.
 
 ---
 
@@ -172,26 +192,55 @@ var files = fazt.private.list()
 
 ## Part 4: Deploy Handling
 
-### 4.1 No Special Treatment
+### 4.1 Gitignore-Aware Deployment
 
-Private files are stored in VFS like any other file:
-- Path: `private/data.json`
-- Stored normally in `files` table
-- Only HTTP access is blocked
+Private files may be gitignored (not in repo) but still need deployment.
 
-### 4.2 Manifest Validation (Optional)
+**Deploy behavior:**
 
-Could add manifest field for explicit declaration:
+| `private/` state | `--include-private` | Behavior |
+|------------------|---------------------|----------|
+| Not gitignored | - | Deploy normally |
+| Gitignored | No | Warn + skip |
+| Gitignored | Yes | Info + include |
 
-```json
-{
-  "name": "my-app",
-  "private": ["config.json", "data/*.json"]
+```bash
+# Warning when private/ is gitignored
+$ fazt app deploy ./my-app --to zyt
+Warning: private/ is gitignored but exists
+  Use --include-private to deploy private files
+  Skipping private/...
+
+# Explicit include
+$ fazt app deploy ./my-app --to zyt --include-private
+Including gitignored private/ (5 files)
+```
+
+### 4.2 Implementation
+
+**File:** `cmd/server/main.go` - `createDeployZipWithOptions()`
+
+```go
+type DeployZipOptions struct {
+    IncludePrivate bool
+}
+
+type DeployZipResult struct {
+    Buffer            *bytes.Buffer
+    FileCount         int
+    PrivateExists     bool
+    PrivateGitignored bool
+    PrivateIncluded   bool
+    PrivateFileCount  int
 }
 ```
 
-**Recommendation:** Skip this - convention over configuration. If it's in
-`private/`, it's private.
+### 4.3 Storage
+
+Private files stored in VFS like any other file:
+- Path: `private/data.json`
+- Stored normally in `files` table
+- HTTP access is auth-gated (not blocked)
 
 ---
 
@@ -254,11 +303,11 @@ This is a significant feature. Suggest:
 
 ## Implementation Order
 
-1. **HTTP blocking** - Return 403 for `/private/*`
+1. **Auth-gated HTTP** - Check auth, stream file for `/private/*`
 2. **Private bindings** - `fazt.private.read/readJSON/exists/list`
 3. **Inject in handler** - Add to serverless execution
 4. **Documentation** - Update /fazt-app skill
-5. **Testing** - Verify HTTP blocked, serverless works
+5. **Testing** - Verify auth-gated serving, serverless works
 
 ---
 
@@ -384,3 +433,21 @@ func loadPrivateFile(db *sql.DB, appID, path string) (string, error) {
 2. **Binary support** - `fazt.private.readBinary()` returning base64
 3. **Write support** - `fazt.private.write()` for persistent changes
 4. **Encryption** - Encrypt private files at rest
+
+### JS Library Expansion
+
+Serverless capabilities for private files can be extended with bundled JS libraries:
+
+| Library | Enables | Use Case |
+|---------|---------|----------|
+| YAML parser | `fazt.private.readYAML()` | Config files in YAML format |
+| sql.js | Query SQLite files | `private/app.db` as read-only data source |
+| CSV parser | `fazt.private.readCSV()` | Spreadsheet data processing |
+
+These would work with files < 10MB loaded into JS runtime. Implementation would:
+1. Bundle the library into Goja runtime
+2. Add corresponding `fazt.private.*` method
+3. Parse binary/text data using the library
+
+**Note**: HTTP streaming works for ANY file regardless of library support.
+Serverless processing is the optional enhancement for data manipulation.

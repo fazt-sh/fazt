@@ -103,9 +103,10 @@ func handleAppDeploy(args []string) {
 	peerFlag := flags.String("to", "", "Target peer name")
 	noBuild := flags.Bool("no-build", false, "Skip build step")
 	spaFlag := flags.Bool("spa", false, "Enable SPA routing (clean URLs)")
+	includePrivate := flags.Bool("include-private", false, "Include gitignored private/ directory")
 
 	flags.Usage = func() {
-		fmt.Println("Usage: fazt app deploy <directory> [--name <app>] [--to <peer>] [--no-build] [--spa]")
+		fmt.Println("Usage: fazt app deploy <directory> [--name <app>] [--to <peer>] [--no-build] [--spa] [--include-private]")
 		fmt.Println()
 		flags.PrintDefaults()
 	}
@@ -196,10 +197,27 @@ func handleAppDeploy(args []string) {
 	fmt.Printf("Deploying '%s' to %s as '%s'...\n", deployDir, peer.Name, name)
 
 	// Create ZIP from build output
-	zipBuffer, fileCount, err := createDeployZip(deployDir)
+	zipOpts := &DeployZipOptions{
+		IncludePrivate: *includePrivate,
+	}
+	zipResult, err := createDeployZipWithOptions(deployDir, zipOpts)
 	if err != nil {
 		fmt.Printf("Error creating ZIP: %v\n", err)
 		os.Exit(1)
+	}
+
+	// Warn if private/ exists and is gitignored but not included
+	if zipResult.PrivateExists && zipResult.PrivateGitignored && !zipResult.PrivateIncluded {
+		fmt.Println()
+		fmt.Println("Warning: private/ is gitignored but exists")
+		fmt.Println("  Use --include-private to deploy private files")
+		fmt.Println("  Skipping private/...")
+		fmt.Println()
+	}
+
+	// Info message if private was included via flag
+	if zipResult.PrivateIncluded {
+		fmt.Printf("Including gitignored private/ (%d files)\n", zipResult.PrivateFileCount)
 	}
 
 	// Write to temp file (client expects file path)
@@ -210,13 +228,13 @@ func handleAppDeploy(args []string) {
 	}
 	defer os.Remove(tmpFile.Name())
 
-	if _, err := tmpFile.Write(zipBuffer.Bytes()); err != nil {
+	if _, err := tmpFile.Write(zipResult.Buffer.Bytes()); err != nil {
 		fmt.Printf("Error writing ZIP: %v\n", err)
 		os.Exit(1)
 	}
 	tmpFile.Close()
 
-	fmt.Printf("Zipped %d files (%s)\n", fileCount, formatSize(int64(zipBuffer.Len())))
+	fmt.Printf("Zipped %d files (%s)\n", zipResult.FileCount, formatSize(int64(zipResult.Buffer.Len())))
 
 	client := remote.NewClient(peer)
 	var result *remote.DeployResponse

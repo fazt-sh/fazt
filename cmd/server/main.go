@@ -60,6 +60,9 @@ var (
 // serverlessHandler is the global serverless handler with storage support
 var serverlessHandler *jsruntime.ServerlessHandler
 
+// siteAuthService is the auth service for site-level auth checks (private files)
+var siteAuthService *auth.Service
+
 func main() {
 	if len(os.Args) < 2 {
 		printUsage()
@@ -1529,6 +1532,24 @@ func siteHandler(w http.ResponseWriter, r *http.Request, subdomain string) {
 	}
 	logSiteVisit(r, analyticsID)
 
+	// Auth-gated private directory access
+	// Authenticated users can stream files directly; serverless can also access via fazt.private.*
+	if strings.HasPrefix(r.URL.Path, "/private/") || r.URL.Path == "/private" {
+		// Check authentication
+		if siteAuthService == nil {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+		user, err := siteAuthService.GetSessionFromRequest(r)
+		if err != nil || user == nil {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+		// Serve file from private/ directory (path already includes "private/")
+		hosting.ServeVFS(w, r, siteID)
+		return
+	}
+
 	// Check for API paths (/api or /api/*)
 	// These are handled by the serverless handler with storage support
 	if r.URL.Path == "/api" || strings.HasPrefix(r.URL.Path, "/api/") {
@@ -1598,17 +1619,59 @@ func serveSiteNotFound(w http.ResponseWriter, r *http.Request, subdomain string)
 </html>`, subdomain)
 }
 
+// DeployZipOptions configures the ZIP creation behavior
+type DeployZipOptions struct {
+	IncludePrivate bool // Include gitignored private/ directory
+}
+
+// DeployZipResult contains the result of creating a deploy ZIP
+type DeployZipResult struct {
+	Buffer              *bytes.Buffer
+	FileCount           int
+	PrivateExists       bool // private/ directory exists
+	PrivateGitignored   bool // private/ is in .gitignore
+	PrivateIncluded     bool // private/ was included in the ZIP
+	PrivateFileCount    int  // number of files in private/
+}
+
 // createDeployZip creates a ZIP archive of the directory, respecting .gitignore
 func createDeployZip(dir string) (*bytes.Buffer, int, error) {
-	buf := new(bytes.Buffer)
-	zipWriter := zip.NewWriter(buf)
-	fileCount := 0
+	result, err := createDeployZipWithOptions(dir, nil)
+	if err != nil {
+		return nil, 0, err
+	}
+	return result.Buffer, result.FileCount, nil
+}
+
+// createDeployZipWithOptions creates a ZIP archive with configurable options
+func createDeployZipWithOptions(dir string, opts *DeployZipOptions) (*DeployZipResult, error) {
+	if opts == nil {
+		opts = &DeployZipOptions{}
+	}
+
+	result := &DeployZipResult{
+		Buffer: new(bytes.Buffer),
+	}
+	zipWriter := zip.NewWriter(result.Buffer)
+
+	// Check if private/ exists
+	privatePath := filepath.Join(dir, "private")
+	if info, err := os.Stat(privatePath); err == nil && info.IsDir() {
+		result.PrivateExists = true
+	}
 
 	// Load .gitignore if present
 	var gitignore *ignore.GitIgnore
 	gitignorePath := filepath.Join(dir, ".gitignore")
 	if _, err := os.Stat(gitignorePath); err == nil {
 		gitignore, _ = ignore.CompileIgnoreFile(gitignorePath)
+	}
+
+	// Check if private/ is gitignored
+	if gitignore != nil && result.PrivateExists {
+		if gitignore.MatchesPath("private/") || gitignore.MatchesPath("private") {
+			result.PrivateGitignored = true
+		}
 	}
 
 	// Default ignores (always skip these)
@@ -1650,22 +1713,45 @@ func createDeployZip(dir string) (*bytes.Buffer, int, error) {
 
 		// Check .gitignore patterns
 		if gitignore != nil && relPath != "." {
-			// For directories, append / to match gitignore conventions
-			matchPath := relPath
-			if info.IsDir() {
-				matchPath = relPath + "/"
-			}
-			if gitignore.MatchesPath(matchPath) {
-				if info.IsDir() {
-					return filepath.SkipDir
+			// Special handling for private/ directory
+			isPrivatePath := relPath == "private" || strings.HasPrefix(relPath, "private/") || strings.HasPrefix(relPath, "private\\")
+
+			if isPrivatePath && result.PrivateGitignored {
+				// private/ is gitignored
+				if opts.IncludePrivate {
+					// User explicitly wants to include it - continue processing
+					result.PrivateIncluded = true
+				} else {
+					// Skip gitignored private/
+					if info.IsDir() {
+						return filepath.SkipDir
+					}
+					return nil
 				}
-				return nil
+			} else {
+				// Normal gitignore handling for non-private paths
+				matchPath := relPath
+				if info.IsDir() {
+					matchPath = relPath + "/"
+				}
+				if gitignore.MatchesPath(matchPath) {
+					if info.IsDir() {
+						return filepath.SkipDir
+					}
+					return nil
+				}
 			}
 		}
 
 		// Skip directories (we only store files)
 		if info.IsDir() {
 			return nil
+		}
+
+		// Track private file count
+		isPrivateFile := strings.HasPrefix(relPath, "private/") || strings.HasPrefix(relPath, "private\\")
+		if isPrivateFile {
+			result.PrivateFileCount++
 		}
 
 		// Create ZIP entry
@@ -1693,19 +1779,24 @@ func createDeployZip(dir string) (*bytes.Buffer, int, error) {
 			return err
 		}
 
-		fileCount++
+		result.FileCount++
 		return nil
 	})
 
 	if err != nil {
-		return nil, 0, err
+		return nil, err
 	}
 
 	if err := zipWriter.Close(); err != nil {
-		return nil, 0, err
+		return nil, err
 	}
 
-	return buf, fileCount, nil
+	// If private was included via --include-private, mark it
+	if opts.IncludePrivate && result.PrivateGitignored && result.PrivateFileCount > 0 {
+		result.PrivateIncluded = true
+	}
+
+	return result, nil
 }
 
 // formatSize formats bytes to human readable format
@@ -2729,6 +2820,9 @@ func handleStartCommand() {
 	isSecure := cfg.Server.Env == "production" || cfg.HTTPS.Enabled
 	authService := auth.NewService(database.GetDB(), cfg.Server.Domain, isSecure)
 	authHandler := auth.NewHandler(authService)
+
+	// Set global auth service for site-level auth checks (private files)
+	siteAuthService = authService
 
 	// Start auth cleanup routine
 	authStopChan := make(chan struct{})

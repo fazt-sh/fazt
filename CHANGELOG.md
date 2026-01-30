@@ -4,6 +4,24 @@ All notable changes to fazt.sh will be documented in this file.
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-01-30
+
+### Added
+- **Private directory support**: `private/` folder for server-only files
+  - **Auth-gated HTTP streaming**: `GET /private/*` requires authentication (401 if not logged in)
+  - **Serverless API**: `fazt.private.read()`, `readJSON()`, `exists()`, `list()`
+  - Large files (video, images) stream directly to authenticated users without serverless overhead
+  - Small data files (JSON, config) accessible to serverless for processing
+  - 37 unit tests covering edge cases, path traversal protection, app isolation
+
+- **Deploy flag `--include-private`**: Control deployment of gitignored private files
+  - Warning shown when `private/` exists but is gitignored
+  - Use `--include-private` to explicitly include gitignored private files
+  - Prevents accidental deployment of sensitive data
+
+### Changed
+- Global `siteAuthService` for HTTP-level auth checks in site handler
+
 ## [0.12.0] - 2026-01-30
 
 ### Added
