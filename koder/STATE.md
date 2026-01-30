@@ -5,7 +5,7 @@
 
 ## Status
 
-State: **CLEAN** - Plan 30 designed, CLAUDE.md refactored
+State: **READY** - Plan 30 split into 30a/30b/30c, ready to implement
 
 ---
 
@@ -14,9 +14,9 @@ State: **CLEAN** - Plan 30 designed, CLAUDE.md refactored
 See `koder/THINKING_DIRECTIONS.md` for full list.
 
 **Next up**:
-- Plan 30: User Isolation & Analytics (ready to implement)
-  - **Include RBAC evaluation** - Consider if minimal or full RBAC fits naturally
-  - Revisit RBAC notes below during implementation
+- **Plan 30a: Config Consolidation** (v0.14.0) - Start here
+- Plan 30b: User Data Foundation (v0.15.0)
+- Plan 30c: Access Control (v0.16.0)
 - P2: Nexus App (stress test all capabilities)
 - E4: Plan 24 - Mock OAuth (local auth testing)
 
@@ -24,110 +24,64 @@ See `koder/THINKING_DIRECTIONS.md` for full list.
 
 ## Pending Plans
 
-| Plan | Status | Purpose |
-|------|--------|---------|
-| 30: User Isolation & Analytics | Designed | User data isolation, analytics, GDPR |
-| 29: Private Directory | ✅ Released v0.13.0 | `private/` with dual access |
-| 24: Mock OAuth | Not started | Local auth testing |
-| 25: SQL Command | Not started | Remote DB debugging |
-
----
-
-## RBAC Notes (Evaluate During Plan 30)
-
-**Status**: Revisit during Plan 30 implementation
-
-**Pros:**
-- Fine-grained permissions (`posts:create`, `posts:delete:own`)
-- Custom roles per app (`editor`, `moderator`, `viewer`)
-- Framework-level enforcement
-
-**Cons:**
-- Significant API complexity
-- Most apps need only owner/admin/user
-- Can be implemented at app level if needed
-
-**Questions to answer during Plan 30:**
-1. Does user isolation naturally lead to RBAC patterns?
-2. Can we add minimal RBAC (resource-level permissions) without complexity?
-3. What's the minimal RBAC that enables real use cases?
-4. Does `fazt.admin.*` namespace already provide enough role separation?
-
-**Possible minimal RBAC:**
-```javascript
-// Resource-level: user can only access their own data
-fazt.app.user.*  // Already planned - automatic
-
-// Role checks: already exist
-fazt.auth.isOwner()
-fazt.auth.isAdmin()
-fazt.auth.hasRole('editor')  // Could add custom roles
-
-// Permission checks: potential addition
-fazt.auth.can('posts', 'delete')  // Check permission
-```
+| Plan | Status | Purpose | Target |
+|------|--------|---------|--------|
+| 30a: Config Consolidation | **Ready** | Single DB philosophy | v0.14.0 |
+| 30b: User Data Foundation | Ready | User isolation, IDs, analytics | v0.15.0 |
+| 30c: Access Control | Ready | RBAC, domain gating | v0.16.0 |
+| 29: Private Directory | ✅ Released | `private/` with dual access | v0.13.0 |
+| 24: Mock OAuth | Not started | Local auth testing | - |
+| 25: SQL Command | Not started | Remote DB debugging | - |
 
 ---
 
 ## Current Session (2026-01-30)
 
-**Plan 30 Design + CLAUDE.md Refactor**
+**Plan 30 Expansion + Split**
 
-### Plan 30: User Isolation & Analytics
+### RBAC Design
 
-Comprehensive design for v0.14.0:
+Designed lightweight RBAC with:
+- Hierarchical roles (`teacher/chemistry/*`)
+- Expiry support for temporary access
+- `fazt.auth.hasRole(pattern)` / `requireRole(pattern)`
+- `fazt.admin.users.role.(add|remove|list|find)`
 
-1. **API Namespace (Option C2)**
-   - `fazt.app.user.*` - User's private data (auto-scoped)
-   - `fazt.app.*` - App's shared data
-   - `fazt.app.private.*` - Bundled private files
-   - `fazt.auth.*` - Authentication
-   - `fazt.admin.*` - Admin operations
-   - `fazt.analytics.*` - Event tracking
+### Domain Gating
 
-2. **ID Format (Stripe-style)**
-   - `fazt_usr_<12 chars>` - User
-   - `fazt_app_<12 chars>` - App
-   - `fazt_tok_<12 chars>` - Token
-   - `fazt_ses_<12 chars>` - Session
+Designed email domain restrictions:
+- `fazt.admin.config.auth.domains.(allow|block|list)`
+- Whitelist (employees only) and blacklist (no disposable emails)
+- Enforced at OAuth callback
+- API-configurable (no code changes)
 
-3. **Analytics Enhancement**
-   - Add `app_id`, `user_id` to events table
-   - Query by app, user, or both
-   - Track user journey across apps
+### Config Consolidation
 
-4. **GDPR Compliance**
-   - `fazt.admin.users.delete(userId)` removes all data
+**Critical fix**: External config files violate single-DB philosophy.
 
-5. **Role Model**
-   - One owner per instance
-   - Multiple admins allowed
-   - Simple roles: owner/admin/user
+- `~/.config/fazt/config.json` → Move to DB
+- `~/.fazt/config.json` → Move to DB
+- Single `config` table with hierarchical keys
+- Bootstrap only needs DB path (flag/env/default)
 
-### CLAUDE.md Refactor
+### Plan Split
 
-Split CLAUDE.md for ~80% token reduction:
+Split Plan 30 into three focused plans:
 
-| Before | After |
-|--------|-------|
-| 456 lines (~3.9k tokens) | 85 lines (~800 tokens) |
-
-**New structure:**
 ```
-knowledge-base/
-├── agent-context/         # Fazt development context
-│   ├── setup.md           # Local server, SSH
-│   ├── architecture.md    # How fazt works
-│   ├── api.md             # API endpoints, CLI
-│   └── tooling.md         # Skills, releasing
-└── skills/app/            # App development
+30a: Config in DB (foundation)
+ ↓
+30b: User isolation, IDs, analytics
+ ↓
+30c: RBAC, domain gating
 ```
 
 ### Files Created/Changed
 
-- `koder/plans/30_user_isolation_analytics.md` - Full implementation plan
-- `CLAUDE.md` - Lean core (~85 lines)
-- `knowledge-base/agent-context/*.md` - Detailed context files
+- `koder/plans/30a_config_consolidation.md` - Config in DB
+- `koder/plans/30b_user_data_foundation.md` - User isolation, IDs
+- `koder/plans/30c_access_control.md` - RBAC, domain gating
+- `koder/plans/30_user_isolation_analytics.md` - Updated as index
 
 ---
 
@@ -137,10 +91,15 @@ knowledge-base/
 # Deploy with private files
 fazt app deploy ./my-app --to zyt --include-private
 
-# Access private in serverless
-var config = fazt.app.private.readJSON('config.json')  # Future API
+# Plan 30a - config in DB
+# No more ~/.config/fazt/config.json or ~/.fazt/config.json
+# Everything in data.db
 
-# Plan 30 new API examples
+# Plan 30b - new API examples
 fazt.app.user.ds.insert('settings', { theme: 'dark' })
 fazt.admin.users.delete('fazt_usr_Nf4rFeUfNV2H')
+
+# Plan 30c - RBAC examples
+fazt.auth.requireRole('dept/engineering')
+fazt.admin.config.auth.domains.allow(['storybrain.com'])
 ```
