@@ -26,6 +26,9 @@ grep "var Version" internal/config/config.go | grep -oE '[0-9]+\.[0-9]+\.[0-9]+'
 # Binary version
 fazt --version | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+'
 
+# Knowledge-base version
+cat knowledge-base/version.json
+
 # All configured remotes (shows status and default)
 fazt remote list 2>/dev/null | tail -n +3
 
@@ -38,7 +41,19 @@ The remote list shows:
 - Default remote marked with `*`
 - Use `fazt remote status <name>` for detailed info on any remote
 
-### 3. If Local Server Not Running
+### 3. Check Knowledge-Base Freshness
+
+Compare knowledge-base version with source version:
+
+| Condition | Action |
+|-----------|--------|
+| KB version == Source version | Up to date |
+| KB version < Source version | Review if docs need updating |
+| KB commit != HEAD | Docs may be stale |
+
+If stale, consider updating `knowledge-base/` during the session.
+
+### 4. If Local Server Not Running
 
 Check if `local` appears as unhealthy/unreachable:
 
@@ -51,7 +66,7 @@ Or if not installed:
 ./install.sh  # Select option 2 for Local Development
 ```
 
-### 4. Output Format
+### 5. Output Format
 
 ```
 ## Session Ready
@@ -59,8 +74,10 @@ Or if not installed:
 | Component | Version | Status  |
 |-----------|---------|---------|
 | Source    | X.Y.Z   | -       |
+| Binary    | X.Y.Z   | healthy |
 | Local     | X.Y.Z   | healthy |
 | Remote    | X.Y.Z   | healthy |
+| KB        | X.Y.Z   | current/stale |
 
 **Git**: clean | X uncommitted changes
 
@@ -72,8 +89,9 @@ Or if not installed:
 ```
 
 If versions mismatch:
-- Source != Local → Rebuild: `go build -o ~/.local/bin/fazt ./cmd/server`
+- Source != Binary → Rebuild: `go build -o ~/.local/bin/fazt ./cmd/server`
 - Source != Remote → Consider release
+- Source != KB → Review knowledge-base docs
 
 ## Quick Commands
 
@@ -92,6 +110,7 @@ If versions mismatch:
 |------|------|
 | Project context | `CLAUDE.md` |
 | Current state | `koder/STATE.md` |
+| Knowledge-base | `knowledge-base/` |
 | Feature specs | `koder/ideas/specs/` |
 | Version history | `CHANGELOG.md` |
 | Capacity limits | `koder/CAPACITY.md` |

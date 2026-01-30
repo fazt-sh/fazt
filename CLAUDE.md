@@ -3,7 +3,7 @@
 **Fazt** is sovereign compute infrastructure for individuals—a single Go binary
 + SQLite database that runs anywhere from phones to servers to IoT devices.
 
-**Current Version**: 0.11.9
+**Current Version**: 0.12.0
 **This Repo**: Source code for fazt development
 
 ## Uniform Peers
@@ -399,6 +399,31 @@ koder/
 | `koder/THINKING_DIRECTIONS.md` | Strategic ideas | New directions emerge |
 | `koder/CAPACITY.md` | Performance data | After benchmarks |
 | `CHANGELOG.md` | Version history | Each release |
+| `knowledge-base/` | Skills & reference docs | CLI/API changes |
+
+## Knowledge-Base
+
+The `knowledge-base/` directory contains versioned documentation for Claude skills
+and reference material. It's symlinked to `~/.claude/skills/fazt-app`.
+
+```
+knowledge-base/
+├── version.json        # Tracks KB version vs fazt version
+└── skills/
+    └── app/            # /fazt-app skill (symlinked)
+        ├── SKILL.md
+        ├── fazt/       # CLI docs
+        ├── patterns/   # UI/auth patterns
+        ├── references/ # API docs
+        └── templates/  # Code templates
+```
+
+**When to update:**
+- New CLI flag/command → `knowledge-base/skills/app/fazt/cli-*.md`
+- New serverless API → `knowledge-base/skills/app/references/serverless-api.md`
+- New pattern/workflow → `knowledge-base/skills/app/patterns/`
+
+**After updates**, bump `knowledge-base/version.json` to match fazt version.
 
 ## Core Philosophy
 

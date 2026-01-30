@@ -11,6 +11,9 @@ Close session with proper handoff for next time. Leaves repo in a clean state.
 grep "var Version" internal/config/config.go | grep -oE '[0-9]+\.[0-9]+\.[0-9]+'
 fazt --version | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+'
 
+# Knowledge-base version
+cat knowledge-base/version.json
+
 # All remotes health (shows version column)
 fazt remote list 2>/dev/null | tail -n +3
 
@@ -83,7 +86,40 @@ If new features, commands, or workflows were added:
 - Update relevant sections in `CLAUDE.md`
 - Keep it concise - CLAUDE.md is reference, not narrative
 
-### 5. Commit Tickets (if any uncommitted)
+### 5. Review Knowledge-Base
+
+**After any session with code changes**, check if knowledge-base needs updating:
+
+| Change Type | Update Needed? |
+|-------------|----------------|
+| New CLI flag/command | Yes - update `knowledge-base/skills/app/fazt/cli-*.md` |
+| New serverless API | Yes - update `knowledge-base/skills/app/references/serverless-api.md` |
+| New pattern/workflow | Yes - add to `knowledge-base/skills/app/patterns/` |
+| Bug fix only | No |
+| Internal refactor | No |
+
+**If knowledge-base was updated**, bump `knowledge-base/version.json`:
+
+```bash
+# Get current version and commit
+VERSION=$(grep "var Version" internal/config/config.go | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
+COMMIT=$(git rev-parse --short HEAD)
+DATE=$(date +%Y-%m-%d)
+
+# Update version.json (use editor or write directly)
+cat > knowledge-base/version.json << EOF
+{
+  "version": "$VERSION",
+  "commit": "$COMMIT",
+  "updated_at": "$DATE",
+  "sections": {
+    "skills/app": "$VERSION"
+  }
+}
+EOF
+```
+
+### 6. Commit Tickets (if any uncommitted)
 
 Check for uncommitted ticket files and commit them:
 
@@ -98,11 +134,11 @@ git diff --cached --quiet .tickets/ || git commit -m "chore: Update tickets
 Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
 ```
 
-### 6. Commit Docs and Push
+### 7. Commit Docs and Push
 
 ```bash
 # Stage doc files (only if modified)
-git add koder/STATE.md CHANGELOG.md CLAUDE.md
+git add koder/STATE.md CHANGELOG.md CLAUDE.md knowledge-base/
 
 # Check if anything staged
 git diff --cached --quiet || git commit -m "docs: Session close - update STATE.md
@@ -117,7 +153,7 @@ git push origin master
 - Commit them separately with appropriate message first
 - Or leave for next session if incomplete
 
-### 7. Consider Release
+### 8. Consider Release
 
 **Always explicitly reason about whether to release.** Ask:
 
@@ -156,7 +192,7 @@ Not released: [reason - e.g., "No code changes" or "Can test locally first"]
 - Domain routing
 - External API integrations
 
-### 8. Verify Clean State
+### 9. Verify Clean State
 
 ```bash
 git status --short
@@ -164,7 +200,7 @@ git status --short
 
 Should show nothing (clean working tree).
 
-### 9. Output
+### 10. Output
 
 ```
 ## Session Closed
@@ -175,6 +211,7 @@ Should show nothing (clean working tree).
 |-----------|---------|--------|
 | Source    | X.Y.Z   | -      |
 | Binary    | X.Y.Z   | ✓      |
+| KB        | X.Y.Z   | current/updated |
 
 **Remotes**:
 
@@ -188,6 +225,9 @@ Should show nothing (clean working tree).
 ### Release
 [Released vX.Y.Z] or [Not released: reason]
 
+### Knowledge-Base
+[Updated skills/app docs] or [No updates needed]
+
 ### This Session
 - [What was done]
 
@@ -199,6 +239,7 @@ Should show nothing (clean working tree).
 
 1. **Clean state** - Repo should have no uncommitted changes after stop
 2. **STATE.md is the handoff** - Next session reads what you write
-3. **Be specific** - Future Claude needs concrete details
-4. **Tickets are tracked** - Always commit ticket changes
-5. **Don't over-document** - Minimal sessions need minimal updates
+3. **Knowledge-base tracks docs** - Keep in sync with code changes
+4. **Be specific** - Future Claude needs concrete details
+5. **Tickets are tracked** - Always commit ticket changes
+6. **Don't over-document** - Minimal sessions need minimal updates
