@@ -88,7 +88,8 @@ export function render(container, ctx) {
                 </div>
               </div>
             ` : `
-              <table>
+              <div class="table-container">
+                <table>
                 <thead class="sticky" style="top: 0; background: var(--bg-1)">
                   <tr class="border-b">
                     <th class="px-4 py-3 text-left text-micro text-muted">Subdomain</th>
@@ -132,6 +133,7 @@ export function render(container, ctx) {
                   `).join('')}
                 </tbody>
               </table>
+              </div>
             `}
           </div>
         </div>

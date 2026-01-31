@@ -14,6 +14,7 @@ import * as appsPage from './pages/apps.js'
 import * as aliasesPage from './pages/aliases.js'
 import * as systemPage from './pages/system.js'
 import * as settingsPage from './pages/settings.js'
+import * as designSystemPage from './pages/design-system.js'
 
 // Page map
 const pages = {
@@ -22,7 +23,8 @@ const pages = {
   'app-detail': appsPage, // Reuse apps page for now
   aliases: aliasesPage,
   system: systemPage,
-  settings: settingsPage
+  settings: settingsPage,
+  'design-system': designSystemPage
 }
 
 // Use mock adapter for development, real API in production

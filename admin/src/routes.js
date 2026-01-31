@@ -34,6 +34,11 @@ export const routes = [
     meta: { title: 'Settings', icon: 'settings' }
   },
   {
+    name: 'design-system',
+    path: '/design-system',
+    meta: { title: 'Design System', icon: 'layout' }
+  },
+  {
     name: '404',
     path: '*',
     meta: { title: 'Not Found' }

@@ -45,10 +45,22 @@ export function render(container, ctx) {
     const statsData = stats.get()
     const healthData = health.get()
 
+    // Get collapse state from localStorage
+    const statsCollapsed = localStorage.getItem('dashboard-stats-collapsed') === 'true'
+    const appsCollapsed = localStorage.getItem('dashboard-apps-collapsed') === 'true'
+    const activityCollapsed = localStorage.getItem('dashboard-activity-collapsed') === 'true'
+
     container.innerHTML = `
-      <div class="flex flex-col h-full overflow-hidden">
-        <!-- Stats Row -->
-        <div class="grid grid-cols-5 gap-3 mb-4 flex-shrink-0">
+      <div class="flex flex-col h-full overflow-y-auto lg:overflow-hidden">
+        <!-- Stats Section -->
+        <div class="mb-4 flex-shrink-0">
+          <div class="flex items-center gap-2 mb-3 cursor-pointer" data-accordion="stats">
+            <i data-lucide="chevron-right" class="w-4 h-4 chevron ${!statsCollapsed ? 'open' : ''}" style="color:var(--text-3);transition:transform 0.15s ease"></i>
+            <span class="text-heading text-primary">Overview</span>
+            <span class="text-caption text-faint ml-auto hide-mobile">5 metrics</span>
+          </div>
+          <div class="accordion-content ${!statsCollapsed ? 'open' : ''}" data-accordion-content="stats">
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-4">
           <div class="card p-4">
             <div class="flex items-center justify-between mb-2">
               <span class="text-micro text-muted">Apps</span>
@@ -102,24 +114,28 @@ export function render(container, ctx) {
             </div>
             <div class="text-caption mt-1 text-muted">v${healthData.version || '0.17.0'}</div>
           </div>
+            </div>
+          </div>
         </div>
 
         <!-- Main Grid -->
-        <div class="grid grid-cols-3 gap-4 flex-1 min-h-0">
-          <!-- Apps Table -->
-          <div class="col-span-2 flex flex-col min-h-0">
-            <div class="card flex flex-col overflow-hidden flex-1">
-              <div class="card-header">
-                <div class="flex items-center gap-2">
-                  <span class="text-heading text-primary">Apps</span>
-                  <span class="text-caption mono px-1 py-0.5 badge-muted" style="border-radius: var(--radius-sm)">${appList.length}</span>
-                </div>
-                <div class="flex items-center gap-2">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 flex-1 lg:min-h-0 lg:overflow-hidden">
+          <!-- Left Column: Apps -->
+          <div class="lg:col-span-2 flex flex-col lg:min-h-0 lg:overflow-hidden">
+            <!-- Apps Section Header -->
+            <div class="flex items-center gap-2 mb-3 cursor-pointer flex-shrink-0" data-accordion="apps">
+              <i data-lucide="chevron-right" class="w-4 h-4 chevron ${!appsCollapsed ? 'open' : ''}" style="color:var(--text-3);transition:transform 0.15s ease"></i>
+              <span class="text-heading text-primary">Apps</span>
+              <span class="text-caption mono px-1.5 py-0.5 ml-2 badge-muted" style="border-radius: var(--radius-sm)">${appList.length}</span>
+            </div>
+            <!-- Apps Content -->
+            <div class="accordion-content ${!appsCollapsed ? 'open' : ''} flex flex-col lg:min-h-0 lg:overflow-hidden" data-accordion-content="apps">
+              <div class="card flex flex-col overflow-hidden flex-1">
+                <div class="card-header">
                   <div class="input" style="padding: 4px 8px">
                     <i data-lucide="search" class="w-3.5 h-3.5 text-faint"></i>
-                    <input type="text" placeholder="Filter..." class="text-caption" style="width: 80px">
+                    <input type="text" placeholder="Filter..." class="text-caption" style="width: 120px">
                   </div>
-                </div>
               </div>
               <div class="flex-1 overflow-auto scroll-panel">
                 ${appList.length === 0 ? `
@@ -135,7 +151,8 @@ export function render(container, ctx) {
                     </button>
                   </div>
                 ` : `
-                  <table>
+                  <div class="table-container">
+                    <table>
                     <thead class="sticky" style="top: 0; background: var(--bg-1)">
                       <tr class="border-b">
                         <th class="px-4 py-2 text-left text-micro text-muted">App</th>
@@ -174,6 +191,7 @@ export function render(container, ctx) {
                       `).join('')}
                     </tbody>
                   </table>
+                  </div>
                 `}
               </div>
               <div class="card-footer flex items-center justify-between">
@@ -181,15 +199,19 @@ export function render(container, ctx) {
                 <button class="text-caption font-medium text-accent" data-navigate="/apps">View all &rarr;</button>
               </div>
             </div>
+            </div>
           </div>
 
           <!-- Right Column -->
-          <div class="flex flex-col min-h-0 gap-4">
+          <div class="flex flex-col lg:min-h-0 gap-4 lg:overflow-hidden">
             <!-- Quick Actions -->
-            <div class="card p-4 flex-shrink-0">
-              <div class="flex items-center justify-between mb-3">
+            <div class="flex-shrink-0">
+              <div class="flex items-center gap-2 mb-3 cursor-pointer" data-accordion="actions">
+                <i data-lucide="chevron-right" class="w-4 h-4 chevron open" style="color:var(--text-3);transition:transform 0.15s ease"></i>
                 <span class="text-heading text-primary">Quick Actions</span>
               </div>
+              <div class="accordion-content open" data-accordion-content="actions">
+                <div class="card p-4">
               <div class="grid grid-cols-3 gap-2">
                 <button class="flex flex-col items-center gap-2 p-3" style="background:var(--bg-2);border-radius:var(--radius-md)">
                   <div class="icon-action"><i data-lucide="rocket" class="w-5 h-5"></i></div>
@@ -204,13 +226,18 @@ export function render(container, ctx) {
                   <span class="text-caption text-secondary">CLI</span>
                 </button>
               </div>
+                </div>
+              </div>
             </div>
 
             <!-- Recent Activity -->
-            <div class="card flex flex-col overflow-hidden flex-1">
-              <div class="card-header">
+            <div class="flex-shrink-0 flex-1 flex flex-col lg:min-h-0">
+              <div class="flex items-center gap-2 mb-3 cursor-pointer" data-accordion="activity">
+                <i data-lucide="chevron-right" class="w-4 h-4 chevron ${!activityCollapsed ? 'open' : ''}" style="color:var(--text-3);transition:transform 0.15s ease"></i>
                 <span class="text-heading text-primary">Recent Activity</span>
               </div>
+              <div class="accordion-content ${!activityCollapsed ? 'open' : ''} flex flex-col flex-1 lg:min-h-0" data-accordion-content="activity">
+                <div class="card flex flex-col overflow-hidden flex-1">
               <div class="flex-1 overflow-auto scroll-panel">
                 ${[
                   { icon: 'check-circle', title: 'momentum deployed', time: '2h ago' },
@@ -229,7 +256,10 @@ export function render(container, ctx) {
                   </div>
                 `).join('')}
               </div>
+                </div>
+              </div>
             </div>
+          </div>
           </div>
         </div>
       </div>
@@ -251,6 +281,56 @@ export function render(container, ctx) {
       btn.addEventListener('click', () => {
         router.push(btn.dataset.navigate)
       })
+    })
+
+    // Accordion handlers
+    container.querySelectorAll('[data-accordion]').forEach(trigger => {
+      trigger.addEventListener('click', () => {
+        const section = trigger.dataset.accordion
+        const content = container.querySelector(`[data-accordion-content="${section}"]`)
+        const chevron = trigger.querySelector('.chevron')
+
+        if (content && chevron) {
+          const isOpen = content.classList.contains('open')
+
+          if (isOpen) {
+            content.classList.remove('open')
+            chevron.classList.remove('open')
+            localStorage.setItem(`dashboard-${section}-collapsed`, 'true')
+          } else {
+            content.classList.add('open')
+            chevron.classList.add('open')
+            localStorage.setItem(`dashboard-${section}-collapsed`, 'false')
+          }
+
+          // Update grid column collapse state
+          updateGridColumnState(trigger)
+        }
+      })
+    })
+
+    // Helper function to update grid column collapse state
+    function updateGridColumnState(trigger) {
+      const gridColumn = trigger.closest('.grid > div')
+      if (gridColumn) {
+        const hasOpenContent = gridColumn.querySelector('.accordion-content.open')
+        if (hasOpenContent) {
+          gridColumn.classList.remove('all-collapsed')
+        } else {
+          gridColumn.classList.add('all-collapsed')
+        }
+      }
+    }
+
+    // Set initial grid column states based on accordion states
+    container.querySelectorAll('.grid > div').forEach(column => {
+      const hasOpenContent = column.querySelector('.accordion-content.open')
+      if (!hasOpenContent) {
+        column.classList.add('all-collapsed')
+        console.log('[Dashboard] Added all-collapsed to column:', column)
+      } else {
+        console.log('[Dashboard] Column has open content:', column)
+      }
     })
   }
 

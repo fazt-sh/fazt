@@ -143,7 +143,7 @@ function renderList(container, ctx) {
     // Cards view
     if (viewMode === 'cards') {
       appsContainer.innerHTML = `
-        <div class="grid grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           ${filteredApps.map(app => {
             const appAliasesList = appAliases[app.id] || []
             return `
@@ -191,7 +191,8 @@ function renderList(container, ctx) {
       // List view
       appsContainer.innerHTML = `
         <div class="card">
-          <table style="table-layout: fixed">
+          <div class="table-container">
+            <table style="table-layout: fixed">
             <colgroup>
               <col style="width: 18%">
               <col style="width: 26%">
@@ -238,6 +239,7 @@ function renderList(container, ctx) {
               `).join('')}
             </tbody>
           </table>
+          </div>
         </div>
       `
     }
@@ -539,7 +541,8 @@ function renderDetail(container, ctx) {
               </div>
               <div class="card-body p-0">
                 ${app.files && app.files.length > 0 ? `
-                  <table style="table-layout: fixed">
+                  <div class="table-container">
+                    <table style="table-layout: fixed">
                     <colgroup>
                       <col style="width: 55%">
                       <col style="width: 15%">
@@ -562,6 +565,7 @@ function renderDetail(container, ctx) {
                       `).join('')}
                     </tbody>
                   </table>
+                  </div>
                 ` : `
                   <div class="p-4 text-center text-caption text-muted">No files</div>
                 `}
