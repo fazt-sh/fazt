@@ -5,57 +5,69 @@
 
 ## Status
 
-State: **CLEAN** - v0.17.0 released
+State: **CLEAN** - Admin UI foundation complete
 
 ---
 
 ## Last Session (2026-01-31)
 
-**Released v0.17.0: Dev OAuth Provider**
+**Fazt Admin UI Foundation - BFBB Architecture**
 
-1. **Implemented Plan 24**:
-   - Dev login routes (`internal/auth/dev_provider.go`)
-   - Login page integration with dev mode detection
-   - Full session creation with role selection
-   - Unit tests and initial manual testing
+Built a complete admin UI using Build-Free But Buildable (BFBB) pattern.
 
-2. **Released v0.17.0**:
-   - Committed dev provider implementation
-   - Built and uploaded release assets
-   - Upgraded both remotes (local, zyt)
+1. **Created packages** (`servers/local/admin/packages/`):
+   - `zap/` - State management (atoms, maps) + router + command palette
+   - `fazt-sdk/` - API client with mock adapter
+   - `fazt-ui/` - CSS design system (tokens, utilities)
 
----
+2. **Built admin app** (`servers/local/admin/`):
+   - Dashboard with stats, apps table, activity feed
+   - Apps, Aliases, System, Settings pages
+   - Theme/palette switcher (5 palettes, light/dark)
+   - Command palette (Cmd+K)
+   - SPA mode with clean URLs (history routing)
 
-## Testing Needed (v0.17.0)
+3. **Key features**:
+   - Pure ESM modules (no build required)
+   - Tailwind CDN for utilities
+   - Mock data mode (`?mock=true`)
+   - Footer toggles for mock mode and settings panel
+   - AI agent interface (`window.__fazt_agent`)
 
-**To verify on local server** (`http://admin.192.168.64.3.nip.io:8080`):
-
-1. **Dev login flow**:
-   - Visit `/auth/dev/login` directly
-   - Test form submission with different roles
-   - Verify session persistence across requests
-
-2. **Login page integration**:
-   - Check if "Dev Login" button appears in local mode
-   - Verify visual separation (divider)
-
-3. **Production blocking**:
-   - Confirm dev login blocked on zyt (HTTPS)
-   - Should return 403 Forbidden
-
-4. **User isolation**:
-   - Create two different dev users (different emails)
-   - Verify storage isolation with `fazt.app.user.kv.*`
+**Deployed**: `http://admin-ui.192.168.64.3.nip.io:8080`
 
 ---
 
 ## Next Up
 
-1. **Test v0.17.0 dev provider** (see above)
+1. **Refine other pages** (Apps, Aliases, System, Settings)
+   - Fix layout issues
+   - Match dashboard polish level
 
-2. **Plan 30c: Access Control** (v0.18.0)
-   - RBAC with hierarchical roles
-   - Email domain gating
+2. **Wire to real API**
+   - Connect fazt-sdk to actual endpoints
+   - Test with live data
+
+3. **Add features**:
+   - App detail page
+   - Real-time updates
+   - More command palette actions
+
+---
+
+## Quick Reference
+
+```bash
+# Deploy admin UI
+fazt app deploy servers/local/admin --to local --name admin-ui
+
+# Test with mock data
+http://admin-ui.192.168.64.3.nip.io:8080?mock=true
+
+# View source (BFBB - no build)
+ls servers/local/admin/packages/
+ls servers/local/admin/src/
+```
 
 ---
 
