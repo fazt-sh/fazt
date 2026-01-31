@@ -5,212 +5,107 @@
 
 ## Status
 
-State: **CLEAN** - Admin UI mobile responsiveness complete
+State: **CLEAN** - Grid gap issue resolved, Admin UI mobile responsive
 
 ---
 
 ## Current Session (2026-01-31)
 
-**Admin UI Mobile Responsiveness**
+**Admin UI Grid Gap Bug Fix**
 
-Implemented comprehensive mobile and tablet responsive design for the Admin UI.
+After 10+ attempts over 3 hours, resolved persistent CSS Grid layout bug where collapsed accordion sections left massive vertical gaps in the dashboard.
 
-### Mobile Navigation
+### Root Cause
 
-**Hamburger Menu:**
-- Added mobile menu button in header (hidden on desktop ≥1024px)
-- Sidebar slides in from left with backdrop overlay
-- Touch-friendly 44px minimum tap targets
-- Auto-closes on: backdrop click, nav link click, resize to desktop
+Complex interaction between:
+1. Grid container with `flex-1` forcing viewport height fill
+2. CSS Grid default behavior stretching items to match tallest sibling
+3. Collapsed accordion content hidden but parent grid item still stretching
 
-**Breakpoints:**
-- Mobile: < 768px (phones)
-- Tablet: 768px - 1023px
-- Desktop: ≥ 1024px
+### Solution
 
-### Responsive Tables
+Three-layer CSS fix targeting all viewports (mobile, tablet, desktop):
 
-**Horizontal Scroll:**
-- All tables wrapped in `.table-container` for mobile scrolling
-- Minimum 600px width, smooth touch scrolling
-- Updated pages: apps list, app detail, aliases, dashboard
+```css
+/* Grid items with .all-collapsed class */
+.grid > div.all-collapsed {
+  align-self: start !important;
+  min-height: 0 !important;
+  flex: 0 0 auto !important;
+  height: auto !important;
+}
 
-### Responsive Grids
+/* Grid container when has collapsed items */
+.grid:has(> div.all-collapsed) {
+  align-items: start !important;
+  align-content: start !important;
+}
 
-**Dashboard:**
-- Stats cards: 2 cols (mobile) → 3 cols (tablet) → 5 cols (desktop)
-- Main grid: 1 col (mobile/tablet) → 3 cols (desktop)
+/* Remove flex-1 when ALL children collapsed */
+.grid:has(> div.all-collapsed):not(:has(> div:not(.all-collapsed))) {
+  flex: 0 1 auto !important;
+}
+```
 
-**Apps Page:**
-- Cards view: 1 col (mobile) → 2 cols (tablet) → 3 cols (desktop)
+### JavaScript Logic
 
-### Mobile UI Adjustments
+`dashboard.js` manages `.all-collapsed` class:
+- Adds class to grid columns when all accordions collapsed
+- Removes class when any accordion opens
+- Runs on page load and accordion toggle
 
-**Modals & Overlays:**
-- Full-screen modals on mobile (< 768px)
-- Command palette: full-screen with better scrolling
-- Settings panel: full-width at bottom
-- Dropdowns: repositioned to bottom of screen
+### Testing & Verification
 
-**Layout:**
-- Header: reduced padding, compact breadcrumb
-- Content: 16px padding on mobile
-- Footer: wraps on small screens, auto height
-- User button: avatar-only on mobile
+- Added HTML comments with build timestamps
+- Temporary red tint debug marker (removed after verification)
+- Tested on iPhone XR (414x896) and Desktop (1440x900)
+- Verified fix applies to all viewports (removed media query wrapper)
 
-**Touch Targets:**
-- All interactive elements: 44px minimum
-- Larger icon action areas
-- Better spacing for fingers
+### Artifacts Created
 
-### Utility Classes
+- `koder/issues/dashboard-grid-gap-issue.md` - Comprehensive issue analysis
+- `koder/screenshots/*.png` - Before/after reference screenshots
+- `admin/src/pages/design-system.js` - Test page for layout debugging
 
-- `.hide-mobile`: Hide on mobile (< 768px)
-- `.show-mobile`: Show only on mobile
+### Agent-Browser Setup
+
+Installed and configured `agent-browser` tool from source:
+- Cloned `~/Projects/agent-browser`
+- Built with npm and linked globally
+- Created symlink in `~/.claude/skills/agent-browser`
+- Used for mobile viewport testing and screenshots
 
 ---
 
 ## Previous Session (2026-01-31 - Earlier)
 
-**Admin UI Polish + Workflows Documentation**
+**Admin UI Mobile Responsiveness**
 
-Completed major UI refinements and created comprehensive workflows documentation.
+Implemented comprehensive mobile and tablet responsive design.
 
-### 1. Apps Page Refinements
+### Mobile Navigation
+- Hamburger menu with slide-out sidebar
+- Touch-friendly 44px minimum tap targets
+- Auto-closes on backdrop click, nav link click, or resize to desktop
 
-**Filter Fix:**
-- Fixed input focus loss on every keystroke
-- Now only updates content area, keeps input focused
-- Smooth filtering experience
+### Responsive Tables
+- All tables wrapped in `.table-container` for horizontal scrolling
+- 600px minimum width with smooth touch scrolling
 
-**Layout Improvements:**
-- New App button proper spacing (`padding: 6px 12px`)
-- Fixed table layout jank with `table-layout: fixed`
-- Column widths: Name 18%, Aliases 26%, ID 16%, etc.
-- Text truncation with ellipsis for long content
+### Responsive Grids
+- Dashboard stats: 2 cols (mobile) → 3 cols (tablet) → 5 cols (desktop)
+- Apps cards: 1 col (mobile) → 2 cols (tablet) → 3 cols (desktop)
 
-**View Modes:**
-- Added list/cards toggle (persists in localStorage)
-- Cards view: 3-column grid with alias tags
-- List view: Table with all fields + fixed columns
+### Mobile UI Adjustments
+- Full-screen modals on mobile (< 768px)
+- Bottom-positioned dropdowns
+- Compact header, reduced padding
+- Avatar-only user button on mobile
 
-**Aliases Display:**
-- Shows up to 3 aliases + "+N" badge for more
-- Tag-style design with borders
-- Searches across app name, ID, and aliases
-- Mock data includes multi-alias apps for testing
-
-**Empty States:**
-- Professional empty state with icon
-- "No apps yet" vs "No results" messages
-- Call-to-action button when truly empty
-
-### 2. App Detail Page
-
-**Overview:**
-- Stats cards: Files, Size, Updated
-- Details card: Source, Created, Version
-- Aliases card: All aliases as clickable buttons
-- Files card: Complete file listing table
-
-**Clickable Aliases:**
-- Each alias is a button (not static text)
-- Click opens `http://alias.hostname:port` in new tab
-- Flexbox layout wraps naturally
-- External link icon on each button
-
-**Actions:**
-- Back button to apps list
-- Refresh button
-- Delete with confirmation
-- Breadcrumb navigation
-
-### 3. Breadcrumb Fixes
-
-**Navigation:**
-- Clicking breadcrumb parent now navigates properly
-- Uses `router.push()` instead of hash links
-- Works seamlessly with SPA routing
-
-**Dynamic Titles:**
-- App detail shows actual app name (not "App Detail")
-- Updates when app data loads
-- Subscribes to `currentApp` changes
-
-### 4. Sidebar Refinements
-
-**Highlighting Fix:**
-- Only exact route match highlights (not parent)
-- Removed parent highlight logic
-- Clean, predictable selection state
-
-**Group Rename:**
-- "Apps" → "Resources"
-- "All Apps" → "Apps"
-- More intuitive hierarchy
-
-### 5. New App Modal
-
-**Professional "Coming Soon":**
-- Rocket icon + clean design
-- Explains feature in development
-- Shows CLI alternative: `fazt app deploy ./my-app`
-- Multiple close options (button, X, backdrop)
-- No broken functionality or alerts
-
-### 6. SPA Routing Fix (Critical!)
-
-**Problem:** Direct URLs like `/apps` returned 404
-
-**Root Cause:** `manifest.json` had `"spa": true` but deploy wasn't reading it
-
-**Solution:** Modified `cmd/server/app.go` to auto-detect SPA from manifest:
-```go
-if !*spaFlag {
-    manifestPath := filepath.Join(dir, "manifest.json")
-    if manifestData, err := os.ReadFile(manifestPath); err == nil {
-        var manifest struct { SPA bool `json:"spa"` }
-        if json.Unmarshal(manifestData, &manifest) == nil && manifest.SPA {
-            *spaFlag = true
-        }
-    }
-}
-```
-
-**Result:** Deploy shows `SPA: enabled (clean URLs)`, all routes work
-
-### 7. Workflows Documentation
-
-Created `knowledge-base/workflows/` structure:
-
-**Files Created:**
-- `workflows/README.md` - Index + navigation
-- `workflows/admin-ui/architecture.md` - State management deep dive
-- `workflows/admin-ui/adding-features.md` - Backend-first workflow
-- `workflows/admin-ui/checklist.md` - Pre-implementation validation
-- `workflows/admin-ui/testing.md` - Mock vs real mode testing
-
-**Frontmatter Format:**
-```yaml
----
-title: Document Title
-description: Brief description
-updated: 2026-01-31
-category: workflows
-tags: [relevant, tags]
----
-```
-
-**Key Principle:** Backend-first development
-- Never build UI without API support
-- Validate endpoint exists before implementing
-- Push back if backend missing
-- Show "Coming Soon" as professional alternative
-
-**Updated CLAUDE.md:**
-- Added workflows section
-- Rule: Check `updated:` date (if >2 days old, verify accuracy)
-- Links to specific workflow guides
+### Breakpoints
+- Mobile: < 768px
+- Tablet: 768px - 1023px
+- Desktop: ≥ 1024px
 
 ---
 
@@ -218,70 +113,71 @@ tags: [relevant, tags]
 
 ### Immediate: Admin UI Features
 
-With mobile responsiveness complete, focus on completing missing pages:
+With mobile responsiveness and grid gap fixed, focus on completing missing pages:
 
-- **Aliases Page** (high priority - currently placeholder)
-- **System Page** (health dashboard)
-- **Settings Page** (config UI)
-- **Real-time updates** (WebSocket/SSE)
+1. **Aliases Page** (high priority - currently placeholder)
+2. **System Page** (health dashboard)
+3. **Settings Page** (config UI)
+4. **Real-time updates** (WebSocket/SSE)
 
----
+### Technical Debt
 
-## Technical Debt / LEGACY_CODE
-
-```bash
-grep -rn "LEGACY_CODE" internal/
-```
-
+See `koder/LEGACY.md` for LEGACY_CODE markers to remove:
 - `internal/storage/bindings.go` - `fazt.storage.*` namespace
 - `internal/appid/appid.go` - old `app_*` format
 - `internal/auth/service.go` - `generateUUID()`
-
-See `koder/LEGACY.md` for removal guide.
 
 ---
 
 ## Quick Reference
 
 ```bash
-# Admin UI
+# Admin UI Development
 cd admin && npm run build
 fazt app deploy admin --to local --name admin-ui
 
-# Test modes
-open http://admin-ui.192.168.64.3.nip.io:8080        # Real
-open http://admin-ui.192.168.64.3.nip.io:8080?mock=true  # Mock
+# Test Modes
+open http://admin-ui.192.168.64.3.nip.io:8080        # Real mode
+open http://admin-ui.192.168.64.3.nip.io:8080?mock=true  # Mock mode
 
-# Binary rebuild (if internal/ changes)
+# Design System Test Page
+open http://admin-ui.192.168.64.3.nip.io:8080?mock=true#/design-system
+
+# Binary Rebuild (if internal/ changes)
 go build -o ~/.local/bin/fazt ./cmd/server
 
-# Local server
+# Local Server
 systemctl --user restart fazt-local
 journalctl --user -u fazt-local -f
 
-# Check workflows
-cat knowledge-base/workflows/README.md
+# Agent-Browser Testing
+agent-browser set viewport 414 896  # iPhone XR
+agent-browser open "http://admin-ui.192.168.64.3.nip.io:8080?mock=true"
+agent-browser screenshot test.png
 ```
 
 ---
 
 ## Architecture Notes
 
-**Admin UI Data Flow:**
+**Admin UI State Management:**
 ```
 Backend API → fazt-sdk → Data Stores → UI Components
 ```
 
-**State Management:**
-- Reactive stores (apps, aliases, currentApp, auth)
-- Subscribe/update pattern
-- No direct API calls in UI
-- Mock adapter for development
+**Responsive Breakpoints:**
+- Mobile: < 768px (single column, hamburger menu)
+- Tablet: 768-1023px (2-column grids)
+- Desktop: ≥1024px (3-column grids, sidebar visible)
+
+**Grid Gap Fix Selector Specificity:**
+- `.grid > div.all-collapsed` targets direct children only
+- `:has()` selector for parent grid detection
+- `!important` needed to override Tailwind utilities
 
 **Key Files:**
-- `admin/packages/fazt-sdk/index.js` - API client
-- `admin/src/stores/data.js` - State management
-- `admin/src/pages/*.js` - Page components
-- `admin/packages/fazt-sdk/fixtures/*.json` - Mock data
-
-**Rule:** Mock data must exactly match real API structure
+- `admin/index.html` - CSS fixes, design system
+- `admin/src/pages/dashboard.js` - Accordion logic, grid state management
+- `admin/src/pages/design-system.js` - Layout testing page
+- `admin/packages/fazt-sdk/` - API client with mock adapter
+- `koder/issues/` - Detailed bug documentation
