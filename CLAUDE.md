@@ -91,6 +91,7 @@ koder/
 └── plans/            # Implementation plans
 knowledge-base/
 ├── agent-context/    # Detailed dev context
+├── workflows/        # Task-oriented development guides
 └── skills/app/       # App development patterns
 servers/              # Test/demo apps (GITIGNORED)
 ```
@@ -99,6 +100,7 @@ servers/              # Test/demo apps (GITIGNORED)
 
 Read these **as needed**, not every session:
 
+### Architecture & Context
 | File | When to Read |
 |------|--------------|
 | `koder/STATE.md` | Start of session - current work |
@@ -107,6 +109,21 @@ Read these **as needed**, not every session:
 | `knowledge-base/agent-context/api.md` | API endpoints, CLI commands |
 | `knowledge-base/agent-context/tooling.md` | Skills, knowledge-base, releasing |
 | `knowledge-base/skills/app/` | App development patterns |
+
+### Development Workflows
+| Task | Read |
+|------|------|
+| Add Admin UI feature | `knowledge-base/workflows/admin-ui/adding-features.md` |
+| Understand UI state | `knowledge-base/workflows/admin-ui/architecture.md` |
+| Test mock vs real | `knowledge-base/workflows/admin-ui/testing.md` |
+| Pre-implementation check | `knowledge-base/workflows/admin-ui/checklist.md` |
+| Extend fazt-sdk | `knowledge-base/workflows/fazt-sdk/extending.md` |
+| Add backend API | `knowledge-base/workflows/fazt-binary/adding-apis.md` |
+
+**Rules**:
+- Always check workflows **before** implementing features to validate backend support
+- Check the `updated:` date in frontmatter - if doc is >2 days old, verify info is still accurate
+- If doc seems stale, update it and change the `updated:` date
 
 ## Quick Reference
 

@@ -153,7 +153,7 @@
     .card { background: var(--bg-1); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); }
     .card-header { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
     .card-body { padding: 16px; }
-    .card-footer { padding: 8px 16px; border-top: 1px solid var(--border); }
+    .card-footer { padding: 8px 16px; border-top: 1px solid var(--border-subtle); background: var(--bg-2); }
 
     .row { transition: background 0.1s ease; }
     .row:hover { background: var(--bg-2); }
@@ -331,6 +331,50 @@
     </div>
   </div>
 
+  <!-- New App Modal -->
+  <div id="newAppModal" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop">
+    <div class="modal w-full max-w-md p-6 relative">
+      <div class="text-center mb-6">
+        <div class="w-12 h-12 mx-auto mb-4 flex items-center justify-center" style="background:var(--accent-soft);border-radius:var(--radius-md)">
+          <i data-lucide="rocket" class="w-6 h-6" style="color:var(--accent)"></i>
+        </div>
+        <h2 class="text-title" style="color:var(--text-1)">Deploy New App</h2>
+        <p class="text-caption mt-1" style="color:var(--text-3)">Deploy your app directly from the web UI</p>
+      </div>
+
+      <div class="space-y-4 mb-6">
+        <!-- Coming Soon Notice -->
+        <div class="p-4 text-center" style="background:var(--bg-2);border-radius:var(--radius-lg);border:1px solid var(--border-subtle)">
+          <div class="icon-box mx-auto mb-3" style="width:40px;height:40px;background:var(--warning-soft)">
+            <i data-lucide="construction" class="w-5 h-5" style="color:var(--warning)"></i>
+          </div>
+          <div class="text-heading text-primary mb-2">Coming Soon</div>
+          <div class="text-caption text-muted mb-4">Web-based app deployment is currently in development</div>
+        </div>
+
+        <!-- Alternative Methods -->
+        <div style="border-top:1px solid var(--border-subtle);padding-top:16px">
+          <div class="text-micro text-muted mb-3">DEPLOY VIA CLI</div>
+          <div class="p-3 mono text-caption" style="background:var(--bg-0);border-radius:var(--radius-md);border:1px solid var(--border-subtle)">
+            <div class="text-primary">fazt app deploy ./my-app</div>
+          </div>
+          <div class="flex items-start gap-2 mt-3 px-2">
+            <i data-lucide="info" class="w-3.5 h-3.5 flex-shrink-0 mt-0.5" style="color:var(--text-4)"></i>
+            <div class="text-caption" style="color:var(--text-3)">Use the Fazt CLI to deploy apps from your terminal</div>
+          </div>
+        </div>
+      </div>
+
+      <button id="closeNewApp" class="btn btn-secondary w-full text-label" style="padding:8px 16px">
+        Got it
+      </button>
+
+      <button id="closeNewAppX" class="absolute top-4 right-4 p-1 btn-ghost" style="color:var(--text-3);border-radius:var(--radius-sm)">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+    </div>
+  </div>
+
   <!-- Notifications Dropdown -->
   <div id="notificationsDropdown" class="dropdown fixed z-50 hidden w-80" style="top:56px;right:60px">
     <div class="px-4 py-3 border-b flex items-center justify-between" style="border-color:var(--border)">
@@ -402,13 +446,13 @@
           <div class="menu-section pt-4 pb-1">
             <div class="menu-toggle open flex items-center gap-1 px-3">
               <i data-lucide="chevron-right" class="w-3 h-3 chevron" style="color:var(--text-4)"></i>
-              <span class="text-micro" style="color:var(--text-4)">Apps</span>
+              <span class="text-micro" style="color:var(--text-4)">Resources</span>
             </div>
           </div>
           <div class="submenu open space-y-0.5">
             <a href="/apps" class="nav-item flex items-center gap-2.5 px-3 py-2 text-label" data-route="apps">
               <i data-lucide="layers" class="w-4 h-4"></i>
-              <span class="sidebar-text">All Apps</span>
+              <span class="sidebar-text">Apps</span>
               <span class="nav-badge ml-auto text-caption mono px-1.5 py-0.5" style="background:var(--bg-2);color:var(--text-3);border-radius:var(--radius-sm)" id="apps-count">0</span>
             </a>
             <a href="/aliases" class="nav-item flex items-center gap-2.5 px-3 py-2 text-label" data-route="aliases">
@@ -493,7 +537,7 @@
     import { createClient, mockAdapter } from './packages/fazt-sdk/index.js'
     import { routes } from './src/routes.js'
     import { initTheme, sidebarCollapsed, toggleSidebar, theme, palette, setTheme, setPalette } from './src/stores/app.js'
-    import { loadApps, loadAliases, loadHealth, loadStats, apps, auth, loadAuth, signOut } from './src/stores/data.js'
+    import { loadApps, loadAliases, loadHealth, loadStats, apps, auth, loadAuth, signOut, currentApp } from './src/stores/data.js'
 
     // Pages
     import * as dashboardPage from './src/pages/dashboard.js'
@@ -595,22 +639,40 @@
       if (!breadcrumb) return
       const route = match.route
       const parent = route.meta?.parent ? routes.find(r => r.name === route.meta.parent) : null
+
+      // For app detail pages, get the app name
+      let displayTitle = route.meta?.title || route.name
+      if (route.name === 'app-detail' && match.params?.id) {
+        const app = currentApp.get()
+        if (app?.name) {
+          displayTitle = app.name
+        }
+      }
+
       breadcrumb.innerHTML = `
         <span style="color:var(--text-3)">Home</span>
         <i data-lucide="chevron-right" class="w-3 h-3" style="color:var(--text-4)"></i>
         ${parent ? `
-          <a href="#${parent.path}" style="color:var(--text-3)">${parent.meta?.title || parent.name}</a>
+          <a href="${parent.path}" class="breadcrumb-link" style="color:var(--text-3);cursor:pointer">${parent.meta?.title || parent.name}</a>
           <i data-lucide="chevron-right" class="w-3 h-3" style="color:var(--text-4)"></i>
         ` : ''}
-        <span style="color:var(--text-1)">${route.meta?.title || route.name}</span>
+        <span style="color:var(--text-1)">${displayTitle}</span>
       `
       lucide.createIcons()
+
+      // Add click handler for parent link
+      breadcrumb.querySelectorAll('.breadcrumb-link').forEach(link => {
+        link.addEventListener('click', (e) => {
+          e.preventDefault()
+          router.push(link.getAttribute('href'))
+        })
+      })
     }
 
     function updateNav(match) {
       document.querySelectorAll('.nav-item[data-route]').forEach(item => {
-        const isActive = item.dataset.route === match.route.name ||
-          (match.route.meta?.parent && item.dataset.route === match.route.meta.parent)
+        // Only highlight exact route match, not parents
+        const isActive = item.dataset.route === match.route.name
         item.classList.toggle('active', isActive)
       })
     }
@@ -830,6 +892,12 @@
       // Subscribe to auth changes
       auth.subscribe(renderUserHeader)
 
+      // Subscribe to app changes for breadcrumb updates
+      currentApp.subscribe(() => {
+        const match = router.current.get()
+        if (match) updateBreadcrumb(match)
+      })
+
       // Sidebar toggle
       document.getElementById('sidebar-toggle')?.addEventListener('click', () => {
         toggleSidebar()
@@ -927,6 +995,24 @@
         const wasHidden = dropdown?.classList.contains('hidden')
         document.querySelectorAll('.dropdown').forEach(d => d.classList.add('hidden'))
         if (wasHidden) dropdown?.classList.remove('hidden')
+      })
+
+      // New App Modal
+      const newAppModal = document.getElementById('newAppModal')
+      const closeNewApp = document.getElementById('closeNewApp')
+      const closeNewAppX = document.getElementById('closeNewAppX')
+
+      function closeNewAppModal() {
+        newAppModal?.classList.add('hidden')
+        newAppModal?.classList.remove('flex')
+      }
+
+      closeNewApp?.addEventListener('click', closeNewAppModal)
+      closeNewAppX?.addEventListener('click', closeNewAppModal)
+
+      // Close modal when clicking backdrop
+      newAppModal?.addEventListener('click', (e) => {
+        if (e.target === newAppModal) closeNewAppModal()
       })
 
       // Draggable settings panel

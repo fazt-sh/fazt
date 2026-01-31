@@ -1,151 +1,200 @@
 # Fazt Implementation State
 
 **Last Updated**: 2026-01-31
-**Monorepo Version**: v0.17.0 (unified versioning)
+**Current Version**: v0.17.0
 
-## Component Status
+## Status
 
-| Component | Status | Complete | Notes |
-|-----------|--------|----------|-------|
-| fazt-binary | stable | 100% | Core platform |
-| admin | alpha | 15% | Dashboard complete, other pages skeleton |
-| fazt-sdk | alpha | 20% | Basic API client |
-| knowledge-base | stable | 80% | Comprehensive docs |
-
-## Current State
-
-State: **CLEAN** - Monorepo versioning implemented, admin UI with auth
+State: **CLEAN** - Admin UI refinements + workflows documentation complete
 
 ---
 
 ## Last Session (2026-01-31)
 
-**Monorepo Versioning + Admin UI Refinements**
+**Admin UI Polish + Workflows Documentation**
 
-Implemented unified versioning strategy and moved admin to tracked location.
+Completed major UI refinements and created comprehensive workflows documentation.
 
-1. **Auth integration** (leverages existing fazt auth system):
-   - Connected to `/auth/session` and `/auth/logout` endpoints
-   - User dropdown shows provider (Google, GitHub, Dev)
-   - Role badge displays Owner/Admin status
-   - Logged-out state redirects to `/auth/login`
-   - Working sign out flow
+### 1. Apps Page Refinements
 
-2. **Footer improvements**:
-   - Mock mode toggle as icon button (database icon)
-   - Settings panel toggle as icon button (palette icon)
-   - Both show active state (accent color + background)
+**Filter Fix:**
+- Fixed input focus loss on every keystroke
+- Now only updates content area, keeps input focused
+- Smooth filtering experience
 
-3. **Empty states**:
-   - Apps table shows "No apps yet" message
-   - Call-to-action for first deployment
+**Layout Improvements:**
+- New App button proper spacing (`padding: 6px 12px`)
+- Fixed table layout jank with `table-layout: fixed`
+- Column widths: Name 18%, Aliases 26%, ID 16%, etc.
+- Text truncation with ellipsis for long content
 
-4. **SDK updates**:
-   - Updated `fazt-sdk` to use correct auth endpoints
-   - Mock adapter returns proper User structure with role/provider
-   - Added `auth.session()` and `auth.signOut()` methods
+**View Modes:**
+- Added list/cards toggle (persists in localStorage)
+- Cards view: 3-column grid with alias tags
+- List view: Table with all fields + fixed columns
 
-4. **Monorepo versioning** (architectural decision):
-   - Unified versioning: all components share v0.17.0
-   - Status markers track maturity: stable, beta, alpha
-   - Completeness % shows progress towards parity
-   - Root `version.json` is source of truth
-   - Moved admin from `servers/local/admin/` to `admin/` (now tracked)
+**Aliases Display:**
+- Shows up to 3 aliases + "+N" badge for more
+- Tag-style design with borders
+- Searches across app name, ID, and aliases
+- Mock data includes multi-alias apps for testing
 
-5. **Documentation updates**:
-   - Updated CLAUDE.md with monorepo structure
-   - Updated /open skill for unified versioning workflow
-   - Version files in root, admin/, knowledge-base/
+**Empty States:**
+- Professional empty state with icon
+- "No apps yet" vs "No results" messages
+- Call-to-action button when truly empty
 
-**Key discovery**: Fazt already has built-in owner/admin roles! No new features needed - just wiring to existing `User.role`, `User.IsOwner()`, `User.IsAdmin()` methods.
+### 2. App Detail Page
 
-**Deployed**: `http://admin-ui.192.168.64.3.nip.io:8080`
+**Overview:**
+- Stats cards: Files, Size, Updated
+- Details card: Source, Created, Version
+- Aliases card: All aliases as clickable buttons
+- Files card: Complete file listing table
 
----
+**Clickable Aliases:**
+- Each alias is a button (not static text)
+- Click opens `http://alias.hostname:port` in new tab
+- Flexbox layout wraps naturally
+- External link icon on each button
 
-## Testing Auth
+**Actions:**
+- Back button to apps list
+- Refresh button
+- Delete with confirmation
+- Breadcrumb navigation
 
-**Dev login** (local only):
-```bash
-# Visit dev login page
-open http://admin.192.168.64.3.nip.io:8080/auth/dev/login
+### 3. Breadcrumb Fixes
 
-# Pick role: User, Admin, or Owner
-# Admin UI will show role badge and provider
+**Navigation:**
+- Clicking breadcrumb parent now navigates properly
+- Uses `router.push()` instead of hash links
+- Works seamlessly with SPA routing
+
+**Dynamic Titles:**
+- App detail shows actual app name (not "App Detail")
+- Updates when app data loads
+- Subscribes to `currentApp` changes
+
+### 4. Sidebar Refinements
+
+**Highlighting Fix:**
+- Only exact route match highlights (not parent)
+- Removed parent highlight logic
+- Clean, predictable selection state
+
+**Group Rename:**
+- "Apps" → "Resources"
+- "All Apps" → "Apps"
+- More intuitive hierarchy
+
+### 5. New App Modal
+
+**Professional "Coming Soon":**
+- Rocket icon + clean design
+- Explains feature in development
+- Shows CLI alternative: `fazt app deploy ./my-app`
+- Multiple close options (button, X, backdrop)
+- No broken functionality or alerts
+
+### 6. SPA Routing Fix (Critical!)
+
+**Problem:** Direct URLs like `/apps` returned 404
+
+**Root Cause:** `manifest.json` had `"spa": true` but deploy wasn't reading it
+
+**Solution:** Modified `cmd/server/app.go` to auto-detect SPA from manifest:
+```go
+if !*spaFlag {
+    manifestPath := filepath.Join(dir, "manifest.json")
+    if manifestData, err := os.ReadFile(manifestPath); err == nil {
+        var manifest struct { SPA bool `json:"spa"` }
+        if json.Unmarshal(manifestData, &manifest) == nil && manifest.SPA {
+            *spaFlag = true
+        }
+    }
+}
 ```
 
-**Mock mode**: `?mock=true` shows mock user (kodeman@gmail.com, Owner, Google)
+**Result:** Deploy shows `SPA: enabled (clean URLs)`, all routes work
+
+### 7. Workflows Documentation
+
+Created `knowledge-base/workflows/` structure:
+
+**Files Created:**
+- `workflows/README.md` - Index + navigation
+- `workflows/admin-ui/architecture.md` - State management deep dive
+- `workflows/admin-ui/adding-features.md` - Backend-first workflow
+- `workflows/admin-ui/checklist.md` - Pre-implementation validation
+- `workflows/admin-ui/testing.md` - Mock vs real mode testing
+
+**Frontmatter Format:**
+```yaml
+---
+title: Document Title
+description: Brief description
+updated: 2026-01-31
+category: workflows
+tags: [relevant, tags]
+---
+```
+
+**Key Principle:** Backend-first development
+- Never build UI without API support
+- Validate endpoint exists before implementing
+- Push back if backend missing
+- Show "Coming Soon" as professional alternative
+
+**Updated CLAUDE.md:**
+- Added workflows section
+- Rule: Check `updated:` date (if >2 days old, verify accuracy)
+- Links to specific workflow guides
 
 ---
 
 ## Next Up
 
-### Admin UI Pages (15% → Goal: 100%)
+### Immediate: Admin UI Responsiveness
 
-**Dashboard** ✅
-- Complete with auth, stats, apps table, activity feed
-- Empty states, theme system, command palette
+Focus on mobile/tablet layouts before adding more features:
 
-**Apps Page** (Priority: High)
-- List all apps with filtering/search
-- App detail view (files, source, config)
-- CRUD operations (create, deploy, delete)
-- Real-time status updates
-- Empty state for no apps
+1. **Test current breakpoints**
+   - Desktop (1920x1080)
+   - Laptop (1280x720)
+   - Tablet (768x1024)
+   - Mobile (375x667)
 
-**Aliases Page** (Priority: High)
-- List all aliases with subdomain management
-- Create/edit/delete aliases
-- Alias types (proxy, redirect, static)
-- DNS configuration UI
-- Empty state for no aliases
+2. **Fix sidebar on mobile**
+   - Hamburger menu
+   - Overlay/drawer pattern
+   - Touch-friendly targets
 
-**System Page** (Priority: Medium)
-- Health dashboard (CPU, memory, storage)
-- Active workers/runtime stats
-- Database metrics
-- VFS cache stats
-- Capacity monitoring
+3. **Responsive tables**
+   - Cards on mobile (no tables)
+   - Stack columns vertically
+   - Horizontal scroll as fallback
 
-**Settings Page** (Priority: Medium)
-- OAuth provider configuration
-- Rate limits and quotas
-- Domain settings
-- User management (invite, roles)
-- System preferences
+4. **Touch interactions**
+   - Larger hit targets (44px minimum)
+   - Swipe gestures (optional)
+   - Pull to refresh (optional)
 
-### Additional Features
+5. **Modal adjustments**
+   - Full-screen on mobile
+   - Proper padding
+   - Scrollable content
 
-- App detail page with file browser
-- Real-time updates (WebSocket/SSE)
-- More command palette actions
-- Admin-only UI elements
-- Logs viewer
-- Metrics/analytics
+### After Responsiveness
+
+- **Aliases Page** (high priority)
+- **System Page** (health dashboard)
+- **Settings Page** (config UI)
+- **Real-time updates** (WebSocket/SSE)
 
 ---
 
-## Quick Reference
-
-```bash
-# Deploy admin UI
-fazt app deploy admin --to local --name admin-ui
-
-# Test with mock data
-http://admin-ui.192.168.64.3.nip.io:8080?mock=true
-
-# View source (BFBB - no build)
-ls admin/packages/
-ls admin/src/
-
-# Check version/status
-cat version.json
-cat admin/version.json
-```
-
----
-
-## LEGACY_CODE Markers
+## Technical Debt / LEGACY_CODE
 
 ```bash
 grep -rn "LEGACY_CODE" internal/
@@ -156,3 +205,50 @@ grep -rn "LEGACY_CODE" internal/
 - `internal/auth/service.go` - `generateUUID()`
 
 See `koder/LEGACY.md` for removal guide.
+
+---
+
+## Quick Reference
+
+```bash
+# Admin UI
+cd admin && npm run build
+fazt app deploy admin --to local --name admin-ui
+
+# Test modes
+open http://admin-ui.192.168.64.3.nip.io:8080        # Real
+open http://admin-ui.192.168.64.3.nip.io:8080?mock=true  # Mock
+
+# Binary rebuild (if internal/ changes)
+go build -o ~/.local/bin/fazt ./cmd/server
+
+# Local server
+systemctl --user restart fazt-local
+journalctl --user -u fazt-local -f
+
+# Check workflows
+cat knowledge-base/workflows/README.md
+```
+
+---
+
+## Architecture Notes
+
+**Admin UI Data Flow:**
+```
+Backend API → fazt-sdk → Data Stores → UI Components
+```
+
+**State Management:**
+- Reactive stores (apps, aliases, currentApp, auth)
+- Subscribe/update pattern
+- No direct API calls in UI
+- Mock adapter for development
+
+**Key Files:**
+- `admin/packages/fazt-sdk/index.js` - API client
+- `admin/src/stores/data.js` - State management
+- `admin/src/pages/*.js` - Page components
+- `admin/packages/fazt-sdk/fixtures/*.json` - Mock data
+
+**Rule:** Mock data must exactly match real API structure

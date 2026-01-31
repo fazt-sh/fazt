@@ -146,6 +146,19 @@ func handleAppDeploy(args []string) {
 		}
 	}
 
+	// Check manifest.json for spa setting (if not explicitly set via flag)
+	if !*spaFlag {
+		manifestPath := filepath.Join(dir, "manifest.json")
+		if manifestData, err := os.ReadFile(manifestPath); err == nil {
+			var manifest struct {
+				SPA bool `json:"spa"`
+			}
+			if json.Unmarshal(manifestData, &manifest) == nil && manifest.SPA {
+				*spaFlag = true
+			}
+		}
+	}
+
 	// Build step
 	deployDir := dir
 	if *noBuild {
