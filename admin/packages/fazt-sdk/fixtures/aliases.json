@@ -1,0 +1,51 @@
+[
+  {
+    "subdomain": "momentum",
+    "type": "proxy",
+    "targets": { "app_id": "app_01hw3xyz" },
+    "created_at": "2026-01-15T10:30:00Z",
+    "updated_at": "2026-01-31T12:00:00Z"
+  },
+  {
+    "subdomain": "nexus",
+    "type": "proxy",
+    "targets": { "app_id": "app_02hw3abc" },
+    "created_at": "2026-01-10T08:00:00Z",
+    "updated_at": "2026-01-30T14:00:00Z"
+  },
+  {
+    "subdomain": "store",
+    "type": "proxy",
+    "targets": { "app_id": "app_04hw3ghi" },
+    "created_at": "2026-01-05T11:00:00Z",
+    "updated_at": "2026-01-31T06:00:00Z"
+  },
+  {
+    "subdomain": "cal",
+    "type": "proxy",
+    "targets": { "app_id": "app_05hw3jkl" },
+    "created_at": "2026-01-18T14:00:00Z",
+    "updated_at": "2026-01-30T18:00:00Z"
+  },
+  {
+    "subdomain": "old-site",
+    "type": "redirect",
+    "targets": { "url": "https://new-site.example.com" },
+    "created_at": "2026-01-20T10:00:00Z",
+    "updated_at": "2026-01-20T10:00:00Z"
+  },
+  {
+    "subdomain": "admin",
+    "type": "reserved",
+    "targets": null,
+    "created_at": "2026-01-01T00:00:00Z",
+    "updated_at": "2026-01-01T00:00:00Z"
+  },
+  {
+    "subdomain": "api",
+    "type": "reserved",
+    "targets": null,
+    "created_at": "2026-01-01T00:00:00Z",
+    "updated_at": "2026-01-01T00:00:00Z"
+  }
+]

@@ -1,0 +1,16 @@
+/**
+ * fazt-ui
+ * CSS Design System for Fazt Admin UI
+ *
+ * Usage:
+ *   <link rel="stylesheet" href="/packages/fazt-ui/index.css">
+ *
+ * Or import individual files:
+ *   @import './tokens.css';
+ *   @import './base.css';
+ *   @import './utilities.css';
+ */
+
+@import './tokens.css';
+@import './base.css';
+@import './utilities.css';

@@ -1,0 +1,230 @@
+/**
+ * fazt-ui Design Tokens
+ * CSS custom properties for the Fazt Admin UI
+ */
+
+:root {
+  /* Typography */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+
+  /* Border Radius */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+
+  /* Layout */
+  --sidebar-width: 224px;
+  --sidebar-collapsed: 56px;
+  --header-height: 48px;
+  --footer-height: 36px;
+
+  /* Transitions */
+  --transition-fast: 0.1s ease;
+  --transition-normal: 0.15s ease;
+  --transition-slow: 0.2s ease;
+
+  /* Z-Index */
+  --z-dropdown: 100;
+  --z-modal: 200;
+  --z-toast: 300;
+  --z-command: 400;
+}
+
+/* ========================================
+   STONE PALETTE (Default)
+   ======================================== */
+:root {
+  --bg-0: #faf9f7;
+  --bg-1: #ffffff;
+  --bg-2: #f3f1ed;
+  --bg-3: #e8e4dd;
+  --border: #e0dbd3;
+  --border-subtle: #ebe7e0;
+  --text-1: #1a1816;
+  --text-2: #4a4641;
+  --text-3: #8a857d;
+  --text-4: #b5afa5;
+  --accent: #d97706;
+  --accent-hover: #b45309;
+  --accent-soft: #fef3c7;
+  --accent-text: #92400e;
+  --success: #16a34a;
+  --success-soft: #dcfce7;
+  --warning: #ca8a04;
+  --warning-soft: #fef9c3;
+  --error: #dc2626;
+  --error-soft: #fee2e2;
+}
+
+.dark {
+  --bg-0: #0f0e0d;
+  --bg-1: #1a1918;
+  --bg-2: #262422;
+  --bg-3: #33302d;
+  --border: #33302d;
+  --border-subtle: #262422;
+  --text-1: #f5f3f0;
+  --text-2: #c4bfb8;
+  --text-3: #7a756d;
+  --text-4: #524e48;
+  --accent: #f59e0b;
+  --accent-hover: #fbbf24;
+  --accent-soft: #451a03;
+  --accent-text: #fcd34d;
+  --success: #22c55e;
+  --success-soft: #14532d;
+  --warning: #eab308;
+  --warning-soft: #422006;
+  --error: #ef4444;
+  --error-soft: #450a0a;
+}
+
+/* ========================================
+   SLATE PALETTE
+   ======================================== */
+.palette-slate {
+  --bg-0: #f8fafc;
+  --bg-1: #ffffff;
+  --bg-2: #f1f5f9;
+  --bg-3: #e2e8f0;
+  --border: #cbd5e1;
+  --border-subtle: #e2e8f0;
+  --text-1: #0f172a;
+  --text-2: #475569;
+  --text-3: #94a3b8;
+  --text-4: #cbd5e1;
+  --accent: #0284c7;
+  --accent-hover: #0369a1;
+  --accent-soft: #e0f2fe;
+  --accent-text: #0c4a6e;
+}
+
+.dark.palette-slate {
+  --bg-0: #020617;
+  --bg-1: #0f172a;
+  --bg-2: #1e293b;
+  --bg-3: #334155;
+  --border: #334155;
+  --border-subtle: #1e293b;
+  --text-1: #f1f5f9;
+  --text-2: #94a3b8;
+  --text-3: #64748b;
+  --text-4: #475569;
+  --accent: #38bdf8;
+  --accent-hover: #7dd3fc;
+  --accent-soft: #0c4a6e;
+  --accent-text: #bae6fd;
+}
+
+/* ========================================
+   OXIDE PALETTE
+   ======================================== */
+.palette-oxide {
+  --bg-0: #faf8f8;
+  --bg-1: #ffffff;
+  --bg-2: #f5f0f0;
+  --bg-3: #ebe4e4;
+  --border: #e0d6d6;
+  --border-subtle: #ebe4e4;
+  --text-1: #1c1617;
+  --text-2: #4a4244;
+  --text-3: #8a8082;
+  --text-4: #b5acae;
+  --accent: #e11d48;
+  --accent-hover: #be123c;
+  --accent-soft: #ffe4e6;
+  --accent-text: #9f1239;
+}
+
+.dark.palette-oxide {
+  --bg-0: #0d0a0a;
+  --bg-1: #1a1516;
+  --bg-2: #262020;
+  --bg-3: #332b2c;
+  --border: #332b2c;
+  --border-subtle: #262020;
+  --text-1: #f5f0f0;
+  --text-2: #c4bcbd;
+  --text-3: #7a7072;
+  --text-4: #524a4b;
+  --accent: #fb7185;
+  --accent-hover: #fda4af;
+  --accent-soft: #4c0519;
+  --accent-text: #fecdd3;
+}
+
+/* ========================================
+   FOREST PALETTE
+   ======================================== */
+.palette-forest {
+  --bg-0: #f7faf8;
+  --bg-1: #ffffff;
+  --bg-2: #ecf4ef;
+  --bg-3: #dceae1;
+  --border: #c6ddd0;
+  --border-subtle: #dceae1;
+  --text-1: #14201a;
+  --text-2: #3d4f46;
+  --text-3: #7a9187;
+  --text-4: #a8c0b4;
+  --accent: #059669;
+  --accent-hover: #047857;
+  --accent-soft: #d1fae5;
+  --accent-text: #065f46;
+}
+
+.dark.palette-forest {
+  --bg-0: #0a0f0c;
+  --bg-1: #141f18;
+  --bg-2: #1e2f25;
+  --bg-3: #2a4034;
+  --border: #2a4034;
+  --border-subtle: #1e2f25;
+  --text-1: #ecf4ef;
+  --text-2: #a8c0b4;
+  --text-3: #6b8a7a;
+  --text-4: #3d5a4a;
+  --accent: #34d399;
+  --accent-hover: #6ee7b7;
+  --accent-soft: #064e3b;
+  --accent-text: #a7f3d0;
+}
+
+/* ========================================
+   VIOLET PALETTE
+   ======================================== */
+.palette-violet {
+  --bg-0: #faf9fc;
+  --bg-1: #ffffff;
+  --bg-2: #f3f1f8;
+  --bg-3: #e8e4f2;
+  --border: #ddd6eb;
+  --border-subtle: #e8e4f2;
+  --text-1: #1a1721;
+  --text-2: #46404f;
+  --text-3: #867e94;
+  --text-4: #b3aac2;
+  --accent: #7c3aed;
+  --accent-hover: #6d28d9;
+  --accent-soft: #ede9fe;
+  --accent-text: #5b21b6;
+}
+
+.dark.palette-violet {
+  --bg-0: #0c0a12;
+  --bg-1: #17141f;
+  --bg-2: #231e2e;
+  --bg-3: #302940;
+  --border: #302940;
+  --border-subtle: #231e2e;
+  --text-1: #f3f1f8;
+  --text-2: #b8b0c8;
+  --text-3: #6e6483;
+  --text-4: #453d57;
+  --accent: #a78bfa;
+  --accent-hover: #c4b5fd;
+  --accent-soft: #4c1d95;
+  --accent-text: #ddd6fe;
+}

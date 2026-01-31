@@ -1,0 +1,29 @@
+{
+  "version": "0.17.0",
+  "status": "alpha",
+  "completeness": "15%",
+  "updated_at": "2026-01-31",
+  "description": "Fazt Admin UI - unified versioning with fazt binary",
+  "packages": {
+    "fazt-sdk": {
+      "path": "packages/fazt-sdk/",
+      "description": "API client with mock adapter"
+    },
+    "zap": {
+      "path": "packages/zap/",
+      "description": "State management + router + commands"
+    },
+    "fazt-ui": {
+      "path": "packages/fazt-ui/",
+      "description": "CSS design system"
+    }
+  },
+  "pages": {
+    "dashboard": "functional",
+    "apps": "skeleton",
+    "aliases": "skeleton",
+    "system": "skeleton",
+    "settings": "skeleton"
+  }
+}
+

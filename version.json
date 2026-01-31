@@ -1,0 +1,36 @@
+{
+  "version": "0.17.0",
+  "updated_at": "2026-01-31",
+  "repository": "monorepo",
+  "versioning": "unified",
+  "description": "All components share the same version for guaranteed compatibility",
+  "components": {
+    "fazt-binary": {
+      "path": "internal/",
+      "status": "stable",
+      "completeness": "100%",
+      "description": "Core Go binary - HTTP server, auth, storage, runtime"
+    },
+    "admin": {
+      "path": "admin/",
+      "status": "alpha",
+      "completeness": "15%",
+      "description": "Web admin UI - Dashboard functional, other pages in progress",
+      "goal": "Full API surface coverage with polished UX"
+    },
+    "fazt-sdk": {
+      "path": "admin/packages/fazt-sdk/",
+      "status": "alpha",
+      "completeness": "20%",
+      "description": "JavaScript API client with mock adapter",
+      "goal": "Complete API coverage, types, error handling"
+    },
+    "knowledge-base": {
+      "path": "knowledge-base/",
+      "status": "stable",
+      "completeness": "80%",
+      "description": "Documentation and agent context",
+      "goal": "Comprehensive docs for all features"
+    }
+  }
+}

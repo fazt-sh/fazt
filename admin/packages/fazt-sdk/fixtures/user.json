@@ -1,0 +1,10 @@
+{
+  "id": "user_01abc",
+  "email": "kodeman@gmail.com",
+  "name": "kodeman",
+  "picture": "",
+  "provider": "google",
+  "role": "owner",
+  "created_at": 1706745600,
+  "last_login": 1738339200
+}

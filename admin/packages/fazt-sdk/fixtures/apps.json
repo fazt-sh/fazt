@@ -1,0 +1,72 @@
+[
+  {
+    "id": "app_01hw3xyz",
+    "name": "momentum",
+    "source": "git",
+    "manifest": { "name": "momentum", "version": "1.4.2" },
+    "file_count": 24,
+    "size_bytes": 1258291,
+    "created_at": "2026-01-15T10:30:00Z",
+    "updated_at": "2026-01-31T12:00:00Z"
+  },
+  {
+    "id": "app_02hw3abc",
+    "name": "nexus",
+    "source": "git",
+    "manifest": { "name": "nexus", "version": "2.1.0" },
+    "file_count": 18,
+    "size_bytes": 876544,
+    "created_at": "2026-01-10T08:00:00Z",
+    "updated_at": "2026-01-30T14:00:00Z"
+  },
+  {
+    "id": "app_03hw3def",
+    "name": "guestbook",
+    "source": "local",
+    "manifest": { "name": "guestbook" },
+    "file_count": 8,
+    "size_bytes": 239616,
+    "created_at": "2026-01-20T16:00:00Z",
+    "updated_at": "2026-01-28T09:00:00Z"
+  },
+  {
+    "id": "app_04hw3ghi",
+    "name": "storefront",
+    "source": "git",
+    "manifest": { "name": "storefront", "version": "3.0.1" },
+    "file_count": 42,
+    "size_bytes": 2202009,
+    "created_at": "2026-01-05T11:00:00Z",
+    "updated_at": "2026-01-31T06:00:00Z"
+  },
+  {
+    "id": "app_05hw3jkl",
+    "name": "scheduler",
+    "source": "template",
+    "manifest": { "name": "scheduler" },
+    "file_count": 12,
+    "size_bytes": 319488,
+    "created_at": "2026-01-18T14:00:00Z",
+    "updated_at": "2026-01-30T18:00:00Z"
+  },
+  {
+    "id": "app_06hw3mno",
+    "name": "docs",
+    "source": "git",
+    "manifest": { "name": "docs", "version": "1.0.0" },
+    "file_count": 56,
+    "size_bytes": 580608,
+    "created_at": "2026-01-12T09:00:00Z",
+    "updated_at": "2026-01-29T11:00:00Z"
+  },
+  {
+    "id": "app_07hw3pqr",
+    "name": "analytics",
+    "source": "git",
+    "manifest": { "name": "analytics", "version": "0.8.0" },
+    "file_count": 21,
+    "size_bytes": 911360,
+    "created_at": "2026-01-08T13:00:00Z",
+    "updated_at": "2026-01-31T04:00:00Z"
+  }
+]

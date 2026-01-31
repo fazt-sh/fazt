@@ -1,0 +1,6 @@
+{
+  "name": "admin-ui",
+  "version": "0.1.0",
+  "description": "Fazt Admin UI",
+  "spa": true
+}

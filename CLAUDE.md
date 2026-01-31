@@ -2,7 +2,23 @@
 
 **Sovereign compute** - Single Go binary + SQLite database that runs anywhere.
 
-**Version**: 0.15.0 | **State**: `koder/STATE.md`
+**Version**: 0.17.0 | **State**: `koder/STATE.md`
+
+## Monorepo Structure
+
+Fazt uses **unified versioning** - all components share the same version for guaranteed compatibility.
+
+**Components:**
+- **fazt-binary** (`internal/`) - Core Go binary [stable, 100%]
+- **admin** (`admin/`) - Web admin UI [alpha, 15%]
+- **fazt-sdk** (`admin/packages/fazt-sdk/`) - JavaScript API client [alpha, 20%]
+- **knowledge-base/** - Documentation [stable, 80%]
+
+**Versioning:**
+- One version (0.17.0) = everything works together
+- Status markers track maturity: `stable`, `beta`, `alpha`
+- Completeness % shows progress towards full parity
+- See `version.json` at repo root for details
 
 ## Philosophy
 
@@ -13,7 +29,7 @@
 - **Elegant solutions** - Fix the binary, not the instance. The system should work elegantly.
 - **Single DB philosophy** - Everything in SQLite. No config files. The database IS the instance.
 - **Static hosting first** - Serverless is enhancement, never blocks static deploy.
-- **Apps are throw-away** - Fix fazt, not workarounds. Apps test fazt.
+- **Core vs test apps** - `admin/` is core (tracked in git). `servers/` are test/demo apps (gitignored).
 
 ## Architecture: Config
 
@@ -66,12 +82,17 @@ internal/
 ├── hosting/          # VFS, deploy logic
 ├── auth/             # OAuth, sessions
 └── storage/          # KV, Docs, Blobs
+admin/                # Official Admin UI (TRACKED)
+├── packages/         # fazt-sdk, zap, fazt-ui
+├── src/              # Pages, stores, routes
+└── version.json      # Version tracking
 koder/
 ├── STATE.md          # Current work
 └── plans/            # Implementation plans
 knowledge-base/
 ├── agent-context/    # Detailed dev context
 └── skills/app/       # App development patterns
+servers/              # Test/demo apps (GITIGNORED)
 ```
 
 ## Deep Context

@@ -15,43 +15,36 @@ This is the **handoff from previous session**:
 - What was completed
 - What to work on next
 
-### 2. Verify Versions & Health
+### 2. Verify Monorepo Versions & Health
 
-Check all components are in sync and healthy:
+**Unified Versioning**: All components share the same version for guaranteed compatibility.
 
 ```bash
-# Source version
-grep "var Version" internal/config/config.go | grep -oE '[0-9]+\.[0-9]+\.[0-9]+'
+# Monorepo version (source of truth)
+cat version.json
 
-# Binary version
+# Binary version (should match)
 fazt --version | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+'
 
-# Knowledge-base version
-cat knowledge-base/version.json
+# Component versions & status
+cat admin/version.json | jq -r '"\(.version) | \(.status) | \(.completeness)"'
+cat knowledge-base/version.json | jq -r '"\(.version) | \(.status) | \(.completeness)"'
 
-# All configured remotes (shows status and default)
+# All configured remotes (shows health)
 fazt remote list 2>/dev/null | tail -n +3
 
 # Git status
 git status --short
 ```
 
-The remote list shows:
-- All configured peers with health status
-- Default remote marked with `*`
-- Use `fazt remote status <name>` for detailed info on any remote
+### 3. Parse Component Status
 
-### 3. Check Knowledge-Base Freshness
+Extract status from root version.json and create status table:
 
-Compare knowledge-base version with source version:
-
-| Condition | Action |
-|-----------|--------|
-| KB version == Source version | Up to date |
-| KB version < Source version | Review if docs need updating |
-| KB commit != HEAD | Docs may be stale |
-
-If stale, consider updating `knowledge-base/` during the session.
+```bash
+# Show all components with status
+cat version.json | jq -r '.components | to_entries[] | "\(.key): \(.value.status) (\(.value.completeness))"'
+```
 
 ### 4. If Local Server Not Running
 
@@ -71,15 +64,27 @@ Or if not installed:
 ```
 ## Session Ready
 
-| Component | Version | Status  |
-|-----------|---------|---------|
-| Source    | X.Y.Z   | -       |
-| Binary    | X.Y.Z   | healthy |
-| Local     | X.Y.Z   | healthy |
-| Remote    | X.Y.Z   | healthy |
-| KB        | X.Y.Z   | current/stale |
+**Monorepo Version**: 0.17.0 (unified versioning)
+
+| Component      | Version | Status | Complete |
+|----------------|---------|--------|----------|
+| fazt-binary    | 0.17.0  | stable | 100%     |
+| admin          | 0.17.0  | alpha  | 15%      |
+| fazt-sdk       | 0.17.0  | alpha  | 20%      |
+| knowledge-base | 0.17.0  | stable | 80%      |
+
+**Remotes:**
+| Name  | Status  | Version |
+|-------|---------|---------|
+| local | healthy | 0.17.0  |
+| zyt*  | healthy | 0.17.0  |
 
 **Git**: clean | X uncommitted changes
+
+### Component Status Notes
+- ✅ All components at v0.17.0 (guaranteed compatibility)
+- ⚠️  Admin UI: alpha status, 15% complete - working towards full API parity
+- ⚠️  fazt-sdk: alpha status, 20% complete - expanding API coverage
 
 ### From Last Session
 [Summary from STATE.md]
@@ -88,10 +93,10 @@ Or if not installed:
 [Next task from STATE.md, or ask user]
 ```
 
-If versions mismatch:
-- Source != Binary → Rebuild: `go build -o ~/.local/bin/fazt ./cmd/server`
-- Source != Remote → Consider release
-- Source != KB → Review knowledge-base docs
+**If versions mismatch** (shouldn't happen with unified versioning):
+- All versions should be identical
+- If binary != root version → Rebuild: `go build -o ~/.local/bin/fazt ./cmd/server`
+- If component != root → Update component's version.json
 
 ## Quick Commands
 

@@ -107,8 +107,8 @@ func (h *Handler) DevLoginCallback(w http.ResponseWriter, r *http.Request) {
 	// Create provider ID from email hash
 	providerID := "dev_" + hashEmail(email)
 
-	// Generate avatar URL for dev users
-	picture := gravatarURL(email)
+	// Dev users don't get profile pictures by default (show initials in UI)
+	picture := ""
 
 	// Try to find existing user by provider
 	user, err := h.service.GetUserByProvider("dev", providerID)
@@ -116,7 +116,7 @@ func (h *Handler) DevLoginCallback(w http.ResponseWriter, r *http.Request) {
 		// Try by email (for account linking)
 		user, err = h.service.GetUserByEmail(email)
 		if err == ErrUserNotFound {
-			// Create new user with gravatar
+			// Create new user without picture (UI will show initials)
 			user, err = h.service.CreateUser(email, name, picture, "dev", &providerID)
 			if err != nil {
 				h.renderDevLoginPage(w, redirectTo, "Failed to create user: "+err.Error())
@@ -139,9 +139,9 @@ func (h *Handler) DevLoginCallback(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Update profile if name changed or picture is missing
-	if user.Name != name || user.Picture == "" {
-		h.service.UpdateUserProfile(user.ID, name, picture)
+	// Update profile if name changed
+	if user.Name != name {
+		h.service.UpdateUserProfile(user.ID, name, "")
 	}
 
 	// Create session

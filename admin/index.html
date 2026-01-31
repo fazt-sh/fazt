@@ -1,14 +1,1042 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/favicon.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Fazt Admin - Personal PaaS Control Panel</title>
-    <meta name="description" content="Fazt.sh administration panel - Manage your personal Platform as a Service" />
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fazt Admin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;550;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+      --radius-sm: 4px;
+      --radius-md: 6px;
+      --radius-lg: 8px;
+      --radius-xl: 12px;
+      --sidebar-width: 224px;
+      --sidebar-collapsed: 56px;
+      --footer-height: 36px;
+    }
+
+    html, body { height: 100%; overflow: hidden; margin: 0; }
+    body { font-family: var(--font-sans); }
+    .mono { font-family: var(--font-mono); }
+
+    /* STONE PALETTE (Default) */
+    :root {
+      --bg-0: #faf9f7;
+      --bg-1: #ffffff;
+      --bg-2: #f3f1ed;
+      --bg-3: #e8e4dd;
+      --border: #e0dbd3;
+      --border-subtle: #ebe7e0;
+      --text-1: #1a1816;
+      --text-2: #4a4641;
+      --text-3: #8a857d;
+      --text-4: #b5afa5;
+      --accent: #d97706;
+      --accent-hover: #b45309;
+      --accent-soft: #fef3c7;
+      --accent-text: #92400e;
+      --success: #16a34a;
+      --success-soft: #dcfce7;
+      --warning: #ca8a04;
+      --warning-soft: #fef9c3;
+      --error: #dc2626;
+      --error-soft: #fee2e2;
+    }
+
+    .dark {
+      --bg-0: #0f0e0d;
+      --bg-1: #1a1918;
+      --bg-2: #262422;
+      --bg-3: #33302d;
+      --border: #33302d;
+      --border-subtle: #262422;
+      --text-1: #f5f3f0;
+      --text-2: #c4bfb8;
+      --text-3: #7a756d;
+      --text-4: #524e48;
+      --accent: #f59e0b;
+      --accent-hover: #fbbf24;
+      --accent-soft: #451a03;
+      --accent-text: #fcd34d;
+      --success: #22c55e;
+      --success-soft: #14532d;
+      --warning: #eab308;
+      --warning-soft: #422006;
+      --error: #ef4444;
+      --error-soft: #450a0a;
+    }
+
+    /* SLATE */
+    .palette-slate {
+      --bg-0: #f8fafc; --bg-1: #ffffff; --bg-2: #f1f5f9; --bg-3: #e2e8f0;
+      --border: #cbd5e1; --border-subtle: #e2e8f0;
+      --text-1: #0f172a; --text-2: #475569; --text-3: #94a3b8; --text-4: #cbd5e1;
+      --accent: #0284c7; --accent-hover: #0369a1; --accent-soft: #e0f2fe; --accent-text: #0c4a6e;
+    }
+    .dark.palette-slate {
+      --bg-0: #020617; --bg-1: #0f172a; --bg-2: #1e293b; --bg-3: #334155;
+      --border: #334155; --border-subtle: #1e293b;
+      --text-1: #f1f5f9; --text-2: #94a3b8; --text-3: #64748b; --text-4: #475569;
+      --accent: #38bdf8; --accent-hover: #7dd3fc; --accent-soft: #0c4a6e; --accent-text: #bae6fd;
+    }
+
+    /* OXIDE */
+    .palette-oxide {
+      --bg-0: #faf8f8; --bg-1: #ffffff; --bg-2: #f5f0f0; --bg-3: #ebe4e4;
+      --border: #e0d6d6; --border-subtle: #ebe4e4;
+      --text-1: #1c1617; --text-2: #4a4244; --text-3: #8a8082; --text-4: #b5acae;
+      --accent: #e11d48; --accent-hover: #be123c; --accent-soft: #ffe4e6; --accent-text: #9f1239;
+    }
+    .dark.palette-oxide {
+      --bg-0: #0d0a0a; --bg-1: #1a1516; --bg-2: #262020; --bg-3: #332b2c;
+      --border: #332b2c; --border-subtle: #262020;
+      --text-1: #f5f0f0; --text-2: #c4bcbd; --text-3: #7a7072; --text-4: #524a4b;
+      --accent: #fb7185; --accent-hover: #fda4af; --accent-soft: #4c0519; --accent-text: #fecdd3;
+    }
+
+    /* FOREST */
+    .palette-forest {
+      --bg-0: #f7faf8; --bg-1: #ffffff; --bg-2: #ecf4ef; --bg-3: #dceae1;
+      --border: #c6ddd0; --border-subtle: #dceae1;
+      --text-1: #14201a; --text-2: #3d4f46; --text-3: #7a9187; --text-4: #a8c0b4;
+      --accent: #059669; --accent-hover: #047857; --accent-soft: #d1fae5; --accent-text: #065f46;
+    }
+    .dark.palette-forest {
+      --bg-0: #0a0f0c; --bg-1: #141f18; --bg-2: #1e2f25; --bg-3: #2a4034;
+      --border: #2a4034; --border-subtle: #1e2f25;
+      --text-1: #ecf4ef; --text-2: #a8c0b4; --text-3: #6b8a7a; --text-4: #3d5a4a;
+      --accent: #34d399; --accent-hover: #6ee7b7; --accent-soft: #064e3b; --accent-text: #a7f3d0;
+    }
+
+    /* VIOLET */
+    .palette-violet {
+      --bg-0: #faf9fc; --bg-1: #ffffff; --bg-2: #f3f1f8; --bg-3: #e8e4f2;
+      --border: #ddd6eb; --border-subtle: #e8e4f2;
+      --text-1: #1a1721; --text-2: #46404f; --text-3: #867e94; --text-4: #b3aac2;
+      --accent: #7c3aed; --accent-hover: #6d28d9; --accent-soft: #ede9fe; --accent-text: #5b21b6;
+    }
+    .dark.palette-violet {
+      --bg-0: #0c0a12; --bg-1: #17141f; --bg-2: #231e2e; --bg-3: #302940;
+      --border: #302940; --border-subtle: #231e2e;
+      --text-1: #f3f1f8; --text-2: #b8b0c8; --text-3: #6e6483; --text-4: #453d57;
+      --accent: #a78bfa; --accent-hover: #c4b5fd; --accent-soft: #4c1d95; --accent-text: #ddd6fe;
+    }
+
+    body { background: var(--bg-0); color: var(--text-2); font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11'; -webkit-font-smoothing: antialiased; }
+
+    .text-display { font-size: 26px; font-weight: 600; letter-spacing: -0.02em; }
+    .text-title { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; }
+    .text-heading { font-size: 13px; font-weight: 600; }
+    .text-body { font-size: 13px; font-weight: 450; }
+    .text-label { font-size: 13px; font-weight: 500; }
+    .text-caption { font-size: 12px; font-weight: 450; }
+    .text-micro { font-size: 10px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+
+    .text-primary { color: var(--text-1); }
+    .text-secondary { color: var(--text-2); }
+    .text-muted { color: var(--text-3); }
+    .text-faint { color: var(--text-4); }
+    .text-accent { color: var(--accent); }
+    .text-success { color: var(--success); }
+    .text-warning { color: var(--warning); }
+    .text-error { color: var(--error); }
+
+    .nav-item { transition: all 0.1s ease; border-radius: var(--radius-md); }
+    .nav-item:hover { background: var(--bg-2); }
+    .nav-item.active { background: var(--accent-soft); color: var(--accent); }
+
+    .card { background: var(--bg-1); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); }
+    .card-header { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .card-body { padding: 16px; }
+    .card-footer { padding: 8px 16px; border-top: 1px solid var(--border); }
+
+    .row { transition: background 0.1s ease; }
+    .row:hover { background: var(--bg-2); }
+    .row-clickable { cursor: pointer; }
+
+    .btn { border-radius: var(--radius-sm); transition: all 0.1s ease; border: none; cursor: pointer; }
+    .btn-primary { background: var(--accent); color: white; }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-secondary { background: var(--bg-2); color: var(--text-2); border: 1px solid var(--border); }
+    .btn-secondary:hover { background: var(--bg-3); }
+    .btn-ghost { background: transparent; }
+    .btn-ghost:hover { background: var(--bg-2); }
+    .btn-icon { width: 32px; height: 32px; padding: 0; display: flex; align-items: center; justify-content: center; }
+    .btn-sm { padding: 4px 8px; font-size: 12px; }
+
+    .icon-box { width: 32px; height: 32px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; background: var(--accent-soft); flex-shrink: 0; }
+    .icon-box i { color: var(--accent); }
+    .icon-box-sm { width: 24px; height: 24px; }
+    .icon-box-sm i { width: 14px; height: 14px; }
+
+    .icon-action { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; }
+    .icon-action i { color: var(--accent); }
+
+    .pulse { animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+
+    .kbd { font-family: var(--font-mono); font-size: 10px; padding: 2px 5px; background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-3); }
+
+    .spark { display: flex; align-items: end; gap: 2px; height: 24px; }
+    .spark-bar { width: 4px; background: var(--accent); border-radius: 2px; opacity: 0.7; }
+
+    .progress { width: 100%; height: 6px; background: var(--bg-3); border-radius: var(--radius-sm); overflow: hidden; }
+    .progress-bar { height: 100%; background: var(--accent); border-radius: var(--radius-sm); }
+
+    .badge { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; padding: 0 6px; border-radius: 9px; font-size: 10px; font-weight: 600; }
+    .badge-success { background: var(--success); color: white; }
+    .badge-warning { background: var(--warning); color: white; }
+    .badge-error { background: var(--error); color: white; }
+    .badge-muted { background: var(--bg-3); color: var(--text-3); }
+
+    .status-dot { width: 6px; height: 6px; border-radius: 3px; flex-shrink: 0; }
+    .status-dot-success { background: var(--success); }
+    .status-dot-warning { background: var(--warning); }
+    .status-dot-error { background: var(--error); }
+
+    .input { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--bg-2); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); }
+    .input:focus-within { border-color: var(--accent); }
+    .input input { flex: 1; background: transparent; border: none; outline: none; color: var(--text-2); }
+    .input input::placeholder { color: var(--text-4); }
+
+    .pill { padding: 6px 12px; border-radius: var(--radius-md); font-size: 12px; font-weight: 500; background: var(--bg-2); color: var(--text-2); cursor: pointer; transition: all 0.15s ease; border: none; }
+    .pill:hover { background: var(--bg-3); }
+    .pill.active { background: var(--accent); color: white; }
+
+    .swatch { width: 24px; height: 24px; border-radius: var(--radius-md); cursor: pointer; border: 2px solid transparent; transition: all 0.15s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .swatch:hover { transform: scale(1.1); box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+    .swatch.active { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+
+    .menu-toggle { cursor: pointer; }
+    .menu-toggle .chevron { transition: transform 0.15s ease; }
+    .menu-toggle.open .chevron { transform: rotate(90deg); }
+    .submenu { max-height: 0; overflow: hidden; transition: max-height 0.2s ease; }
+    .submenu.open { max-height: 200px; }
+
+    .scroll-panel { overflow-y: auto; overflow-x: hidden; }
+    .scroll-panel::-webkit-scrollbar { width: 6px; }
+    .scroll-panel::-webkit-scrollbar-track { background: transparent; }
+    .scroll-panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    .scroll-panel::-webkit-scrollbar-thumb:hover { background: var(--text-4); }
+
+    .sidebar { width: var(--sidebar-width); transition: width 0.2s ease; }
+    .sidebar.collapsed { width: var(--sidebar-collapsed); }
+    .sidebar.collapsed .sidebar-text { display: none; }
+    .sidebar.collapsed .sidebar-logo-text { display: none; }
+    .sidebar.collapsed .sidebar-search { display: none; }
+    .sidebar.collapsed .menu-section { display: none; }
+    .sidebar.collapsed .nav-item { justify-content: center; padding-left: 0; padding-right: 0; }
+    .sidebar.collapsed .nav-badge { display: none; }
+
+    .modal-backdrop { background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); }
+    .modal { background: var(--bg-1); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: 0 24px 48px rgba(0,0,0,0.2); }
+    .dark .modal { box-shadow: 0 24px 48px rgba(0,0,0,0.5); }
+
+    .dropdown { background: var(--bg-1); border: 1px solid var(--border); border-radius: var(--radius-md); box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
+    .dark .dropdown { box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+    .dropdown-item { transition: background 0.1s ease; }
+    .dropdown-item:hover { background: var(--bg-2); }
+
+    .avatar-icon { width: 28px; height: 28px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; background: var(--accent-soft); }
+    .avatar-icon i { color: var(--accent); }
+
+    .settings-panel { background: var(--bg-1); border: 1px solid var(--border); box-shadow: 0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08); border-radius: var(--radius-xl); user-select: none; }
+    .dark .settings-panel { box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.2); }
+    .settings-handle { cursor: grab; padding: 8px 12px; border-radius: var(--radius-xl) var(--radius-xl) 0 0; background: var(--bg-2); border-bottom: 1px solid var(--border-subtle); }
+    .settings-handle:active { cursor: grabbing; }
+    .settings-handle .grip { width: 32px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto; }
+
+    .btn-google { background: white; border: 1px solid #dadce0; color: #3c4043; }
+    .btn-google:hover { background: #f8f9fa; border-color: #dadce0; }
+    .dark .btn-google { background: #131314; border-color: #5f6368; color: #e3e3e3; }
+    .dark .btn-google:hover { background: #1f1f1f; }
+
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; }
+  </style>
+</head>
+<body class="text-body antialiased">
+  <!-- Settings Panel -->
+  <div id="settingsPanel" class="settings-panel fixed" style="z-index: 1100; bottom: 20px; left: 50%; transform: translateX(-50%);">
+    <div class="settings-handle" id="settings-drag-handle">
+      <div class="grip"></div>
+    </div>
+    <div class="p-4 flex items-center gap-6">
+      <div class="flex items-center gap-3">
+        <span class="text-micro" style="color:var(--text-3)">Theme</span>
+        <div class="flex gap-1">
+          <button class="pill theme-btn active" data-theme="light">
+            <i data-lucide="sun" class="w-3.5 h-3.5 inline-block mr-1" style="vertical-align: -2px"></i>Light
+          </button>
+          <button class="pill theme-btn" data-theme="dark">
+            <i data-lucide="moon" class="w-3.5 h-3.5 inline-block mr-1" style="vertical-align: -2px"></i>Dark
+          </button>
+        </div>
+      </div>
+      <div class="w-px h-6" style="background:var(--border)"></div>
+      <div class="flex items-center gap-3">
+        <span class="text-micro" style="color:var(--text-3)">Palette</span>
+        <div class="flex gap-2">
+          <div class="swatch active" data-palette="stone" title="Stone" style="background: linear-gradient(135deg, #faf9f7 50%, #d97706 50%)"></div>
+          <div class="swatch" data-palette="slate" title="Slate" style="background: linear-gradient(135deg, #f8fafc 50%, #0284c7 50%)"></div>
+          <div class="swatch" data-palette="oxide" title="Oxide" style="background: linear-gradient(135deg, #faf8f8 50%, #e11d48 50%)"></div>
+          <div class="swatch" data-palette="forest" title="Forest" style="background: linear-gradient(135deg, #f7faf8 50%, #059669 50%)"></div>
+          <div class="swatch" data-palette="violet" title="Violet" style="background: linear-gradient(135deg, #faf9fc 50%, #7c3aed 50%)"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Command Palette Modal -->
+  <div id="command-backdrop" class="fixed inset-0 z-50 hidden modal-backdrop"></div>
+  <div id="command-palette" class="fixed z-50 hidden" style="top: 20%; left: 50%; transform: translateX(-50%); width: 500px;">
+    <div class="modal p-0 overflow-hidden">
+      <div class="p-3 border-b" style="border-color: var(--border)">
+        <input id="command-input" type="text" placeholder="Type a command..." class="w-full bg-transparent outline-none text-body" style="color: var(--text-1)">
+      </div>
+      <div id="command-results" class="max-h-80 overflow-auto scroll-panel"></div>
+    </div>
+  </div>
+
+  <!-- Sign In Modal -->
+  <div id="signInModal" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop">
+    <div class="modal w-full max-w-sm p-6 relative">
+      <div class="text-center mb-6">
+        <div class="w-12 h-12 mx-auto mb-4 flex items-center justify-center" style="background:var(--accent);border-radius:var(--radius-md)">
+          <i data-lucide="zap" class="w-6 h-6 text-white"></i>
+        </div>
+        <h2 class="text-title" style="color:var(--text-1)">Sign in to Fazt</h2>
+        <p class="text-caption mt-1" style="color:var(--text-3)">Manage your apps and deployments</p>
+      </div>
+      <button id="signInGoogle" class="btn-google w-full flex items-center justify-center gap-3 px-4 py-3 text-label font-medium" style="border-radius:var(--radius-md)">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+          <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill="#4285F4"/>
+          <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z" fill="#34A853"/>
+          <path d="M3.964 10.71A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
+          <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
+        </svg>
+        Continue with Google
+      </button>
+      <div class="mt-6 pt-4 border-t text-center" style="border-color:var(--border)">
+        <p class="text-caption" style="color:var(--text-4)">By signing in, you agree to our Terms of Service</p>
+      </div>
+      <button id="closeSignIn" class="absolute top-4 right-4 p-1 btn-ghost" style="color:var(--text-3);border-radius:var(--radius-sm)">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Notifications Dropdown -->
+  <div id="notificationsDropdown" class="dropdown fixed z-50 hidden w-80" style="top:56px;right:60px">
+    <div class="px-4 py-3 border-b flex items-center justify-between" style="border-color:var(--border)">
+      <span class="text-heading" style="color:var(--text-1)">Notifications</span>
+      <button class="text-caption" style="color:var(--accent)">Mark all read</button>
+    </div>
+    <div class="max-h-80 overflow-auto scroll-panel">
+      <div class="px-4 py-3 flex items-start gap-3 dropdown-item cursor-pointer" style="background:var(--accent-soft)">
+        <div class="icon-box flex-shrink-0 mt-0.5"><i data-lucide="check-circle" class="w-4 h-4"></i></div>
+        <div class="flex-1 min-w-0">
+          <div class="text-label" style="color:var(--text-1)">momentum deployed</div>
+          <div class="text-caption" style="color:var(--text-3)">Successfully deployed v1.4.2</div>
+          <div class="text-caption mt-1" style="color:var(--text-4)">2h ago</div>
+        </div>
+        <div class="w-2 h-2 rounded-full flex-shrink-0 mt-2" style="background:var(--accent)"></div>
+      </div>
+      <div class="px-4 py-3 flex items-start gap-3 dropdown-item cursor-pointer">
+        <div class="icon-box flex-shrink-0 mt-0.5"><i data-lucide="settings" class="w-4 h-4"></i></div>
+        <div class="flex-1 min-w-0">
+          <div class="text-label" style="color:var(--text-1)">Config updated</div>
+          <div class="text-caption" style="color:var(--text-3)">Rate limits changed</div>
+          <div class="text-caption mt-1" style="color:var(--text-4)">5h ago</div>
+        </div>
+      </div>
+    </div>
+    <div class="px-4 py-3 border-t" style="border-color:var(--border)">
+      <button class="w-full text-center text-caption font-medium" style="color:var(--accent)">View all activity</button>
+    </div>
+  </div>
+
+  <!-- User Dropdown -->
+  <div id="userDropdown" class="dropdown fixed z-50 hidden w-64" style="top:56px;right:16px"></div>
+
+  <!-- App Shell -->
+  <div class="flex flex-col h-screen overflow-hidden">
+    <div class="flex flex-1 overflow-hidden">
+      <!-- Sidebar -->
+      <aside id="sidebar" class="sidebar flex flex-col border-r overflow-hidden" style="background:var(--bg-1);border-color:var(--border)">
+        <!-- Logo -->
+        <div class="flex items-center gap-2.5 px-4 h-12 border-b flex-shrink-0" style="border-color:var(--border)">
+          <button id="sidebar-toggle" class="w-6 h-6 flex items-center justify-center btn-ghost" style="border-radius:var(--radius-sm)">
+            <i data-lucide="panel-left" class="w-4 h-4" style="color:var(--text-3)"></i>
+          </button>
+          <div class="sidebar-logo-text flex items-center gap-2 flex-1">
+            <div class="w-6 h-6 flex items-center justify-center" style="background:var(--accent);border-radius:var(--radius-sm)">
+              <i data-lucide="zap" class="w-3.5 h-3.5 text-white"></i>
+            </div>
+            <span class="text-heading" style="color:var(--text-1)">fazt</span>
+            <span class="text-caption mono ml-auto" style="color:var(--text-4)">0.17</span>
+          </div>
+        </div>
+
+        <!-- Search -->
+        <div class="sidebar-search px-3 py-2.5 border-b flex-shrink-0" style="border-color:var(--border)">
+          <button id="openCommandPalette" class="w-full flex items-center gap-2 px-2.5 py-1.5 text-label border" style="background:var(--bg-2);border-color:var(--border-subtle);color:var(--text-3);border-radius:var(--radius-sm)">
+            <i data-lucide="search" class="w-4 h-4"></i>
+            <span class="sidebar-text">Search...</span>
+            <span class="ml-auto kbd sidebar-text">&#x2318;K</span>
+          </button>
+        </div>
+
+        <!-- Nav -->
+        <nav class="flex-1 p-2 space-y-0.5 scroll-panel">
+          <a href="/" class="nav-item flex items-center gap-2.5 px-3 py-2 text-label" data-route="dashboard">
+            <i data-lucide="layout-grid" class="w-4 h-4"></i>
+            <span class="sidebar-text">Dashboard</span>
+          </a>
+
+          <div class="menu-section pt-4 pb-1">
+            <div class="menu-toggle open flex items-center gap-1 px-3">
+              <i data-lucide="chevron-right" class="w-3 h-3 chevron" style="color:var(--text-4)"></i>
+              <span class="text-micro" style="color:var(--text-4)">Apps</span>
+            </div>
+          </div>
+          <div class="submenu open space-y-0.5">
+            <a href="/apps" class="nav-item flex items-center gap-2.5 px-3 py-2 text-label" data-route="apps">
+              <i data-lucide="layers" class="w-4 h-4"></i>
+              <span class="sidebar-text">All Apps</span>
+              <span class="nav-badge ml-auto text-caption mono px-1.5 py-0.5" style="background:var(--bg-2);color:var(--text-3);border-radius:var(--radius-sm)" id="apps-count">0</span>
+            </a>
+            <a href="/aliases" class="nav-item flex items-center gap-2.5 px-3 py-2 text-label" data-route="aliases">
+              <i data-lucide="link" class="w-4 h-4"></i>
+              <span class="sidebar-text">Aliases</span>
+            </a>
+          </div>
+
+          <div class="menu-section pt-4 pb-1">
+            <div class="menu-toggle open flex items-center gap-1 px-3">
+              <i data-lucide="chevron-right" class="w-3 h-3 chevron" style="color:var(--text-4)"></i>
+              <span class="text-micro" style="color:var(--text-4)">System</span>
+            </div>
+          </div>
+          <div class="submenu open space-y-0.5">
+            <a href="/system" class="nav-item flex items-center gap-2.5 px-3 py-2 text-label" data-route="system">
+              <i data-lucide="heart-pulse" class="w-4 h-4"></i>
+              <span class="sidebar-text">Health</span>
+              <span class="nav-badge ml-auto w-2 h-2 pulse" style="background:var(--success);border-radius:var(--radius-sm)"></span>
+            </a>
+            <a href="/settings" class="nav-item flex items-center gap-2.5 px-3 py-2 text-label" data-route="settings">
+              <i data-lucide="settings" class="w-4 h-4"></i>
+              <span class="sidebar-text">Settings</span>
+            </a>
+          </div>
+        </nav>
+      </aside>
+
+      <!-- Main -->
+      <main class="flex-1 flex flex-col overflow-hidden">
+        <!-- Header -->
+        <header class="flex items-center justify-between px-5 h-12 border-b flex-shrink-0" style="background:var(--bg-1);border-color:var(--border)">
+          <div id="breadcrumb" class="flex items-center gap-2 text-label">
+            <span style="color:var(--text-3)">Home</span>
+            <i data-lucide="chevron-right" class="w-3 h-3" style="color:var(--text-4)"></i>
+            <span style="color:var(--text-1)">Dashboard</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <button id="notificationsBtn" class="btn btn-ghost relative p-2" style="color:var(--text-2)">
+              <i data-lucide="bell" class="w-4 h-4"></i>
+              <span class="badge absolute -top-0.5 -right-0.5 flex items-center justify-center" style="background:var(--error);color:white">2</span>
+            </button>
+            <div id="userContainer"></div>
+          </div>
+        </header>
+
+        <!-- Content -->
+        <div id="page-content" class="flex-1 overflow-hidden p-5">
+          <div class="flex items-center justify-center h-full">
+            <div class="text-caption text-muted">Loading...</div>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="px-5 py-2 border-t flex items-center justify-between flex-shrink-0" style="background:var(--bg-1);border-color:var(--border);height:var(--footer-height)">
+          <div class="flex items-center gap-4 text-caption" style="color:var(--text-4)">
+            <span>fazt <span class="mono">v0.17.0</span></span>
+            <span>&#xb7;</span>
+            <span class="flex items-center gap-1">
+              <span class="w-1.5 h-1.5" style="background:var(--success);border-radius:2px"></span>
+              All systems operational
+            </span>
+          </div>
+          <div class="flex items-center gap-3 text-caption" style="color:var(--text-4)">
+            <button id="toggleMock" class="btn-icon btn-ghost" title="Toggle mock data mode" style="border-radius:var(--radius-sm);width:28px;height:28px">
+              <i data-lucide="database" class="w-3.5 h-3.5"></i>
+            </button>
+            <button id="toggleSettingsPanel" class="btn-icon btn-ghost" title="Toggle theme panel" style="border-radius:var(--radius-sm);width:28px;height:28px">
+              <i data-lucide="palette" class="w-3.5 h-3.5"></i>
+            </button>
+            <span>&#xb7;</span>
+            <a href="#" class="hover:underline">Docs</a>
+            <a href="#" class="hover:underline">API</a>
+          </div>
+        </footer>
+      </main>
+    </div>
+  </div>
+
+  <script type="module">
+    import { createRouter, createCommands, createAgentContext } from './packages/zap/index.js'
+    import { createClient, mockAdapter } from './packages/fazt-sdk/index.js'
+    import { routes } from './src/routes.js'
+    import { initTheme, sidebarCollapsed, toggleSidebar, theme, palette, setTheme, setPalette } from './src/stores/app.js'
+    import { loadApps, loadAliases, loadHealth, loadStats, apps, auth, loadAuth, signOut } from './src/stores/data.js'
+
+    // Pages
+    import * as dashboardPage from './src/pages/dashboard.js'
+    import * as appsPage from './src/pages/apps.js'
+    import * as aliasesPage from './src/pages/aliases.js'
+    import * as systemPage from './src/pages/system.js'
+    import * as settingsPage from './src/pages/settings.js'
+
+    const pages = {
+      dashboard: dashboardPage,
+      apps: appsPage,
+      'app-detail': appsPage,
+      aliases: aliasesPage,
+      system: systemPage,
+      settings: settingsPage
+    }
+
+    // Use mock adapter for dev
+    const useMock = new URLSearchParams(window.location.search).get('mock') === 'true'
+    const client = createClient(useMock ? { adapter: mockAdapter } : {})
+
+    console.log('[Admin] Mode:', useMock ? 'MOCK' : 'REAL')
+    console.log('[Admin] URL:', window.location.href)
+
+    // State (declared early so callbacks can reference them)
+    let pageContainer = null
+    let currentCleanup = null
+
+    // Router (history mode + fazt SPA mode = clean URLs)
+    const router = createRouter({
+      mode: 'history',
+      routes,
+      onNavigate: (match) => {
+        renderPage(match)
+        updateBreadcrumb(match)
+        updateNav(match)
+      }
+    })
+
+    // Commands
+    const commands = createCommands()
+    commands.registerAll([
+      { id: 'dashboard', title: 'Go to Dashboard', shortcut: 'G H', icon: 'layout-grid', action: () => router.push('/') },
+      { id: 'apps', title: 'Go to Apps', shortcut: 'G A', icon: 'layers', action: () => router.push('/apps') },
+      { id: 'aliases', title: 'Go to Aliases', shortcut: 'G L', icon: 'link', action: () => router.push('/aliases') },
+      { id: 'system', title: 'Go to System', shortcut: 'G S', icon: 'heart-pulse', action: () => router.push('/system') },
+      { id: 'settings', title: 'Go to Settings', shortcut: 'G ,', icon: 'settings', action: () => router.push('/settings') },
+      { id: 'theme-light', title: 'Switch to Light Theme', icon: 'sun', action: () => setTheme('light') },
+      { id: 'theme-dark', title: 'Switch to Dark Theme', icon: 'moon', action: () => setTheme('dark') },
+      { id: 'refresh', title: 'Refresh Data', shortcut: 'R', icon: 'refresh-cw', action: loadData }
+    ])
+
+    createAgentContext(router, commands, { theme, palette, sidebarCollapsed })
+
+    async function loadData() {
+      await Promise.all([
+        loadApps(client),
+        loadAliases(client),
+        loadHealth(client),
+        loadStats(client)
+      ])
+      // Update apps count in sidebar
+      const appsCount = document.getElementById('apps-count')
+      if (appsCount) appsCount.textContent = apps.get().length
+    }
+
+    function renderPage(match) {
+      if (!pageContainer) return
+      if (currentCleanup) {
+        currentCleanup()
+        currentCleanup = null
+      }
+      const page = pages[match.route.name]
+      if (page?.render) {
+        currentCleanup = page.render(pageContainer, {
+          router,
+          client,
+          commands,
+          params: match.params,
+          refresh: loadData
+        })
+      } else {
+        pageContainer.innerHTML = `
+          <div class="flex items-center justify-center h-full">
+            <div class="text-center">
+              <i data-lucide="alert-circle" class="w-12 h-12 text-faint mx-auto mb-2"></i>
+              <div class="text-heading text-primary mb-1">Page Not Found</div>
+              <div class="text-caption text-muted">The page you're looking for doesn't exist.</div>
+              <button class="btn btn-primary mt-4" onclick="window.location.hash='/'">Go to Dashboard</button>
+            </div>
+          </div>
+        `
+        lucide.createIcons()
+      }
+    }
+
+    function updateBreadcrumb(match) {
+      const breadcrumb = document.getElementById('breadcrumb')
+      if (!breadcrumb) return
+      const route = match.route
+      const parent = route.meta?.parent ? routes.find(r => r.name === route.meta.parent) : null
+      breadcrumb.innerHTML = `
+        <span style="color:var(--text-3)">Home</span>
+        <i data-lucide="chevron-right" class="w-3 h-3" style="color:var(--text-4)"></i>
+        ${parent ? `
+          <a href="#${parent.path}" style="color:var(--text-3)">${parent.meta?.title || parent.name}</a>
+          <i data-lucide="chevron-right" class="w-3 h-3" style="color:var(--text-4)"></i>
+        ` : ''}
+        <span style="color:var(--text-1)">${route.meta?.title || route.name}</span>
+      `
+      lucide.createIcons()
+    }
+
+    function updateNav(match) {
+      document.querySelectorAll('.nav-item[data-route]').forEach(item => {
+        const isActive = item.dataset.route === match.route.name ||
+          (match.route.meta?.parent && item.dataset.route === match.route.meta.parent)
+        item.classList.toggle('active', isActive)
+      })
+    }
+
+    // Get auth domain (root domain without subdomain)
+    function getAuthDomain() {
+      const parts = window.location.hostname.split('.')
+      // If on subdomain, remove it to get root domain
+      if (parts.length > 2 && parts[0] !== 'www') {
+        return parts.slice(1).join('.')
+      }
+      return window.location.hostname
+    }
+
+    // Check if user has admin access
+    function checkAccess() {
+      const authState = auth.get()
+
+      if (authState.loading) return true // Still loading
+
+      // Get current URL without mock parameter (we want real auth)
+      const url = new URL(window.location.href)
+      url.searchParams.delete('mock') // Remove mock mode for auth redirect
+      const currentUrl = url.toString()
+
+      // Not authenticated -> redirect to login with full URL
+      if (!authState.authenticated || !authState.user) {
+        const authDomain = getAuthDomain()
+        const authUrl = `${window.location.protocol}//${authDomain}${window.location.port ? ':' + window.location.port : ''}/auth/dev/login?redirect=${encodeURIComponent(currentUrl)}`
+        console.log('[Auth] Redirecting to login:', authUrl)
+        window.location.href = authUrl
+        return false
+      }
+
+      // Not admin/owner -> show unauthorized page
+      const user = authState.user
+      if (user.role !== 'owner' && user.role !== 'admin') {
+        window.location.href = '/unauthorized.html'
+        return false
+      }
+
+      return true
+    }
+
+    // Provider icons
+    function getProviderIcon(provider) {
+      const icons = {
+        google: 'mail',
+        github: 'github',
+        dev: 'code',
+        mock: 'test-tube'
+      }
+      return icons[provider] || 'shield'
+    }
+
+    // Provider display name
+    function getProviderName(provider) {
+      const names = {
+        google: 'Google',
+        github: 'GitHub',
+        dev: 'Dev Login',
+        mock: 'Mock'
+      }
+      return names[provider] || provider
+    }
+
+    // Render user header based on auth state
+    function renderUserHeader() {
+      const container = document.getElementById('userContainer')
+      const authState = auth.get()
+
+      if (authState.loading) {
+        container.innerHTML = '<div class="text-caption text-muted">Loading...</div>'
+        return
+      }
+
+      if (!authState.authenticated || !authState.user) {
+        checkAccess()
+        return
+      }
+
+      const user = authState.user
+
+      // Check access
+      if (!checkAccess()) return
+
+      const roleColor = user.role === 'owner' ? 'var(--accent)' : user.role === 'admin' ? 'var(--success)' : 'var(--text-4)'
+      const roleLabel = user.role === 'owner' ? 'Owner' : user.role === 'admin' ? 'Admin' : 'User'
+
+      // Generate initials for avatar
+      const name = user.name || user.email
+      const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+
+      // Check if we're in mock mode
+      const isMockMode = new URLSearchParams(window.location.search).get('mock') === 'true'
+
+      container.innerHTML = `
+        <button id="userBtn" class="btn btn-ghost flex items-center gap-2 px-2 py-1.5">
+          ${user.picture ? `
+            <img src="${user.picture}" alt="${user.name}" class="w-7 h-7" style="border-radius:var(--radius-md);object-fit:cover">
+          ` : `
+            <div class="w-7 h-7 flex items-center justify-center" style="background:var(--accent);border-radius:var(--radius-md);font-weight:600;font-size:11px;color:white;letter-spacing:-0.5px">
+              ${initials}
+            </div>
+          `}
+          <div class="flex flex-col items-start">
+            <div class="flex items-center gap-1">
+              <span class="text-label leading-none" style="color:var(--text-1)">${user.name || user.email}</span>
+              ${isMockMode ? `<span class="text-micro px-1 py-0.5" style="background:var(--warning);color:white;border-radius:2px;font-weight:600">MOCK</span>` : ''}
+            </div>
+            <span class="text-micro leading-none" style="color:${roleColor}">${roleLabel}</span>
+          </div>
+          <i data-lucide="chevron-down" class="w-3 h-3" style="color:var(--text-4)"></i>
+        </button>
+      `
+      lucide.createIcons()
+
+      // Render dropdown
+      renderUserDropdown(user)
+
+      // Attach click handler
+      document.getElementById('userBtn')?.addEventListener('click', (e) => {
+        e.stopPropagation()
+        const dropdown = document.getElementById('userDropdown')
+        const wasHidden = dropdown?.classList.contains('hidden')
+        document.querySelectorAll('.dropdown').forEach(d => d.classList.add('hidden'))
+        if (wasHidden) dropdown?.classList.remove('hidden')
+      })
+    }
+
+    // Render user dropdown
+    function renderUserDropdown(user) {
+      const dropdown = document.getElementById('userDropdown')
+      const roleColor = user.role === 'owner' ? 'var(--accent)' : user.role === 'admin' ? 'var(--success)' : 'var(--text-4)'
+      const providerIcon = getProviderIcon(user.provider)
+      const providerName = getProviderName(user.provider)
+
+      // Generate initials for avatar
+      const name = user.name || user.email
+      const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+
+      // Check if we're in mock mode
+      const isMockMode = new URLSearchParams(window.location.search).get('mock') === 'true'
+
+      dropdown.innerHTML = `
+        <div class="px-4 py-3 border-b" style="border-color:var(--border)">
+          ${isMockMode ? `
+            <div class="flex items-center gap-1.5 px-2 py-1.5 mb-2" style="background:var(--warning-soft);border-radius:var(--radius-sm);border:1px solid var(--warning)">
+              <i data-lucide="alert-circle" class="w-3.5 h-3.5" style="color:var(--warning)"></i>
+              <span class="text-caption" style="color:var(--warning);font-weight:500">Mock Mode Active</span>
+            </div>
+          ` : ''}
+          <div class="flex items-center gap-2 mb-2">
+            ${user.picture ? `
+              <img src="${user.picture}" alt="${user.name}" class="w-10 h-10" style="border-radius:var(--radius-md);object-fit:cover">
+            ` : `
+              <div class="w-10 h-10 flex items-center justify-center" style="background:var(--accent);border-radius:var(--radius-md);font-weight:600;font-size:14px;color:white;letter-spacing:-0.5px">
+                ${initials}
+              </div>
+            `}
+            <div class="flex-1">
+              <div class="flex items-center gap-1.5">
+                <div class="text-label" style="color:var(--text-1)">${user.name || user.email}</div>
+                <span class="text-micro px-1.5 py-0.5" style="background:var(--bg-3);color:${roleColor};border-radius:var(--radius-sm);font-weight:600">${user.role.toUpperCase()}</span>
+              </div>
+            </div>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <div class="text-caption flex-1" style="color:var(--text-3)">${user.email}</div>
+            <div class="flex items-center gap-1 px-1.5 py-0.5" style="background:var(--bg-2);border-radius:var(--radius-sm)" title="Signed in with ${providerName}">
+              <i data-lucide="${providerIcon}" class="w-3 h-3" style="color:var(--text-3)"></i>
+              <span class="text-micro" style="color:var(--text-3);font-weight:500">${providerName}</span>
+            </div>
+          </div>
+        </div>
+        <div class="py-1">
+          <a href="/settings" class="flex items-center gap-2.5 px-4 py-2 text-label dropdown-item" style="color:var(--text-2)">
+            <i data-lucide="settings" class="w-4 h-4"></i>
+            Settings
+          </a>
+        </div>
+        <div class="py-1 border-t" style="border-color:var(--border)">
+          <button id="signOutBtn" class="w-full flex items-center gap-2.5 px-4 py-2 text-label dropdown-item" style="color:var(--error);background:transparent;border:none;cursor:pointer;text-align:left">
+            <i data-lucide="log-out" class="w-4 h-4"></i>
+            Sign out
+          </button>
+        </div>
+      `
+      lucide.createIcons()
+
+      // Attach sign out handler with better error handling
+      const signOutBtn = document.getElementById('signOutBtn')
+      if (signOutBtn) {
+        signOutBtn.addEventListener('click', async (e) => {
+          e.preventDefault()
+          e.stopPropagation()
+
+          // Close dropdown immediately
+          dropdown.classList.add('hidden')
+
+          try {
+            console.log('[Admin] Signing out...')
+            await signOut(client)
+          } catch (err) {
+            console.error('[Admin] Sign out error:', err)
+            alert('Failed to sign out: ' + err.message)
+          }
+        })
+      }
+    }
+
+    function init() {
+      lucide.createIcons()
+      initTheme()
+      pageContainer = document.getElementById('page-content')
+
+      // Subscribe to auth changes
+      auth.subscribe(renderUserHeader)
+
+      // Sidebar toggle
+      document.getElementById('sidebar-toggle')?.addEventListener('click', () => {
+        toggleSidebar()
+        document.getElementById('sidebar')?.classList.toggle('collapsed', sidebarCollapsed.get())
+      })
+
+      // Menu toggles
+      document.querySelectorAll('.menu-toggle').forEach(toggle => {
+        toggle.addEventListener('click', () => {
+          toggle.classList.toggle('open')
+          toggle.parentElement?.nextElementSibling?.classList.toggle('open')
+        })
+      })
+
+      // Nav link click handlers (use router, prevent full reload)
+      document.querySelectorAll('a[href^="/"]').forEach(link => {
+        link.addEventListener('click', (e) => {
+          const href = link.getAttribute('href')
+          // Only intercept internal links
+          if (href && !href.startsWith('//') && !href.startsWith('http')) {
+            e.preventDefault()
+            router.push(href)
+          }
+        })
+      })
+
+      // Theme buttons
+      document.querySelectorAll('.theme-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          setTheme(btn.dataset.theme)
+          document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'))
+          btn.classList.add('active')
+        })
+      })
+
+      // Palette swatches
+      document.querySelectorAll('.swatch').forEach(swatch => {
+        swatch.addEventListener('click', () => {
+          setPalette(swatch.dataset.palette)
+          document.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'))
+          swatch.classList.add('active')
+        })
+      })
+
+      // Command palette
+      const paletteEl = document.getElementById('command-palette')
+      const backdropEl = document.getElementById('command-backdrop')
+      const inputEl = document.getElementById('command-input')
+      const resultsEl = document.getElementById('command-results')
+
+      commands.isOpen.subscribe(isOpen => {
+        paletteEl?.classList.toggle('hidden', !isOpen)
+        backdropEl?.classList.toggle('hidden', !isOpen)
+        if (isOpen) {
+          inputEl?.focus()
+          inputEl.value = ''
+          renderCommandResults()
+        }
+      })
+
+      backdropEl?.addEventListener('click', () => commands.close())
+      document.getElementById('openCommandPalette')?.addEventListener('click', () => commands.open())
+
+      inputEl?.addEventListener('input', (e) => {
+        commands.query.set(e.target.value)
+        renderCommandResults()
+      })
+
+      inputEl?.addEventListener('keydown', (e) => commands.handleKeyDown(e))
+
+      function renderCommandResults() {
+        const cmds = commands.filteredCommands.get()
+        const selected = commands.selectedIndex.get()
+        resultsEl.innerHTML = cmds.map((cmd, i) => `
+          <div class="dropdown-item flex items-center gap-3 px-4 py-2.5 cursor-pointer ${i === selected ? 'active' : ''}" data-command="${cmd.id}" style="${i === selected ? 'background: var(--bg-2)' : ''}">
+            <i data-lucide="${cmd.icon || 'terminal'}" class="w-4 h-4 text-muted"></i>
+            <span class="text-label text-primary flex-1">${cmd.title}</span>
+            ${cmd.shortcut ? `<kbd class="kbd">${cmd.shortcut}</kbd>` : ''}
+          </div>
+        `).join('')
+        lucide.createIcons()
+        resultsEl.querySelectorAll('[data-command]').forEach(item => {
+          item.addEventListener('click', () => commands.execute(item.dataset.command))
+        })
+      }
+
+      // Dropdowns - close all when clicking outside
+      document.addEventListener('click', () => {
+        document.querySelectorAll('.dropdown').forEach(d => d.classList.add('hidden'))
+      })
+
+      document.getElementById('notificationsBtn')?.addEventListener('click', (e) => {
+        e.stopPropagation()
+        const dropdown = document.getElementById('notificationsDropdown')
+        const wasHidden = dropdown?.classList.contains('hidden')
+        document.querySelectorAll('.dropdown').forEach(d => d.classList.add('hidden'))
+        if (wasHidden) dropdown?.classList.remove('hidden')
+      })
+
+      // Draggable settings panel
+      let isDragging = false
+      let dragOffset = { x: 0, y: 0 }
+      const panel = document.getElementById('settingsPanel')
+      const handle = document.getElementById('settings-drag-handle')
+
+      handle?.addEventListener('mousedown', (e) => {
+        isDragging = true
+        const rect = panel.getBoundingClientRect()
+        dragOffset.x = e.clientX - rect.left
+        dragOffset.y = e.clientY - rect.top
+        panel.style.transform = 'none'
+        panel.style.left = rect.left + 'px'
+        panel.style.top = rect.top + 'px'
+        panel.style.bottom = 'auto'
+      })
+
+      document.addEventListener('mousemove', (e) => {
+        if (!isDragging) return
+        const rect = panel.getBoundingClientRect()
+        let x = Math.max(0, Math.min(e.clientX - dragOffset.x, window.innerWidth - rect.width))
+        let y = Math.max(0, Math.min(e.clientY - dragOffset.y, window.innerHeight - rect.height))
+        panel.style.left = x + 'px'
+        panel.style.top = y + 'px'
+      })
+
+      document.addEventListener('mouseup', () => isDragging = false)
+
+      // Mock toggle
+      const toggleMockBtn = document.getElementById('toggleMock')
+      const updateMockButton = () => {
+        if (toggleMockBtn) {
+          if (useMock) {
+            toggleMockBtn.style.color = 'var(--accent)'
+            toggleMockBtn.style.background = 'var(--accent-soft)'
+          } else {
+            toggleMockBtn.style.color = 'var(--text-4)'
+            toggleMockBtn.style.background = 'transparent'
+          }
+        }
+      }
+      updateMockButton()
+
+      toggleMockBtn?.addEventListener('click', () => {
+        const url = new URL(window.location.href)
+        if (useMock) {
+          url.searchParams.delete('mock')
+        } else {
+          url.searchParams.set('mock', 'true')
+        }
+        window.location.href = url.toString()
+      })
+
+      // Settings panel toggle
+      const toggleSettingsBtn = document.getElementById('toggleSettingsPanel')
+      const updateSettingsButton = () => {
+        if (toggleSettingsBtn) {
+          const isHidden = panel?.classList.contains('hidden')
+          if (!isHidden) {
+            toggleSettingsBtn.style.color = 'var(--accent)'
+            toggleSettingsBtn.style.background = 'var(--accent-soft)'
+          } else {
+            toggleSettingsBtn.style.color = 'var(--text-4)'
+            toggleSettingsBtn.style.background = 'transparent'
+          }
+        }
+      }
+
+      toggleSettingsBtn?.addEventListener('click', () => {
+        panel?.classList.toggle('hidden')
+        updateSettingsButton()
+      })
+      updateSettingsButton()
+
+      // Load auth and data, then render initial route
+      // In mock mode, force immediate auth state update
+      if (useMock) {
+        console.log('[Admin] Mock mode: forcing mock user load')
+        // Clear any existing auth state first
+        auth.set({
+          authenticated: false,
+          user: null,
+          loading: true
+        })
+      }
+
+      Promise.all([
+        loadAuth(client),
+        loadData()
+      ]).then(() => {
+        const match = router.current.get()
+        if (match) {
+          renderPage(match)
+          updateBreadcrumb(match)
+          updateNav(match)
+        }
+      })
+
+      console.log('[Fazt Admin] Initialized', useMock ? '(mock mode)' : '')
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init)
+    } else {
+      init()
+    }
+
+    window.__fazt_admin = { router, commands, client, loadData }
+  </script>
+</body>
 </html>

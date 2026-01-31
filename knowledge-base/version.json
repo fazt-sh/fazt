@@ -1,8 +1,12 @@
 {
   "version": "0.17.0",
+  "status": "stable",
+  "completeness": "80%",
   "commit": "1f427fc",
   "updated_at": "2026-01-31",
+  "description": "Fazt documentation and agent context",
   "sections": {
-    "skills/app": "0.17.0"
+    "agent-context": "Complete - setup, architecture, API, tooling",
+    "skills/app": "Complete - BFBB app development patterns"
   }
 }
