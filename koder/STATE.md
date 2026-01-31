@@ -65,7 +65,23 @@ Three-layer CSS fix targeting all viewports (mobile, tablet, desktop):
 
 - `koder/issues/dashboard-grid-gap-issue.md` - Comprehensive issue analysis
 - `koder/screenshots/*.png` - Before/after reference screenshots
-- `admin/src/pages/design-system.js` - Test page for layout debugging
+- `admin/src/pages/design-system.js` - **NEW LAYOUT SYSTEM EXPLORATION**
+
+### Design System Page (Important!)
+
+`/design-system` is NOT just a test page - it's an exploration of a **new panel-based layout system** that should eventually replace the current dashboard grid layout.
+
+**Key Differences from Dashboard:**
+- Uses `panel-group` architecture instead of CSS Grid
+- Better collapse/expand behavior (no gap issues)
+- Cleaner, more maintainable code
+- Panel-based sections with better visual hierarchy
+
+**Next Steps:**
+- Review design-system implementation
+- Test panel-group layout patterns
+- Migrate dashboard to use panel-group architecture
+- This was the exploration phase - refinement and adoption is next
 
 ### Agent-Browser Setup
 
@@ -111,9 +127,20 @@ Implemented comprehensive mobile and tablet responsive design.
 
 ## Next Up
 
-### Immediate: Admin UI Features
+### Immediate: Design System Migration
 
-With mobile responsiveness and grid gap fixed, focus on completing missing pages:
+**HIGH PRIORITY**: The `/design-system` page exploration proved that a panel-based layout system works better than CSS Grid for collapsible sections.
+
+1. **Review design-system.js implementation** - Study the panel-group architecture
+2. **Refine panel-group patterns** - Document reusable patterns
+3. **Migrate dashboard to panel-groups** - Replace CSS Grid with panel-based layout
+4. **Apply to other pages** - Use panel-groups for Aliases, System, Settings pages
+
+This solves layout issues at the architectural level rather than patching CSS Grid behavior.
+
+### Admin UI Features
+
+After design system migration, complete missing pages:
 
 1. **Aliases Page** (high priority - currently placeholder)
 2. **System Page** (health dashboard)
