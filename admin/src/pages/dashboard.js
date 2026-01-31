@@ -266,16 +266,16 @@ export function render(container, ctx) {
               </div>
             </div>
 
-            <!-- Panel Group: Recent Activity -->
+            <!-- Panel Group: Notifications -->
             <div class="panel-group ${activityCollapsed ? 'collapsed' : ''}">
               <div class="panel-group-card card">
                 <header class="panel-group-header" data-group="activity">
                   <button class="collapse-toggle">
                     <i data-lucide="chevron-right" class="chevron w-4 h-4"></i>
-                    <span class="text-heading text-primary">Recent Activity</span>
+                    <span class="text-heading text-primary">Notifications</span>
                   </button>
                 </header>
-                <div class="panel-group-body" style="padding: 0">
+                <div class="panel-group-body">
                   <div class="activity-list">
                     ${[
                       { icon: 'check-circle', title: 'momentum deployed', time: '2h ago' },
@@ -286,13 +286,9 @@ export function render(container, ctx) {
                       { icon: 'shield-check', title: 'SSL renewed', time: '4d ago' }
                     ].map(item => `
                       <div class="activity-item">
-                        <div class="activity-icon icon-box-sm">
-                          <i data-lucide="${item.icon}" class="w-4 h-4"></i>
-                        </div>
-                        <div class="activity-content">
-                          <div class="text-label text-primary">${item.title}</div>
-                          <div class="text-caption text-faint">${item.time}</div>
-                        </div>
+                        <i data-lucide="${item.icon}" class="w-4 h-4 text-muted" style="flex-shrink: 0;"></i>
+                        <span class="text-label text-primary" style="flex: 1; min-width: 0;">${item.title}</span>
+                        <span class="text-caption text-muted" style="flex-shrink: 0;">${item.time}</span>
                       </div>
                     `).join('')}
                   </div>
