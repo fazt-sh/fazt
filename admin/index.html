@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <!-- BUILD: 2026-01-31 23:42 UTC - Grid gap FIXED + refinements -->
+  <!-- BUILD: 2026-02-01 - Panel-based layout migration -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Fazt Admin</title>
@@ -236,27 +236,7 @@
       flex: 1 1 auto;
     }
 
-    /* ===== GRID GAP FIX - FINAL ===== */
-    /* Dashboard grid: prevent gap when accordions collapse */
-    /* Apply to ALL viewports (mobile + desktop) */
-    .grid > div.all-collapsed {
-      align-self: start !important;
-      min-height: 0 !important;
-      flex: 0 0 auto !important; /* Don't stretch with flex-1 */
-      height: auto !important;
-    }
-
-    /* Ensure grid itself doesn't force height on collapsed columns */
-    .grid:has(> div.all-collapsed) {
-      align-items: start !important;
-      align-content: start !important;
-    }
-
-    /* NUCLEAR OPTION: Remove flex-1 from grid when all children collapsed */
-    .grid:has(> div.all-collapsed):not(:has(> div:not(.all-collapsed))) {
-      flex: 0 1 auto !important;
-    }
-    /* ===== END GRID GAP FIX ===== */
+    /* Grid gap fix removed - no longer needed with panel-based layout */
 
     .scroll-panel { overflow-y: auto; overflow-x: hidden; }
     .scroll-panel::-webkit-scrollbar { width: 6px; }

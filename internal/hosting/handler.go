@@ -72,6 +72,22 @@ func ServeVFSByAppID(w http.ResponseWriter, r *http.Request, appID string) {
 	}
 	w.Header().Set("Content-Type", contentType)
 
+	// Cache-Control: Smart caching strategy
+	// 1. HTML files: Always revalidate (for live reload & version detection)
+	// 2. Hashed assets (/assets/*-*.ext): Cache forever (content-addressed)
+	// 3. Other files: Short cache (5 minutes)
+	if strings.HasSuffix(path, ".html") {
+		// HTML: no-cache means "revalidate with server before using cached version"
+		// This ensures version checks work reliably
+		w.Header().Set("Cache-Control", "no-cache, must-revalidate")
+	} else if strings.HasPrefix(path, "assets/") && strings.Contains(filepath.Base(path), "-") {
+		// Hashed assets: cache aggressively (filename changes when content changes)
+		w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+	} else {
+		// Everything else: short cache (5 minutes)
+		w.Header().Set("Cache-Control", "public, max-age=300")
+	}
+
 	// Content Length
 	w.Header().Set("Content-Length", fmt.Sprintf("%d", file.Size))
 
@@ -168,7 +184,23 @@ func ServeVFS(w http.ResponseWriter, r *http.Request, siteID string) {
 		}
 	}
 	w.Header().Set("Content-Type", contentType)
-	
+
+	// Cache-Control: Smart caching strategy
+	// 1. HTML files: Always revalidate (for live reload & version detection)
+	// 2. Hashed assets (/assets/*-*.ext): Cache forever (content-addressed)
+	// 3. Other files: Short cache (5 minutes)
+	if strings.HasSuffix(path, ".html") {
+		// HTML: no-cache means "revalidate with server before using cached version"
+		// This ensures version checks work reliably
+		w.Header().Set("Cache-Control", "no-cache, must-revalidate")
+	} else if strings.HasPrefix(path, "assets/") && strings.Contains(filepath.Base(path), "-") {
+		// Hashed assets: cache aggressively (filename changes when content changes)
+		w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+	} else {
+		// Everything else: short cache (5 minutes)
+		w.Header().Set("Cache-Control", "public, max-age=300")
+	}
+
 	// Content Length
 	w.Header().Set("Content-Length", fmt.Sprintf("%d", file.Size))
 
