@@ -80,16 +80,48 @@ open http://admin.192.168.64.3.nip.io:8080/auth/dev/login
 
 ## Next Up
 
-1. **Refine other pages** (Apps, Aliases, System, Settings)
-   - Fix layout issues
-   - Match dashboard polish level
-   - Add more empty states
+### Admin UI Pages (15% → Goal: 100%)
 
-2. **Add features**:
-   - App detail page
-   - Real-time updates
-   - More command palette actions
-   - Admin-only UI elements
+**Dashboard** ✅
+- Complete with auth, stats, apps table, activity feed
+- Empty states, theme system, command palette
+
+**Apps Page** (Priority: High)
+- List all apps with filtering/search
+- App detail view (files, source, config)
+- CRUD operations (create, deploy, delete)
+- Real-time status updates
+- Empty state for no apps
+
+**Aliases Page** (Priority: High)
+- List all aliases with subdomain management
+- Create/edit/delete aliases
+- Alias types (proxy, redirect, static)
+- DNS configuration UI
+- Empty state for no aliases
+
+**System Page** (Priority: Medium)
+- Health dashboard (CPU, memory, storage)
+- Active workers/runtime stats
+- Database metrics
+- VFS cache stats
+- Capacity monitoring
+
+**Settings Page** (Priority: Medium)
+- OAuth provider configuration
+- Rate limits and quotas
+- Domain settings
+- User management (invite, roles)
+- System preferences
+
+### Additional Features
+
+- App detail page with file browser
+- Real-time updates (WebSocket/SSE)
+- More command palette actions
+- Admin-only UI elements
+- Logs viewer
+- Metrics/analytics
 
 ---
 
@@ -97,14 +129,18 @@ open http://admin.192.168.64.3.nip.io:8080/auth/dev/login
 
 ```bash
 # Deploy admin UI
-fazt app deploy servers/local/admin --to local --name admin-ui
+fazt app deploy admin --to local --name admin-ui
 
 # Test with mock data
 http://admin-ui.192.168.64.3.nip.io:8080?mock=true
 
 # View source (BFBB - no build)
-ls servers/local/admin/packages/
-ls servers/local/admin/src/
+ls admin/packages/
+ls admin/src/
+
+# Check version/status
+cat version.json
+cat admin/version.json
 ```
 
 ---
