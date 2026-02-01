@@ -26,6 +26,9 @@ cat version.json
 # Binary version (should match)
 fazt --version | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+'
 
+# Latest GitHub release
+git describe --tags --abbrev=0 2>/dev/null || echo "no tags"
+
 # Component versions & status
 cat admin/version.json | jq -r '"\(.version) | \(.status) | \(.completeness)"'
 cat knowledge-base/version.json | jq -r '"\(.version) | \(.status) | \(.completeness)"'
@@ -64,27 +67,28 @@ Or if not installed:
 ```
 ## Session Ready
 
-**Monorepo Version**: 0.17.0 (unified versioning)
+**Monorepo Version**: 0.18.0 (unified versioning)
+**Latest Release**: v0.18.0 ✅ (or ⚠️ if behind)
 
 | Component      | Version | Status | Complete |
 |----------------|---------|--------|----------|
-| fazt-binary    | 0.17.0  | stable | 100%     |
-| admin          | 0.17.0  | alpha  | 15%      |
-| fazt-sdk       | 0.17.0  | alpha  | 20%      |
-| knowledge-base | 0.17.0  | stable | 80%      |
+| fazt-binary    | 0.18.0  | stable | 100%     |
+| admin          | 0.18.0  | alpha  | 15%      |
+| fazt-sdk       | 0.18.0  | alpha  | 20%      |
+| knowledge-base | 0.18.0  | stable | 80%      |
 
 **Remotes:**
 | Name  | Status  | Version |
 |-------|---------|---------|
-| local | healthy | 0.17.0  |
-| zyt*  | healthy | 0.17.0  |
+| local | healthy | 0.18.0  |
+| zyt*  | healthy | 0.18.0  |
 
 **Git**: clean | X uncommitted changes
 
-### Component Status Notes
-- ✅ All components at v0.17.0 (guaranteed compatibility)
-- ⚠️  Admin UI: alpha status, 15% complete - working towards full API parity
-- ⚠️  fazt-sdk: alpha status, 20% complete - expanding API coverage
+### Release Status
+- ✅ Binary matches latest release (v0.18.0)
+- OR ⚠️ Binary (0.17.0) behind latest release (v0.18.0) - run: `go build -o ~/.local/bin/fazt ./cmd/server`
+- OR ⚠️ Remotes behind - run: `fazt remote upgrade zyt`
 
 ### From Last Session
 [Summary from STATE.md]
@@ -93,10 +97,10 @@ Or if not installed:
 [Next task from STATE.md, or ask user]
 ```
 
-**If versions mismatch** (shouldn't happen with unified versioning):
-- All versions should be identical
-- If binary != root version → Rebuild: `go build -o ~/.local/bin/fazt ./cmd/server`
-- If component != root → Update component's version.json
+**If versions mismatch**:
+- Binary != latest tag → Rebuild: `go build -o ~/.local/bin/fazt ./cmd/server`
+- Remote != latest tag → Upgrade: `fazt remote upgrade <name>`
+- Source != latest tag → Unreleased changes exist (may need release)
 
 ## Quick Commands
 

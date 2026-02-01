@@ -11,6 +11,12 @@ Close session with proper handoff for next time. Leaves repo in a clean state.
 grep "var Version" internal/config/config.go | grep -oE '[0-9]+\.[0-9]+\.[0-9]+'
 fazt --version | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+'
 
+# Latest release tag
+git describe --tags --abbrev=0 2>/dev/null || echo "no tags"
+
+# Commits since last release (shows if unreleased changes exist)
+git log $(git describe --tags --abbrev=0 2>/dev/null)..HEAD --oneline 2>/dev/null | head -5
+
 # Knowledge-base version
 cat knowledge-base/version.json
 
@@ -208,6 +214,7 @@ Should show nothing (clean working tree).
 ## Session Closed
 
 **Version**: vX.Y.Z
+**Latest Release**: vX.Y.Z ✅ (or ⚠️ X commits ahead)
 
 | Component | Version | Status |
 |-----------|---------|--------|
@@ -226,6 +233,7 @@ Should show nothing (clean working tree).
 
 ### Release
 [Released vX.Y.Z] or [Not released: reason]
+- If unreleased commits exist: "⚠️ X commits since vY.Z.W - consider /release"
 
 ### Knowledge-Base
 [Updated skills/app docs] or [No updates needed]
