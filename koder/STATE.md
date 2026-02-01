@@ -5,232 +5,80 @@
 
 ## Status
 
-State: **CLEAN** - Panel-based layout migration complete, UI foundation solid
+State: **CLEAN** - UI foundation complete and documented, ready for feature development
 
 ---
 
-## Current Session (2026-02-01)
+## Last Session (2026-02-01)
 
 **UI Foundation Complete - Design System Documented**
 
-After 2+ days of iteration, the foundational UI system for Fazt Admin is complete and documented. This marks a major milestone.
+After 2+ days of iteration, the foundational UI system for Fazt Admin is complete and documented.
 
-### Milestone: Edge-to-Edge Mobile + Design System Docs
+### What Was Done
 
-**Edge-to-Edge Mobile Design**
+1. **Fixed Edge-to-Edge Mobile Layout**
+   - Resolved CSS cascade issue (mobile rules must come AFTER tablet rules)
+   - Panels now flush with screen edges on mobile
+   - `#page-content { padding: 8px 0 }` + `.content-scroll { padding: 0 }` on mobile
 
-Refined the mobile layout to maximize screen real estate:
+2. **Created Comprehensive Design System Documentation**
+   - New file: `knowledge-base/workflows/admin-ui/design-system.md`
+   - Covers: layout architecture, responsive breakpoints, edge-to-edge patterns, CSS variables, component patterns, UI state management, building new pages checklist
 
-```css
-@media (max-width: 767px) {
-  #page-content { padding: 8px 0 !important; }
-  .content-scroll { padding: 0; }
-  .card { border-radius: 0; }
-  .panel-group-card.card { border-left: none; border-right: none; }
-}
-```
+3. **Updated Admin-UI Workflow Docs**
+   - `checklist.md` - Added design system compliance section
+   - `adding-features.md` - Added design system patterns to UI implementation
+   - `architecture.md` - Referenced design system for UI foundation
 
-**Key learning:** Mobile CSS rules must come AFTER tablet rules (both `max-width: 767px` and `max-width: 1023px` match on mobile - later rule wins).
+4. **Selectively Updated /fazt-app Skill**
+   - Added edge-to-edge mobile as OPTIONAL pattern with decision criteria
+   - Added UI state persistence as OPTIONAL pattern
+   - Added responsive breakpoints reference
+   - Did NOT add admin-specific patterns (panel-based layout, collapse system)
+   - Patterns framed as "ask the user" not "always do this"
 
-**Comprehensive Design System Documentation**
+### Key Files Modified
 
-Created `knowledge-base/workflows/admin-ui/design-system.md` documenting:
-- Panel-based layout architecture
-- Responsive breakpoints (mobile < 768px, tablet 768-1023px, desktop ≥ 1024px)
-- Edge-to-edge mobile patterns
-- CSS component patterns (panel-group, stat-card, activity-list)
-- UI state management (getUIState/setUIState)
-- Building new pages checklist
+- `admin/index.html` - Edge-to-edge mobile CSS
+- `knowledge-base/workflows/admin-ui/design-system.md` - NEW
+- `knowledge-base/workflows/admin-ui/checklist.md`
+- `knowledge-base/workflows/admin-ui/adding-features.md`
+- `knowledge-base/workflows/admin-ui/architecture.md`
+- `knowledge-base/skills/app/patterns/ui-patterns.md`
+- `knowledge-base/skills/app/references/design-system.md`
+- `knowledge-base/skills/app/SKILL.md`
 
-Updated related workflow docs:
-- `checklist.md` - Added design system compliance section
-- `adding-features.md` - Added design system patterns to UI implementation
-- `architecture.md` - Referenced design system for UI foundation
+### Design System Summary
 
-### What We Built (Summary)
+**Admin-UI Foundation (documented in workflows/admin-ui/):**
+- Panel-based layout: `.design-system-page > .content-container > .content-scroll`
+- Collapsible sections: `.panel-group` with `.panel-group-card.card`
+- Responsive: Mobile (<768px), Tablet (768-1023px), Desktop (>=1024px)
+- Edge-to-edge mobile: No horizontal padding, flat card edges
+- UI state: `getUIState()`/`setUIState()` for persistence
 
-1. **Panel-Based Layout System**
-   - `.design-system-page > .content-container > .content-scroll` structure
-   - `.panel-group` with `.panel-group-card.card` for collapsible sections
-   - Smooth collapse/expand with CSS transitions
-
-2. **Responsive Breakpoints**
-   - Mobile (< 768px): Edge-to-edge, hamburger menu, stacked grids
-   - Tablet (768-1023px): 16px padding, sidebar toggle
-   - Desktop (≥ 1024px): 20px padding, full sidebar, max-width content
-
-3. **UI State Persistence**
-   - Unified localStorage key: `fazt.web.ui.state`
-   - `getUIState()` / `setUIState()` helpers
-   - Collapse states persist across navigation
-
-4. **Component Patterns**
-   - Stat cards, activity lists, panel grids
-   - Typography classes (.text-display, .text-heading, .text-label, .text-caption)
-   - Color system via CSS variables
-
-### Files Modified This Session
-
-- `admin/index.html` - Edge-to-edge mobile CSS fixes
-- `knowledge-base/workflows/admin-ui/design-system.md` - **NEW** comprehensive design system docs
-- `knowledge-base/workflows/admin-ui/checklist.md` - Added design system compliance
-- `knowledge-base/workflows/admin-ui/adding-features.md` - Added design system patterns
-- `knowledge-base/workflows/admin-ui/architecture.md` - Referenced design system
-
-### Next Steps
-
-The UI foundation is now **production-ready and documented**. Next work:
-
-1. **Apply to Remaining Pages** - Use design system for Aliases, System, Settings pages
-2. **Extract for /fazt-app** - Identify patterns extractable to the fazt-app skill for BFBB apps
-3. **API Parity** - Build features to match CLI/API capabilities
-
----
-
-## Previous Session (2026-01-31)
-
-**Admin UI Grid Gap Bug Fix**
-
-After 10+ attempts over 3 hours, resolved persistent CSS Grid layout bug where collapsed accordion sections left massive vertical gaps in the dashboard.
-
-### Root Cause
-
-Complex interaction between:
-1. Grid container with `flex-1` forcing viewport height fill
-2. CSS Grid default behavior stretching items to match tallest sibling
-3. Collapsed accordion content hidden but parent grid item still stretching
-
-### Solution
-
-Three-layer CSS fix targeting all viewports (mobile, tablet, desktop):
-
-```css
-/* Grid items with .all-collapsed class */
-.grid > div.all-collapsed {
-  align-self: start !important;
-  min-height: 0 !important;
-  flex: 0 0 auto !important;
-  height: auto !important;
-}
-
-/* Grid container when has collapsed items */
-.grid:has(> div.all-collapsed) {
-  align-items: start !important;
-  align-content: start !important;
-}
-
-/* Remove flex-1 when ALL children collapsed */
-.grid:has(> div.all-collapsed):not(:has(> div:not(.all-collapsed))) {
-  flex: 0 1 auto !important;
-}
-```
-
-### JavaScript Logic
-
-`dashboard.js` manages `.all-collapsed` class:
-- Adds class to grid columns when all accordions collapsed
-- Removes class when any accordion opens
-- Runs on page load and accordion toggle
-
-### Testing & Verification
-
-- Added HTML comments with build timestamps
-- Temporary red tint debug marker (removed after verification)
-- Tested on iPhone XR (414x896) and Desktop (1440x900)
-- Verified fix applies to all viewports (removed media query wrapper)
-
-### Artifacts Created
-
-- `koder/issues/dashboard-grid-gap-issue.md` - Comprehensive issue analysis
-- `koder/screenshots/*.png` - Before/after reference screenshots
-- `admin/src/pages/design-system.js` - **NEW LAYOUT SYSTEM EXPLORATION**
-
-### Design System Page (Important!)
-
-`/design-system` is NOT just a test page - it's an exploration of a **new panel-based layout system** that should eventually replace the current dashboard grid layout.
-
-**Key Differences from Dashboard:**
-- Uses `panel-group` architecture instead of CSS Grid
-- Better collapse/expand behavior (no gap issues)
-- Cleaner, more maintainable code
-- Panel-based sections with better visual hierarchy
-
-**Next Steps:**
-- Review design-system implementation
-- Test panel-group layout patterns
-- Migrate dashboard to use panel-group architecture
-- This was the exploration phase - refinement and adoption is next
-
-### Agent-Browser Setup
-
-Installed and configured `agent-browser` tool from source:
-- Cloned `~/Projects/agent-browser`
-- Built with npm and linked globally
-- Created symlink in `~/.claude/skills/agent-browser`
-- Used for mobile viewport testing and screenshots
-
----
-
-## Previous Session (2026-01-31 - Earlier)
-
-**Admin UI Mobile Responsiveness**
-
-Implemented comprehensive mobile and tablet responsive design.
-
-### Mobile Navigation
-- Hamburger menu with slide-out sidebar
-- Touch-friendly 44px minimum tap targets
-- Auto-closes on backdrop click, nav link click, or resize to desktop
-
-### Responsive Tables
-- All tables wrapped in `.table-container` for horizontal scrolling
-- 600px minimum width with smooth touch scrolling
-
-### Responsive Grids
-- Dashboard stats: 2 cols (mobile) → 3 cols (tablet) → 5 cols (desktop)
-- Apps cards: 1 col (mobile) → 2 cols (tablet) → 3 cols (desktop)
-
-### Mobile UI Adjustments
-- Full-screen modals on mobile (< 768px)
-- Bottom-positioned dropdowns
-- Compact header, reduced padding
-- Avatar-only user button on mobile
-
-### Breakpoints
-- Mobile: < 768px
-- Tablet: 768px - 1023px
-- Desktop: ≥ 1024px
+**BFBB Patterns (documented in skills/app/):**
+- Optional edge-to-edge mobile (ask user)
+- Optional UI state persistence (ask user)
+- Responsive breakpoints reference
+- NOT the panel-based system (admin-specific)
 
 ---
 
 ## Next Up
 
-### Immediate: Design System Migration
+1. **Apply panel-groups to remaining Admin pages**
+   - Aliases page (high priority - currently placeholder)
+   - System page
+   - Settings page
 
-**HIGH PRIORITY**: The `/design-system` page exploration proved that a panel-based layout system works better than CSS Grid for collapsible sections.
+2. **Admin API Parity**
+   - Build features to match CLI/API capabilities
+   - Check backend endpoints exist before implementing UI
 
-1. **Review design-system.js implementation** - Study the panel-group architecture
-2. **Refine panel-group patterns** - Document reusable patterns
-3. **Migrate dashboard to panel-groups** - Replace CSS Grid with panel-based layout
-4. **Apply to other pages** - Use panel-groups for Aliases, System, Settings pages
-
-This solves layout issues at the architectural level rather than patching CSS Grid behavior.
-
-### Admin UI Features
-
-After design system migration, complete missing pages:
-
-1. **Aliases Page** (high priority - currently placeholder)
-2. **System Page** (health dashboard)
-3. **Settings Page** (config UI)
-4. **Real-time updates** (WebSocket/SSE)
-
-### Technical Debt
-
-See `koder/LEGACY.md` for LEGACY_CODE markers to remove:
-- `internal/storage/bindings.go` - `fazt.storage.*` namespace
-- `internal/appid/appid.go` - old `app_*` format
-- `internal/auth/service.go` - `generateUUID()`
+3. **Consider extracting fazt-ui library**
+   - If patterns prove reusable, extract into `admin/packages/fazt-ui/`
 
 ---
 
@@ -241,48 +89,36 @@ See `koder/LEGACY.md` for LEGACY_CODE markers to remove:
 cd admin && npm run build
 fazt app deploy admin --to local --name admin-ui
 
-# Test Modes
-open http://admin-ui.192.168.64.3.nip.io:8080        # Real mode
-open http://admin-ui.192.168.64.3.nip.io:8080?mock=true  # Mock mode
+# Test URLs
+http://admin-ui.192.168.64.3.nip.io:8080?mock=true  # Mock mode
+http://admin-ui.192.168.64.3.nip.io:8080            # Real mode
 
-# Design System Test Page
-open http://admin-ui.192.168.64.3.nip.io:8080?mock=true#/design-system
+# Mobile testing with agent-browser
+agent-browser set viewport 414 896
+agent-browser open "http://admin-ui.192.168.64.3.nip.io:8080?mock=true"
+agent-browser screenshot /path/to/screenshot.png
 
-# Binary Rebuild (if internal/ changes)
-go build -o ~/.local/bin/fazt ./cmd/server
-
-# Local Server
+# Restart local server
 systemctl --user restart fazt-local
 journalctl --user -u fazt-local -f
-
-# Agent-Browser Testing
-agent-browser set viewport 414 896  # iPhone XR
-agent-browser open "http://admin-ui.192.168.64.3.nip.io:8080?mock=true"
-agent-browser screenshot test.png
 ```
 
 ---
 
 ## Architecture Notes
 
-**Admin UI State Management:**
+**CSS Cascade for Responsive:**
+```css
+/* Tablet rule */
+@media (max-width: 1023px) { .content-scroll { padding: 16px; } }
+
+/* Mobile rule - MUST come after tablet */
+@media (max-width: 767px) { .content-scroll { padding: 0; } }
 ```
-Backend API → fazt-sdk → Data Stores → UI Components
-```
 
-**Responsive Breakpoints:**
-- Mobile: < 768px (single column, hamburger menu)
-- Tablet: 768-1023px (2-column grids)
-- Desktop: ≥1024px (3-column grids, sidebar visible)
+Both queries match on mobile (<768px), so later rule wins.
 
-**Grid Gap Fix Selector Specificity:**
-- `.grid > div.all-collapsed` targets direct children only
-- `:has()` selector for parent grid detection
-- `!important` needed to override Tailwind utilities
-
-**Key Files:**
-- `admin/index.html` - CSS fixes, design system
-- `admin/src/pages/dashboard.js` - Accordion logic, grid state management
-- `admin/src/pages/design-system.js` - Layout testing page
-- `admin/packages/fazt-sdk/` - API client with mock adapter
-- `koder/issues/` - Detailed bug documentation
+**Key Workflow Docs:**
+- `knowledge-base/workflows/admin-ui/design-system.md` - Layout patterns
+- `knowledge-base/workflows/admin-ui/adding-features.md` - Backend-first workflow
+- `knowledge-base/workflows/admin-ui/checklist.md` - Pre-implementation validation
