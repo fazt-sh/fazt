@@ -53,8 +53,11 @@ Config Priority:
 | VM | `192.168.64.3` (headless Ubuntu) |
 | Production | `zyt.app` |
 | Local server | `fazt-local` systemd service |
-| Apps dir | `servers/zyt/` (gitignored) |
+| **Database** | `~/.fazt/data.db` (single DB for everything) |
 | Binary | `~/.local/bin/fazt` |
+
+**Database contains:** Apps, aliases, storage, auth, events, peer configs - everything.
+**Override:** `FAZT_DB_PATH` env var or `--db` flag.
 
 ## Essential Commands
 

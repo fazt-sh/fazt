@@ -74,6 +74,31 @@ export function render(container, ctx) {
 }
 
 /**
+ * Get UI state from localStorage
+ */
+function getUIState(key, defaultValue = false) {
+  try {
+    const state = JSON.parse(localStorage.getItem('fazt.web.ui.state') || '{}')
+    return state[key] !== undefined ? state[key] : defaultValue
+  } catch {
+    return defaultValue
+  }
+}
+
+/**
+ * Set UI state to localStorage
+ */
+function setUIState(key, value) {
+  try {
+    const state = JSON.parse(localStorage.getItem('fazt.web.ui.state') || '{}')
+    state[key] = value
+    localStorage.setItem('fazt.web.ui.state', JSON.stringify(state))
+  } catch (e) {
+    console.error('Failed to save UI state:', e)
+  }
+}
+
+/**
  * Render apps list page
  * @param {HTMLElement} container
  * @param {Object} ctx
@@ -81,7 +106,7 @@ export function render(container, ctx) {
 function renderList(container, ctx) {
   const { router } = ctx
   let filter = ''
-  let viewMode = localStorage.getItem('apps-view-mode') || 'cards' // 'cards' or 'list'
+  let viewMode = getUIState('apps.view', 'cards') // Use UI state instead of localStorage directly
 
   function renderAppsContent() {
     const appList = apps.get()
@@ -258,68 +283,75 @@ function renderList(container, ctx) {
   function updateHeader() {
     const appList = apps.get()
     const count = container.querySelector('#apps-count')
-    if (count) count.textContent = `${appList.length} app${appList.length === 1 ? '' : 's'} deployed`
+    if (count) count.textContent = `${appList.length} app${appList.length === 1 ? '' : 's'}`
+  }
+
+  function updateViewButtons() {
+    const cardsBtn = container.querySelector('#view-cards')
+    const listBtn = container.querySelector('#view-list')
+    if (cardsBtn && listBtn) {
+      if (viewMode === 'cards') {
+        cardsBtn.style.color = 'var(--accent)'
+        cardsBtn.style.background = 'var(--accent-soft)'
+        listBtn.style.color = 'var(--text-3)'
+        listBtn.style.background = 'transparent'
+      } else {
+        listBtn.style.color = 'var(--accent)'
+        listBtn.style.background = 'var(--accent-soft)'
+        cardsBtn.style.color = 'var(--text-3)'
+        cardsBtn.style.background = 'transparent'
+      }
+    }
   }
 
   function init() {
+    const appList = apps.get()
+
     container.innerHTML = `
-      <div class="flex flex-col h-full overflow-hidden">
-        <!-- Header -->
-        <div class="flex items-center justify-between mb-4 flex-shrink-0">
-          <div>
-            <h1 class="text-title text-primary">Apps</h1>
-            <p class="text-caption text-muted" id="apps-count">0 apps deployed</p>
-          </div>
-          <div class="flex items-center gap-2">
-            <div class="input">
-              <i data-lucide="search" class="w-4 h-4 text-faint"></i>
-              <input type="text" id="filter-input" placeholder="Filter apps..." class="text-body" style="width: 200px">
+      <div class="design-system-page">
+        <div class="content-container">
+          <div class="content-scroll">
+
+            <!-- Page Header -->
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h1 class="text-title text-primary">Apps</h1>
+                <p class="text-caption text-muted" id="apps-count">${appList.length} app${appList.length === 1 ? '' : 's'}</p>
+              </div>
+              <div class="flex items-center gap-2">
+                <div class="input">
+                  <i data-lucide="search" class="w-4 h-4 text-faint"></i>
+                  <input type="text" id="filter-input" placeholder="Filter apps..." class="text-body" style="width: 200px">
+                </div>
+                <div class="flex items-center border" style="border-radius: var(--radius-sm); border-color: var(--border-subtle); background: var(--bg-1)">
+                  <button id="view-cards" class="btn-icon btn-ghost" title="Cards view" style="border-radius: var(--radius-sm) 0 0 var(--radius-sm)">
+                    <i data-lucide="layout-grid" class="w-4 h-4"></i>
+                  </button>
+                  <button id="view-list" class="btn-icon btn-ghost" title="List view" style="border-radius: 0 var(--radius-sm) var(--radius-sm) 0">
+                    <i data-lucide="list" class="w-4 h-4"></i>
+                  </button>
+                </div>
+                <button id="new-app-btn" class="btn btn-primary text-label" style="padding: 6px 12px; display: flex; align-items: center; gap: 6px">
+                  <i data-lucide="plus" class="w-4 h-4"></i>
+                  <span>New App</span>
+                </button>
+              </div>
             </div>
-            <div class="flex items-center border" style="border-radius: var(--radius-sm); border-color: var(--border-subtle); background: var(--bg-1)">
-              <button id="view-cards" class="btn-icon btn-ghost" title="Cards view" style="border-radius: var(--radius-sm) 0 0 var(--radius-sm)">
-                <i data-lucide="layout-grid" class="w-4 h-4"></i>
-              </button>
-              <button id="view-list" class="btn-icon btn-ghost" title="List view" style="border-radius: 0 var(--radius-sm) var(--radius-sm) 0">
-                <i data-lucide="list" class="w-4 h-4"></i>
-              </button>
-            </div>
-            <button id="new-app-btn" class="btn btn-primary text-label" style="padding: 6px 12px; display: flex; align-items: center; gap: 6px">
-              <i data-lucide="plus" class="w-4 h-4"></i>
-              <span>New App</span>
-            </button>
+
+            <!-- Apps Content -->
+            <div id="apps-content"></div>
+
           </div>
         </div>
-
-        <!-- Apps Content -->
-        <div id="apps-content" class="flex-1 overflow-auto scroll-panel"></div>
       </div>
     `
 
     // Re-render icons
     if (window.lucide) window.lucide.createIcons()
 
-    // Update view mode buttons
-    function updateViewButtons() {
-      const cardsBtn = container.querySelector('#view-cards')
-      const listBtn = container.querySelector('#view-list')
-      if (cardsBtn && listBtn) {
-        if (viewMode === 'cards') {
-          cardsBtn.style.color = 'var(--accent)'
-          cardsBtn.style.background = 'var(--accent-soft)'
-          listBtn.style.color = 'var(--text-3)'
-          listBtn.style.background = 'transparent'
-        } else {
-          listBtn.style.color = 'var(--accent)'
-          listBtn.style.background = 'var(--accent-soft)'
-          cardsBtn.style.color = 'var(--text-3)'
-          cardsBtn.style.background = 'transparent'
-        }
-      }
-    }
-
     updateViewButtons()
 
-    // Filter input handler - don't re-render entire container
+    // Filter input handler
     const filterInput = container.querySelector('#filter-input')
     if (filterInput) {
       filterInput.addEventListener('input', (e) => {
@@ -334,14 +366,14 @@ function renderList(container, ctx) {
 
     cardsBtn?.addEventListener('click', () => {
       viewMode = 'cards'
-      localStorage.setItem('apps-view-mode', 'cards')
+      setUIState('apps.view', 'cards')
       updateViewButtons()
       renderAppsContent()
     })
 
     listBtn?.addEventListener('click', () => {
       viewMode = 'list'
-      localStorage.setItem('apps-view-mode', 'list')
+      setUIState('apps.view', 'list')
       updateViewButtons()
       renderAppsContent()
     })
@@ -356,7 +388,6 @@ function renderList(container, ctx) {
     })
 
     // Initial render
-    updateHeader()
     renderAppsContent()
   }
 
@@ -397,187 +428,203 @@ function renderDetail(container, ctx) {
       .filter(a => a.type === 'proxy' && a.targets?.app_id === appId)
       .map(a => a.subdomain)
 
+    // Get collapse states
+    const detailsCollapsed = getUIState(`apps.detail.${appId}.details.collapsed`, false)
+    const aliasesCollapsed = getUIState(`apps.detail.${appId}.aliases.collapsed`, false)
+    const filesCollapsed = getUIState(`apps.detail.${appId}.files.collapsed`, false)
+
     container.innerHTML = `
-      <div class="flex flex-col h-full overflow-hidden">
-        ${isLoading ? `
-          <div class="flex items-center justify-center h-full">
-            <div class="text-caption text-muted">Loading...</div>
-          </div>
-        ` : !app.id ? `
-          <div class="flex items-center justify-center h-full">
-            <div class="text-center">
-              <i data-lucide="alert-circle" class="w-12 h-12 text-faint mx-auto mb-2"></i>
-              <div class="text-heading text-primary mb-1">App not found</div>
-              <div class="text-caption text-muted mb-4">The app you're looking for doesn't exist</div>
-              <button id="back-btn" class="btn btn-primary text-label" style="padding: 6px 12px">
-                <i data-lucide="arrow-left" class="w-4 h-4 mr-1.5" style="display:inline-block;vertical-align:-2px"></i>
-                Back to Apps
-              </button>
-            </div>
-          </div>
-        ` : `
-          <!-- Header -->
-          <div class="flex items-center justify-between mb-4 flex-shrink-0">
-            <div class="flex items-center gap-3">
-              <button id="back-btn" class="btn-icon btn-ghost" style="color:var(--text-3)">
-                <i data-lucide="arrow-left" class="w-4 h-4"></i>
-              </button>
-              <div>
-                <h1 class="text-title text-primary">${app.name}</h1>
-                <p class="text-caption mono text-muted">${app.id}</p>
+      <div class="design-system-page">
+        <div class="content-container">
+          <div class="content-scroll">
+            ${isLoading ? `
+              <div class="flex items-center justify-center h-full">
+                <div class="text-caption text-muted">Loading...</div>
               </div>
-            </div>
-            <div class="flex items-center gap-2">
-              <button id="refresh-btn" class="btn btn-secondary text-label" style="padding: 6px 12px">
-                <i data-lucide="refresh-cw" class="w-4 h-4"></i>
-              </button>
-              <button id="delete-btn" class="btn btn-secondary text-label" style="padding: 6px 12px; color: var(--error)">
-                <i data-lucide="trash-2" class="w-4 h-4"></i>
-              </button>
-            </div>
-          </div>
-
-          <!-- Content -->
-          <div class="flex-1 overflow-auto scroll-panel">
-            <div class="grid grid-cols-3 gap-4 mb-4">
-              <!-- Stats Cards -->
-              <div class="card">
-                <div class="card-body">
-                  <div class="flex items-center gap-3">
-                    <div class="icon-box">
-                      <i data-lucide="file" class="w-4 h-4"></i>
-                    </div>
-                    <div>
-                      <div class="text-caption text-muted">Files</div>
-                      <div class="text-heading text-primary">${app.file_count}</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div class="card">
-                <div class="card-body">
-                  <div class="flex items-center gap-3">
-                    <div class="icon-box">
-                      <i data-lucide="hard-drive" class="w-4 h-4"></i>
-                    </div>
-                    <div>
-                      <div class="text-caption text-muted">Size</div>
-                      <div class="text-heading text-primary">${formatBytes(app.size_bytes)}</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div class="card">
-                <div class="card-body">
-                  <div class="flex items-center gap-3">
-                    <div class="icon-box">
-                      <i data-lucide="clock" class="w-4 h-4"></i>
-                    </div>
-                    <div>
-                      <div class="text-caption text-muted">Updated</div>
-                      <div class="text-heading text-primary">${formatRelativeTime(app.updated_at)}</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-4">
-              <!-- Details Card -->
-              <div class="card">
-                <div class="card-header">
-                  <span class="text-heading text-primary">Details</span>
-                </div>
-                <div class="card-body space-y-3">
-                  <div>
-                    <div class="text-micro text-muted mb-1">SOURCE</div>
-                    <div class="text-label text-primary">${app.source}</div>
-                  </div>
-                  <div>
-                    <div class="text-micro text-muted mb-1">CREATED</div>
-                    <div class="text-label text-primary">${formatRelativeTime(app.created_at)}</div>
-                  </div>
-                  ${app.manifest?.version ? `
-                    <div>
-                      <div class="text-micro text-muted mb-1">VERSION</div>
-                      <div class="text-label text-primary mono">${app.manifest.version}</div>
-                    </div>
-                  ` : ''}
-                </div>
-              </div>
-
-              <!-- Aliases Card -->
-              <div class="card">
-                <div class="card-header">
-                  <span class="text-heading text-primary">Aliases</span>
-                  <button class="btn btn-sm btn-secondary">
-                    <i data-lucide="plus" class="w-3 h-3 mr-1" style="display:inline-block;vertical-align:-1px"></i>
-                    Add
+            ` : !app.id ? `
+              <div class="flex items-center justify-center h-full">
+                <div class="text-center">
+                  <i data-lucide="alert-circle" class="w-12 h-12 text-faint mx-auto mb-2"></i>
+                  <div class="text-heading text-primary mb-1">App not found</div>
+                  <div class="text-caption text-muted mb-4">The app you're looking for doesn't exist</div>
+                  <button id="back-btn" class="btn btn-primary text-label" style="padding: 6px 12px">
+                    <i data-lucide="arrow-left" class="w-4 h-4 mr-1.5" style="display:inline-block;vertical-align:-2px"></i>
+                    Back to Apps
                   </button>
                 </div>
-                <div class="card-body">
-                  ${appAliasesList.length === 0 ? `
-                    <div class="text-center py-4">
-                      <div class="text-caption text-muted">No aliases configured</div>
-                    </div>
-                  ` : `
-                    <div class="flex flex-wrap gap-2">
-                      ${appAliasesList.map(alias => `
-                        <button class="btn btn-secondary text-label alias-btn" data-alias="${alias}" style="padding: 6px 12px; display: flex; align-items: center; gap: 6px">
-                          <span class="mono">${alias}</span>
-                          <i data-lucide="external-link" class="w-3 h-3"></i>
-                        </button>
-                      `).join('')}
-                    </div>
-                  `}
+              </div>
+            ` : `
+              <!-- Page Header -->
+              <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-3">
+                  <button id="back-btn" class="btn-icon btn-ghost" style="color:var(--text-3)">
+                    <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                  </button>
+                  <div>
+                    <h1 class="text-title text-primary">${app.name}</h1>
+                    <p class="text-caption mono text-muted">${app.id}</p>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2">
+                  <button id="refresh-btn" class="btn btn-secondary text-label" style="padding: 6px 12px">
+                    <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                  </button>
+                  <button id="delete-btn" class="btn btn-secondary text-label" style="padding: 6px 12px; color: var(--error)">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                  </button>
                 </div>
               </div>
-            </div>
 
-            <!-- Files Card -->
-            <div class="card mt-4">
-              <div class="card-header">
-                <span class="text-heading text-primary">Files</span>
-              </div>
-              <div class="card-body p-0">
-                ${app.files && app.files.length > 0 ? `
-                  <div class="table-container">
-                    <table style="table-layout: fixed">
-                    <colgroup>
-                      <col style="width: 55%">
-                      <col style="width: 15%">
-                      <col style="width: 30%">
-                    </colgroup>
-                    <thead>
-                      <tr style="border-bottom: 1px solid var(--border-subtle)">
-                        <th class="px-4 py-3 text-label text-primary">Path</th>
-                        <th class="px-4 py-3 text-label text-primary">Size</th>
-                        <th class="px-4 py-3 text-label text-primary">Type</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      ${app.files.map(file => `
-                        <tr class="row" style="border-bottom: 1px solid var(--border-subtle)">
-                          <td class="px-4 py-2 text-label mono text-primary" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis">${file.path}</td>
-                          <td class="px-4 py-2 text-caption text-muted">${formatBytes(file.size)}</td>
-                          <td class="px-4 py-2 text-caption text-muted" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis">${file.mime_type}</td>
-                        </tr>
-                      `).join('')}
-                    </tbody>
-                  </table>
+              <!-- Stats Grid -->
+              <div class="panel-grid grid-3 mb-4">
+                <div class="stat-card card">
+                  <div class="stat-card-header">
+                    <span class="text-micro text-muted">Files</span>
+                    <i data-lucide="file" class="w-4 h-4 text-faint"></i>
                   </div>
-                ` : `
-                  <div class="p-4 text-center text-caption text-muted">No files</div>
-                `}
+                  <div class="stat-card-value text-display mono text-primary">${app.file_count}</div>
+                </div>
+                <div class="stat-card card">
+                  <div class="stat-card-header">
+                    <span class="text-micro text-muted">Size</span>
+                    <i data-lucide="hard-drive" class="w-4 h-4 text-faint"></i>
+                  </div>
+                  <div class="stat-card-value text-display mono text-primary">${formatBytes(app.size_bytes)}</div>
+                </div>
+                <div class="stat-card card">
+                  <div class="stat-card-header">
+                    <span class="text-micro text-muted">Updated</span>
+                    <i data-lucide="clock" class="w-4 h-4 text-faint"></i>
+                  </div>
+                  <div class="stat-card-value text-heading text-primary">${formatRelativeTime(app.updated_at)}</div>
+                </div>
               </div>
-            </div>
+
+              <!-- Panel Group: Details -->
+              <div class="panel-group ${detailsCollapsed ? 'collapsed' : ''}">
+                <div class="panel-group-card card">
+                  <header class="panel-group-header" data-group="details">
+                    <button class="collapse-toggle">
+                      <i data-lucide="chevron-right" class="chevron w-4 h-4"></i>
+                      <span class="text-heading text-primary">Details</span>
+                    </button>
+                  </header>
+                  <div class="panel-group-body">
+                    <div class="space-y-3">
+                      <div>
+                        <div class="text-micro text-muted mb-1">SOURCE</div>
+                        <div class="text-label text-primary">${app.source}</div>
+                      </div>
+                      <div>
+                        <div class="text-micro text-muted mb-1">CREATED</div>
+                        <div class="text-label text-primary">${formatRelativeTime(app.created_at)}</div>
+                      </div>
+                      ${app.manifest?.version ? `
+                        <div>
+                          <div class="text-micro text-muted mb-1">VERSION</div>
+                          <div class="text-label text-primary mono">${app.manifest.version}</div>
+                        </div>
+                      ` : ''}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Panel Group: Aliases -->
+              <div class="panel-group ${aliasesCollapsed ? 'collapsed' : ''}">
+                <div class="panel-group-card card">
+                  <header class="panel-group-header" data-group="aliases">
+                    <button class="collapse-toggle">
+                      <i data-lucide="chevron-right" class="chevron w-4 h-4"></i>
+                      <span class="text-heading text-primary">Aliases</span>
+                      <span class="text-caption text-faint ml-auto hide-mobile">${appAliasesList.length} configured</span>
+                    </button>
+                    <button class="btn btn-sm btn-secondary ml-2">
+                      <i data-lucide="plus" class="w-3 h-3 mr-1" style="display:inline-block;vertical-align:-1px"></i>
+                      Add
+                    </button>
+                  </header>
+                  <div class="panel-group-body">
+                    ${appAliasesList.length === 0 ? `
+                      <div class="text-center py-4">
+                        <div class="text-caption text-muted">No aliases configured</div>
+                      </div>
+                    ` : `
+                      <div class="flex flex-wrap gap-2">
+                        ${appAliasesList.map(alias => `
+                          <button class="btn btn-secondary text-label alias-btn" data-alias="${alias}" style="padding: 6px 12px; display: flex; align-items: center; gap: 6px">
+                            <span class="mono">${alias}</span>
+                            <i data-lucide="external-link" class="w-3 h-3"></i>
+                          </button>
+                        `).join('')}
+                      </div>
+                    `}
+                  </div>
+                </div>
+              </div>
+
+              <!-- Panel Group: Files -->
+              <div class="panel-group ${filesCollapsed ? 'collapsed' : ''}">
+                <div class="panel-group-card card">
+                  <header class="panel-group-header" data-group="files">
+                    <button class="collapse-toggle">
+                      <i data-lucide="chevron-right" class="chevron w-4 h-4"></i>
+                      <span class="text-heading text-primary">Files</span>
+                      <span class="text-caption text-faint ml-auto hide-mobile">${app.files?.length || 0} files</span>
+                    </button>
+                  </header>
+                  <div class="panel-group-body" style="padding: 0">
+                    ${app.files && app.files.length > 0 ? `
+                      <div class="table-container">
+                        <table style="table-layout: fixed">
+                        <colgroup>
+                          <col style="width: 55%">
+                          <col style="width: 15%">
+                          <col style="width: 30%">
+                        </colgroup>
+                        <thead>
+                          <tr style="border-bottom: 1px solid var(--border-subtle)">
+                            <th class="px-4 py-3 text-label text-primary">Path</th>
+                            <th class="px-4 py-3 text-label text-primary">Size</th>
+                            <th class="px-4 py-3 text-label text-primary">Type</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          ${app.files.map(file => `
+                            <tr class="row" style="border-bottom: 1px solid var(--border-subtle)">
+                              <td class="px-4 py-2 text-label mono text-primary" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis">${file.path}</td>
+                              <td class="px-4 py-2 text-caption text-muted">${formatBytes(file.size)}</td>
+                              <td class="px-4 py-2 text-caption text-muted" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis">${file.mime_type}</td>
+                            </tr>
+                          `).join('')}
+                        </tbody>
+                      </table>
+                      </div>
+                    ` : `
+                      <div class="p-4 text-center text-caption text-muted">No files</div>
+                    `}
+                  </div>
+                </div>
+              </div>
+            `}
           </div>
-        `}
+        </div>
       </div>
     `
 
     // Re-render Lucide icons
     if (window.lucide) window.lucide.createIcons()
+
+    // Setup collapse handlers
+    container.querySelectorAll('.collapse-toggle').forEach(toggle => {
+      toggle.addEventListener('click', () => {
+        const header = toggle.closest('.panel-group-header')
+        const group = header.dataset.group
+        const panelGroup = header.closest('.panel-group')
+        const isCollapsed = panelGroup.classList.toggle('collapsed')
+        setUIState(`apps.detail.${appId}.${group}.collapsed`, isCollapsed)
+      })
+    })
 
     // Back button
     container.querySelector('#back-btn')?.addEventListener('click', () => {
