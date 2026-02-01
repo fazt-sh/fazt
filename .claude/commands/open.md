@@ -67,16 +67,9 @@ Or if not installed:
 ```
 ## Session Ready
 
-| Source | Binary | Release | local | zyt |
-|--------|--------|---------|-------|-----|
-| 0.18.0 | 0.18.0 ✓ | v0.18.0 | 0.18.0 ✓ | 0.18.0 ✓ |
+v0.18.0: Source, Binary, Release, local, zyt ✓
 
-**Git**: clean | X uncommitted changes
-
-### Status
-- ✅ All versions synced at v0.18.0
-- OR ⚠️ Binary behind → `go build -o ~/.local/bin/fazt ./cmd/server`
-- OR ⚠️ Remote behind → `fazt remote upgrade <name>`
+Git: clean | X uncommitted
 
 ### From Last Session
 [Summary from STATE.md]
@@ -85,10 +78,15 @@ Or if not installed:
 [Next task from STATE.md, or ask user]
 ```
 
-**Version checks**:
-- Binary != Release → Rebuild binary
-- Remote != Release → Upgrade remote
-- Source != Release → Unreleased changes exist
+**If versions differ, group by version:**
+```
+v0.18.0: Source, Binary, Release, zyt
+v0.17.0: local ⚠️ → fazt remote upgrade local
+```
+
+**Fixes:**
+- Binary behind → `go build -o ~/.local/bin/fazt ./cmd/server`
+- Remote behind → `fazt remote upgrade <name>`
 
 ## Quick Commands
 

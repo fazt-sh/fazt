@@ -213,11 +213,9 @@ Should show nothing (clean working tree).
 ```
 ## Session Closed
 
-| Source | Binary | Release | local | zyt |
-|--------|--------|---------|-------|-----|
-| X.Y.Z | X.Y.Z ✓ | vX.Y.Z | X.Y.Z ✓ | X.Y.Z ✓ |
+v0.18.0: Source, Binary, Release, local, zyt ✓
 
-**Git**: clean
+Git: clean
 
 ### Release
 [Released vX.Y.Z] or [Not released: reason]
