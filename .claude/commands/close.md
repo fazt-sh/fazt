@@ -213,30 +213,15 @@ Should show nothing (clean working tree).
 ```
 ## Session Closed
 
-**Version**: vX.Y.Z
-**Latest Release**: vX.Y.Z ✅ (or ⚠️ X commits ahead)
-
-| Component | Version | Status |
-|-----------|---------|--------|
-| Source    | X.Y.Z   | -      |
-| Binary    | X.Y.Z   | ✓      |
-| KB        | X.Y.Z   | current/updated |
-
-**Remotes**:
-
-| Name | Version | Status |
-|------|---------|--------|
-| local | X.Y.Z | healthy |
-| zyt | X.Y.Z | healthy |
+| Source | Binary | Release | local | zyt |
+|--------|--------|---------|-------|-----|
+| X.Y.Z | X.Y.Z ✓ | vX.Y.Z | X.Y.Z ✓ | X.Y.Z ✓ |
 
 **Git**: clean
 
 ### Release
 [Released vX.Y.Z] or [Not released: reason]
-- If unreleased commits exist: "⚠️ X commits since vY.Z.W - consider /release"
-
-### Knowledge-Base
-[Updated skills/app docs] or [No updates needed]
+- If unreleased: "⚠️ X commits since vY.Z.W - consider /release"
 
 ### This Session
 - [What was done]

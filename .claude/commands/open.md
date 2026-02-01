@@ -67,28 +67,16 @@ Or if not installed:
 ```
 ## Session Ready
 
-**Monorepo Version**: 0.18.0 (unified versioning)
-**Latest Release**: v0.18.0 ✅ (or ⚠️ if behind)
-
-| Component      | Version | Status | Complete |
-|----------------|---------|--------|----------|
-| fazt-binary    | 0.18.0  | stable | 100%     |
-| admin          | 0.18.0  | alpha  | 15%      |
-| fazt-sdk       | 0.18.0  | alpha  | 20%      |
-| knowledge-base | 0.18.0  | stable | 80%      |
-
-**Remotes:**
-| Name  | Status  | Version |
-|-------|---------|---------|
-| local | healthy | 0.18.0  |
-| zyt*  | healthy | 0.18.0  |
+| Source | Binary | Release | local | zyt |
+|--------|--------|---------|-------|-----|
+| 0.18.0 | 0.18.0 ✓ | v0.18.0 | 0.18.0 ✓ | 0.18.0 ✓ |
 
 **Git**: clean | X uncommitted changes
 
-### Release Status
-- ✅ Binary matches latest release (v0.18.0)
-- OR ⚠️ Binary (0.17.0) behind latest release (v0.18.0) - run: `go build -o ~/.local/bin/fazt ./cmd/server`
-- OR ⚠️ Remotes behind - run: `fazt remote upgrade zyt`
+### Status
+- ✅ All versions synced at v0.18.0
+- OR ⚠️ Binary behind → `go build -o ~/.local/bin/fazt ./cmd/server`
+- OR ⚠️ Remote behind → `fazt remote upgrade <name>`
 
 ### From Last Session
 [Summary from STATE.md]
@@ -97,10 +85,10 @@ Or if not installed:
 [Next task from STATE.md, or ask user]
 ```
 
-**If versions mismatch**:
-- Binary != latest tag → Rebuild: `go build -o ~/.local/bin/fazt ./cmd/server`
-- Remote != latest tag → Upgrade: `fazt remote upgrade <name>`
-- Source != latest tag → Unreleased changes exist (may need release)
+**Version checks**:
+- Binary != Release → Rebuild binary
+- Remote != Release → Upgrade remote
+- Source != Release → Unreleased changes exist
 
 ## Quick Commands
 
