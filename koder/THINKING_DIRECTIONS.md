@@ -52,7 +52,7 @@ Reference specific sections from STATE.md when actively pursuing them.
 - Granular permissions per app/resource
 - Current: owner vs user (OAuth) - needs refinement
 
-### E4. Plan 24: Mock OAuth Provider
+### ✅ E4. Plan 24: Mock OAuth Provider [COMPLETED v0.17.0]
 - Dev login form at `/auth/dev/login` (local only)
 - Creates real sessions (same as production OAuth)
 - Role selection for testing admin/owner flows
@@ -75,7 +75,7 @@ fazt @zyt sql "SELECT * FROM auth_users"   # Remote
   - Any battle-tested code worth porting?
   - Architectural patterns to consider?
 
-### E7. Plan 28: SPA Routing (Clean URLs)
+### ✅ E7. Plan 28: SPA Routing (Clean URLs) [COMPLETED v0.12.0]
 - BFBB apps default to hash routing (static-hostable)
 - `--spa` flag at deploy enables clean URLs (`/dashboard` vs `/#/dashboard`)
 - Build-time switch: `import.meta.env.VITE_SPA_ROUTING`
@@ -83,12 +83,12 @@ fazt @zyt sql "SELECT * FROM auth_users"   # Remote
 - Preserves BFBB philosophy: source works anywhere, built output gets clean URLs
 - See: `koder/plans/28_spa_routing.md`
 
-### E8. Plan 29: Private Directory
+### ✅ E8. Plan 29: Private Directory [COMPLETED v0.13.0]
 - Reserved `private/` directory for server-only data
-- HTTP access blocked (403), serverless can read via `fazt.private.read()`
+- HTTP access auth-gated (401 if not logged in), serverless can read via `fazt.private.read()`
 - Use cases: seed data, config, mock data, fixtures
 - Enables rapid PoC iteration with versioned data files
-- Future: auto-generate mock REST APIs from JSON files
+- `--include-private` flag to deploy gitignored private files
 - See: `koder/plans/29_private_directory.md`
 
 ---
