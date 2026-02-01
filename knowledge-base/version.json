@@ -1,9 +1,9 @@
 {
-  "version": "0.17.0",
+  "version": "0.18.0",
   "status": "stable",
   "completeness": "80%",
-  "commit": "1f427fc",
-  "updated_at": "2026-01-31",
+  "commit": "fe4506b",
+  "updated_at": "2026-02-01",
   "description": "Fazt documentation and agent context",
   "sections": {
     "agent-context": "Complete - setup, architecture, API, tooling",

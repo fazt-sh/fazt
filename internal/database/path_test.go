@@ -11,6 +11,11 @@ func TestResolvePath(t *testing.T) {
 	oldEnv := os.Getenv("FAZT_DB_PATH")
 	defer os.Setenv("FAZT_DB_PATH", oldEnv)
 
+	home, err := os.UserHomeDir()
+	if err != nil {
+		t.Skip("could not get home dir")
+	}
+
 	tests := []struct {
 		name     string
 		explicit string
@@ -33,7 +38,7 @@ func TestResolvePath(t *testing.T) {
 			name:     "default when nothing set",
 			explicit: "",
 			envValue: "",
-			want:     DefaultDBPath,
+			want:     filepath.Join(home, ".fazt/data.db"), // DefaultDBPath expanded
 		},
 		{
 			name:     "explicit overrides env",

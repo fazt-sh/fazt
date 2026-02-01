@@ -4,6 +4,23 @@ All notable changes to fazt.sh will be documented in this file.
 
 ## [Unreleased]
 
+## [0.18.0] - 2026-02-01
+
+### Changed
+- **Default database path**: Changed from `./data.db` to `~/.fazt/data.db`
+  - Consistent location regardless of current working directory
+  - Override with `--db` flag or `FAZT_DB_PATH` environment variable
+  - Single DB philosophy: apps, aliases, storage, peer configs all in one database
+
+### Added
+- **Admin UI: Apps page refactored** to panel-based design system
+  - Collapsible sections (Details, Aliases, Files) with persistent state
+  - Responsive stats grid
+  - Edge-to-edge mobile layout
+
+- **Documentation**: New `knowledge-base/workflows/admin-ui/refactoring-pages.md`
+  - Step-by-step guide for migrating pages to design system
+
 ## [0.17.0] - 2026-01-31
 
 ### Added
