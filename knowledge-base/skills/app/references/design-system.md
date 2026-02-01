@@ -82,6 +82,26 @@ Prevent scroll jumps with fixed-height container:
 </div>
 ```
 
+### Responsive Breakpoints
+
+Standard breakpoints for responsive design:
+
+| Breakpoint | Width | Tailwind Prefix |
+|------------|-------|-----------------|
+| Mobile | < 768px | (default) |
+| Tablet | ≥ 768px | `md:` |
+| Desktop | ≥ 1024px | `lg:` |
+| Large | ≥ 1280px | `xl:` |
+
+```html
+<!-- Mobile-first: default is mobile, add larger breakpoints -->
+<div class="px-4 md:px-6 lg:px-8">
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    ...
+  </div>
+</div>
+```
+
 ### Scrollbar Stability
 
 Prevent layout shift when scrollbar appears:

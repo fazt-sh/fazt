@@ -101,6 +101,7 @@ Parse the user's description to determine:
 - App name and purpose
 - Does it need authentication?
 - What data needs to be stored?
+- UI complexity and mobile needs
 
 **Evaluate auth need from description:**
 
@@ -128,6 +129,23 @@ Parse the user's description to determine:
 fazt @<remote-peer> auth providers
 ```
 If Google is already enabled, proceed. If not, ask user if they want to set it up.
+
+**Evaluate UI patterns needed:**
+
+These are OPTIONAL patterns. Ask only if the app seems like it would benefit:
+
+| If app is... | Consider asking about... |
+|--------------|--------------------------|
+| Data-heavy, lists, tables | Edge-to-edge mobile layout |
+| Has user preferences (view mode, sort, filters) | UI state persistence |
+| Dashboard with many sections | Collapsible panels (see admin-ui patterns) |
+| Simple tool, landing page | Skip these - keep it simple |
+
+**Questions to ask (if relevant):**
+- "Should the app remember your preferences (like sort order or view mode)?"
+- "On mobile, should content use full screen width, or have padding for a more relaxed look?"
+
+See [patterns/ui-patterns.md](patterns/ui-patterns.md) for implementation details.
 
 ### Step 2: Scaffold
 

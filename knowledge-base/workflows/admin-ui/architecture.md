@@ -1,14 +1,16 @@
 ---
 title: Admin UI Architecture
 description: State management, data flow, and component model for the Fazt Admin UI
-updated: 2026-01-31
+updated: 2026-02-01
 category: workflows
-tags: [admin-ui, architecture, state-management, data-flow]
+tags: [admin-ui, architecture, state-management, data-flow, design-system]
 ---
 
 # Admin UI Architecture
 
 The Fazt Admin UI is a single-page application built with vanilla JavaScript, using reactive state stores and a clean data flow model.
+
+> **UI Foundation**: All pages use the panel-based layout system. See [design-system.md](design-system.md) for CSS patterns, responsive breakpoints, and component structures.
 
 ## Overview
 
@@ -378,6 +380,7 @@ admin/
 
 ## Next Steps
 
+- Read [design-system.md](design-system.md) for layout patterns and CSS architecture
 - Read [adding-features.md](adding-features.md) to implement new features
 - Read [testing.md](testing.md) to understand mock vs real mode
 - Check [checklist.md](checklist.md) before starting work

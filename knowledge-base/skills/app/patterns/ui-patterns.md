@@ -238,11 +238,120 @@ Desktop: horizontal row with flex-wrap. Mobile: stacked grid.
 
 ---
 
+---
+
+## Edge-to-Edge Mobile (Optional)
+
+**When to use**: Apps that need maximum screen real estate on mobile (data-heavy UIs, dashboards, lists with dense information).
+
+**When to skip**: Landing pages, marketing sites, simple tools where breathing room looks better.
+
+**Ask the user**: "Should content extend edge-to-edge on mobile for maximum space, or keep padding for a more relaxed feel?"
+
+### Implementation
+
+```css
+/* Responsive breakpoints */
+@media (max-width: 1023px) {
+  .main-content { padding: 16px; }
+}
+
+/* Edge-to-edge mobile - MUST come after tablet rule */
+@media (max-width: 767px) {
+  .main-content { padding: 8px 0; }
+
+  /* Cards: flat edges, no side borders */
+  .card {
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+}
+```
+
+**Important**: Mobile rules must come AFTER tablet rules in CSS. Both `max-width: 767px` and `max-width: 1023px` match on mobile - later rules win.
+
+### Responsive Breakpoints Reference
+
+| Breakpoint | Width | Typical Behavior |
+|------------|-------|------------------|
+| Mobile | < 768px | Edge-to-edge (if enabled), stacked layouts, hamburger menu |
+| Tablet | 768-1023px | 16px padding, 2-column grids |
+| Desktop | ≥ 1024px | 20px+ padding, multi-column, sidebars |
+
+---
+
+## UI State Persistence (Optional)
+
+**When to use**: Apps where users benefit from remembered preferences (collapsed sections, view modes, sort orders, filter states).
+
+**When to skip**: Simple single-purpose tools, content sites where fresh state is preferred.
+
+**Ask the user**: "Should the app remember user preferences like view mode or collapsed sections?"
+
+### Implementation
+
+```javascript
+// Unified localStorage key for your app
+const UI_STATE_KEY = 'myapp.ui.state'
+
+function getUIState(key, defaultValue = null) {
+  try {
+    const state = JSON.parse(localStorage.getItem(UI_STATE_KEY) || '{}')
+    return state[key] !== undefined ? state[key] : defaultValue
+  } catch {
+    return defaultValue
+  }
+}
+
+function setUIState(key, value) {
+  try {
+    const state = JSON.parse(localStorage.getItem(UI_STATE_KEY) || '{}')
+    state[key] = value
+    localStorage.setItem(UI_STATE_KEY, JSON.stringify(state))
+  } catch (e) {
+    console.error('Failed to save UI state:', e)
+  }
+}
+```
+
+### Usage Examples
+
+```javascript
+// View mode (list vs grid)
+const viewMode = getUIState('view', 'list')
+setUIState('view', 'grid')
+
+// Sort preference
+const sortBy = getUIState('sort', 'date')
+
+// Collapsed sections (if using collapsible UI)
+const isCollapsed = getUIState('section.filters.collapsed', false)
+```
+
+### Key Naming Convention
+
+Use dot notation for namespacing:
+```
+myapp.ui.state = {
+  "view": "grid",
+  "sort": "name",
+  "filters.collapsed": false,
+  "sidebar.width": 280
+}
+```
+
+---
+
 ## Summary
 
-- Always render UI elements, disable instead of hide (prevents layout shift)
+**Always apply:**
+- Render UI elements always, disable instead of hide (prevents layout shift)
 - Use absolute positioning for badges/counts
 - Click-outside: invisible overlay at `z-[99]`, content at `z-[100]`
 - Set z-index on parent containers with backdrop-blur
 - Mobile: hide logo, expand search, move controls to menu
-- Responsive filters: horizontal desktop, stacked grid mobile
+
+**Ask the user first:**
+- Edge-to-edge mobile (space efficiency vs visual breathing room)
+- UI state persistence (remember preferences vs fresh state)

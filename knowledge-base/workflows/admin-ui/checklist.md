@@ -1,16 +1,27 @@
 ---
 title: Admin UI Feature Checklist
 description: Quick validation checklist before implementing UI features
-updated: 2026-01-31
+updated: 2026-02-01
 category: workflows
-tags: [admin-ui, checklist, validation, backend-first]
+tags: [admin-ui, checklist, validation, backend-first, design-system]
 ---
 
 # Admin UI Feature Checklist
 
-Use this checklist **before** implementing any UI feature to ensure backend support exists.
+Use this checklist **before** implementing any UI feature to ensure backend support exists and design system patterns are followed.
 
 ## Pre-Implementation Checklist
+
+### ✅ Design System Compliance
+
+- [ ] **Page structure** uses `.design-system-page > .content-container > .content-scroll`
+- [ ] **Sections** use `.panel-group` with `.panel-group-card.card`
+- [ ] **Collapse states** use `getUIState()` / `setUIState()` for persistence
+- [ ] **Responsive** at all breakpoints (mobile < 768px, tablet, desktop)
+- [ ] **Edge-to-edge** panels on mobile
+- [ ] **CSS variables** used for colors, spacing, radii
+
+See [design-system.md](design-system.md) for full patterns.
 
 ### ✅ Backend Validation
 
@@ -177,7 +188,11 @@ Which approach do you prefer?
 - [ ] **Error states work**
 - [ ] **Success states work**
 - [ ] **Edge cases handled** (empty, single item, many items)
-- [ ] **Mobile responsive** (if applicable)
+- [ ] **Mobile responsive** - test at 414px width (iPhone)
+- [ ] **Tablet responsive** - test at 768px width
+- [ ] **Desktop responsive** - test at 1440px width
+- [ ] **Panels edge-to-edge** on mobile
+- [ ] **Collapse/expand** states persist across navigation
 - [ ] **Keyboard accessible** (if applicable)
 
 ### After Deployment

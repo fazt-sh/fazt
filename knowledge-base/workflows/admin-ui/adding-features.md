@@ -1,20 +1,22 @@
 ---
 title: Adding Admin UI Features
 description: Step-by-step workflow for implementing new features in the Admin UI
-updated: 2026-01-31
+updated: 2026-02-01
 category: workflows
-tags: [admin-ui, development, features, backend-first]
+tags: [admin-ui, development, features, backend-first, design-system]
 ---
 
 # Adding Admin UI Features
 
 This guide walks through the **backend-first** workflow for adding features to the Admin UI.
 
-## The Golden Rule
+## The Golden Rules
 
-> **Never build UI for non-existent backend APIs.**
+> **1. Never build UI for non-existent backend APIs.**
+>
+> **2. Always use the design system patterns.**
 
-Always validate backend support before implementing UI features. This ensures seamless operation in both mock and real modes.
+Always validate backend support before implementing UI features, and use the panel-based layout system for all pages. See [design-system.md](design-system.md) for the foundational patterns.
 
 ## Implementation Flow
 
@@ -153,17 +155,35 @@ export { restartApp }
 
 **File**: `admin/src/pages/apps.js` (in detail view)
 
+**Use the design system patterns** from [design-system.md](design-system.md):
+
 ```javascript
 // Import the new function
 import { restartApp } from '../stores/data.js'
 
-// In renderDetail function, add button:
+// Use panel-based layout structure
 container.innerHTML = `
-  <div class="flex items-center gap-2">
-    <button id="restart-btn" class="btn btn-secondary text-label" style="padding: 6px 12px">
-      <i data-lucide="refresh-cw" class="w-4 h-4"></i>
-      Restart
-    </button>
+  <div class="design-system-page">
+    <div class="content-container">
+      <div class="content-scroll">
+        <div class="panel-group">
+          <div class="panel-group-card card">
+            <header class="panel-group-header">
+              <button class="collapse-toggle">
+                <i data-lucide="chevron-right" class="chevron w-4 h-4"></i>
+                <span class="text-heading text-primary">Actions</span>
+              </button>
+            </header>
+            <div class="panel-group-body">
+              <button id="restart-btn" class="btn btn-secondary text-label">
+                <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                Restart
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 `
 
@@ -230,7 +250,26 @@ http://admin-ui.192.168.64.3.nip.io:8080
    ```javascript
    { name: 'logs', path: '/logs', meta: { title: 'Logs' } }
    ```
-5. **Page**: Create `src/pages/logs.js`
+5. **Page**: Create `src/pages/logs.js` using **design system structure**:
+   ```javascript
+   export function render(container, ctx) {
+     function update() {
+       container.innerHTML = `
+         <div class="design-system-page">
+           <div class="content-container">
+             <div class="content-scroll">
+               <!-- Panel groups here -->
+             </div>
+           </div>
+         </div>
+       `
+       setupCollapseHandlers(container)
+       if (window.lucide) window.lucide.createIcons()
+     }
+     // Subscribe, render, return cleanup
+   }
+   ```
+   See [design-system.md](design-system.md) for full patterns.
 6. **Import**: Add to `index.html`:
    ```javascript
    import * as logsPage from './src/pages/logs.js'
