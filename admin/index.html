@@ -395,11 +395,6 @@
         font-size: 12px;
       }
 
-      /* Content padding */
-      #page-content {
-        padding: 16px !important;
-      }
-
       /* Footer: stack or hide non-essential items */
       footer {
         flex-wrap: wrap;
@@ -413,9 +408,20 @@
         gap: 6px;
       }
 
-      /* Cards: full width with proper spacing */
+      /* Edge-to-edge panels on mobile */
+      #page-content {
+        padding: 8px 0 !important; /* Override p-5, only vertical padding */
+      }
+
+      /* Cards: edge-to-edge, no rounded corners */
       .card {
-        border-radius: var(--radius-md);
+        border-radius: 0;
+      }
+
+      /* Panel cards: remove side borders for flush edges */
+      .panel-group-card.card {
+        border-left: none;
+        border-right: none;
       }
 
       /* Modals: full screen on mobile */
@@ -590,6 +596,13 @@
     @media (max-width: 1023px) {
       .content-scroll {
         padding: 16px;
+      }
+    }
+
+    /* Mobile: edge-to-edge content (must come after 1023px rule) */
+    @media (max-width: 767px) {
+      .content-scroll {
+        padding: 0;
       }
     }
 
