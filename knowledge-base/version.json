@@ -2,11 +2,12 @@
   "version": "0.18.0",
   "status": "stable",
   "completeness": "80%",
-  "commit": "fe4506b",
-  "updated_at": "2026-02-01",
+  "commit": "1da7c5e",
+  "updated_at": "2026-02-02",
   "description": "Fazt documentation and agent context",
   "sections": {
     "agent-context": "Complete - setup, architecture, API, tooling",
     "skills/app": "Complete - BFBB app development patterns"
-  }
+  },
+  "notes": "CLI commands documented in plans - needs integration to knowledge-base"
 }
