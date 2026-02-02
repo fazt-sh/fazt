@@ -1,0 +1,171 @@
+================================================================================
+APP DEPLOY
+================================================================================
+
+Deploy a local directory to a fazt instance
+
+--------------------------------------------------------------------------------
+SYNOPSIS
+--------------------------------------------------------------------------------
+
+  fazt [@peer] app deploy <directory> [flags]
+
+--------------------------------------------------------------------------------
+DESCRIPTION
+--------------------------------------------------------------------------------
+
+  Deploy a directory containing a web application to a fazt instance. The
+  command automatically detects build tools (npm, pnpm, yarn, bun) and builds
+  the project before deployment. Supports both static sites and apps with
+  serverless API functions.
+
+--------------------------------------------------------------------------------
+ARGUMENTS
+--------------------------------------------------------------------------------
+
+  <directory>
+    Path to the directory to deploy
+    Type: path (required)
+
+--------------------------------------------------------------------------------
+FLAGS
+--------------------------------------------------------------------------------
+
+  --name, -n <string>
+    App name (overrides directory name and manifest.json)
+    Default: directory name
+
+  --spa
+    Enable SPA routing for clean URLs
+    Example: /dashboard instead of /dashboard.html
+    Default: false
+
+  --no-build
+    Skip automatic build detection and execution
+    Default: false
+
+  --include-private
+    Include gitignored private/ directory in deployment
+    Use for server-only secrets and configuration
+    Default: false
+
+--------------------------------------------------------------------------------
+EXAMPLES
+--------------------------------------------------------------------------------
+
+  Deploy to local fazt:
+    $ fazt app deploy ./my-app
+
+  Deploy to remote peer:
+    $ fazt @zyt app deploy ./my-app
+
+  Deploy with custom name:
+    $ fazt @zyt app deploy ./my-app --name blog
+
+  Deploy SPA application:
+    $ fazt @zyt app deploy ./my-spa --spa
+
+  Deploy without building:
+    $ fazt app deploy ./dist --no-build
+
+--------------------------------------------------------------------------------
+RELATED COMMANDS
+--------------------------------------------------------------------------------
+
+  app list       List deployed apps
+  app remove     Remove a deployed app
+  app validate   Validate app structure before deploying
+  app info       Show details about a deployed app
+
+--------------------------------------------------------------------------------
+COMMON ERRORS
+--------------------------------------------------------------------------------
+
+  Directory does not exist
+    Error: directory 'path' does not exist
+    Solution: Verify the path exists and is accessible
+
+  No local fazt server running
+    Error: No local fazt server running
+    Solution: Start local server with 'fazt server start'
+    Or deploy to remote: fazt @peer app deploy ./app
+
+================================================================================
+
+--------------------------------------------------------------------------------
+FORMATTING CONVENTIONS (for template reference)
+--------------------------------------------------------------------------------
+
+This file demonstrates the .txt formatting conventions for CLI command docs.
+These rules ensure consistent, terminal-friendly output.
+
+WIDTH
+  - Maximum line width: 80 characters
+  - All content must fit within this limit
+  - Long descriptions wrap with proper indentation
+
+HORIZONTAL RULES
+  - Major sections: 80 '=' characters
+  - Sub-sections: 80 '-' characters
+
+SECTION HEADERS
+  - All uppercase
+  - No indentation
+  - Followed by horizontal rule
+
+CONTENT INDENTATION
+  - Section content: 2 spaces
+  - Code examples: 4 spaces
+  - Nested items: additional 2 spaces per level
+
+CODE EXAMPLES
+  - Command prompt: $ (with space after)
+  - Indented 4 spaces from margin
+  - One command per line
+
+DESCRIPTIONS
+  - Hard-wrapped at column 76 (leaving 4 chars for indentation)
+  - Paragraphs separated by blank line
+  - No trailing whitespace
+
+TABLES (when needed)
+  - Use ASCII box drawing
+  - Example:
+
+    +------------+-----------------------------------+
+    | Lockfile   | Build Command                     |
+    +------------+-----------------------------------+
+    | pnpm-lock  | pnpm install && pnpm build        |
+    | bun.lockb  | bun install && bun run build      |
+    | yarn.lock  | yarn install && yarn build        |
+    +------------+-----------------------------------+
+
+  - Or simple aligned columns:
+
+    Lockfile            Build Command
+    ------------------  --------------------------------
+    pnpm-lock.yaml      pnpm install && pnpm build
+    bun.lockb           bun install && bun run build
+    yarn.lock           yarn install && yarn build
+
+FLAGS FORMAT
+  - Long form first, short form second: --name, -n
+  - Type in angle brackets: <string>, <int>, <bool>
+  - Description on next line, indented 4 spaces
+  - Default value on separate line if present
+
+ARGUMENTS FORMAT
+  - Name in angle brackets: <directory>
+  - Description below, indented 2 spaces
+  - Type and required/optional on separate line
+
+RELATED COMMANDS
+  - Command name (no 'fazt' prefix), right-aligned description
+  - Consistent column width for alignment
+
+ERRORS FORMAT
+  - Error title on first line
+  - Error: message indented 4 spaces
+  - Solution: fix indented 4 spaces
+
+================================================================================

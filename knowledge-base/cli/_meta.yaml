@@ -1,0 +1,134 @@
+# Fazt CLI Documentation Metadata
+# This file is embedded into the binary and used to validate doc versions
+
+version: "0.18.0"
+name: "fazt"
+description: "Sovereign compute - single binary + SQLite that runs anywhere"
+
+# CLI Structure
+commands:
+  - name: "app"
+    description: "App management"
+    subcommands:
+      - list
+      - info
+      - deploy
+      - remove
+      - create
+      - validate
+      - logs
+      - install
+      - upgrade
+      - pull
+      - link
+      - unlink
+      - reserve
+      - fork
+      - swap
+      - split
+      - lineage
+
+  - name: "remote"
+    description: "Peer management"
+    subcommands:
+      - add
+      - list
+      - remove
+      - default
+      - status
+
+  - name: "server"
+    description: "Server control"
+    subcommands:
+      - init
+      - start
+      - status
+      - set-config
+      - set-credentials
+      - create-key
+
+  - name: "service"
+    description: "Systemd service management"
+    subcommands:
+      - install
+      - start
+      - stop
+      - status
+      - logs
+
+# Topics (special help pages)
+topics:
+  - name: "peer-syntax"
+    file: "topics/peer-syntax.md"
+    description: "Understanding @peer prefix syntax"
+  - name: "local-first"
+    file: "topics/local-first.md"
+    description: "Local-first philosophy"
+  - name: "migration"
+    file: "topics/migration.md"
+    description: "Migrating from flag-based to @peer syntax"
+
+# Peer categories for documentation
+peer_categories:
+  - name: "query"
+    description: "Read-only operations"
+    commands: ["app list", "app info", "app logs", "app lineage", "server info"]
+
+  - name: "modify"
+    description: "Single-peer modifications"
+    commands: ["app remove", "app link", "app unlink", "app reserve", "app swap", "app split"]
+
+  - name: "deploy"
+    description: "Source to target deployments"
+    commands: ["app deploy", "app install", "app fork"]
+
+  - name: "transfer"
+    description: "Two-peer data transfers"
+    commands: ["app pull", "app fork"]
+
+  - name: "local-only"
+    description: "Local-only operations"
+    commands: ["app create", "app validate", "server init", "server start", "service *"]
+
+# Flag deprecation schedule
+deprecations:
+  - flag: "--to"
+    commands: ["app deploy", "app install", "app link", "app fork"]
+    migration: "Use @peer prefix"
+    removal_version: "0.20.0"
+
+  - flag: "--from"
+    commands: ["app remove", "app unlink", "app upgrade", "app pull"]
+    migration: "Use @peer prefix"
+    removal_version: "0.20.0"
+
+  - flag: "--on"
+    commands: ["app info", "app logs", "app reserve", "app swap", "app split", "app lineage"]
+    migration: "Use @peer prefix"
+    removal_version: "0.20.0"
+
+# Build configuration
+build:
+  # Directory to copy docs from
+  source: "knowledge-base/cli"
+
+  # Directory to embed in binary
+  target: "internal/help/docs"
+
+  # Files to exclude from embedding
+  exclude:
+    - "migration-strategy.md"
+    - "analysis.md"
+    - "commands.md"
+    - "*.bak"
+
+# Terminal rendering settings
+rendering:
+  # Max width for terminal output (0 = auto-detect)
+  max_width: 100
+
+  # Enable colors by default
+  colors: true
+
+  # Pager threshold (lines before paging)
+  pager_threshold: 50
