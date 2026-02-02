@@ -450,9 +450,9 @@ func handleAuthCommandWithPeer(peerName string, args []string) {
 
 	switch subcommand {
 	case "provider":
-		handleRemoteAuthProvider(client, subArgs)
+		handlePeerAuthProvider(client, subArgs)
 	case "providers":
-		handleRemoteAuthProviders(client)
+		handlePeerAuthProviders(client)
 	default:
 		fmt.Printf("Error: auth command '%s' cannot be executed remotely\n", subcommand)
 		fmt.Println("Remote commands: provider, providers")
@@ -461,7 +461,7 @@ func handleAuthCommandWithPeer(peerName string, args []string) {
 }
 
 // handleRemoteAuthProvider configures a provider on a remote peer
-func handleRemoteAuthProvider(client *remote.Client, args []string) {
+func handlePeerAuthProvider(client *remote.Client, args []string) {
 	if len(args) < 1 {
 		fmt.Println("Error: provider name is required")
 		fmt.Println("Usage: fazt @<peer> auth provider <name> [options]")
@@ -526,7 +526,7 @@ func handleRemoteAuthProvider(client *remote.Client, args []string) {
 }
 
 // handleRemoteAuthProviders lists providers on a remote peer
-func handleRemoteAuthProviders(client *remote.Client) {
+func handlePeerAuthProviders(client *remote.Client) {
 	providers, err := client.ListAuthProviders()
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)

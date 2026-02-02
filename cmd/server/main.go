@@ -41,6 +41,7 @@ import (
 	"github.com/fazt-sh/fazt/internal/storage"
 	"github.com/fazt-sh/fazt/internal/worker"
 	"github.com/fazt-sh/fazt/internal/term"
+	"github.com/fazt-sh/fazt/internal/output"
 	ignore "github.com/sabhiram/go-gitignore"
 	"golang.org/x/crypto/bcrypt"
 	_ "modernc.org/sqlite"
@@ -52,6 +53,7 @@ var (
 	showHelp    = flag.Bool("help", false, "Show help and exit")
 	verbose     = flag.Bool("verbose", false, "Enable verbose logging")
 	quiet       = flag.Bool("quiet", false, "Quiet mode (errors only)")
+	outputFormat = flag.String("format", "markdown", "Output format: markdown or json")
 )
 
 // serverlessHandler is the global serverless handler with storage support
@@ -65,6 +67,32 @@ func main() {
 		printUsage()
 		return
 	}
+
+	// Parse global flags
+	flag.Parse()
+
+	// Extract --format flag manually (before routing to subcommands)
+	for i, arg := range os.Args {
+		if arg == "--format" || arg == "-format" {
+			if i+1 < len(os.Args) {
+				*outputFormat = os.Args[i+1]
+				// Remove --format and its value from os.Args
+				os.Args = append(os.Args[:i], os.Args[i+2:]...)
+				break
+			}
+		} else if strings.HasPrefix(arg, "--format=") {
+			*outputFormat = strings.TrimPrefix(arg, "--format=")
+			os.Args = append(os.Args[:i], os.Args[i+1:]...)
+			break
+		}
+	}
+
+	// Recheck args length after flag removal
+	if len(os.Args) < 2 {
+		printUsage()
+		return
+	}
+
 
 	command := os.Args[1]
 
@@ -81,7 +109,7 @@ func main() {
 	// v0.10: Handle @peer prefix for remote execution
 	// e.g., "fazt @zyt app list" -> execute "app list" on peer "zyt"
 	if strings.HasPrefix(command, "@") {
-		handlePeerCommand(command[1:], os.Args[2:])
+		handleAtPeerRouting(command[1:], os.Args[2:])
 		return
 	}
 
@@ -91,8 +119,8 @@ func main() {
 		handleServerCommand(os.Args[2:])
 	case "servers":
 		handleServersCommand(os.Args[2:])
-	case "remote":
-		handleRemoteCommand(os.Args[2:])
+	case "peer":
+		handlePeerCommand(os.Args[2:])
 	case "app":
 		handleAppCommandV2(os.Args[2:]) // v0.10: Use new app command handler
 	case "service":
@@ -105,6 +133,8 @@ func main() {
 		handleUpgradeCommand()
 	case "auth":
 		handleAuthCommand(os.Args[2:])
+	case "sql":
+		handleSQLCommand(os.Args[2:])
 	default:
 		fmt.Printf("Unknown command: %s\n\n", command)
 		printUsage()
@@ -114,7 +144,7 @@ func main() {
 
 // handlePeerCommand handles @peer remote execution
 // e.g., "fazt @zyt app list" executes "app list" on peer "zyt"
-func handlePeerCommand(peerName string, args []string) {
+func handleAtPeerRouting(peerName string, args []string) {
 	if len(args) < 1 {
 		fmt.Printf("Error: command required after @%s\n", peerName)
 		fmt.Println("Usage: fazt @<peer> <command> [args...]")
@@ -133,7 +163,7 @@ func handlePeerCommand(peerName string, args []string) {
 	case "server":
 		// Limited server commands (info only)
 		if len(cmdArgs) > 0 && cmdArgs[0] == "info" {
-			handleRemoteServerInfo(peerName)
+			handlePeerServerInfo(peerName)
 		} else {
 			fmt.Printf("Error: only 'server info' can be executed remotely\n")
 			os.Exit(1)
@@ -141,9 +171,12 @@ func handlePeerCommand(peerName string, args []string) {
 	case "auth":
 		// Auth commands via remote API
 		handleAuthCommandWithPeer(peerName, cmdArgs)
+	case "sql":
+		// SQL commands via remote API
+		handleSQLCommandWithPeer(peerName, cmdArgs)
 	default:
 		fmt.Printf("Error: command '%s' cannot be executed remotely\n", command)
-		fmt.Println("Remote execution supported for: app, auth, server info")
+		fmt.Println("Remote execution supported for: app, auth, server info, sql")
 		os.Exit(1)
 	}
 }
@@ -196,7 +229,7 @@ func handleAppCommandV2WithPeer(peerName string, args []string) {
 }
 
 // handleRemoteServerInfo gets server info from a remote peer
-func handleRemoteServerInfo(peerName string) {
+func handlePeerServerInfo(peerName string) {
 	db := getClientDB()
 	defer database.Close()
 
@@ -457,8 +490,8 @@ func handleServersCommand(args []string) {
 	fmt.Fprintln(os.Stderr, "ERROR: 'fazt servers' has been removed.")
 	fmt.Fprintln(os.Stderr, "")
 	fmt.Fprintln(os.Stderr, "Use 'fazt remote' instead:")
-	fmt.Fprintln(os.Stderr, "  fazt remote add <name> --url <url> --token <token>")
-	fmt.Fprintln(os.Stderr, "  fazt remote list")
+	fmt.Fprintln(os.Stderr, "  fazt peer add <name> --url <url> --token <token>")
+	fmt.Fprintln(os.Stderr, "  fazt peer list")
 	fmt.Fprintln(os.Stderr, "  fazt remote remove <name>")
 	fmt.Fprintln(os.Stderr, "  fazt remote default <name>")
 	fmt.Fprintln(os.Stderr, "  fazt remote status [name]")
@@ -469,38 +502,38 @@ func handleServersCommand(args []string) {
 // Remote Commands (v0.9.0) - fazt-to-fazt communication
 // ===================================================================================
 
-// handleRemoteCommand handles remote peer commands
-func handleRemoteCommand(args []string) {
+// handleRemoteCommand handles peer management commands
+func handlePeerCommand(args []string) {
 	if len(args) < 1 {
-		handleRemoteList()
+		handlePeerList()
 		return
 	}
 
 	subcommand := args[0]
 	switch subcommand {
 	case "add":
-		handleRemoteAdd(args[1:])
+		handlePeerAdd(args[1:])
 	case "list":
-		handleRemoteList()
+		handlePeerList()
 	case "remove":
-		handleRemoteRemove(args[1:])
+		handlePeerRemove(args[1:])
 	case "default":
-		handleRemoteDefault(args[1:])
+		handlePeerDefault(args[1:])
 	case "status":
-		handleRemoteStatus(args[1:])
+		handlePeerStatus(args[1:])
 	case "apps":
 		fmt.Fprintln(os.Stderr, "DEPRECATED: Use 'fazt app list [peer]' instead")
-		handleRemoteApps(args[1:])
+		handlePeerApps(args[1:])
 	case "upgrade":
-		handleRemoteUpgrade(args[1:])
+		handlePeerUpgrade(args[1:])
 	case "deploy":
 		fmt.Fprintln(os.Stderr, "DEPRECATED: Use 'fazt app deploy <dir> --to <peer>' instead")
-		handleRemoteDeploy(args[1:])
+		handlePeerDeploy(args[1:])
 	case "--help", "-h", "help":
-		printRemoteHelp()
+		printPeerHelp()
 	default:
-		fmt.Printf("Unknown remote command: %s\n\n", subcommand)
-		printRemoteHelp()
+		fmt.Printf("Unknown peer command: %s\n\n", subcommand)
+		printPeerHelp()
 		os.Exit(1)
 	}
 }
@@ -606,10 +639,10 @@ func migrateLegacyClientDB(targetDB *sql.DB) {
 	}
 }
 
-func handleRemoteAdd(args []string) {
+func handlePeerAdd(args []string) {
 	if len(args) < 1 {
 		fmt.Println("Error: peer name is required")
-		fmt.Println("Usage: fazt remote add <name> --url <url> --token <token>")
+		fmt.Println("Usage: fazt peer add <name> --url <url> --token <token>")
 		os.Exit(1)
 	}
 
@@ -624,7 +657,7 @@ func handleRemoteAdd(args []string) {
 
 	if *urlFlag == "" || *tokenFlag == "" {
 		fmt.Println("Error: --url and --token are required")
-		fmt.Println("Usage: fazt remote add <name> --url <url> --token <token>")
+		fmt.Println("Usage: fazt peer add <name> --url <url> --token <token>")
 		os.Exit(1)
 	}
 
@@ -650,7 +683,7 @@ func handleRemoteAdd(args []string) {
 	}
 }
 
-func handleRemoteList() {
+func handlePeerList() {
 	db := getClientDB()
 	defer database.Close()
 
@@ -662,13 +695,25 @@ func handleRemoteList() {
 
 	if len(peers) == 0 {
 		fmt.Println("No peers configured.")
-		fmt.Println("Run: fazt remote add <name> --url <url> --token <token>")
+		fmt.Println("Run: fazt peer add <name> --url <url> --token <token>")
 		return
 	}
 
-	fmt.Printf("%-12s %-26s %-10s %-10s %-8s\n", "NAME", "URL", "STATUS", "VERSION", "DEFAULT")
-	fmt.Println("────────────────────────────────────────────────────────────────────────")
-	for _, p := range peers {
+	renderer := getRenderer()
+
+	// Prepare data for JSON
+	data := map[string]interface{}{
+		"peers": peers,
+		"count": len(peers),
+	}
+
+	// Build markdown table
+	table := &output.Table{
+		Headers: []string{"Name", "URL", "Status", "Version", "Default"},
+		Rows:    make([][]string, len(peers)),
+	}
+
+	for i, p := range peers {
 		defaultMark := ""
 		if p.IsDefault {
 			defaultMark = "*"
@@ -681,16 +726,24 @@ func handleRemoteList() {
 		if version == "" {
 			version = "-"
 		}
-		// Truncate URL if too long
 		displayURL := p.URL
-		if len(displayURL) > 24 {
-			displayURL = displayURL[:21] + "..."
+		if len(displayURL) > 50 {
+			displayURL = displayURL[:47] + "..."
 		}
-		fmt.Printf("%-12s %-26s %-10s %-10s %-8s\n", p.Name, displayURL, status, version, defaultMark)
+		
+		table.Rows[i] = []string{p.Name, displayURL, status, version, defaultMark}
 	}
+
+	md := output.NewMarkdown().
+		H1("Configured Peers").
+		Table(table).
+		Para(fmt.Sprintf("%d peers", len(peers))).
+		String()
+
+	renderer.Print(md, data)
 }
 
-func handleRemoteRemove(args []string) {
+func handlePeerRemove(args []string) {
 	if len(args) < 1 {
 		fmt.Println("Error: peer name is required")
 		fmt.Println("Usage: fazt remote remove <name>")
@@ -713,7 +766,7 @@ func handleRemoteRemove(args []string) {
 	fmt.Printf("Peer '%s' removed.\n", name)
 }
 
-func handleRemoteDefault(args []string) {
+func handlePeerDefault(args []string) {
 	if len(args) < 1 {
 		fmt.Println("Error: peer name is required")
 		fmt.Println("Usage: fazt remote default <name>")
@@ -736,7 +789,7 @@ func handleRemoteDefault(args []string) {
 	fmt.Printf("Default peer set to '%s'.\n", name)
 }
 
-func handleRemoteStatus(args []string) {
+func handlePeerStatus(args []string) {
 	var peerName string
 	if len(args) > 0 && !strings.HasPrefix(args[0], "-") {
 		peerName = args[0]
@@ -749,7 +802,7 @@ func handleRemoteStatus(args []string) {
 	if err != nil {
 		if err == remote.ErrNoPeers {
 			fmt.Println("No peers configured.")
-			fmt.Println("Run: fazt remote add <name> --url <url> --token <token>")
+			fmt.Println("Run: fazt peer add <name> --url <url> --token <token>")
 		} else if err == remote.ErrNoDefaultPeer {
 			fmt.Println("Multiple peers configured. Specify which peer:")
 			fmt.Println("  fazt remote status <name>")
@@ -802,7 +855,7 @@ func handleRemoteStatus(args []string) {
 	fmt.Printf("  DB Conns:   %d open, %d in use\n", status.Database.OpenConnections, status.Database.InUse)
 }
 
-func handleRemoteApps(args []string) {
+func handlePeerApps(args []string) {
 	var peerName string
 	if len(args) > 0 && !strings.HasPrefix(args[0], "-") {
 		peerName = args[0]
@@ -836,7 +889,7 @@ func handleRemoteApps(args []string) {
 	}
 }
 
-func handleRemoteUpgrade(args []string) {
+func handlePeerUpgrade(args []string) {
 	checkOnly := false
 	var peerName string
 
@@ -880,7 +933,7 @@ func handleRemoteUpgrade(args []string) {
 	}
 }
 
-func handleRemoteDeploy(args []string) {
+func handlePeerDeploy(args []string) {
 	flags := flag.NewFlagSet("remote deploy", flag.ExitOnError)
 	siteName := flags.String("name", "", "Site name (defaults to directory name)")
 	peerFlag := flags.String("to", "", "Target peer name")
@@ -984,7 +1037,7 @@ func formatDuration(seconds float64) string {
 	return fmt.Sprintf("%dm", m)
 }
 
-func printRemoteHelp() {
+func printPeerHelp() {
 	fmt.Println(`Fazt.sh - Remote Peer Management
 
 USAGE:
@@ -1004,7 +1057,7 @@ DEPRECATED (use 'fazt app' instead):
 
 EXAMPLES:
   # Add a peer
-  fazt remote add zyt --url https://admin.zyt.app --token xxx
+  fazt peer add zyt --url https://admin.zyt.app --token xxx
 
   # Check status (uses default if only one peer)
   fazt remote status
@@ -2528,6 +2581,7 @@ func handleStartCommand() {
 	dashboardMux.HandleFunc("DELETE /api/webhooks/{id}", handlers.DeleteWebhookHandler)
 	dashboardMux.HandleFunc("PUT /api/webhooks/{id}", handlers.UpdateWebhookHandler)
 	dashboardMux.HandleFunc("GET /api/system/limits", handlers.SystemLimitsHandler)
+	dashboardMux.HandleFunc("POST /api/sql", handlers.HandleSQL)
 	dashboardMux.HandleFunc("GET /api/system/cache", handlers.SystemCacheHandler)
 	dashboardMux.HandleFunc("GET /api/system/db", handlers.SystemDBHandler)
 	dashboardMux.HandleFunc("GET /api/system/config", handlers.SystemConfigHandler)
@@ -3087,4 +3141,108 @@ func handleCreateKeyCommand() {
 	fmt.Println()
 	fmt.Println("To configure your client:")
 	fmt.Printf("  fazt servers add <name> --url <YOUR_SERVER_URL> --token %s\n", token)
+}
+
+// getRenderer creates an output renderer based on the --format flag
+func getRenderer() *output.Renderer {
+	format := output.Format(*outputFormat)
+	if format != output.FormatMarkdown && format != output.FormatJSON {
+		format = output.FormatMarkdown
+	}
+	return output.NewRenderer(format)
+}
+
+// handleSQLCommandWithPeer executes SQL command on a remote peer
+func handleSQLCommandWithPeer(peerName string, args []string) {
+	fs := flag.NewFlagSet("sql", flag.ExitOnError)
+	write := fs.Bool("write", false, "Allow write operations")
+	limit := fs.Int("limit", 100, "Maximum rows to return")
+
+	fs.Parse(args)
+
+	if fs.NArg() < 1 {
+		fmt.Fprintln(os.Stderr, "Error: SQL query required")
+		fmt.Fprintln(os.Stderr, "Usage: fazt @peer sql \"SELECT ...\" [--write] [--limit N]")
+		os.Exit(1)
+	}
+
+	query := fs.Arg(0)
+
+	// Get peer info
+	db := getClientDB()
+	defer database.Close()
+
+	peer, err := remote.ResolvePeer(db, peerName)
+	if err != nil {
+		handlePeerError(err)
+		os.Exit(1)
+	}
+
+	client := remote.NewClient(peer.URL, peer.Token)
+
+	// Prepare request
+	reqBody := map[string]interface{}{
+		"query": query,
+		"write": *write,
+		"limit": *limit,
+	}
+
+	// Make API request
+	var response map[string]interface{}
+	if err := client.Post("/api/sql", reqBody, &response); err != nil {
+		fmt.Fprintf(os.Stderr, "Error executing remote SQL: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Format output based on response type
+	renderer := getRenderer()
+
+	// Check if it's a write response (has "affected" field)
+	if affected, ok := response["affected"]; ok {
+		timeMS := int64(0)
+		if t, ok := response["time_ms"].(float64); ok {
+			timeMS = int64(t)
+		}
+		fmt.Printf("%v row(s) affected (%dms)\n", affected, timeMS)
+		return
+	}
+
+	// It's a SELECT response
+	columns, _ := response["columns"].([]interface{})
+	rows, _ := response["rows"].([]interface{})
+	count := int(response["count"].(float64))
+	timeMS := int64(response["time_ms"].(float64))
+
+	// Convert to string slices for table
+	headers := make([]string, len(columns))
+	for i, col := range columns {
+		headers[i] = col.(string)
+	}
+
+	tableRows := make([][]string, len(rows.([]interface{})))
+	for i, row := range rows.([]interface{}) {
+		rowVals := row.([]interface{})
+		tableRows[i] = make([]string, len(rowVals))
+		for j, val := range rowVals {
+			if val == nil {
+				tableRows[i][j] = "NULL"
+			} else {
+				tableRows[i][j] = fmt.Sprintf("%v", val)
+			}
+		}
+	}
+
+	// Build output
+	table := &output.Table{
+		Headers: headers,
+		Rows:    tableRows,
+	}
+
+	md := output.NewMarkdown().
+		H1(fmt.Sprintf("Query Results (@%s)", peerName)).
+		Table(table).
+		Para(fmt.Sprintf("%d rows (%dms)", count, timeMS)).
+		String()
+
+	renderer.Print(md, response)
 }

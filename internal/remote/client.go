@@ -599,3 +599,51 @@ func (c *Client) doRequest(method, path string, body io.Reader) (*http.Response,
 
 	return resp, nil
 }
+
+// SQLRequest represents a SQL query request
+type SQLRequest struct {
+	Query string `json:"query"`
+	Write bool   `json:"write"`
+	Limit int    `json:"limit"`
+}
+
+// SQLResponse represents a SQL query response
+type SQLResponse struct {
+	Columns  []string        `json:"columns,omitempty"`
+	Rows     [][]interface{} `json:"rows,omitempty"`
+	Count    int             `json:"count,omitempty"`
+	Affected int64           `json:"affected,omitempty"`
+	TimeMS   int64           `json:"time_ms"`
+}
+
+// SQL executes a SQL query on the remote peer
+func (c *Client) SQL(query string, write bool, limit int) (*SQLResponse, error) {
+	reqBody := SQLRequest{
+		Query: query,
+		Write: write,
+		Limit: limit,
+	}
+
+	jsonData, err := json.Marshal(reqBody)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	resp, err := c.doRequest("POST", "/api/sql", bytes.NewReader(jsonData))
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("SQL request failed: %s", string(bodyBytes))
+	}
+
+	var sqlResp SQLResponse
+	if err := json.NewDecoder(resp.Body).Decode(&sqlResp); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return &sqlResp, nil
+}
