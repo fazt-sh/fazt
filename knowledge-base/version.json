@@ -1,13 +1,14 @@
 {
-  "version": "0.18.0",
+  "version": "0.19.0",
   "status": "stable",
   "completeness": "80%",
-  "commit": "1da7c5e",
+  "commit": "b1f6830",
   "updated_at": "2026-02-02",
   "description": "Fazt documentation and agent context",
   "sections": {
     "agent-context": "Complete - setup, architecture, API, tooling",
-    "skills/app": "Complete - BFBB app development patterns"
+    "skills/app": "Complete - BFBB app development patterns",
+    "cli": "Complete - @peer pattern, SQL command, standardized output"
   },
-  "notes": "CLI commands documented in plans - needs integration to knowledge-base"
+  "notes": "Updated for v0.19.0 - CLI refactor complete, all docs reflect @peer pattern"
 }
