@@ -4,6 +4,21 @@ All notable changes to fazt.sh will be documented in this file.
 
 ## [Unreleased]
 
+### Improved
+- **@peer pattern consistency**: Local-only commands now error clearly
+  - `app create` and `app validate` reject @peer prefix with helpful messages
+  - Auth user management commands explain SSH requirement when used remotely
+  - Help text clearly separates remote vs local commands
+
+- **Output standardization**: Extended to 4 more commands
+  - `app list` now supports `--format json` with structured data
+  - `auth providers`, `auth users`, `auth invites` use output system
+  - All list commands have consistent markdown tables and JSON output
+  - Total: 6 commands with standardized output (peer list, sql, app list, auth providers/users/invites)
+
+### Fixed
+- `peer list` now always shows live status/version (was showing stale cached data)
+
 ## [0.19.0] - 2026-02-02
 
 ### Changed

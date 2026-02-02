@@ -5,7 +5,7 @@
 
 ## Status
 
-State: **CLEAN** - v0.19.0 released, bugfix committed but unreleased (3 commits ahead)
+State: **CLEAN** - v0.19.0 released, improvements committed but unreleased (4 commits ahead)
 
 ---
 
@@ -153,14 +153,53 @@ fazt @zyt sql "SELECT ..."        # New: remote SQL queries
 
 ---
 
-## Post-Release Bugfix (unreleased)
+## Post-Release Improvements (unreleased)
 
-**Fix: peer list live status**
+### 1. Peer List Live Status (b36c18f)
 - Changed `fazt peer list` to always show live status/version
 - Previously showed stale cached data from database
 - Now makes API calls to all peers (~1.2s for 2 peers)
 - More accurate, acceptable performance
-- Commit: b36c18f
 
-**Release recommendation:** Can defer to v0.19.1 or next feature release. Bugfix is minor (display only, doesn't affect functionality).
+### 2. @Peer Pattern Audit & Output Standardization (da853aa)
+
+**Phase 1: @Peer Pattern Consistency** ✅
+- Added guards to local-only commands (`app create`, `app validate`)
+- These commands now error clearly when used with @peer prefix
+- Improved auth remote error messages with SSH guidance
+- Updated help text to separate remote vs local commands
+
+**Phase 2: Output Standardization** ✅
+- Converted `app list` to use `internal/output` system
+- Converted `auth providers`, `auth users`, `auth invites` to output system
+- All converted commands now support `--format json`
+- Markdown output uses glamour for beautiful terminal rendering
+
+**What Works:**
+```bash
+# Guards prevent misuse
+fazt @zyt app create test-app       # ❌ Errors clearly
+fazt @zyt app validate ./app        # ❌ Errors clearly
+fazt @zyt auth users                # ❌ Errors with SSH guidance
+
+# Correct usage
+fazt app create test-app            # ✅ Creates locally
+fazt app validate ./app             # ✅ Validates locally
+fazt auth users                     # ✅ Lists local users
+
+# JSON output for scripting
+fazt @zyt app list --format json    # ✅ Machine-readable apps
+fazt auth providers --format json   # ✅ Machine-readable providers
+fazt auth users --format json       # ✅ Machine-readable users
+```
+
+**Commands with Output System (6 total):**
+- `peer list` (markdown, json)
+- `sql` (markdown, json)
+- `app list` (markdown, json) ← NEW
+- `auth providers` (markdown, json) ← NEW
+- `auth users` (markdown, json) ← NEW
+- `auth invites` (markdown, json) ← NEW
+
+**Release recommendation:** Can batch with v0.19.1 or next feature release. All improvements are additive/clarifying.
 
