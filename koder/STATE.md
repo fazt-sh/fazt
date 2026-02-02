@@ -5,11 +5,95 @@
 
 ## Status
 
-State: **CLEAN** - v0.19.0 released, improvements committed but unreleased (4 commits ahead)
+State: **CLEAN** - v0.19.0 released, Phase 3 & 4 complete (unreleased)
 
 ---
 
-## This Session (2026-02-02) - Complete CLI Refactor & Release
+## Current Session (2026-02-02) - @Peer Pattern Audit Phase 3 & 4
+
+**Completed**: Phase 3 & 4 of @peer pattern audit plan
+
+### What Was Done
+
+#### Phase 3.1: `app files` Command ✅
+- Added `handleAppFiles()` CLI handler in `cmd/server/app_v2.go`
+- Registered `files` case in app command router
+- Implemented file listing with output system integration
+- Fixed `remote.FileEntry` struct to match API response format
+- Command shows path, size (formatted), and modified timestamp
+- Supports both `--alias` and `--id` flags for app identification
+- Full JSON output support with `--format json`
+
+#### Phase 3.2: Enhanced `peer status` Command ✅
+- Converted `handlePeerStatus()` to use output system
+- Added support for global `targetPeerName` context
+- Built structured markdown tables for health and resources
+- Implemented JSON output with full status data
+- Clean separation of concerns (health vs resources)
+
+#### Phase 4: Documentation ✅
+- Created `knowledge-base/agent-context/peer-routing.md`
+  - Complete @peer pattern reference
+  - Lists all remote-capable vs local-only commands
+  - Error handling patterns and usage examples
+  - Implementation details for developers
+- Updated `CHANGELOG.md` with Phase 3 & 4 changes
+- Updated `knowledge-base/skills/app/fazt/cli-app.md` with `app files` command
+
+### Files Modified
+- `cmd/server/app_v2.go` - Added `handleAppFiles()`, updated switch and help
+- `cmd/server/main.go` - Enhanced `handlePeerStatus()` with output system
+- `internal/remote/client.go` - Fixed FileEntry JSON tags
+- `CHANGELOG.md` - Added Phase 3 & 4 to Unreleased section
+- `knowledge-base/skills/app/fazt/cli-app.md` - Added app files documentation
+
+### Files Created
+- `knowledge-base/agent-context/peer-routing.md` - Comprehensive @peer guide
+
+### What Works
+```bash
+# New app files command
+fazt @local app files admin-ui
+fazt @zyt app files tetris --format json
+fazt app files my-app --id app_abc123
+
+# Enhanced peer status
+fazt peer status
+fazt peer status local
+fazt peer status --format json
+
+# All output formatted consistently
+- Markdown tables with proper headers
+- JSON output with structured data
+- File sizes formatted (KB, MB)
+- Timestamps in ISO 8601 format
+```
+
+### Tests Passed
+- ✅ `fazt @local app files admin-ui` shows 10 files with sizes/dates
+- ✅ `fazt app files admin-ui --format json` returns structured JSON
+- ✅ `fazt peer status` renders markdown tables
+- ✅ `fazt peer status --format json` returns full status data
+- ✅ Help text includes `files` command and examples
+- ✅ All tests in `/tmp/test-phase3.sh` pass
+- ✅ Remote package tests pass
+- ✅ Binary compiles without errors
+
+### Ready for Commit
+All Phase 3 & 4 work is complete and tested. Ready to commit:
+```bash
+git add .
+git commit -m "feat: Complete @peer pattern audit Phase 3 & 4
+
+- Add 'app files' command to list deployed files
+- Enhance 'peer status' with output system
+- Create comprehensive peer-routing.md guide
+- Update all documentation and help text"
+```
+
+---
+
+## Previous Session (2026-02-02) - Complete CLI Refactor & Release
 
 **Completed Plans: 31 (FULL), 33, 25**
 **Released**: v0.19.0

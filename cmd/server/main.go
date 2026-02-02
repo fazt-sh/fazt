@@ -772,6 +772,11 @@ func handlePeerStatus(args []string) {
 		peerName = args[0]
 	}
 
+	// Use global targetPeerName if no positional peer provided
+	if peerName == "" {
+		peerName = targetPeerName
+	}
+
 	db := getClientDB()
 	defer database.Close()
 
@@ -782,7 +787,7 @@ func handlePeerStatus(args []string) {
 			fmt.Println("Run: fazt peer add <name> --url <url> --token <token>")
 		} else if err == remote.ErrNoDefaultPeer {
 			fmt.Println("Multiple peers configured. Specify which peer:")
-			fmt.Println("  fazt remote status <name>")
+			fmt.Println("  fazt peer status <name>")
 		} else {
 			fmt.Printf("Error: %v\n", err)
 		}
@@ -816,20 +821,48 @@ func handlePeerStatus(args []string) {
 	// Update peer status in DB
 	remote.UpdatePeerStatus(db, peer.Name, status.Status, status.Version)
 
-	// Display status
-	fmt.Printf("Server: %s\n", peer.Name)
-	fmt.Printf("URL:    %s\n", peer.URL)
-	fmt.Println()
-	fmt.Printf("Health:\n")
-	fmt.Printf("  Status:     %s\n", status.Status)
-	fmt.Printf("  Version:    %s\n", status.Version)
-	fmt.Printf("  Mode:       %s\n", status.Mode)
-	fmt.Printf("  Uptime:     %s\n", formatDuration(status.Uptime))
-	fmt.Println()
-	fmt.Printf("Resources:\n")
-	fmt.Printf("  Memory:     %.1f MB / %.0f MB\n", status.Memory.UsedMB, status.Memory.LimitMB)
-	fmt.Printf("  Goroutines: %d\n", status.Runtime.Goroutines)
-	fmt.Printf("  DB Conns:   %d open, %d in use\n", status.Database.OpenConnections, status.Database.InUse)
+	// Use output system
+	renderer := getRenderer()
+
+	// Build health table
+	healthTable := &output.Table{
+		Headers: []string{"Metric", "Value"},
+		Rows: [][]string{
+			{"Status", status.Status},
+			{"Version", status.Version},
+			{"Mode", status.Mode},
+			{"Uptime", formatDuration(status.Uptime)},
+		},
+	}
+
+	// Build resources table
+	resourcesTable := &output.Table{
+		Headers: []string{"Resource", "Usage"},
+		Rows: [][]string{
+			{"Memory", fmt.Sprintf("%.1f MB / %.0f MB", status.Memory.UsedMB, status.Memory.LimitMB)},
+			{"Goroutines", fmt.Sprintf("%d", status.Runtime.Goroutines)},
+			{"DB Connections", fmt.Sprintf("%d open, %d in use", status.Database.OpenConnections, status.Database.InUse)},
+		},
+	}
+
+	// Prepare structured data for JSON output
+	data := map[string]interface{}{
+		"peer":   peer.Name,
+		"url":    peer.URL,
+		"status": status,
+	}
+
+	// Build markdown output
+	md := output.NewMarkdown().
+		H1(fmt.Sprintf("Peer Status: %s", peer.Name)).
+		Para(fmt.Sprintf("URL: %s", peer.URL)).
+		H2("Health").
+		Table(healthTable).
+		H2("Resources").
+		Table(resourcesTable).
+		String()
+
+	renderer.Print(md, data)
 }
 
 func handlePeerApps(args []string) {

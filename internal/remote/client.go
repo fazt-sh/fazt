@@ -359,8 +359,8 @@ type SourceInfo struct {
 // FileEntry represents a file in an app
 type FileEntry struct {
 	Path    string `json:"path"`
-	Size    int64  `json:"size_bytes"`
-	ModTime string `json:"updated_at"`
+	Size    int64  `json:"size"`
+	ModTime string `json:"mod_time"`
 }
 
 // DeployWithSource deploys a ZIP file with source tracking info

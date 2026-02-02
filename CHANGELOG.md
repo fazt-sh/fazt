@@ -4,20 +4,42 @@ All notable changes to fazt.sh will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- **`app files` command**: List files in deployed apps
+  - `fazt @peer app files <app>` shows all files with sizes and timestamps
+  - Supports `--alias` and `--id` flags for app identification
+  - JSON output available with `--format json`
+  - Uses existing `/api/apps/{id}/files` endpoint
+
 ### Improved
 - **@peer pattern consistency**: Local-only commands now error clearly
   - `app create` and `app validate` reject @peer prefix with helpful messages
   - Auth user management commands explain SSH requirement when used remotely
   - Help text clearly separates remote vs local commands
 
-- **Output standardization**: Extended to 4 more commands
+- **Output standardization**: Extended to 5 more commands
   - `app list` now supports `--format json` with structured data
   - `auth providers`, `auth users`, `auth invites` use output system
+  - `peer status` converted to output system with structured tables
   - All list commands have consistent markdown tables and JSON output
-  - Total: 6 commands with standardized output (peer list, sql, app list, auth providers/users/invites)
+  - Total: 7 commands with standardized output (peer list/status, sql, app list, auth providers/users/invites)
+
+- **`peer status` enhancements**:
+  - Respects `@peer` context (uses `targetPeerName`)
+  - Beautiful markdown tables for health and resource metrics
+  - JSON output support with `--format json`
+  - Consistent with other CLI output patterns
+
+### Documentation
+- **New guide**: `knowledge-base/agent-context/peer-routing.md`
+  - Complete @peer pattern reference
+  - Lists all remote-capable vs local-only commands
+  - Error handling patterns and examples
+  - Implementation details for developers
 
 ### Fixed
 - `peer list` now always shows live status/version (was showing stale cached data)
+- `remote.FileEntry` struct now matches API response format (`size` instead of `size_bytes`)
 
 ## [0.19.0] - 2026-02-02
 

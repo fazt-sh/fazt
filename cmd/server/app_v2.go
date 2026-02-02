@@ -59,6 +59,8 @@ func handleAppCommandV2(args []string) {
 		handleAppUpgrade(args[1:])
 	case "pull":
 		handleAppPull(args[1:])
+	case "files":
+		handleAppFiles(args[1:])
 	case "--help", "-h", "help":
 		printAppHelpV2()
 	default:
@@ -310,6 +312,99 @@ func handleAppInfoV2(args []string) {
 			fmt.Printf("Forked from: %s\n", forkedFrom)
 		}
 	}
+}
+
+// handleAppFiles lists files in a deployed app
+func handleAppFiles(args []string) {
+	flags := flag.NewFlagSet("app files", flag.ExitOnError)
+	aliasFlag := flags.String("alias", "", "Lookup by alias")
+	idFlag := flags.String("id", "", "Lookup by app ID")
+
+	flags.Usage = func() {
+		fmt.Println("Usage: fazt app files <app> [--alias | --id]")
+		fmt.Println("       fazt @<peer> app files <app> [--alias | --id]")
+		fmt.Println()
+		fmt.Println("Lists all files in a deployed app.")
+		fmt.Println()
+		flags.PrintDefaults()
+	}
+
+	// Find identifier (first non-flag arg)
+	var identifier string
+	var flagArgs []string
+	for i, arg := range args {
+		if !strings.HasPrefix(arg, "-") && identifier == "" {
+			identifier = arg
+			flagArgs = args[i+1:]
+			break
+		}
+	}
+
+	if len(flagArgs) == 0 {
+		flagArgs = args
+	}
+	flags.Parse(flagArgs)
+
+	// Determine identifier
+	if *aliasFlag != "" {
+		identifier = *aliasFlag
+	} else if *idFlag != "" {
+		identifier = *idFlag
+	}
+
+	if identifier == "" {
+		fmt.Println("Error: app identifier required")
+		flags.Usage()
+		os.Exit(1)
+	}
+
+	db := getClientDB()
+	defer database.Close()
+
+	peer, err := remote.ResolvePeer(db, targetPeerName)
+	if err != nil {
+		handlePeerError(err)
+		os.Exit(1)
+	}
+
+	// Use remote client to get files
+	client := remote.NewClient(peer)
+	files, err := client.GetAppFiles(identifier)
+	if err != nil {
+		fmt.Printf("Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Build output using output system
+	renderer := getRenderer()
+
+	table := &output.Table{
+		Headers: []string{"Path", "Size", "Modified"},
+		Rows:    make([][]string, len(files)),
+	}
+
+	for i, file := range files {
+		table.Rows[i] = []string{
+			file.Path,
+			formatSize(file.Size),
+			file.ModTime,
+		}
+	}
+
+	data := map[string]interface{}{
+		"peer":  peer.Name,
+		"app":   identifier,
+		"files": files,
+		"count": len(files),
+	}
+
+	md := output.NewMarkdown().
+		H1(fmt.Sprintf("Files in %s", identifier)).
+		Table(table).
+		Para(fmt.Sprintf("%d files", len(files))).
+		String()
+
+	renderer.Print(md, data)
 }
 
 // handleAppRemoveV2 removes an app with v0.10 options
@@ -947,6 +1042,7 @@ USAGE:
 REMOTE COMMANDS (support @peer):
   list [peer]           List apps (--aliases for alias list)
   info [identifier]     Show app details (--alias or --id)
+  files <app>           List files in a deployed app (--alias or --id)
   deploy <dir>          Deploy directory to peer
   logs <app>            View serverless execution logs (-f to follow)
   install <url>         Install app from git repository
@@ -997,6 +1093,10 @@ EXAMPLES:
   # Get app info
   fazt @zyt app info --alias tetris
   fazt @zyt app info --id app_abc123
+
+  # List files
+  fazt @zyt app files tetris
+  fazt @zyt app files --id app_abc123
 
   # Deploy
   fazt @zyt app deploy ./my-site

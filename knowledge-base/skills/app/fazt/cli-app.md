@@ -1,6 +1,6 @@
 # fazt app - App Management
 
-**Updated**: 2026-02-02
+**Updated**: 2026-02-02 (added app files command)
 
 Deploy, manage, and monitor apps on fazt instances.
 
@@ -27,6 +27,39 @@ fazt app info --id <app_id>         # Local app by ID
 fazt @zyt app info --alias <name>   # Remote app
 fazt @zyt app info --id <app_id>    # Remote app by ID
 ```
+
+### fazt app files
+
+List all files in a deployed app with sizes and timestamps.
+
+```bash
+fazt app files <app>                # Local app (by alias or ID)
+fazt app files --alias <name>       # Local app by alias
+fazt app files --id <app_id>        # Local app by ID
+fazt @zyt app files <app>           # Remote app
+fazt @zyt app files --id <app_id>   # Remote app by ID
+fazt app files <app> --format json  # JSON output
+```
+
+**Output:**
+```
+# Files in admin-ui
+
+| Path | Size | Modified |
+|---|---|---|
+| assets/index-ClxHNpIk.js | 82.4 KB | 2026-02-01T14:14:34Z |
+| favicon.png | 39.8 KB | 2026-02-01T14:14:34Z |
+| index.html | 41.3 KB | 2026-02-01T14:14:34Z |
+| manifest.json | 25 B | 2026-02-01T14:14:34Z |
+
+10 files
+```
+
+**Use cases:**
+- Verify files deployed correctly
+- Check file sizes and timestamps
+- Debug deployment issues
+- Audit deployed content
 
 ### fazt app deploy
 
