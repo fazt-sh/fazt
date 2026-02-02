@@ -28,6 +28,14 @@ type ValidationError struct {
 
 // handleAppValidate validates an app directory before deploy
 func handleAppValidate(args []string) {
+	// Guard: this is a local-only command
+	if targetPeerName != "" {
+		fmt.Fprintf(os.Stderr, "Error: 'app validate' is a local operation\n")
+		fmt.Fprintf(os.Stderr, "This command validates local files, not apps on remote peers.\n")
+		fmt.Fprintf(os.Stderr, "Usage: fazt app validate <directory> [--json]\n")
+		os.Exit(1)
+	}
+
 	flags := flag.NewFlagSet("app validate", flag.ExitOnError)
 	jsonOutput := flags.Bool("json", false, "Output as JSON")
 

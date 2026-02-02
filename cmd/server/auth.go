@@ -9,6 +9,7 @@ import (
 
 	"github.com/fazt-sh/fazt/internal/auth"
 	"github.com/fazt-sh/fazt/internal/database"
+	"github.com/fazt-sh/fazt/internal/output"
 	"github.com/fazt-sh/fazt/internal/remote"
 )
 
@@ -147,10 +148,16 @@ func handleAuthProviders() {
 		return
 	}
 
-	fmt.Printf("%-12s %-10s %-40s\n", "PROVIDER", "STATUS", "CLIENT ID")
-	fmt.Println(strings.Repeat("-", 65))
+	renderer := getRenderer()
 
-	for _, cfg := range providers {
+	// Build table
+	table := &output.Table{
+		Headers: []string{"Provider", "Status", "Client ID"},
+		Rows:    make([][]string, len(providers)),
+	}
+
+	providersData := make([]map[string]interface{}, len(providers))
+	for i, cfg := range providers {
 		status := "disabled"
 		if cfg.Enabled {
 			status = "enabled"
@@ -159,8 +166,26 @@ func handleAuthProviders() {
 		if len(clientID) > 38 {
 			clientID = clientID[:35] + "..."
 		}
-		fmt.Printf("%-12s %-10s %-40s\n", cfg.Name, status, clientID)
+		table.Rows[i] = []string{cfg.Name, status, clientID}
+		providersData[i] = map[string]interface{}{
+			"name":      cfg.Name,
+			"enabled":   cfg.Enabled,
+			"client_id": cfg.ClientID,
+		}
 	}
+
+	data := map[string]interface{}{
+		"providers": providersData,
+		"count":     len(providers),
+	}
+
+	md := output.NewMarkdown().
+		H1("OAuth Providers").
+		Table(table).
+		Para(fmt.Sprintf("%d providers configured", len(providers))).
+		String()
+
+	renderer.Print(md, data)
 }
 
 // handleAuthUsers lists all users
@@ -186,16 +211,45 @@ func handleAuthUsers() {
 		return
 	}
 
-	fmt.Printf("%-36s %-30s %-10s %-10s\n", "ID", "EMAIL", "ROLE", "PROVIDER")
-	fmt.Println(strings.Repeat("-", 90))
+	renderer := getRenderer()
 
-	for _, u := range users {
+	// Build table
+	table := &output.Table{
+		Headers: []string{"ID", "Email", "Role", "Provider"},
+		Rows:    make([][]string, len(users)),
+	}
+
+	usersData := make([]map[string]interface{}, len(users))
+	for i, u := range users {
 		email := u.Email
 		if len(email) > 28 {
 			email = email[:25] + "..."
 		}
-		fmt.Printf("%-36s %-30s %-10s %-10s\n", u.ID, email, u.Role, u.Provider)
+		table.Rows[i] = []string{u.ID, email, u.Role, u.Provider}
+		usersData[i] = map[string]interface{}{
+			"id":         u.ID,
+			"email":      u.Email,
+			"role":       u.Role,
+			"provider":   u.Provider,
+			"created_at": u.CreatedAt,
+		}
+		if u.LastLogin != nil {
+			usersData[i]["last_login"] = *u.LastLogin
+		}
 	}
+
+	data := map[string]interface{}{
+		"users": usersData,
+		"count": len(users),
+	}
+
+	md := output.NewMarkdown().
+		H1("Users").
+		Table(table).
+		Para(fmt.Sprintf("%d users", len(users))).
+		String()
+
+	renderer.Print(md, data)
 }
 
 // handleAuthUser shows/modifies a specific user
@@ -337,19 +391,55 @@ func handleAuthInvites() {
 		return
 	}
 
-	fmt.Printf("%-10s %-8s %-6s %-6s %-10s\n", "CODE", "ROLE", "USES", "MAX", "STATUS")
-	fmt.Println(strings.Repeat("-", 50))
+	renderer := getRenderer()
 
+	// Build table
+	table := &output.Table{
+		Headers: []string{"Code", "Role", "Uses", "Max", "Status"},
+		Rows:    make([][]string, len(invites)),
+	}
+
+	invitesData := make([]map[string]interface{}, len(invites))
 	now := time.Now().Unix()
-	for _, inv := range invites {
+	for i, inv := range invites {
 		status := "active"
 		if inv.MaxUses > 0 && inv.UseCount >= inv.MaxUses {
 			status = "used"
 		} else if inv.ExpiresAt != nil && now > *inv.ExpiresAt {
 			status = "expired"
 		}
-		fmt.Printf("%-10s %-8s %-6d %-6d %-10s\n", inv.Code, inv.Role, inv.UseCount, inv.MaxUses, status)
+		table.Rows[i] = []string{
+			inv.Code,
+			inv.Role,
+			fmt.Sprintf("%d", inv.UseCount),
+			fmt.Sprintf("%d", inv.MaxUses),
+			status,
+		}
+		invitesData[i] = map[string]interface{}{
+			"code":       inv.Code,
+			"role":       inv.Role,
+			"use_count":  inv.UseCount,
+			"max_uses":   inv.MaxUses,
+			"status":     status,
+			"created_by": inv.CreatedBy,
+		}
+		if inv.ExpiresAt != nil {
+			invitesData[i]["expires_at"] = *inv.ExpiresAt
+		}
 	}
+
+	data := map[string]interface{}{
+		"invites": invitesData,
+		"count":   len(invites),
+	}
+
+	md := output.NewMarkdown().
+		H1("Invite Codes").
+		Table(table).
+		Para(fmt.Sprintf("%d invites", len(invites))).
+		String()
+
+	renderer.Print(md, data)
 }
 
 func getDefaultDBPath() string {
@@ -374,10 +464,13 @@ func printAuthHelp() {
 
 USAGE:
   fazt auth <command> [options]
+  fazt @<peer> auth <command> [options]  (remote execution, limited)
 
-COMMANDS:
+REMOTE COMMANDS (support @peer):
   provider <name>  Configure an OAuth provider
   providers        List configured providers
+
+LOCAL COMMANDS (no @peer support, require SSH for remote):
   users            List all users
   user <id>        Show/modify a user
   invite           Create an invite code
@@ -453,6 +546,13 @@ func handleAuthCommandWithPeer(peerName string, args []string) {
 		handlePeerAuthProvider(client, subArgs)
 	case "providers":
 		handlePeerAuthProviders(client)
+	case "users", "user", "invite", "invites":
+		fmt.Fprintf(os.Stderr, "Error: 'auth %s' is not available remotely\n", subcommand)
+		fmt.Fprintf(os.Stderr, "\nUser management requires direct database access for security.\n")
+		fmt.Fprintf(os.Stderr, "To manage users on a remote peer, SSH into the server:\n")
+		fmt.Fprintf(os.Stderr, "  ssh user@host\n")
+		fmt.Fprintf(os.Stderr, "  fazt auth %s\n", subcommand)
+		os.Exit(1)
 	default:
 		fmt.Printf("Error: auth command '%s' cannot be executed remotely\n", subcommand)
 		fmt.Println("Remote commands: provider, providers")

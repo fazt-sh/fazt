@@ -14,6 +14,14 @@ import (
 
 // handleAppCreate creates a new app from a template
 func handleAppCreate(args []string) {
+	// Guard: this is a local-only command
+	if targetPeerName != "" {
+		fmt.Fprintf(os.Stderr, "Error: 'app create' is a local operation\n")
+		fmt.Fprintf(os.Stderr, "This command creates local files, not apps on remote peers.\n")
+		fmt.Fprintf(os.Stderr, "Usage: fazt app create <name> [--template <template>]\n")
+		os.Exit(1)
+	}
+
 	flags := flag.NewFlagSet("app create", flag.ExitOnError)
 	templateName := flags.String("template", "minimal", "Template to use (minimal, vite)")
 	listTemplates := flags.Bool("list-templates", false, "List available templates")

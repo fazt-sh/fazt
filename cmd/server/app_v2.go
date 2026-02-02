@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/fazt-sh/fazt/internal/database"
+	"github.com/fazt-sh/fazt/internal/output"
 	"github.com/fazt-sh/fazt/internal/remote"
 )
 
@@ -102,6 +103,8 @@ func handleAppListV2(args []string) {
 		os.Exit(1)
 	}
 
+	renderer := getRenderer()
+
 	if showAliases {
 		// Fetch aliases instead
 		result, err = executeRemoteCmd(peer, "app", []string{"list", "--aliases"})
@@ -109,10 +112,14 @@ func handleAppListV2(args []string) {
 			fmt.Printf("Error: %v\n", err)
 			os.Exit(1)
 		}
-		fmt.Printf("Aliases on %s:\n\n", peer.Name)
-		fmt.Printf("%-20s %-10s %-20s\n", "SUBDOMAIN", "TYPE", "TARGET")
-		fmt.Println("──────────────────────────────────────────────────────")
 
+		// Build table for aliases
+		table := &output.Table{
+			Headers: []string{"Subdomain", "Type", "Target"},
+			Rows:    [][]string{},
+		}
+
+		aliasData := []interface{}{}
 		if aliases, ok := result.([]interface{}); ok {
 			for _, a := range aliases {
 				if alias, ok := a.(map[string]interface{}); ok {
@@ -124,17 +131,35 @@ func handleAppListV2(args []string) {
 							target = appID
 						}
 					}
-					fmt.Printf("%-20s %-10s %-20s\n", subdomain, aliasType, target)
+					table.Rows = append(table.Rows, []string{subdomain, aliasType, target})
+					aliasData = append(aliasData, alias)
 				}
 			}
 		}
+
+		data := map[string]interface{}{
+			"peer":    peer.Name,
+			"aliases": aliasData,
+			"count":   len(table.Rows),
+		}
+
+		md := output.NewMarkdown().
+			H1(fmt.Sprintf("Aliases on %s", peer.Name)).
+			Table(table).
+			Para(fmt.Sprintf("%d aliases", len(table.Rows))).
+			String()
+
+		renderer.Print(md, data)
 		return
 	}
 
-	fmt.Printf("Apps on %s:\n\n", peer.Name)
-	fmt.Printf("%-16s %-20s %-10s %-20s\n", "ID", "TITLE", "VISIBILITY", "ALIASES")
-	fmt.Println("────────────────────────────────────────────────────────────────────")
+	// Build table for apps
+	table := &output.Table{
+		Headers: []string{"ID", "Title", "Visibility", "Aliases"},
+		Rows:    [][]string{},
+	}
 
+	appsData := []interface{}{}
 	if apps, ok := result.([]interface{}); ok {
 		for _, a := range apps {
 			if app, ok := a.(map[string]interface{}); ok {
@@ -153,20 +178,38 @@ func handleAppListV2(args []string) {
 				}
 
 				// Truncate for display
-				if len(id) > 14 {
-					id = id[:14] + ".."
+				displayID := id
+				displayTitle := title
+				displayAliases := aliases
+				if len(displayID) > 14 {
+					displayID = displayID[:14] + ".."
 				}
-				if len(title) > 18 {
-					title = title[:18] + ".."
+				if len(displayTitle) > 18 {
+					displayTitle = displayTitle[:18] + ".."
 				}
-				if len(aliases) > 18 {
-					aliases = aliases[:18] + ".."
+				if len(displayAliases) > 18 {
+					displayAliases = displayAliases[:18] + ".."
 				}
 
-				fmt.Printf("%-16s %-20s %-10s %-20s\n", id, title, visibility, aliases)
+				table.Rows = append(table.Rows, []string{displayID, displayTitle, visibility, displayAliases})
+				appsData = append(appsData, app)
 			}
 		}
 	}
+
+	data := map[string]interface{}{
+		"peer":  peer.Name,
+		"apps":  appsData,
+		"count": len(table.Rows),
+	}
+
+	md := output.NewMarkdown().
+		H1(fmt.Sprintf("Apps on %s", peer.Name)).
+		Table(table).
+		Para(fmt.Sprintf("%d apps", len(table.Rows))).
+		String()
+
+	renderer.Print(md, data)
 }
 
 // handleAppInfoV2 shows app info with v0.10 format
@@ -901,16 +944,25 @@ USAGE:
   fazt app <command> [options]
   fazt @<peer> app <command> [options]  (remote execution)
 
-COMMANDS:
+REMOTE COMMANDS (support @peer):
   list [peer]           List apps (--aliases for alias list)
   info [identifier]     Show app details (--alias or --id)
   deploy <dir>          Deploy directory to peer
-  validate <dir>        Validate app before deployment
   logs <app>            View serverless execution logs (-f to follow)
   install <url>         Install app from git repository
-  create <name>         Create new app from template (static, vue, vue-api)
   remove [identifier]   Remove app (--alias, --id, --with-forks)
   upgrade <app>         Upgrade git-sourced app
+  link <subdomain>      Link subdomain to app (--id required)
+  unlink <subdomain>    Remove alias
+  reserve <subdomain>   Reserve/block subdomain
+  swap <a1> <a2>        Atomically swap two aliases
+  split <subdomain>     Configure traffic splitting (--ids)
+  fork                  Fork an app (--alias/--id, --as, --no-storage)
+  lineage               Show fork tree (--alias/--id)
+
+LOCAL COMMANDS (no @peer support):
+  create <name>         Create local app from template (static, vue, vue-api)
+  validate <dir>        Validate local directory before deployment
 
 ALIAS MANAGEMENT:
   link <subdomain>      Link subdomain to app (--id required)
