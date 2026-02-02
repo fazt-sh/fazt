@@ -110,19 +110,40 @@ This script:
 ```bash
 # Push (Actions will skip since 4 assets already exist)
 git push origin master && git push origin vX.Y.Z
-
-# Install locally
-go build -o ~/.local/bin/fazt ./cmd/server
-fazt --version
 ```
 
-### 10. Upgrade Remote Servers
+### 9. Install Locally and Restart Service
 
 ```bash
-fazt remote upgrade zyt
+# Build and install binary
+go build -o ~/.local/bin/fazt ./cmd/server
+fazt --version
+
+# Restart local systemd service (if running)
+systemctl --user restart fazt-local 2>/dev/null && echo "Local service restarted" || echo "No local service running"
+
+# Wait for service to start
+sleep 2
+
+# Verify local peer upgraded (if configured as peer)
+fazt peer status local 2>/dev/null || echo "Local not configured as peer"
 ```
 
-Returns "already latest" if already upgraded (idempotent).
+### 10. Upgrade All Peers
+
+```bash
+# List all configured peers
+fazt peer list
+
+# Upgrade each peer (idempotent - returns "already latest" if up-to-date)
+fazt peer upgrade local 2>/dev/null || echo "Local peer not configured"
+fazt peer upgrade zyt   2>/dev/null || echo "zyt peer not configured"
+
+# Or upgrade all peers automatically:
+# fazt peer list --format json | jq -r '.[].name' | xargs -I {} fazt peer upgrade {}
+```
+
+**Note**: Each upgrade is idempotent and returns "already latest" if the peer is already upgraded.
 
 ## Quick Reference
 
@@ -132,7 +153,8 @@ Returns "already latest" if already upgraded (idempotent).
 | Latest tag | `git describe --tags --abbrev=0` |
 | Tag exists? | `git tag -l "vX.Y.Z"` |
 | Need to push? | `git status -sb` (shows "ahead") |
-| Remote version | `fazt remote status zyt` |
+| All peer versions | `fazt peer list` |
+| Specific peer version | `fazt peer status <name>` |
 
 ## Version Numbering
 
