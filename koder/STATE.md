@@ -1,87 +1,118 @@
 # Fazt Implementation State
 
 **Last Updated**: 2026-02-02
-**Current Version**: v0.21.0 (released)
+**Current Version**: v0.22.0 (released)
 
 ## Status
 
-State: **CLEAN** - Universal @peer pattern implemented (4 commits since v0.21.0)
+State: **CLEAN** - Unified versioning system established (1 commit since v0.22.0)
 
 ---
 
-## Last Session (2026-02-02) - Universal @Peer Routing Pattern
+## Last Session (2026-02-02) - Unified Versioning System
 
 ### What Was Done
 
-#### 1. Universal @Peer Pattern ✅
-Implemented universal `fazt @<target> <command>` syntax for ALL commands:
-- `fazt @zyt status` (was: `fazt peer status zyt`)
-- `fazt @zyt upgrade` (was: `fazt peer upgrade zyt`)
-- All commands use same pattern - no exceptions to remember
+#### 1. Fixed Version Drift ✅
+Synchronized all version files to v0.22.0:
+- Root `version.json`: 0.20.0 → 0.22.0
+- `knowledge-base/version.json`: 0.21.0 → 0.22.0
+- `admin/version.json`: 0.18.0 → 0.22.0
+- Binary, tags, peers already at 0.22.0 ✓
 
-#### 2. Helpful Error Messages ✅
-Commands that can't work remotely show SSH guidance:
-```
-$ fazt @zyt service install
-Error: 'service' requires local system access (systemd/sudo).
+#### 2. Created VERSIONING.md ✅
+Comprehensive documentation for all parallel versioning systems:
+- **6 version files tracked**: root, binary (config.go), KB, admin, git tags, remote peers
+- **Status system documented**: alpha/beta/stable with completeness tracking
+- **Complete release workflow**: Step-by-step checklist to update ALL files atomically
+- **Verification commands**: Detect drift across all version sources
+- **Testing requirements**: What to test for each component
+- **Common issues & fixes**: How to resolve version drift
 
-To manage the service on zyt, SSH into the machine:
-  ssh user@zyt.app
-  fazt service install
-```
+#### 3. Fixed Session Skills ✅
+Updated `/close` and `/release` skills to check ALL version files:
 
-#### 3. Documentation Updates ✅
-- Comprehensive rewrite of `peer-routing.md`
-- Updated `api.md`, `setup.md`, `cli-peer.md`
-- Updated all embedded help docs (`fazt.md`, `deploy.md`, `peer/_index.md`)
-- Updated release skill with new syntax
-- Moved `analysis.md` design doc out of embedded help
+**`/close` (session end)**:
+- Now checks: root version.json, config.go, KB, admin, tag, binary
+- Reports: "Root, Binary, KB, Admin, Release, local, zyt ✓"
+- Detects drift with reference to VERSIONING.md
+
+**`/release` (release workflow)**:
+- Pre-flight checks all version files for sync
+- Updated step 2: "Update ALL Version Files" with explicit instructions
+- Stage all version files together before commit
+- Quick reference table expanded with all version commands
+
+**`/open` (session start)**:
+- Already complete, no changes needed
+
+#### 4. Tested Universal @Peer Pattern ✅
+Verified production deployment:
+- `fazt @zyt status` - healthy, v0.22.0 ✓
+- `fazt @local status` - healthy, v0.22.0 ✓
+- `fazt @zyt app list` - 20 apps, working perfectly ✓
 
 ### Key Files Changed
-- `cmd/server/main.go` - Universal @peer router with `handleAtPeerRouting()`
-- `knowledge-base/agent-context/peer-routing.md` - Complete rewrite
-- `internal/help/cli/peer/_index.md` - Updated for new pattern
-- `.claude/commands/release.md` - Updated upgrade steps
+- `VERSIONING.md` - Created (comprehensive versioning documentation)
+- `version.json` - Updated to 0.22.0
+- `knowledge-base/version.json` - Updated to 0.22.0
+- `admin/version.json` - Updated to 0.22.0
+- `.claude/commands/close.md` - Added all version file checks
+- `.claude/commands/release.md` - Complete version workflow
 
-### Tests Passed
-- ✅ All unit tests pass (`go test ./...`)
-- ✅ Binary compiles with plain `go build`
-- ✅ Documentation consistent across all files
+### Commit
+```
+b0871f7 feat: Unified versioning system with comprehensive tracking
+```
+
+### Component Status
+
+From `version.json`:
+- **fazt-binary**: stable (100%) - Production-ready core
+- **admin**: alpha (15%) - Dashboard functional, rest in progress
+- **fazt-sdk**: alpha (20%) - Basic API coverage with mocks
+- **knowledge-base**: stable (80%) - Comprehensive, ongoing updates
 
 ### Release
-**Not released** - 4 commits since v0.21.0 (documentation + CLI routing)
-- Consider releasing v0.22.0 when ready to test @peer pattern on production
+**Not released** - 1 commit since v0.22.0 (versioning system only, no code changes)
+- Docs/tooling improvement, doesn't require new release
+- Next release: When code changes warrant it
 
 ---
 
 ## Next Up
 
 ### High Priority
-1. **Test universal @peer pattern** - Verify `fazt @zyt status` and `fazt @zyt upgrade` work
-2. **Release v0.22.0** - Deploy universal @peer pattern changes
+1. **Continue development** - Universal @peer pattern is deployed and working
+2. **Future features** - As needed
 
 ### Future Work
 1. **Expand CLI help docs** - Add more commands (server, auth, sql, etc.)
 2. **Web HTML rendering** - docs-rendering-design.md Phase 2
 3. **Full command coverage** - All commands with markdown help
+4. **Version automation** - Pre-commit hook or CI check to prevent drift
 
 ---
 
 ## Quick Reference
 
 ```bash
-# Version
-fazt --version                  # v0.21.0
+# Version verification (all should match!)
+cat version.json | jq -r '.version'                                    # v0.22.0
+grep "var Version" internal/config/config.go | grep -oE '[0-9..]+'    # 0.22.0
+cat knowledge-base/version.json | jq -r '.version'                    # v0.22.0
+cat admin/version.json | jq -r '.version'                             # v0.22.0
+git describe --tags --abbrev=0                                         # v0.22.0
+fazt --version                                                          # v0.22.0
 
-# Universal @peer syntax (NEW)
-fazt @zyt status                # Check peer health
-fazt @zyt upgrade               # Upgrade peer binary
-fazt @zyt app list              # List apps
-fazt @local status              # Check local peer
+# Remote peers
+fazt @local status                  # Check local peer
+fazt @zyt status                    # Check production peer
 
-# Local peer config (no @peer)
-fazt peer list                  # List configured peers
-fazt peer add prod ...          # Add peer
+# Universal @peer syntax
+fazt @zyt app list                  # List apps on zyt
+fazt @zyt upgrade                   # Upgrade zyt binary
+fazt @local app deploy ./my-app     # Deploy to local
 
 # Local server
 systemctl --user status fazt-local
@@ -95,13 +126,22 @@ go build -o ~/.local/bin/fazt ./cmd/server
 
 ## Architecture Notes
 
-### CLI Help System
-- **Single source of truth**: `internal/help/cli/` (tracked in git)
-- **Symlink**: `knowledge-base/cli` → `../internal/help/cli`
-- **Embed**: `//go:embed all:cli` in `internal/help/embed.go`
-- **No build steps**: Plain `go build` works
+### Unified Versioning (NEW)
+
+All components share one version for guaranteed compatibility. See `VERSIONING.md`.
+
+**Version files** (must stay in sync):
+1. `version.json` - Source of truth
+2. `internal/config/config.go` - Binary version (var Version)
+3. `knowledge-base/version.json` - Docs compatibility marker
+4. `admin/version.json` - Admin UI version + status
+5. Git tags - Release markers
+6. Remote peers - Deployed versions
+
+**On each release**: Update ALL files in a single atomic commit.
 
 ### Universal @Peer Pattern
+
 ```
 fazt @<target> <command> [args...]
      ^^^^^^^^  ^^^^^^^^^
@@ -110,3 +150,9 @@ fazt @<target> <command> [args...]
 Commands that work remotely: app, status, upgrade, sql, auth providers
 Commands with helpful errors: service, config, server init, app create
 ```
+
+### CLI Help System
+- **Single source of truth**: `internal/help/cli/` (tracked in git)
+- **Symlink**: `knowledge-base/cli` → `../internal/help/cli`
+- **Embed**: `//go:embed all:cli` in `internal/help/embed.go`
+- **No build steps**: Plain `go build` works
