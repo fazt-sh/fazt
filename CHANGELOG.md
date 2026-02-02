@@ -4,6 +4,32 @@ All notable changes to fazt.sh will be documented in this file.
 
 ## [Unreleased]
 
+## [0.21.0] - 2026-02-02
+
+### Added
+- **Markdown-based CLI help system**: CLI help now reads from embedded markdown files
+  - Uses YAML frontmatter for structured command metadata
+  - Glamour renders beautiful terminal output with colors
+  - Falls back to hardcoded help when markdown not found
+  - Piped output returns plain markdown (no ANSI codes)
+  - New `internal/help/` package with types, loader, and renderer
+
+- **CLI help documentation**: Structured help for key commands
+  - `fazt --help` - Root help with commands overview
+  - `fazt app --help` - App group help with all subcommands
+  - `fazt app deploy --help` - Detailed deploy documentation
+  - `fazt peer --help` - Peer management help
+
+### Changed
+- CLI docs moved to `internal/help/cli/` (source of truth)
+- `knowledge-base/cli/` is now a symlink for web doc export
+- Plain `go build` works (no build-time copy needed)
+
+### Improved
+- **Migration log suppression**: Migrations now silent by default
+  - Use `--verbose` flag to see migration logs
+  - Cleaner CLI output for normal operations
+
 ## [0.20.0] - 2026-02-02
 
 ### Added

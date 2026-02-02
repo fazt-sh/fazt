@@ -1,5 +1,11 @@
 [
     {
+        "version": "v0.21.0",
+        "title": "Markdown-Based CLI Help System",
+        "description": "CLI help now reads from embedded markdown files with YAML frontmatter. Glamour renders beautiful terminal output. Falls back to hardcoded help gracefully. Migration logs suppressed by default (use --verbose).",
+        "created_at": "2026-02-02"
+    },
+    {
         "version": "v0.20.0",
         "title": "@Peer Pattern Polish & New Commands",
         "description": "New 'app files' command to list deployed files. Enhanced 'peer status' with output system. Improved @peer pattern consistency with helpful error messages. Comprehensive peer-routing.md documentation. Extended output standardization to 7 commands total.",
