@@ -658,6 +658,24 @@ func handlePeerList() {
 		return
 	}
 
+	// Make live API calls to get fresh status/version for each peer
+	for i := range peers {
+		client := remote.NewClient(&peers[i])
+
+		// Get status which includes version
+		status, err := client.Status()
+		if err != nil {
+			peers[i].LastStatus = "unreachable"
+			peers[i].LastVersion = "-"
+		} else {
+			peers[i].LastStatus = "healthy"
+			peers[i].LastVersion = status.Version
+		}
+
+		// Update cache in database
+		remote.UpdatePeerStatus(db, peers[i].Name, peers[i].LastStatus, peers[i].LastVersion)
+	}
+
 	renderer := getRenderer()
 
 	// Prepare data for JSON
@@ -689,7 +707,7 @@ func handlePeerList() {
 		if len(displayURL) > 50 {
 			displayURL = displayURL[:47] + "..."
 		}
-		
+
 		table.Rows[i] = []string{p.Name, displayURL, status, version, defaultMark}
 	}
 
