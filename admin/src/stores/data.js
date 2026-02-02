@@ -51,6 +51,12 @@ export const currentApp = map({
   files: []
 })
 
+// Events data
+export const events = list([])
+
+// Logs data
+export const logs = list([])
+
 /**
  * Load apps from API
  * @param {import('../../packages/fazt-sdk/index.js').createClient} client
@@ -182,6 +188,118 @@ export async function loadAuth(client) {
       user: null,
       loading: false
     })
+  }
+}
+
+/**
+ * Load events from API
+ * @param {import('../../packages/fazt-sdk/index.js').createClient} client
+ * @param {Object} options - Filter options
+ */
+export async function loadEvents(client, options = {}) {
+  loading.setKey('events', true)
+  try {
+    const data = await client.events.list(options)
+    events.set(data || [])
+    error.set(null)
+  } catch (err) {
+    error.set(err.message)
+    notify({ type: 'error', message: 'Failed to load events' })
+  } finally {
+    loading.setKey('events', false)
+  }
+}
+
+/**
+ * Load logs from API
+ * @param {import('../../packages/fazt-sdk/index.js').createClient} client
+ * @param {string} siteId - App ID to get logs for
+ * @param {Object} options - Filter options
+ */
+export async function loadLogs(client, siteId, options = {}) {
+  loading.setKey('logs', true)
+  try {
+    const data = await client.logs.list(siteId, options)
+    logs.set(data?.logs || [])
+    error.set(null)
+  } catch (err) {
+    error.set(err.message)
+    notify({ type: 'error', message: 'Failed to load logs' })
+  } finally {
+    loading.setKey('logs', false)
+  }
+}
+
+/**
+ * Create app from template
+ * @param {import('../../packages/fazt-sdk/index.js').createClient} client
+ * @param {string} name - App name
+ * @param {string} template - Template ID
+ */
+export async function createApp(client, name, template = 'minimal') {
+  try {
+    const data = await client.apps.create(name, template)
+    notify({ type: 'success', message: `App "${name}" created` })
+    // Reload apps to include new one
+    await loadApps(client)
+    return data
+  } catch (err) {
+    notify({ type: 'error', message: err.message || 'Failed to create app' })
+    throw err
+  }
+}
+
+/**
+ * Create alias
+ * @param {import('../../packages/fazt-sdk/index.js').createClient} client
+ * @param {string} subdomain
+ * @param {string} type
+ * @param {Object} options
+ */
+export async function createAlias(client, subdomain, type, options = {}) {
+  try {
+    await client.aliases.create(subdomain, type, options)
+    notify({ type: 'success', message: `Alias "${subdomain}" created` })
+    await loadAliases(client)
+    return true
+  } catch (err) {
+    notify({ type: 'error', message: err.message || 'Failed to create alias' })
+    throw err
+  }
+}
+
+/**
+ * Update alias
+ * @param {import('../../packages/fazt-sdk/index.js').createClient} client
+ * @param {string} subdomain
+ * @param {Object} data
+ */
+export async function updateAlias(client, subdomain, data) {
+  try {
+    await client.aliases.update(subdomain, data)
+    notify({ type: 'success', message: `Alias "${subdomain}" updated` })
+    await loadAliases(client)
+    return true
+  } catch (err) {
+    notify({ type: 'error', message: err.message || 'Failed to update alias' })
+    throw err
+  }
+}
+
+/**
+ * Delete alias
+ * @param {import('../../packages/fazt-sdk/index.js').createClient} client
+ * @param {string} subdomain
+ */
+export async function deleteAlias(client, subdomain) {
+  try {
+    await client.aliases.delete(subdomain)
+    notify({ type: 'success', message: `Alias "${subdomain}" deleted` })
+    await loadAliases(client)
+    return true
+  } catch (err) {
+    notify({ type: 'error', message: err.message || 'Failed to delete alias' })
+    throw err
   }
 }
 

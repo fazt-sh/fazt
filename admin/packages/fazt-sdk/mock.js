@@ -7,6 +7,8 @@ import apps from './fixtures/apps.json' with { type: 'json' }
 import aliases from './fixtures/aliases.json' with { type: 'json' }
 import health from './fixtures/health.json' with { type: 'json' }
 import user from './fixtures/user.json' with { type: 'json' }
+import events from './fixtures/events.json' with { type: 'json' }
+import logsData from './fixtures/logs.json' with { type: 'json' }
 
 // Simulated delay
 const delay = (ms = 100) => new Promise(resolve => setTimeout(resolve, ms))
@@ -64,7 +66,62 @@ const routes = {
     requests_24h: 12847,
     storage_bytes: 2410000000,
     uptime_percent: 99.97
-  })
+  }),
+  'GET /api/events': (params, body, query) => {
+    let result = [...events]
+    // Filter by domain if provided
+    if (query?.domain) {
+      result = result.filter(e => e.domain.includes(query.domain))
+    }
+    // Filter by source_type if provided
+    if (query?.source_type) {
+      result = result.filter(e => e.source_type === query.source_type)
+    }
+    // Filter by event_type if provided
+    if (query?.event_type) {
+      result = result.filter(e => e.event_type === query.event_type)
+    }
+    // Apply limit
+    const limit = parseInt(query?.limit) || 50
+    const offset = parseInt(query?.offset) || 0
+    return result.slice(offset, offset + limit)
+  },
+  'GET /api/logs': (params, body, query) => {
+    let logs = [...logsData.logs]
+    // Filter by site_id if provided
+    if (query?.site_id) {
+      logs = logs.filter(l => l.site_id === query.site_id)
+    }
+    // Apply limit
+    const limit = parseInt(query?.limit) || 50
+    return { logs: logs.slice(0, limit) }
+  },
+  'POST /api/apps/create': (params, body) => {
+    const newApp = {
+      id: 'app_' + Math.random().toString(36).substr(2, 8),
+      name: body.name,
+      source: 'template',
+      manifest: { name: body.name },
+      file_count: 3,
+      size_bytes: 4096,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }
+    apps.push(newApp)
+    return newApp
+  },
+  'PUT /api/aliases/:subdomain': (params, body) => {
+    const alias = aliases.find(a => a.subdomain === params.subdomain)
+    if (!alias) throw { code: 'ALIAS_NOT_FOUND', message: 'Alias not found', status: 404 }
+    Object.assign(alias, body, { updated_at: new Date().toISOString() })
+    return alias
+  },
+  'GET /api/templates': () => ([
+    { id: 'minimal', name: 'Minimal', description: 'Bare bones static site' },
+    { id: 'spa', name: 'SPA', description: 'Single page application with routing' },
+    { id: 'api', name: 'API', description: 'API-only with serverless functions' },
+    { id: 'full', name: 'Full Stack', description: 'Static + API with auth' }
+  ])
 }
 
 /**
@@ -107,7 +164,9 @@ export function createMockAdapter(options = {}) {
     await delay(delayMs)
 
     const method = (config.method || 'GET').toUpperCase()
-    const path = new URL(url, 'http://localhost').pathname
+    const urlObj = new URL(url, 'http://localhost')
+    const path = urlObj.pathname
+    const query = Object.fromEntries(urlObj.searchParams.entries())
     let body = null
 
     if (config.body) {
@@ -127,7 +186,7 @@ export function createMockAdapter(options = {}) {
       const { match, params } = matchRoute(routePattern, path)
       if (match) {
         try {
-          const data = await handler(params, body)
+          const data = await handler(params, body, query)
           return new Response(JSON.stringify({ success: true, data }), {
             status: 200,
             headers: { 'Content-Type': 'application/json' }

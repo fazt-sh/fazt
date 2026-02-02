@@ -144,6 +144,24 @@ export function createClient(options = {}) {
     templates: {
       /** List available templates */
       list: () => http.get('/api/templates')
+    },
+
+    /**
+     * Events endpoints
+     */
+    events: {
+      /** List events with optional filters */
+      list: (options = {}) => http.get('/api/events', { params: options })
+      // options: { domain, tags, source_type, event_type, limit, offset }
+    },
+
+    /**
+     * Logs endpoints
+     */
+    logs: {
+      /** List logs for a site */
+      list: (siteId, options = {}) => http.get('/api/logs', { params: { site_id: siteId, ...options } })
+      // options: { limit }
     }
   }
 }

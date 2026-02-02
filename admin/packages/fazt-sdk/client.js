@@ -31,7 +31,20 @@ export function createHttpClient(options = {}) {
    * @returns {Promise<any>}
    */
   async function request(path, requestOptions = {}) {
-    const url = baseUrl + path
+    // Build URL with query params
+    let url = baseUrl + path
+    if (requestOptions.params) {
+      const searchParams = new URLSearchParams()
+      for (const [key, value] of Object.entries(requestOptions.params)) {
+        if (value !== undefined && value !== null) {
+          searchParams.append(key, String(value))
+        }
+      }
+      const queryString = searchParams.toString()
+      if (queryString) {
+        url += (url.includes('?') ? '&' : '?') + queryString
+      }
+    }
     const config = {
       method: requestOptions.method || 'GET',
       headers: {

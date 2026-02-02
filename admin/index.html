@@ -900,38 +900,221 @@
         <div class="w-12 h-12 mx-auto mb-4 flex items-center justify-center" style="background:var(--accent-soft);border-radius:var(--radius-md)">
           <i data-lucide="rocket" class="w-6 h-6" style="color:var(--accent)"></i>
         </div>
-        <h2 class="text-title" style="color:var(--text-1)">Deploy New App</h2>
-        <p class="text-caption mt-1" style="color:var(--text-3)">Deploy your app directly from the web UI</p>
+        <h2 class="text-title" style="color:var(--text-1)">Create New App</h2>
+        <p class="text-caption mt-1" style="color:var(--text-3)">Create an app from a template</p>
       </div>
 
-      <div class="space-y-4 mb-6">
-        <!-- Coming Soon Notice -->
-        <div class="p-4 text-center" style="background:var(--bg-2);border-radius:var(--radius-lg);border:1px solid var(--border-subtle)">
-          <div class="icon-box mx-auto mb-3" style="width:40px;height:40px;background:var(--warning-soft)">
-            <i data-lucide="construction" class="w-5 h-5" style="color:var(--warning)"></i>
+      <form id="newAppForm" class="space-y-4 mb-6">
+        <!-- App Name -->
+        <div>
+          <label class="text-micro text-muted block mb-2">APP NAME</label>
+          <div class="input">
+            <i data-lucide="box" class="w-4 h-4 text-faint"></i>
+            <input type="text" id="newAppName" name="name" placeholder="my-app" class="text-body" required pattern="[a-z0-9-]+" title="Lowercase letters, numbers, and dashes only" style="flex: 1">
           </div>
-          <div class="text-heading text-primary mb-2">Coming Soon</div>
-          <div class="text-caption text-muted mb-4">Web-based app deployment is currently in development</div>
+          <div class="text-caption text-muted mt-1 px-1">Lowercase letters, numbers, and dashes only</div>
         </div>
 
-        <!-- Alternative Methods -->
-        <div style="border-top:1px solid var(--border-subtle);padding-top:16px">
-          <div class="text-micro text-muted mb-3">DEPLOY VIA CLI</div>
-          <div class="p-3 mono text-caption" style="background:var(--bg-0);border-radius:var(--radius-md);border:1px solid var(--border-subtle)">
-            <div class="text-primary">fazt app deploy ./my-app</div>
+        <!-- Template Selection -->
+        <div>
+          <label class="text-micro text-muted block mb-2">TEMPLATE</label>
+          <div id="templateGrid" class="grid grid-cols-2 gap-2">
+            <button type="button" class="template-option p-3 text-left" style="background:var(--bg-2);border:2px solid var(--accent);border-radius:var(--radius-md);cursor:pointer" data-template="minimal">
+              <div class="flex items-center gap-2 mb-1">
+                <i data-lucide="file" class="w-4 h-4" style="color:var(--accent)"></i>
+                <span class="text-label text-primary">Minimal</span>
+              </div>
+              <div class="text-caption text-muted">Static site</div>
+            </button>
+            <button type="button" class="template-option p-3 text-left" style="background:var(--bg-2);border:2px solid var(--border-subtle);border-radius:var(--radius-md);cursor:pointer" data-template="spa">
+              <div class="flex items-center gap-2 mb-1">
+                <i data-lucide="layout" class="w-4 h-4" style="color:var(--text-3)"></i>
+                <span class="text-label text-primary">SPA</span>
+              </div>
+              <div class="text-caption text-muted">With routing</div>
+            </button>
+            <button type="button" class="template-option p-3 text-left" style="background:var(--bg-2);border:2px solid var(--border-subtle);border-radius:var(--radius-md);cursor:pointer" data-template="api">
+              <div class="flex items-center gap-2 mb-1">
+                <i data-lucide="code" class="w-4 h-4" style="color:var(--text-3)"></i>
+                <span class="text-label text-primary">API</span>
+              </div>
+              <div class="text-caption text-muted">Serverless only</div>
+            </button>
+            <button type="button" class="template-option p-3 text-left" style="background:var(--bg-2);border:2px solid var(--border-subtle);border-radius:var(--radius-md);cursor:pointer" data-template="full">
+              <div class="flex items-center gap-2 mb-1">
+                <i data-lucide="layers" class="w-4 h-4" style="color:var(--text-3)"></i>
+                <span class="text-label text-primary">Full Stack</span>
+              </div>
+              <div class="text-caption text-muted">Static + API</div>
+            </button>
           </div>
-          <div class="flex items-start gap-2 mt-3 px-2">
-            <i data-lucide="info" class="w-3.5 h-3.5 flex-shrink-0 mt-0.5" style="color:var(--text-4)"></i>
-            <div class="text-caption" style="color:var(--text-3)">Use the Fazt CLI to deploy apps from your terminal</div>
+          <input type="hidden" id="newAppTemplate" name="template" value="minimal">
+        </div>
+
+        <!-- Error Message -->
+        <div id="newAppError" class="hidden p-3" style="background:var(--error-soft);border-radius:var(--radius-md);border:1px solid var(--error)">
+          <div class="flex items-center gap-2">
+            <i data-lucide="alert-circle" class="w-4 h-4" style="color:var(--error)"></i>
+            <span class="text-caption" style="color:var(--error)" id="newAppErrorText"></span>
           </div>
         </div>
+      </form>
+
+      <div class="flex gap-2">
+        <button id="closeNewApp" class="btn btn-secondary flex-1 text-label" style="padding:8px 16px">
+          Cancel
+        </button>
+        <button id="submitNewApp" class="btn btn-primary flex-1 text-label" style="padding:8px 16px">
+          <span id="submitNewAppText">Create App</span>
+          <span id="submitNewAppLoading" class="hidden">Creating...</span>
+        </button>
       </div>
-
-      <button id="closeNewApp" class="btn btn-secondary w-full text-label" style="padding:8px 16px">
-        Got it
-      </button>
 
       <button id="closeNewAppX" class="absolute top-4 right-4 p-1 btn-ghost" style="color:var(--text-3);border-radius:var(--radius-sm)">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Create Alias Modal -->
+  <div id="createAliasModal" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop">
+    <div class="modal w-full max-w-md p-6 relative">
+      <div class="text-center mb-6">
+        <div class="w-12 h-12 mx-auto mb-4 flex items-center justify-center" style="background:var(--accent-soft);border-radius:var(--radius-md)">
+          <i data-lucide="link" class="w-6 h-6" style="color:var(--accent)"></i>
+        </div>
+        <h2 class="text-title" style="color:var(--text-1)">Create Alias</h2>
+        <p class="text-caption mt-1" style="color:var(--text-3)">Point a subdomain to an app or URL</p>
+      </div>
+
+      <form id="createAliasForm" class="space-y-4 mb-6">
+        <!-- Subdomain -->
+        <div>
+          <label class="text-micro text-muted block mb-2">SUBDOMAIN</label>
+          <div class="input">
+            <i data-lucide="at-sign" class="w-4 h-4 text-faint"></i>
+            <input type="text" id="aliasSubdomain" name="subdomain" placeholder="my-alias" class="text-body" required pattern="[a-z0-9-]+" style="flex: 1">
+          </div>
+        </div>
+
+        <!-- Type Selection -->
+        <div>
+          <label class="text-micro text-muted block mb-2">TYPE</label>
+          <div class="flex gap-2">
+            <button type="button" class="alias-type-btn flex-1 p-2 text-center" style="background:var(--accent-soft);border:2px solid var(--accent);border-radius:var(--radius-md);cursor:pointer" data-type="proxy">
+              <i data-lucide="arrow-right" class="w-4 h-4 mx-auto mb-1" style="color:var(--accent)"></i>
+              <div class="text-caption text-primary">Proxy</div>
+            </button>
+            <button type="button" class="alias-type-btn flex-1 p-2 text-center" style="background:var(--bg-2);border:2px solid var(--border-subtle);border-radius:var(--radius-md);cursor:pointer" data-type="redirect">
+              <i data-lucide="external-link" class="w-4 h-4 mx-auto mb-1" style="color:var(--text-3)"></i>
+              <div class="text-caption text-primary">Redirect</div>
+            </button>
+            <button type="button" class="alias-type-btn flex-1 p-2 text-center" style="background:var(--bg-2);border:2px solid var(--border-subtle);border-radius:var(--radius-md);cursor:pointer" data-type="reserved">
+              <i data-lucide="lock" class="w-4 h-4 mx-auto mb-1" style="color:var(--text-3)"></i>
+              <div class="text-caption text-primary">Reserved</div>
+            </button>
+          </div>
+          <input type="hidden" id="aliasType" name="type" value="proxy">
+        </div>
+
+        <!-- Target (for proxy) -->
+        <div id="aliasProxyTarget">
+          <label class="text-micro text-muted block mb-2">TARGET APP</label>
+          <select id="aliasAppId" name="app_id" class="w-full p-2 text-body" style="background:var(--bg-2);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);color:var(--text-1)">
+            <option value="">Select an app...</option>
+          </select>
+        </div>
+
+        <!-- Target (for redirect) -->
+        <div id="aliasRedirectTarget" class="hidden">
+          <label class="text-micro text-muted block mb-2">REDIRECT URL</label>
+          <div class="input">
+            <i data-lucide="globe" class="w-4 h-4 text-faint"></i>
+            <input type="url" id="aliasRedirectUrl" name="redirect_url" placeholder="https://example.com" class="text-body" style="flex: 1">
+          </div>
+        </div>
+
+        <!-- Error Message -->
+        <div id="createAliasError" class="hidden p-3" style="background:var(--error-soft);border-radius:var(--radius-md);border:1px solid var(--error)">
+          <div class="flex items-center gap-2">
+            <i data-lucide="alert-circle" class="w-4 h-4" style="color:var(--error)"></i>
+            <span class="text-caption" style="color:var(--error)" id="createAliasErrorText"></span>
+          </div>
+        </div>
+      </form>
+
+      <div class="flex gap-2">
+        <button id="closeCreateAlias" class="btn btn-secondary flex-1 text-label" style="padding:8px 16px">Cancel</button>
+        <button id="submitCreateAlias" class="btn btn-primary flex-1 text-label" style="padding:8px 16px">
+          <span id="submitCreateAliasText">Create Alias</span>
+          <span id="submitCreateAliasLoading" class="hidden">Creating...</span>
+        </button>
+      </div>
+
+      <button id="closeCreateAliasX" class="absolute top-4 right-4 p-1 btn-ghost" style="color:var(--text-3);border-radius:var(--radius-sm)">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Edit Alias Modal -->
+  <div id="editAliasModal" class="fixed inset-0 z-50 hidden items-center justify-center modal-backdrop">
+    <div class="modal w-full max-w-md p-6 relative">
+      <div class="text-center mb-6">
+        <div class="w-12 h-12 mx-auto mb-4 flex items-center justify-center" style="background:var(--accent-soft);border-radius:var(--radius-md)">
+          <i data-lucide="edit-3" class="w-6 h-6" style="color:var(--accent)"></i>
+        </div>
+        <h2 class="text-title" style="color:var(--text-1)">Edit Alias</h2>
+        <p class="text-caption mt-1" style="color:var(--text-3)" id="editAliasSubtitle">Modify alias settings</p>
+      </div>
+
+      <form id="editAliasForm" class="space-y-4 mb-6">
+        <input type="hidden" id="editAliasSubdomain" name="subdomain">
+
+        <!-- Type Display (read-only) -->
+        <div>
+          <label class="text-micro text-muted block mb-2">TYPE</label>
+          <div class="p-2 text-body" style="background:var(--bg-2);border-radius:var(--radius-sm);color:var(--text-1)" id="editAliasTypeDisplay">proxy</div>
+        </div>
+
+        <!-- Target (for proxy) -->
+        <div id="editAliasProxyTarget">
+          <label class="text-micro text-muted block mb-2">TARGET APP</label>
+          <select id="editAliasAppId" name="app_id" class="w-full p-2 text-body" style="background:var(--bg-2);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);color:var(--text-1)">
+            <option value="">Select an app...</option>
+          </select>
+        </div>
+
+        <!-- Target (for redirect) -->
+        <div id="editAliasRedirectTarget" class="hidden">
+          <label class="text-micro text-muted block mb-2">REDIRECT URL</label>
+          <div class="input">
+            <i data-lucide="globe" class="w-4 h-4 text-faint"></i>
+            <input type="url" id="editAliasRedirectUrl" name="redirect_url" placeholder="https://example.com" class="text-body" style="flex: 1">
+          </div>
+        </div>
+
+        <!-- Error Message -->
+        <div id="editAliasError" class="hidden p-3" style="background:var(--error-soft);border-radius:var(--radius-md);border:1px solid var(--error)">
+          <div class="flex items-center gap-2">
+            <i data-lucide="alert-circle" class="w-4 h-4" style="color:var(--error)"></i>
+            <span class="text-caption" style="color:var(--error)" id="editAliasErrorText"></span>
+          </div>
+        </div>
+      </form>
+
+      <div class="flex gap-2">
+        <button id="deleteAlias" class="btn btn-secondary text-label" style="padding:8px 16px;color:var(--error)">
+          <i data-lucide="trash-2" class="w-4 h-4"></i>
+        </button>
+        <button id="closeEditAlias" class="btn btn-secondary flex-1 text-label" style="padding:8px 16px">Cancel</button>
+        <button id="submitEditAlias" class="btn btn-primary flex-1 text-label" style="padding:8px 16px">
+          <span id="submitEditAliasText">Save Changes</span>
+          <span id="submitEditAliasLoading" class="hidden">Saving...</span>
+        </button>
+      </div>
+
+      <button id="closeEditAliasX" class="absolute top-4 right-4 p-1 btn-ghost" style="color:var(--text-3);border-radius:var(--radius-sm)">
         <i data-lucide="x" class="w-5 h-5"></i>
       </button>
     </div>
@@ -1029,6 +1212,23 @@
           <div class="menu-section pt-4 pb-1">
             <div class="menu-toggle open flex items-center gap-1 px-3">
               <i data-lucide="chevron-right" class="w-3 h-3 chevron" style="color:var(--text-4)"></i>
+              <span class="text-micro" style="color:var(--text-4)">Observability</span>
+            </div>
+          </div>
+          <div class="submenu open space-y-0.5">
+            <a href="/events" class="nav-item flex items-center gap-2.5 px-3 py-2 text-label" data-route="events">
+              <i data-lucide="activity" class="w-4 h-4"></i>
+              <span class="sidebar-text">Events</span>
+            </a>
+            <a href="/logs" class="nav-item flex items-center gap-2.5 px-3 py-2 text-label" data-route="logs">
+              <i data-lucide="terminal" class="w-4 h-4"></i>
+              <span class="sidebar-text">Logs</span>
+            </a>
+          </div>
+
+          <div class="menu-section pt-4 pb-1">
+            <div class="menu-toggle open flex items-center gap-1 px-3">
+              <i data-lucide="chevron-right" class="w-3 h-3 chevron" style="color:var(--text-4)"></i>
               <span class="text-micro" style="color:var(--text-4)">System</span>
             </div>
           </div>
@@ -1107,12 +1307,14 @@
     import { createClient, mockAdapter } from './packages/fazt-sdk/index.js'
     import { routes } from './src/routes.js'
     import { initTheme, sidebarCollapsed, toggleSidebar, theme, palette, setTheme, setPalette } from './src/stores/app.js'
-    import { loadApps, loadAliases, loadHealth, loadStats, apps, auth, loadAuth, signOut, currentApp } from './src/stores/data.js'
+    import { loadApps, loadAliases, loadHealth, loadStats, apps, aliases, auth, loadAuth, signOut, currentApp, createApp, createAlias, updateAlias, deleteAlias } from './src/stores/data.js'
 
     // Pages
     import * as dashboardPage from './src/pages/dashboard.js'
     import * as appsPage from './src/pages/apps.js'
     import * as aliasesPage from './src/pages/aliases.js'
+    import * as eventsPage from './src/pages/events.js'
+    import * as logsPage from './src/pages/logs.js'
     import * as systemPage from './src/pages/system.js'
     import * as settingsPage from './src/pages/settings.js'
 
@@ -1121,6 +1323,8 @@
       apps: appsPage,
       'app-detail': appsPage,
       aliases: aliasesPage,
+      events: eventsPage,
+      logs: logsPage,
       system: systemPage,
       settings: settingsPage
     }
@@ -1621,19 +1825,318 @@
       const newAppModal = document.getElementById('newAppModal')
       const closeNewApp = document.getElementById('closeNewApp')
       const closeNewAppX = document.getElementById('closeNewAppX')
+      const newAppForm = document.getElementById('newAppForm')
+      const newAppNameInput = document.getElementById('newAppName')
+      const newAppTemplateInput = document.getElementById('newAppTemplate')
+      const submitNewAppBtn = document.getElementById('submitNewApp')
+      const newAppError = document.getElementById('newAppError')
+      const newAppErrorText = document.getElementById('newAppErrorText')
 
       function closeNewAppModal() {
         newAppModal?.classList.add('hidden')
         newAppModal?.classList.remove('flex')
+        // Reset form state
+        newAppForm?.reset()
+        newAppError?.classList.add('hidden')
+        submitNewAppBtn.disabled = false
+        document.getElementById('submitNewAppText').classList.remove('hidden')
+        document.getElementById('submitNewAppLoading').classList.add('hidden')
+        // Reset template selection
+        document.querySelectorAll('.template-option').forEach((btn, i) => {
+          btn.style.borderColor = i === 0 ? 'var(--accent)' : 'var(--border-subtle)'
+        })
+        newAppTemplateInput.value = 'minimal'
+      }
+
+      function openNewAppModal() {
+        newAppModal?.classList.remove('hidden')
+        newAppModal?.classList.add('flex')
+        lucide.createIcons()
+        newAppNameInput?.focus()
       }
 
       closeNewApp?.addEventListener('click', closeNewAppModal)
       closeNewAppX?.addEventListener('click', closeNewAppModal)
 
+      // Template selection
+      document.querySelectorAll('.template-option').forEach(btn => {
+        btn.addEventListener('click', () => {
+          // Update border colors
+          document.querySelectorAll('.template-option').forEach(b => {
+            b.style.borderColor = 'var(--border-subtle)'
+          })
+          btn.style.borderColor = 'var(--accent)'
+          // Update hidden input
+          newAppTemplateInput.value = btn.dataset.template
+        })
+      })
+
+      // Form submission
+      submitNewAppBtn?.addEventListener('click', async () => {
+        const name = newAppNameInput?.value?.trim()
+        const template = newAppTemplateInput?.value || 'minimal'
+
+        if (!name) {
+          newAppErrorText.textContent = 'App name is required'
+          newAppError?.classList.remove('hidden')
+          return
+        }
+
+        if (!/^[a-z0-9-]+$/.test(name)) {
+          newAppErrorText.textContent = 'Name must be lowercase letters, numbers, and dashes only'
+          newAppError?.classList.remove('hidden')
+          return
+        }
+
+        // Show loading state
+        submitNewAppBtn.disabled = true
+        document.getElementById('submitNewAppText').classList.add('hidden')
+        document.getElementById('submitNewAppLoading').classList.remove('hidden')
+        newAppError?.classList.add('hidden')
+
+        try {
+          await createApp(client, name, template)
+          closeNewAppModal()
+          // Navigate to apps list
+          router.push('/apps')
+        } catch (err) {
+          newAppErrorText.textContent = err.message || 'Failed to create app'
+          newAppError?.classList.remove('hidden')
+          submitNewAppBtn.disabled = false
+          document.getElementById('submitNewAppText').classList.remove('hidden')
+          document.getElementById('submitNewAppLoading').classList.add('hidden')
+        }
+      })
+
       // Close modal when clicking backdrop
       newAppModal?.addEventListener('click', (e) => {
         if (e.target === newAppModal) closeNewAppModal()
       })
+
+      // Expose openNewAppModal globally for use from pages
+      window.__fazt_openNewAppModal = openNewAppModal
+
+      // Create Alias Modal
+      const createAliasModal = document.getElementById('createAliasModal')
+      const closeCreateAlias = document.getElementById('closeCreateAlias')
+      const closeCreateAliasX = document.getElementById('closeCreateAliasX')
+      const submitCreateAliasBtn = document.getElementById('submitCreateAlias')
+      const createAliasError = document.getElementById('createAliasError')
+      const aliasTypeInput = document.getElementById('aliasType')
+      const aliasProxyTarget = document.getElementById('aliasProxyTarget')
+      const aliasRedirectTarget = document.getElementById('aliasRedirectTarget')
+      const aliasAppIdSelect = document.getElementById('aliasAppId')
+
+      function closeCreateAliasModal() {
+        createAliasModal?.classList.add('hidden')
+        createAliasModal?.classList.remove('flex')
+        document.getElementById('createAliasForm')?.reset()
+        createAliasError?.classList.add('hidden')
+        submitCreateAliasBtn.disabled = false
+        document.getElementById('submitCreateAliasText').classList.remove('hidden')
+        document.getElementById('submitCreateAliasLoading').classList.add('hidden')
+        // Reset type selection
+        document.querySelectorAll('.alias-type-btn').forEach((btn, i) => {
+          btn.style.borderColor = i === 0 ? 'var(--accent)' : 'var(--border-subtle)'
+          btn.style.background = i === 0 ? 'var(--accent-soft)' : 'var(--bg-2)'
+        })
+        aliasTypeInput.value = 'proxy'
+        aliasProxyTarget?.classList.remove('hidden')
+        aliasRedirectTarget?.classList.add('hidden')
+      }
+
+      function openCreateAliasModal() {
+        // Populate app dropdown
+        const appList = apps.get()
+        aliasAppIdSelect.innerHTML = '<option value="">Select an app...</option>' +
+          appList.map(app => `<option value="${app.id}">${app.name}</option>`).join('')
+
+        createAliasModal?.classList.remove('hidden')
+        createAliasModal?.classList.add('flex')
+        lucide.createIcons()
+        document.getElementById('aliasSubdomain')?.focus()
+      }
+
+      closeCreateAlias?.addEventListener('click', closeCreateAliasModal)
+      closeCreateAliasX?.addEventListener('click', closeCreateAliasModal)
+
+      // Type selection for create alias
+      document.querySelectorAll('.alias-type-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.alias-type-btn').forEach(b => {
+            b.style.borderColor = 'var(--border-subtle)'
+            b.style.background = 'var(--bg-2)'
+          })
+          btn.style.borderColor = 'var(--accent)'
+          btn.style.background = 'var(--accent-soft)'
+          aliasTypeInput.value = btn.dataset.type
+
+          // Show/hide target fields
+          if (btn.dataset.type === 'proxy') {
+            aliasProxyTarget?.classList.remove('hidden')
+            aliasRedirectTarget?.classList.add('hidden')
+          } else if (btn.dataset.type === 'redirect') {
+            aliasProxyTarget?.classList.add('hidden')
+            aliasRedirectTarget?.classList.remove('hidden')
+          } else {
+            aliasProxyTarget?.classList.add('hidden')
+            aliasRedirectTarget?.classList.add('hidden')
+          }
+        })
+      })
+
+      // Submit create alias
+      submitCreateAliasBtn?.addEventListener('click', async () => {
+        const subdomain = document.getElementById('aliasSubdomain')?.value?.trim()
+        const type = aliasTypeInput?.value || 'proxy'
+        const appId = aliasAppIdSelect?.value
+        const redirectUrl = document.getElementById('aliasRedirectUrl')?.value?.trim()
+
+        if (!subdomain) {
+          document.getElementById('createAliasErrorText').textContent = 'Subdomain is required'
+          createAliasError?.classList.remove('hidden')
+          return
+        }
+
+        if (type === 'proxy' && !appId) {
+          document.getElementById('createAliasErrorText').textContent = 'Please select a target app'
+          createAliasError?.classList.remove('hidden')
+          return
+        }
+
+        if (type === 'redirect' && !redirectUrl) {
+          document.getElementById('createAliasErrorText').textContent = 'Redirect URL is required'
+          createAliasError?.classList.remove('hidden')
+          return
+        }
+
+        // Show loading
+        submitCreateAliasBtn.disabled = true
+        document.getElementById('submitCreateAliasText').classList.add('hidden')
+        document.getElementById('submitCreateAliasLoading').classList.remove('hidden')
+        createAliasError?.classList.add('hidden')
+
+        try {
+          const options = type === 'proxy' ? { app_id: appId } : type === 'redirect' ? { url: redirectUrl } : {}
+          await createAlias(client, subdomain, type, options)
+          closeCreateAliasModal()
+        } catch (err) {
+          document.getElementById('createAliasErrorText').textContent = err.message || 'Failed to create alias'
+          createAliasError?.classList.remove('hidden')
+          submitCreateAliasBtn.disabled = false
+          document.getElementById('submitCreateAliasText').classList.remove('hidden')
+          document.getElementById('submitCreateAliasLoading').classList.add('hidden')
+        }
+      })
+
+      createAliasModal?.addEventListener('click', (e) => {
+        if (e.target === createAliasModal) closeCreateAliasModal()
+      })
+
+      // Edit Alias Modal
+      const editAliasModal = document.getElementById('editAliasModal')
+      const closeEditAlias = document.getElementById('closeEditAlias')
+      const closeEditAliasX = document.getElementById('closeEditAliasX')
+      const submitEditAliasBtn = document.getElementById('submitEditAlias')
+      const deleteAliasBtn = document.getElementById('deleteAlias')
+      const editAliasError = document.getElementById('editAliasError')
+      const editAliasAppIdSelect = document.getElementById('editAliasAppId')
+
+      function closeEditAliasModal() {
+        editAliasModal?.classList.add('hidden')
+        editAliasModal?.classList.remove('flex')
+        document.getElementById('editAliasForm')?.reset()
+        editAliasError?.classList.add('hidden')
+        submitEditAliasBtn.disabled = false
+        document.getElementById('submitEditAliasText').classList.remove('hidden')
+        document.getElementById('submitEditAliasLoading').classList.add('hidden')
+      }
+
+      function openEditAliasModal(alias) {
+        // Populate app dropdown
+        const appList = apps.get()
+        editAliasAppIdSelect.innerHTML = '<option value="">Select an app...</option>' +
+          appList.map(app => `<option value="${app.id}">${app.name}</option>`).join('')
+
+        // Fill form
+        document.getElementById('editAliasSubdomain').value = alias.subdomain
+        document.getElementById('editAliasSubtitle').textContent = alias.subdomain
+        document.getElementById('editAliasTypeDisplay').textContent = alias.type
+
+        if (alias.type === 'proxy') {
+          document.getElementById('editAliasProxyTarget')?.classList.remove('hidden')
+          document.getElementById('editAliasRedirectTarget')?.classList.add('hidden')
+          editAliasAppIdSelect.value = alias.targets?.app_id || ''
+        } else if (alias.type === 'redirect') {
+          document.getElementById('editAliasProxyTarget')?.classList.add('hidden')
+          document.getElementById('editAliasRedirectTarget')?.classList.remove('hidden')
+          document.getElementById('editAliasRedirectUrl').value = alias.targets?.url || ''
+        } else {
+          document.getElementById('editAliasProxyTarget')?.classList.add('hidden')
+          document.getElementById('editAliasRedirectTarget')?.classList.add('hidden')
+        }
+
+        editAliasModal?.classList.remove('hidden')
+        editAliasModal?.classList.add('flex')
+        lucide.createIcons()
+      }
+
+      closeEditAlias?.addEventListener('click', closeEditAliasModal)
+      closeEditAliasX?.addEventListener('click', closeEditAliasModal)
+
+      // Submit edit alias
+      submitEditAliasBtn?.addEventListener('click', async () => {
+        const subdomain = document.getElementById('editAliasSubdomain')?.value
+        const type = document.getElementById('editAliasTypeDisplay')?.textContent
+        const appId = editAliasAppIdSelect?.value
+        const redirectUrl = document.getElementById('editAliasRedirectUrl')?.value?.trim()
+
+        if (type === 'proxy' && !appId) {
+          document.getElementById('editAliasErrorText').textContent = 'Please select a target app'
+          editAliasError?.classList.remove('hidden')
+          return
+        }
+
+        // Show loading
+        submitEditAliasBtn.disabled = true
+        document.getElementById('submitEditAliasText').classList.add('hidden')
+        document.getElementById('submitEditAliasLoading').classList.add('hidden')
+        editAliasError?.classList.add('hidden')
+
+        try {
+          const data = type === 'proxy' ? { targets: { app_id: appId } } : type === 'redirect' ? { targets: { url: redirectUrl } } : {}
+          await updateAlias(client, subdomain, data)
+          closeEditAliasModal()
+        } catch (err) {
+          document.getElementById('editAliasErrorText').textContent = err.message || 'Failed to update alias'
+          editAliasError?.classList.remove('hidden')
+          submitEditAliasBtn.disabled = false
+          document.getElementById('submitEditAliasText').classList.remove('hidden')
+          document.getElementById('submitEditAliasLoading').classList.add('hidden')
+        }
+      })
+
+      // Delete alias
+      deleteAliasBtn?.addEventListener('click', async () => {
+        const subdomain = document.getElementById('editAliasSubdomain')?.value
+        if (confirm(`Delete alias "${subdomain}"? This cannot be undone.`)) {
+          try {
+            await deleteAlias(client, subdomain)
+            closeEditAliasModal()
+          } catch (err) {
+            document.getElementById('editAliasErrorText').textContent = err.message || 'Failed to delete alias'
+            editAliasError?.classList.remove('hidden')
+          }
+        }
+      })
+
+      editAliasModal?.addEventListener('click', (e) => {
+        if (e.target === editAliasModal) closeEditAliasModal()
+      })
+
+      // Expose alias modals globally for use from pages
+      window.__fazt_openCreateAliasModal = openCreateAliasModal
+      window.__fazt_openEditAliasModal = openEditAliasModal
 
       // Draggable settings panel
       let isDragging = false

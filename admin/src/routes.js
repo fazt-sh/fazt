@@ -24,6 +24,16 @@ export const routes = [
     meta: { title: 'Aliases', icon: 'link' }
   },
   {
+    name: 'events',
+    path: '/events',
+    meta: { title: 'Events', icon: 'activity' }
+  },
+  {
+    name: 'logs',
+    path: '/logs',
+    meta: { title: 'Logs', icon: 'terminal' }
+  },
+  {
     name: 'system',
     path: '/system',
     meta: { title: 'System', icon: 'heart-pulse' }

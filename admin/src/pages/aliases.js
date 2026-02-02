@@ -2,7 +2,7 @@
  * Aliases Page
  */
 
-import { aliases } from '../stores/data.js'
+import { aliases, apps } from '../stores/data.js'
 import { loading } from '../stores/app.js'
 
 /**
@@ -66,7 +66,7 @@ export function render(container, ctx) {
               <i data-lucide="search" class="w-4 h-4 text-faint"></i>
               <input type="text" id="filter-input" placeholder="Filter aliases..." class="text-body" value="${filter}" style="width: 200px">
             </div>
-            <button class="btn btn-primary">
+            <button id="new-alias-btn" class="btn btn-primary">
               <i data-lucide="plus" class="w-4 h-4"></i>
               New Alias
             </button>
@@ -153,6 +153,24 @@ export function render(container, ctx) {
         update()
       })
     }
+
+    // New alias button
+    container.querySelector('#new-alias-btn')?.addEventListener('click', () => {
+      if (window.__fazt_openCreateAliasModal) {
+        window.__fazt_openCreateAliasModal()
+      }
+    })
+
+    // Row click to edit
+    container.querySelectorAll('[data-alias]').forEach(row => {
+      row.addEventListener('click', () => {
+        const subdomain = row.dataset.alias
+        const alias = aliasList.find(a => a.subdomain === subdomain)
+        if (alias && window.__fazt_openEditAliasModal) {
+          window.__fazt_openEditAliasModal(alias)
+        }
+      })
+    })
   }
 
   // Subscribe to data changes

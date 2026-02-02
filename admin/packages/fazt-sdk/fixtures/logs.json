@@ -1,0 +1,74 @@
+{
+  "logs": [
+    {
+      "id": 1,
+      "site_id": "app_01hw3xyz",
+      "level": "info",
+      "message": "Request handled: GET /api/data -> 200 (42ms)",
+      "created_at": "2026-02-02T10:30:15Z"
+    },
+    {
+      "id": 2,
+      "site_id": "app_01hw3xyz",
+      "level": "info",
+      "message": "Request handled: POST /api/action -> 201 (156ms)",
+      "created_at": "2026-02-02T10:29:45Z"
+    },
+    {
+      "id": 3,
+      "site_id": "app_01hw3xyz",
+      "level": "warn",
+      "message": "Rate limit approaching: 85% of quota used",
+      "created_at": "2026-02-02T10:28:00Z"
+    },
+    {
+      "id": 4,
+      "site_id": "app_01hw3xyz",
+      "level": "error",
+      "message": "Function timeout: handler exceeded 5s limit",
+      "created_at": "2026-02-02T10:25:00Z"
+    },
+    {
+      "id": 5,
+      "site_id": "app_01hw3xyz",
+      "level": "info",
+      "message": "Request handled: GET /api/users -> 200 (28ms)",
+      "created_at": "2026-02-02T10:20:00Z"
+    },
+    {
+      "id": 6,
+      "site_id": "app_01hw3xyz",
+      "level": "info",
+      "message": "App deployed successfully: v1.4.2",
+      "created_at": "2026-02-02T10:15:00Z"
+    },
+    {
+      "id": 7,
+      "site_id": "app_02hw3abc",
+      "level": "info",
+      "message": "Request handled: GET /api/status -> 200 (15ms)",
+      "created_at": "2026-02-02T09:45:00Z"
+    },
+    {
+      "id": 8,
+      "site_id": "app_02hw3abc",
+      "level": "error",
+      "message": "Database connection failed: timeout after 30s",
+      "created_at": "2026-02-02T09:30:00Z"
+    },
+    {
+      "id": 9,
+      "site_id": "app_04hw3ghi",
+      "level": "info",
+      "message": "Request handled: GET /products -> 200 (89ms)",
+      "created_at": "2026-02-02T08:45:00Z"
+    },
+    {
+      "id": 10,
+      "site_id": "app_04hw3ghi",
+      "level": "warn",
+      "message": "Slow response: /checkout took 2.3s",
+      "created_at": "2026-02-02T08:30:00Z"
+    }
+  ]
+}
