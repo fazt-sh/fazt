@@ -4,6 +4,8 @@ All notable changes to fazt.sh will be documented in this file.
 
 ## [Unreleased]
 
+## [0.20.0] - 2026-02-02
+
 ### Added
 - **`app files` command**: List files in deployed apps
   - `fazt @peer app files <app>` shows all files with sizes and timestamps
