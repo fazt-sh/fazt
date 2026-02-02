@@ -942,7 +942,7 @@ func handlePeerStatus(args []string) {
 			fmt.Println("Run: fazt peer add <name> --url <url> --token <token>")
 		} else if err == remote.ErrNoDefaultPeer {
 			fmt.Println("Multiple peers configured. Specify which peer:")
-			fmt.Println("  fazt peer status <name>")
+			fmt.Println("  fazt @<peer> status")
 		} else {
 			fmt.Printf("Error: %v\n", err)
 		}
@@ -3134,7 +3134,7 @@ func printUsage() {
 	fmt.Println("  fazt @zyt app list")
 	fmt.Println()
 	fmt.Println("  # Check peer status")
-	fmt.Println("  fazt peer status zyt")
+	fmt.Println("  fazt @zyt status")
 	fmt.Println()
 }
 

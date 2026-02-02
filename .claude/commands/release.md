@@ -126,7 +126,7 @@ systemctl --user restart fazt-local 2>/dev/null && echo "Local service restarted
 sleep 2
 
 # Verify local peer upgraded (if configured as peer)
-fazt peer status local 2>/dev/null || echo "Local not configured as peer"
+fazt @local status 2>/dev/null || echo "Local not configured as peer"
 ```
 
 ### 10. Upgrade All Peers

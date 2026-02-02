@@ -52,8 +52,8 @@ api.InternalError(w, err)
 ```bash
 fazt peer list                      # List all peers
 fazt peer list --format json        # List peers in JSON format
-fazt peer status zyt                # Health, version, uptime
-fazt peer upgrade zyt               # Upgrade to latest version
+fazt @zyt status                    # Health, version, uptime
+fazt @zyt upgrade                   # Upgrade to latest version
 fazt peer add <name> --url <url> --token <token>
 ```
 

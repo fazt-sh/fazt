@@ -124,7 +124,7 @@ errors:
     message: "Error: unauthorized"
     solution: |
       The peer rejected the request. Check:
-        1. Token is valid: fazt peer status <peer>
+        1. Token is valid: fazt @<peer> status
         2. Token has deploy permissions
 ---
 

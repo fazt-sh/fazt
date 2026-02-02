@@ -139,7 +139,7 @@ journalctl --user -u fazt-local -f
 
 # Remote operations
 fazt peer list
-fazt peer upgrade local         # Upgrade local peer to v0.21.0
+fazt @local upgrade             # Upgrade local peer
 fazt @zyt app list
 ```
 

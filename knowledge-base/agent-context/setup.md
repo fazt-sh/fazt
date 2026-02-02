@@ -15,7 +15,7 @@ ssh root@$ZYT_IP   # SSH into production server
 ```
 
 The VM has SSH access to remote servers. Use this for emergency recovery
-or manual deployments when the `fazt peer upgrade` command can't reach
+or manual deployments when the `fazt @<peer> upgrade` command can't reach
 the server.
 
 ## Local Server Setup

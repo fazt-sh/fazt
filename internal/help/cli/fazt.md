@@ -38,7 +38,8 @@ Sovereign compute - single Go binary + SQLite database that runs anywhere.
 ### Peer Management
 - `fazt peer list` - List configured peers
 - `fazt peer add` - Add a new peer
-- `fazt peer status` - Check peer health
+- `fazt @<peer> status` - Check peer health
+- `fazt @<peer> upgrade` - Upgrade peer binary
 
 ### Server Management
 - `fazt server init` - Initialize a new server

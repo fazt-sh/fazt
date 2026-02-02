@@ -59,15 +59,18 @@ Set the default peer (used when peer not specified).
 fazt peer default <name>
 ```
 
-### fazt peer status
+## @peer Commands
+
+Operations on a specific peer use the universal `@<peer>` prefix:
+
+### fazt @<peer> status
 
 Check peer health, version, and uptime.
 
 ```bash
-fazt peer status [name]
+fazt @prod status
+fazt @local status
 ```
-
-If name omitted, checks default peer.
 
 Output:
 ```
@@ -79,29 +82,22 @@ Apps: 12
 Storage: 234 MB
 ```
 
-### fazt peer upgrade
+### fazt @<peer> upgrade
 
-Check for or perform upgrades on a peer.
+Upgrade fazt binary on a peer.
 
 ```bash
-# Check if upgrade available
-fazt peer upgrade check
-
-# Perform upgrade
-fazt peer upgrade <name>
+fazt @prod upgrade
+fazt @local upgrade
 ```
 
-## Remote Execution Shorthand
-
-Execute commands on a remote peer using `@<peer>` prefix:
+### Other @peer Commands
 
 ```bash
-# Run command on specific peer
-fazt @prod app list
-fazt @local auth providers
-
-# Equivalent to
-fazt app list --on prod
+fazt @prod app list           # List apps on prod
+fazt @prod app deploy ./myapp # Deploy to prod
+fazt @prod sql "SELECT ..."   # Execute SQL on prod
+fazt @prod auth providers     # List OAuth providers
 ```
 
 ## Typical Setup
@@ -116,5 +112,5 @@ fazt peer add prod \
   --token <token-from-step-1>
 
 # 3. Verify connection
-fazt peer status prod
+fazt @prod status
 ```
