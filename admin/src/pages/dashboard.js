@@ -2,32 +2,12 @@
  * Dashboard Page - Panel-Based Layout
  */
 
-import { apps, stats, health } from '../stores/data.js'
-
-/**
- * Get UI state from localStorage (web-specific key)
- */
-function getUIState(key, defaultValue = false) {
-  try {
-    const state = JSON.parse(localStorage.getItem('fazt.web.ui.state') || '{}')
-    return state[key] !== undefined ? state[key] : defaultValue
-  } catch {
-    return defaultValue
-  }
-}
-
-/**
- * Set UI state to localStorage (web-specific key)
- */
-function setUIState(key, value) {
-  try {
-    const state = JSON.parse(localStorage.getItem('fazt.web.ui.state') || '{}')
-    state[key] = value
-    localStorage.setItem('fazt.web.ui.state', JSON.stringify(state))
-  } catch (e) {
-    console.error('Failed to save UI state:', e)
-  }
-}
+import { apps, aliases, stats, health } from '../stores/data.js'
+import {
+  renderPanel, setupPanel, getUIState, setUIState,
+  renderToolbar, setupToolbar,
+  renderTable, setupTableClicks, renderTableFooter
+} from '../components/index.js'
 
 /**
  * Format bytes to human readable
@@ -55,6 +35,84 @@ function formatRelativeTime(timestamp) {
   if (days > 0) return `${days}d ago`
   if (hours > 0) return `${hours}h ago`
   return 'Just now'
+}
+
+/**
+ * Render apps panel for dashboard
+ */
+function renderAppsPanel(appList, isCollapsed) {
+  const columns = [
+    {
+      key: 'name',
+      label: 'App',
+      render: (name, app) => `
+        <div class="flex items-center gap-2" style="min-width: 0">
+          <span class="status-dot status-dot-success pulse show-mobile" style="flex-shrink: 0"></span>
+          <div class="icon-box icon-box-sm" style="flex-shrink: 0">
+            <i data-lucide="box" class="w-3.5 h-3.5"></i>
+          </div>
+          <div style="min-width: 0; overflow: hidden">
+            <div class="text-label text-primary" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap">${name}</div>
+            <div class="text-caption mono text-faint show-mobile">${formatBytes(app.size_bytes)}</div>
+          </div>
+        </div>
+      `
+    },
+    {
+      key: 'updated_at',
+      label: 'Updated',
+      hideOnMobile: true,
+      render: (v) => `<span class="text-caption text-muted">${formatRelativeTime(v)}</span>`
+    },
+    {
+      key: 'size_bytes',
+      label: 'Size',
+      hideOnMobile: true,
+      render: (v) => `<span class="text-caption mono text-muted">${formatBytes(v)}</span>`
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      hideOnMobile: true,
+      render: () => `
+        <span class="flex items-center gap-1 text-caption text-success">
+          <span class="status-dot status-dot-success pulse"></span>
+          Live
+        </span>
+      `
+    }
+  ]
+
+  const displayApps = appList.slice(0, 5)
+
+  const tableContent = renderTable({
+    columns,
+    data: displayApps,
+    rowKey: 'id',
+    rowDataAttr: 'app-id',
+    clickable: true,
+    emptyIcon: 'layers',
+    emptyTitle: 'No apps yet',
+    emptyMessage: 'Deploy your first app via CLI'
+  })
+
+  const footer = `
+    <div class="card-footer flex items-center justify-between" style="border-radius: 0">
+      <span class="text-caption text-muted">${appList.length} app${appList.length === 1 ? '' : 's'}</span>
+      <button class="text-caption font-medium text-accent" data-navigate="/apps">View all &rarr;</button>
+    </div>
+  `
+
+  return renderPanel({
+    id: 'dashboard.apps',
+    title: 'Apps',
+    count: appList.length,
+    toolbar: renderToolbar({ searchId: 'dashboard-apps-filter', searchPlaceholder: 'Filter...' }),
+    content: tableContent,
+    footer,
+    minHeight: 200,
+    maxHeight: 300
+  })
 }
 
 /**
@@ -155,88 +213,7 @@ export function render(container, ctx) {
             </div>
 
             <!-- Panel Group: Apps -->
-            <div class="panel-group ${appsCollapsed ? 'collapsed' : ''}">
-              <div class="panel-group-card card">
-                <header class="panel-group-header" data-group="apps">
-                  <button class="collapse-toggle">
-                    <i data-lucide="chevron-right" class="chevron w-4 h-4"></i>
-                    <span class="text-heading text-primary">Apps</span>
-                    <span class="text-caption mono px-1.5 py-0.5 ml-2 badge-muted" style="border-radius: var(--radius-sm)">${appList.length}</span>
-                  </button>
-                </header>
-                <div class="panel-group-body" style="padding: 0">
-                  <div class="card" style="border: none; border-radius: 0">
-                    <div class="card-header">
-                      <div class="input" style="padding: 4px 8px">
-                        <i data-lucide="search" class="w-3.5 h-3.5 text-faint"></i>
-                        <input type="text" placeholder="Filter..." class="text-caption" style="width: 120px">
-                      </div>
-                    </div>
-                    <div class="flex-1 overflow-auto scroll-panel" style="max-height: 400px">
-                ${appList.length === 0 ? `
-                  <div class="flex flex-col items-center justify-center h-full p-8 text-center">
-                    <div class="icon-box mb-3" style="width:48px;height:48px;opacity:0.5">
-                      <i data-lucide="inbox" class="w-6 h-6"></i>
-                    </div>
-                    <div class="text-heading text-primary mb-1">No apps yet</div>
-                    <div class="text-caption text-muted mb-4">Deploy your first app to get started</div>
-                    <button class="btn btn-primary px-4 py-2 text-label">
-                      <i data-lucide="plus" class="w-4 h-4 inline-block mr-1" style="vertical-align:-2px"></i>
-                      Deploy App
-                    </button>
-                  </div>
-                ` : `
-                  <div class="table-container">
-                    <table>
-                    <thead class="sticky" style="top: 0; background: var(--bg-1)">
-                      <tr class="border-b">
-                        <th class="px-4 py-2 text-left text-micro text-muted">App</th>
-                        <th class="px-4 py-2 text-left text-micro text-muted">Status</th>
-                        <th class="px-4 py-2 text-left text-micro text-muted">Updated</th>
-                        <th class="px-4 py-2 text-left text-micro text-muted">Size</th>
-                        <th class="px-4 py-2"></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      ${appList.slice(0, 7).map(app => `
-                        <tr class="row row-clickable border-b" data-app-id="${app.id}" style="border-color: var(--border-subtle)">
-                          <td class="px-4 py-2">
-                            <div class="flex items-center gap-2">
-                              <div class="icon-box"><i data-lucide="box" class="w-4 h-4"></i></div>
-                              <div>
-                                <div class="text-label text-primary">${app.name}</div>
-                                <div class="text-caption mono text-faint">${app.name}.zyt.app</div>
-                              </div>
-                            </div>
-                          </td>
-                          <td class="px-4 py-2">
-                            <span class="flex items-center gap-1 text-caption text-success">
-                              <span class="status-dot status-dot-success pulse"></span>
-                              Live
-                            </span>
-                          </td>
-                          <td class="px-4 py-2 text-caption text-muted">${formatRelativeTime(app.updated_at)}</td>
-                          <td class="px-4 py-2 text-caption mono text-muted">${formatBytes(app.size_bytes)}</td>
-                          <td class="px-4 py-2">
-                            <button class="btn btn-ghost btn-icon btn-sm" style="color: var(--text-4)">
-                              <i data-lucide="more-horizontal" class="w-4 h-4"></i>
-                            </button>
-                          </td>
-                        </tr>
-                      `).join('')}
-                    </tbody>
-                  </table>
-                  </div>
-                      `}
-                    </div>
-                    <div class="card-footer flex items-center justify-between">
-                      <span class="text-caption text-muted">Showing ${Math.min(7, appList.length)} of ${appList.length}</span>
-                      <button class="text-caption font-medium text-accent" data-navigate="/apps">View all &rarr;</button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            ${renderAppsPanel(appList, appsCollapsed)}
 
             <!-- Panel Group: Quick Actions -->
             <div class="panel-group">
@@ -306,16 +283,18 @@ export function render(container, ctx) {
       window.lucide.createIcons()
     }
 
-    // Setup collapse handlers
-    setupCollapseHandlers(container)
+    // Setup panel collapse handlers
+    setupPanel(container)
 
-    // Add click handlers
-    container.querySelectorAll('[data-app-id]').forEach(row => {
-      row.addEventListener('click', () => {
-        router.push(`/apps/${row.dataset.appId}`)
-      })
+    // Setup legacy collapse handlers for non-component panels
+    setupLegacyCollapseHandlers(container)
+
+    // Setup apps table clicks
+    setupTableClicks(container, 'app-id', (id) => {
+      router.push(`/apps/${id}`)
     })
 
+    // Setup navigation buttons
     container.querySelectorAll('[data-navigate]').forEach(btn => {
       btn.addEventListener('click', () => {
         router.push(btn.dataset.navigate)
@@ -324,23 +303,18 @@ export function render(container, ctx) {
   }
 
   /**
-   * Setup collapse toggle handlers
+   * Setup collapse handlers for legacy panels (stats, activity)
    */
-  function setupCollapseHandlers(container) {
-    container.querySelectorAll('.collapse-toggle').forEach(toggle => {
+  function setupLegacyCollapseHandlers(container) {
+    container.querySelectorAll('.panel-group-header[data-group]').forEach(header => {
+      const toggle = header.querySelector('.collapse-toggle')
+      if (!toggle) return
+
       toggle.addEventListener('click', () => {
-        const header = toggle.closest('.panel-group-header')
         const group = header.dataset.group
         const panelGroup = header.closest('.panel-group')
-        const isCollapsed = panelGroup.classList.contains('collapsed')
-
-        if (isCollapsed) {
-          panelGroup.classList.remove('collapsed')
-          setUIState(`dashboard.${group}.collapsed`, false)
-        } else {
-          panelGroup.classList.add('collapsed')
-          setUIState(`dashboard.${group}.collapsed`, true)
-        }
+        const isCollapsed = panelGroup.classList.toggle('collapsed')
+        setUIState(`dashboard.${group}.collapsed`, isCollapsed)
       })
     })
   }

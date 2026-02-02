@@ -4,10 +4,15 @@
 
 import { apps, aliases, loadAppDetail, currentApp, deleteApp } from '../stores/data.js'
 import { loading } from '../stores/app.js'
+import {
+  renderPanel, setupPanel, getUIState, setUIState,
+  renderToolbar, setupToolbar,
+  renderTable, setupTableClicks, renderTableFooter,
+  renderIconCell, renderStatusCell
+} from '../components/index.js'
 
 /**
  * Format bytes to human readable
- * @param {number} bytes
  */
 function formatBytes(bytes) {
   if (bytes === 0) return '0 B'
@@ -19,7 +24,6 @@ function formatBytes(bytes) {
 
 /**
  * Format relative time
- * @param {string} timestamp
  */
 function formatRelativeTime(timestamp) {
   const date = new Date(timestamp)
@@ -34,86 +38,170 @@ function formatRelativeTime(timestamp) {
 }
 
 /**
- * Render alias tags (max 3 + "..." badge)
- * @param {string[]} aliasList
- */
-function renderAliasTags(aliasList) {
-  if (!aliasList || aliasList.length === 0) {
-    return '<span class="text-caption text-faint">No aliases</span>'
-  }
-
-  const visible = aliasList.slice(0, 3)
-  const hasMore = aliasList.length > 3
-  const moreCount = aliasList.length - 3
-
-  return `
-    <div class="flex items-center gap-1 flex-wrap">
-      ${visible.map(alias => `
-        <span class="text-caption px-2 py-0.5 mono" style="background:var(--bg-2);color:var(--text-2);border-radius:var(--radius-sm);border:1px solid var(--border-subtle)">${alias}</span>
-      `).join('')}
-      ${hasMore ? `<span class="text-caption px-2 py-0.5" style="background:var(--bg-3);color:var(--text-3);border-radius:var(--radius-sm);font-weight:500">+${moreCount}</span>` : ''}
-    </div>
-  `
-}
-
-/**
  * Render apps page or app detail
- * @param {HTMLElement} container
- * @param {Object} ctx
  */
 export function render(container, ctx) {
   const { router, params, client, refresh } = ctx
 
-  // If we have an ID param, render detail view
   if (params?.id) {
     return renderDetail(container, { router, client, appId: params.id, refresh })
   }
 
-  // Otherwise render list view
   return renderList(container, { router, client, refresh })
 }
 
 /**
- * Get UI state from localStorage
- */
-function getUIState(key, defaultValue = false) {
-  try {
-    const state = JSON.parse(localStorage.getItem('fazt.web.ui.state') || '{}')
-    return state[key] !== undefined ? state[key] : defaultValue
-  } catch {
-    return defaultValue
-  }
-}
-
-/**
- * Set UI state to localStorage
- */
-function setUIState(key, value) {
-  try {
-    const state = JSON.parse(localStorage.getItem('fazt.web.ui.state') || '{}')
-    state[key] = value
-    localStorage.setItem('fazt.web.ui.state', JSON.stringify(state))
-  } catch (e) {
-    console.error('Failed to save UI state:', e)
-  }
-}
-
-/**
  * Render apps list page
- * @param {HTMLElement} container
- * @param {Object} ctx
  */
 function renderList(container, ctx) {
   const { router } = ctx
   let filter = ''
-  let viewMode = getUIState('apps.view', 'cards') // Use UI state instead of localStorage directly
 
-  function renderAppsContent() {
+  function update() {
     const appList = apps.get()
     const aliasList = aliases.get()
     const isLoading = loading.getKey('apps')
 
     // Map aliases to apps
+    const appAliases = {}
+    aliasList.forEach(alias => {
+      if (alias.type === 'proxy' && alias.targets?.app_id) {
+        const appId = alias.targets.app_id
+        if (!appAliases[appId]) appAliases[appId] = []
+        appAliases[appId].push(alias.subdomain)
+      }
+    })
+
+    // Filter apps
+    const filteredApps = filter
+      ? appList.filter(app =>
+          app.name.toLowerCase().includes(filter.toLowerCase()) ||
+          app.id.toLowerCase().includes(filter.toLowerCase()) ||
+          (appAliases[app.id] || []).some(a => a.toLowerCase().includes(filter.toLowerCase()))
+        )
+      : appList
+
+    // Table columns - mobile shows only Name (with status dot)
+    const columns = [
+      {
+        key: 'name',
+        label: 'Name',
+        render: (name, app) => `
+          <div class="flex items-center gap-2" style="min-width: 0">
+            <span class="status-dot status-dot-success pulse show-mobile" style="flex-shrink: 0"></span>
+            <div class="icon-box icon-box-sm" style="flex-shrink: 0">
+              <i data-lucide="box" class="w-3.5 h-3.5"></i>
+            </div>
+            <div style="min-width: 0; overflow: hidden">
+              <div class="text-label text-primary" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap">${name}</div>
+              <div class="text-caption mono text-faint show-mobile">${app.file_count} files · ${formatBytes(app.size_bytes)}</div>
+            </div>
+          </div>
+        `
+      },
+      {
+        key: 'aliases',
+        label: 'Aliases',
+        hideOnMobile: true,
+        render: (_, app) => {
+          const list = appAliases[app.id] || []
+          if (list.length === 0) return '<span class="text-caption text-faint">-</span>'
+          return `<span class="text-caption mono text-muted">${list[0]}${list.length > 1 ? ` +${list.length - 1}` : ''}</span>`
+        }
+      },
+      {
+        key: 'file_count',
+        label: 'Files',
+        hideOnMobile: true,
+        render: (v) => `<span class="text-caption text-muted">${v}</span>`
+      },
+      {
+        key: 'size_bytes',
+        label: 'Size',
+        hideOnMobile: true,
+        render: (v) => `<span class="text-caption text-muted">${formatBytes(v)}</span>`
+      },
+      {
+        key: 'updated_at',
+        label: 'Updated',
+        hideOnMobile: true,
+        render: (v) => `<span class="text-caption text-muted">${formatRelativeTime(v)}</span>`
+      },
+      {
+        key: 'status',
+        label: 'Status',
+        hideOnMobile: true,
+        render: () => renderStatusCell('Live', true)
+      }
+    ]
+
+    // Render table content
+    const tableContent = isLoading
+      ? `<div class="flex items-center justify-center p-8"><div class="text-caption text-muted">Loading...</div></div>`
+      : renderTable({
+          columns,
+          data: filteredApps,
+          rowKey: 'id',
+          rowDataAttr: 'app-id',
+          clickable: true,
+          emptyIcon: filter ? 'search-x' : 'layers',
+          emptyTitle: filter ? 'No apps found' : 'No apps yet',
+          emptyMessage: filter ? 'Try a different search term' : 'Deploy your first app via CLI'
+        })
+
+    // Render toolbar
+    const toolbar = renderToolbar({
+      searchId: 'filter-input',
+      searchValue: filter,
+      searchPlaceholder: 'Filter...',
+      buttons: [] // No buttons - deploy via CLI
+    })
+
+    // Render panel
+    const footer = filteredApps.length > 0 ? renderTableFooter(filteredApps.length, 'app') : ''
+
+    container.innerHTML = `
+      <div class="design-system-page">
+        <div class="content-container">
+          <div class="content-scroll">
+            ${renderPanel({
+              id: 'apps.list',
+              title: 'Apps',
+              count: appList.length,
+              toolbar,
+              content: tableContent,
+              footer,
+              minHeight: 400,
+              maxHeight: 600
+            })}
+          </div>
+        </div>
+      </div>
+    `
+
+    // Setup handlers
+    setupPanel(container)
+
+    setupToolbar(container, {
+      onSearch: (value) => {
+        filter = value
+        renderContent()
+      }
+    })
+
+    setupTableClicks(container, 'app-id', (id) => {
+      router.push(`/apps/${id}`)
+    })
+  }
+
+  /**
+   * Re-render just the content area (for filtering)
+   */
+  function renderContent() {
+    const appList = apps.get()
+    const aliasList = aliases.get()
+    const isLoading = loading.getKey('apps')
+
     const appAliases = {}
     aliasList.forEach(alias => {
       if (alias.type === 'proxy' && alias.targets?.app_id) {
@@ -131,278 +219,106 @@ function renderList(container, ctx) {
         )
       : appList
 
-    const appsContainer = container.querySelector('#apps-content')
-    if (!appsContainer) return
+    const columns = [
+      {
+        key: 'name',
+        label: 'Name',
+        render: (name, app) => `
+          <div class="flex items-center gap-2" style="min-width: 0">
+            <span class="status-dot status-dot-success pulse show-mobile" style="flex-shrink: 0"></span>
+            <div class="icon-box icon-box-sm" style="flex-shrink: 0">
+              <i data-lucide="box" class="w-3.5 h-3.5"></i>
+            </div>
+            <div style="min-width: 0; overflow: hidden">
+              <div class="text-label text-primary" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap">${name}</div>
+              <div class="text-caption mono text-faint show-mobile">${app.file_count} files · ${formatBytes(app.size_bytes)}</div>
+            </div>
+          </div>
+        `
+      },
+      {
+        key: 'aliases',
+        label: 'Aliases',
+        hideOnMobile: true,
+        render: (_, app) => {
+          const list = appAliases[app.id] || []
+          if (list.length === 0) return '<span class="text-caption text-faint">-</span>'
+          return `<span class="text-caption mono text-muted">${list[0]}${list.length > 1 ? ` +${list.length - 1}` : ''}</span>`
+        }
+      },
+      {
+        key: 'file_count',
+        label: 'Files',
+        hideOnMobile: true,
+        render: (v) => `<span class="text-caption text-muted">${v}</span>`
+      },
+      {
+        key: 'size_bytes',
+        label: 'Size',
+        hideOnMobile: true,
+        render: (v) => `<span class="text-caption text-muted">${formatBytes(v)}</span>`
+      },
+      {
+        key: 'updated_at',
+        label: 'Updated',
+        hideOnMobile: true,
+        render: (v) => `<span class="text-caption text-muted">${formatRelativeTime(v)}</span>`
+      },
+      {
+        key: 'status',
+        label: 'Status',
+        hideOnMobile: true,
+        render: () => renderStatusCell('Live', true)
+      }
+    ]
+
+    const scrollArea = container.querySelector('.panel-scroll-area')
+    if (!scrollArea) return
 
     if (isLoading) {
-      appsContainer.innerHTML = `
-        <div class="flex items-center justify-center h-full">
-          <div class="text-caption text-muted">Loading...</div>
-        </div>
-      `
+      scrollArea.innerHTML = `<div class="flex items-center justify-center p-8"><div class="text-caption text-muted">Loading...</div></div>`
       return
     }
 
-    if (filteredApps.length === 0) {
-      appsContainer.innerHTML = `
-        <div class="flex items-center justify-center h-full">
-          <div class="text-center">
-            <div class="icon-box mx-auto mb-3" style="width:48px;height:48px">
-              <i data-lucide="${filter ? 'search-x' : 'layers'}" class="w-6 h-6"></i>
-            </div>
-            <div class="text-heading text-primary mb-1">${filter ? 'No apps found' : 'No apps yet'}</div>
-            <div class="text-caption text-muted mb-4">${filter ? 'Try a different search term' : 'Deploy your first app to get started'}</div>
-            ${!filter ? `
-              <button class="btn btn-primary text-label" style="padding: 8px 16px">
-                <i data-lucide="plus" class="w-4 h-4 mr-1.5" style="display:inline-block;vertical-align:-2px"></i>
-                Deploy App
-              </button>
-            ` : ''}
-          </div>
-        </div>
-      `
-      if (window.lucide) window.lucide.createIcons()
-      return
-    }
+    scrollArea.innerHTML = renderTable({
+      columns,
+      data: filteredApps,
+      rowKey: 'id',
+      rowDataAttr: 'app-id',
+      clickable: true,
+      emptyIcon: filter ? 'search-x' : 'layers',
+      emptyTitle: filter ? 'No apps found' : 'No apps yet',
+      emptyMessage: filter ? 'Try a different search term' : 'Deploy your first app via CLI'
+    })
 
-    // Cards view
-    if (viewMode === 'cards') {
-      appsContainer.innerHTML = `
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          ${filteredApps.map(app => {
-            const appAliasesList = appAliases[app.id] || []
-            return `
-              <div class="card cursor-pointer" data-app-id="${app.id}">
-                <div class="p-4">
-                  <div class="flex items-start justify-between mb-3">
-                    <div class="flex items-center gap-3">
-                      <div class="icon-box">
-                        <i data-lucide="box" class="w-4 h-4"></i>
-                      </div>
-                      <div>
-                        <div class="text-heading text-primary">${app.name}</div>
-                        <div class="text-caption mono text-faint">${app.id}</div>
-                      </div>
-                    </div>
-                    <span class="flex items-center gap-1 text-caption text-success">
-                      <span class="status-dot status-dot-success pulse"></span>
-                      Live
-                    </span>
-                  </div>
-                  <div class="mb-3">
-                    ${renderAliasTags(appAliasesList)}
-                  </div>
-                  <div class="flex items-center gap-4 text-caption text-muted">
-                    <span class="flex items-center gap-1">
-                      <i data-lucide="file" class="w-3 h-3"></i>
-                      ${app.file_count} files
-                    </span>
-                    <span class="flex items-center gap-1">
-                      <i data-lucide="hard-drive" class="w-3 h-3"></i>
-                      ${formatBytes(app.size_bytes)}
-                    </span>
-                  </div>
-                </div>
-                <div class="card-footer flex items-center justify-between">
-                  <span class="text-caption text-muted">${formatRelativeTime(app.updated_at)}</span>
-                  <span class="text-caption text-faint">${app.source}</span>
-                </div>
-              </div>
-            `
-          }).join('')}
-        </div>
-      `
-    } else {
-      // List view
-      appsContainer.innerHTML = `
-        <div class="card">
-          <div class="table-container">
-            <table style="table-layout: fixed">
-            <colgroup>
-              <col style="width: 18%">
-              <col style="width: 26%">
-              <col style="width: 16%">
-              <col style="width: 8%">
-              <col style="width: 10%">
-              <col style="width: 12%">
-              <col style="width: 10%">
-            </colgroup>
-            <thead>
-              <tr style="border-bottom: 1px solid var(--border-subtle)">
-                <th class="px-4 py-3 text-label text-primary">Name</th>
-                <th class="px-4 py-3 text-label text-primary">Aliases</th>
-                <th class="px-4 py-3 text-label text-primary">ID</th>
-                <th class="px-4 py-3 text-label text-primary">Files</th>
-                <th class="px-4 py-3 text-label text-primary">Size</th>
-                <th class="px-4 py-3 text-label text-primary">Updated</th>
-                <th class="px-4 py-3 text-label text-primary">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${filteredApps.map(app => `
-                <tr class="row row-clickable" data-app-id="${app.id}" style="border-bottom: 1px solid var(--border-subtle)">
-                  <td class="px-4 py-3">
-                    <div class="flex items-center gap-2">
-                      <div class="icon-box icon-box-sm">
-                        <i data-lucide="box" class="w-3.5 h-3.5"></i>
-                      </div>
-                      <span class="text-label text-primary" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis">${app.name}</span>
-                    </div>
-                  </td>
-                  <td class="px-4 py-3">${renderAliasTags(appAliases[app.id] || [])}</td>
-                  <td class="px-4 py-3 text-caption mono text-muted" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis">${app.id}</td>
-                  <td class="px-4 py-3 text-caption text-muted">${app.file_count}</td>
-                  <td class="px-4 py-3 text-caption text-muted">${formatBytes(app.size_bytes)}</td>
-                  <td class="px-4 py-3 text-caption text-muted">${formatRelativeTime(app.updated_at)}</td>
-                  <td class="px-4 py-3">
-                    <span class="flex items-center gap-1 text-caption text-success">
-                      <span class="status-dot status-dot-success pulse"></span>
-                      Live
-                    </span>
-                  </td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-          </div>
-        </div>
-      `
-    }
-
-    // Re-render Lucide icons
     if (window.lucide) window.lucide.createIcons()
 
-    // Add click handlers for app cards/rows
-    appsContainer.querySelectorAll('[data-app-id]').forEach(el => {
-      el.addEventListener('click', () => {
-        router.push(`/apps/${el.dataset.appId}`)
-      })
+    setupTableClicks(scrollArea, 'app-id', (id) => {
+      router.push(`/apps/${id}`)
     })
-  }
 
-  function updateHeader() {
-    const appList = apps.get()
-    const count = container.querySelector('#apps-count')
-    if (count) count.textContent = `${appList.length} app${appList.length === 1 ? '' : 's'}`
-  }
-
-  function updateViewButtons() {
-    const cardsBtn = container.querySelector('#view-cards')
-    const listBtn = container.querySelector('#view-list')
-    if (cardsBtn && listBtn) {
-      if (viewMode === 'cards') {
-        cardsBtn.style.color = 'var(--accent)'
-        cardsBtn.style.background = 'var(--accent-soft)'
-        listBtn.style.color = 'var(--text-3)'
-        listBtn.style.background = 'transparent'
+    // Update footer
+    const panelInner = container.querySelector('.panel-inner')
+    let footer = panelInner?.querySelector('.card-footer')
+    if (filteredApps.length > 0) {
+      if (!footer) {
+        panelInner?.insertAdjacentHTML('beforeend', renderTableFooter(filteredApps.length, 'app'))
       } else {
-        listBtn.style.color = 'var(--accent)'
-        listBtn.style.background = 'var(--accent-soft)'
-        cardsBtn.style.color = 'var(--text-3)'
-        cardsBtn.style.background = 'transparent'
+        footer.querySelector('span').textContent = `${filteredApps.length} app${filteredApps.length === 1 ? '' : 's'}`
       }
+    } else if (footer) {
+      footer.remove()
     }
-  }
-
-  function init() {
-    const appList = apps.get()
-
-    container.innerHTML = `
-      <div class="design-system-page">
-        <div class="content-container">
-          <div class="content-scroll">
-
-            <!-- Page Header -->
-            <div class="flex items-center justify-between mb-4">
-              <div>
-                <h1 class="text-title text-primary">Apps</h1>
-                <p class="text-caption text-muted" id="apps-count">${appList.length} app${appList.length === 1 ? '' : 's'}</p>
-              </div>
-              <div class="flex items-center gap-2">
-                <div class="input">
-                  <i data-lucide="search" class="w-4 h-4 text-faint"></i>
-                  <input type="text" id="filter-input" placeholder="Filter apps..." class="text-body" style="width: 200px">
-                </div>
-                <div class="flex items-center border" style="border-radius: var(--radius-sm); border-color: var(--border-subtle); background: var(--bg-1)">
-                  <button id="view-cards" class="btn-icon btn-ghost" title="Cards view" style="border-radius: var(--radius-sm) 0 0 var(--radius-sm)">
-                    <i data-lucide="layout-grid" class="w-4 h-4"></i>
-                  </button>
-                  <button id="view-list" class="btn-icon btn-ghost" title="List view" style="border-radius: 0 var(--radius-sm) var(--radius-sm) 0">
-                    <i data-lucide="list" class="w-4 h-4"></i>
-                  </button>
-                </div>
-                <button id="new-app-btn" class="btn btn-primary text-label" style="padding: 6px 12px; display: flex; align-items: center; gap: 6px">
-                  <i data-lucide="plus" class="w-4 h-4"></i>
-                  <span>New App</span>
-                </button>
-              </div>
-            </div>
-
-            <!-- Apps Content -->
-            <div id="apps-content"></div>
-
-          </div>
-        </div>
-      </div>
-    `
-
-    // Re-render icons
-    if (window.lucide) window.lucide.createIcons()
-
-    updateViewButtons()
-
-    // Filter input handler
-    const filterInput = container.querySelector('#filter-input')
-    if (filterInput) {
-      filterInput.addEventListener('input', (e) => {
-        filter = e.target.value
-        renderAppsContent()
-      })
-    }
-
-    // View mode handlers
-    const cardsBtn = container.querySelector('#view-cards')
-    const listBtn = container.querySelector('#view-list')
-
-    cardsBtn?.addEventListener('click', () => {
-      viewMode = 'cards'
-      setUIState('apps.view', 'cards')
-      updateViewButtons()
-      renderAppsContent()
-    })
-
-    listBtn?.addEventListener('click', () => {
-      viewMode = 'list'
-      setUIState('apps.view', 'list')
-      updateViewButtons()
-      renderAppsContent()
-    })
-
-    // New app button
-    container.querySelector('#new-app-btn')?.addEventListener('click', () => {
-      const modal = document.getElementById('newAppModal')
-      if (modal) {
-        modal.classList.remove('hidden')
-        modal.classList.add('flex')
-      }
-    })
-
-    // Initial render
-    renderAppsContent()
   }
 
   // Subscribe to data changes
-  const unsubApps = apps.subscribe(() => {
-    updateHeader()
-    renderAppsContent()
-  })
-  const unsubAliases = aliases.subscribe(renderAppsContent)
-  const unsubLoading = loading.subscribeKey('apps', renderAppsContent)
+  const unsubApps = apps.subscribe(update)
+  const unsubAliases = aliases.subscribe(update)
+  const unsubLoading = loading.subscribeKey('apps', update)
 
   // Initial render
-  init()
+  update()
 
-  // Return cleanup function
   return () => {
     unsubApps()
     unsubAliases()
@@ -412,8 +328,6 @@ function renderList(container, ctx) {
 
 /**
  * Render app detail page
- * @param {HTMLElement} container
- * @param {Object} ctx
  */
 function renderDetail(container, ctx) {
   const { router, client, appId, refresh } = ctx
@@ -423,12 +337,10 @@ function renderDetail(container, ctx) {
     const aliasList = aliases.get()
     const isLoading = loading.getKey('apps')
 
-    // Get aliases for this app
     const appAliasesList = aliasList
       .filter(a => a.type === 'proxy' && a.targets?.app_id === appId)
       .map(a => a.subdomain)
 
-    // Get collapse states
     const detailsCollapsed = getUIState(`apps.detail.${appId}.details.collapsed`, false)
     const aliasesCollapsed = getUIState(`apps.detail.${appId}.aliases.collapsed`, false)
     const filesCollapsed = getUIState(`apps.detail.${appId}.files.collapsed`, false)
@@ -503,7 +415,7 @@ function renderDetail(container, ctx) {
               <!-- Panel Group: Details -->
               <div class="panel-group ${detailsCollapsed ? 'collapsed' : ''}">
                 <div class="panel-group-card card">
-                  <header class="panel-group-header" data-group="details">
+                  <header class="panel-group-header" data-panel="apps.detail.${appId}.details">
                     <button class="collapse-toggle">
                       <i data-lucide="chevron-right" class="chevron w-4 h-4"></i>
                       <span class="text-heading text-primary">Details</span>
@@ -533,15 +445,11 @@ function renderDetail(container, ctx) {
               <!-- Panel Group: Aliases -->
               <div class="panel-group ${aliasesCollapsed ? 'collapsed' : ''}">
                 <div class="panel-group-card card">
-                  <header class="panel-group-header" data-group="aliases">
+                  <header class="panel-group-header" data-panel="apps.detail.${appId}.aliases">
                     <button class="collapse-toggle">
                       <i data-lucide="chevron-right" class="chevron w-4 h-4"></i>
                       <span class="text-heading text-primary">Aliases</span>
                       <span class="text-caption text-faint ml-auto hide-mobile">${appAliasesList.length} configured</span>
-                    </button>
-                    <button class="btn btn-sm btn-secondary ml-2">
-                      <i data-lucide="plus" class="w-3 h-3 mr-1" style="display:inline-block;vertical-align:-1px"></i>
-                      Add
                     </button>
                   </header>
                   <div class="panel-group-body">
@@ -566,7 +474,7 @@ function renderDetail(container, ctx) {
               <!-- Panel Group: Files -->
               <div class="panel-group ${filesCollapsed ? 'collapsed' : ''}">
                 <div class="panel-group-card card">
-                  <header class="panel-group-header" data-group="files">
+                  <header class="panel-group-header" data-panel="apps.detail.${appId}.files">
                     <button class="collapse-toggle">
                       <i data-lucide="chevron-right" class="chevron w-4 h-4"></i>
                       <span class="text-heading text-primary">Files</span>
@@ -585,16 +493,16 @@ function renderDetail(container, ctx) {
                         <thead>
                           <tr style="border-bottom: 1px solid var(--border-subtle)">
                             <th class="px-4 py-3 text-label text-primary">Path</th>
-                            <th class="px-4 py-3 text-label text-primary">Size</th>
-                            <th class="px-4 py-3 text-label text-primary">Type</th>
+                            <th class="px-4 py-3 text-label text-primary hide-mobile">Size</th>
+                            <th class="px-4 py-3 text-label text-primary hide-mobile">Type</th>
                           </tr>
                         </thead>
                         <tbody>
                           ${app.files.map(file => `
                             <tr class="row" style="border-bottom: 1px solid var(--border-subtle)">
                               <td class="px-4 py-2 text-label mono text-primary" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis">${file.path}</td>
-                              <td class="px-4 py-2 text-caption text-muted">${formatBytes(file.size)}</td>
-                              <td class="px-4 py-2 text-caption text-muted" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis">${file.mime_type}</td>
+                              <td class="px-4 py-2 text-caption text-muted hide-mobile">${formatBytes(file.size)}</td>
+                              <td class="px-4 py-2 text-caption text-muted hide-mobile" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis">${file.mime_type}</td>
                             </tr>
                           `).join('')}
                         </tbody>
@@ -612,19 +520,10 @@ function renderDetail(container, ctx) {
       </div>
     `
 
-    // Re-render Lucide icons
     if (window.lucide) window.lucide.createIcons()
 
     // Setup collapse handlers
-    container.querySelectorAll('.collapse-toggle').forEach(toggle => {
-      toggle.addEventListener('click', () => {
-        const header = toggle.closest('.panel-group-header')
-        const group = header.dataset.group
-        const panelGroup = header.closest('.panel-group')
-        const isCollapsed = panelGroup.classList.toggle('collapsed')
-        setUIState(`apps.detail.${appId}.${group}.collapsed`, isCollapsed)
-      })
-    })
+    setupPanel(container)
 
     // Back button
     container.querySelector('#back-btn')?.addEventListener('click', () => {
@@ -645,11 +544,10 @@ function renderDetail(container, ctx) {
       }
     })
 
-    // Alias buttons - open in new tab
+    // Alias buttons
     container.querySelectorAll('.alias-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const alias = btn.dataset.alias
-        // Construct URL based on current location
         const protocol = window.location.protocol
         const hostname = window.location.hostname
         const port = window.location.port
@@ -659,18 +557,14 @@ function renderDetail(container, ctx) {
     })
   }
 
-  // Load app detail
   loadAppDetail(client, appId)
 
-  // Subscribe to changes
   const unsubApp = currentApp.subscribe(renderContent)
   const unsubAliases = aliases.subscribe(renderContent)
   const unsubLoading = loading.subscribeKey('apps', renderContent)
 
-  // Initial render
   renderContent()
 
-  // Return cleanup
   return () => {
     unsubApp()
     unsubAliases()

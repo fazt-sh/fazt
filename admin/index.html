@@ -205,6 +205,11 @@
     .input input { flex: 1; background: transparent; border: none; outline: none; color: var(--text-2); }
     .input input::placeholder { color: var(--text-4); }
 
+    /* Toolbar: search + buttons */
+    .toolbar-search { height: 32px; padding: 0 10px; gap: 8px; flex: 1; max-width: 240px; }
+    .toolbar-search input { font-size: 13px; }
+    .toolbar-btn { height: 32px; width: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
+
     .pill { padding: 6px 12px; border-radius: var(--radius-md); font-size: 12px; font-weight: 500; background: var(--bg-2); color: var(--text-2); cursor: pointer; transition: all 0.15s ease; border: none; }
     .pill:hover { background: var(--bg-3); }
     .pill.active { background: var(--accent); color: white; }
@@ -563,6 +568,18 @@
       .show-mobile {
         display: block !important;
       }
+      .toolbar-search {
+        max-width: 100% !important;
+        height: 44px;
+        padding: 0 12px;
+      }
+      .toolbar-search input {
+        font-size: 16px;
+      }
+      .toolbar-btn {
+        height: 44px;
+        width: 44px;
+      }
     }
 
     /* ============================================
@@ -681,7 +698,6 @@
 
     .collapse-toggle .chevron {
       color: var(--text-3);
-      transition: transform 0.2s ease;
       flex-shrink: 0;
     }
 
@@ -689,13 +705,12 @@
       transform: rotate(90deg);
     }
 
-    /* Panel body: smooth collapse */
+    /* Panel body: immediate collapse */
     .panel-group-body {
       max-height: 3000px;
       overflow: visible;
       opacity: 1;
       padding: 16px;
-      transition: max-height 0.3s ease, opacity 0.2s ease, padding 0.3s ease;
     }
 
     .panel-group.collapsed .panel-group-body {
@@ -1020,9 +1035,19 @@
         <!-- Target (for proxy) -->
         <div id="aliasProxyTarget">
           <label class="text-micro text-muted block mb-2">TARGET APP</label>
-          <select id="aliasAppId" name="app_id" class="w-full p-2 text-body" style="background:var(--bg-2);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);color:var(--text-1)">
-            <option value="">Select an app...</option>
-          </select>
+          <div class="app-select-container" style="position:relative">
+            <div id="aliasAppSelect" class="input cursor-pointer" style="justify-content:space-between">
+              <span id="aliasAppSelectText" class="text-muted">Select an app...</span>
+              <i data-lucide="chevron-down" class="w-4 h-4 text-faint"></i>
+            </div>
+            <div id="aliasAppDropdown" class="dropdown hidden" style="position:absolute;top:100%;left:0;right:0;margin-top:4px;max-height:240px;overflow:hidden;z-index:100">
+              <div class="p-2 border-b" style="border-color:var(--border)">
+                <input type="text" id="aliasAppSearch" placeholder="Search apps..." class="w-full p-2 text-body" style="background:var(--bg-2);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);color:var(--text-1)">
+              </div>
+              <div id="aliasAppList" class="scroll-panel" style="max-height:180px;overflow-y:auto"></div>
+            </div>
+            <input type="hidden" id="aliasAppId" name="app_id" value="">
+          </div>
         </div>
 
         <!-- Target (for redirect) -->
@@ -1080,9 +1105,19 @@
         <!-- Target (for proxy) -->
         <div id="editAliasProxyTarget">
           <label class="text-micro text-muted block mb-2">TARGET APP</label>
-          <select id="editAliasAppId" name="app_id" class="w-full p-2 text-body" style="background:var(--bg-2);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);color:var(--text-1)">
-            <option value="">Select an app...</option>
-          </select>
+          <div class="app-select-container" style="position:relative">
+            <div id="editAliasAppSelect" class="input cursor-pointer" style="justify-content:space-between">
+              <span id="editAliasAppSelectText" class="text-muted">Select an app...</span>
+              <i data-lucide="chevron-down" class="w-4 h-4 text-faint"></i>
+            </div>
+            <div id="editAliasAppDropdown" class="dropdown hidden" style="position:absolute;top:100%;left:0;right:0;margin-top:4px;max-height:240px;overflow:hidden;z-index:100">
+              <div class="p-2 border-b" style="border-color:var(--border)">
+                <input type="text" id="editAliasAppSearch" placeholder="Search apps..." class="w-full p-2 text-body" style="background:var(--bg-2);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);color:var(--text-1)">
+              </div>
+              <div id="editAliasAppList" class="scroll-panel" style="max-height:180px;overflow-y:auto"></div>
+            </div>
+            <input type="hidden" id="editAliasAppId" name="app_id" value="">
+          </div>
         </div>
 
         <!-- Target (for redirect) -->
@@ -1925,7 +1960,61 @@
       const aliasTypeInput = document.getElementById('aliasType')
       const aliasProxyTarget = document.getElementById('aliasProxyTarget')
       const aliasRedirectTarget = document.getElementById('aliasRedirectTarget')
-      const aliasAppIdSelect = document.getElementById('aliasAppId')
+      const aliasAppIdInput = document.getElementById('aliasAppId')
+      const aliasAppSelect = document.getElementById('aliasAppSelect')
+      const aliasAppDropdown = document.getElementById('aliasAppDropdown')
+      const aliasAppSearch = document.getElementById('aliasAppSearch')
+      const aliasAppList = document.getElementById('aliasAppList')
+      const aliasAppSelectText = document.getElementById('aliasAppSelectText')
+
+      // Searchable app dropdown for Create Alias
+      function renderAliasAppList(searchTerm = '') {
+        const appList = apps.get()
+        const filtered = searchTerm
+          ? appList.filter(app =>
+              app.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+              app.id.toLowerCase().includes(searchTerm.toLowerCase())
+            )
+          : appList
+
+        if (filtered.length === 0) {
+          aliasAppList.innerHTML = `<div class="px-4 py-3 text-caption text-muted">No apps found</div>`
+          return
+        }
+
+        aliasAppList.innerHTML = filtered.map(app => `
+          <div class="dropdown-item px-4 py-2 cursor-pointer" data-app-id="${app.id}" data-app-name="${app.name}">
+            <div class="text-label text-primary">${app.name}</div>
+            <div class="text-caption mono text-faint">${app.id}</div>
+          </div>
+        `).join('')
+
+        aliasAppList.querySelectorAll('[data-app-id]').forEach(item => {
+          item.addEventListener('click', () => {
+            aliasAppIdInput.value = item.dataset.appId
+            aliasAppSelectText.textContent = item.dataset.appName
+            aliasAppSelectText.classList.remove('text-muted')
+            aliasAppSelectText.classList.add('text-primary')
+            aliasAppDropdown.classList.add('hidden')
+          })
+        })
+      }
+
+      aliasAppSelect?.addEventListener('click', (e) => {
+        e.stopPropagation()
+        aliasAppDropdown.classList.toggle('hidden')
+        if (!aliasAppDropdown.classList.contains('hidden')) {
+          aliasAppSearch.value = ''
+          renderAliasAppList()
+          aliasAppSearch.focus()
+        }
+      })
+
+      aliasAppSearch?.addEventListener('input', (e) => {
+        renderAliasAppList(e.target.value)
+      })
+
+      aliasAppSearch?.addEventListener('click', (e) => e.stopPropagation())
 
       function closeCreateAliasModal() {
         createAliasModal?.classList.add('hidden')
@@ -1943,14 +2032,16 @@
         aliasTypeInput.value = 'proxy'
         aliasProxyTarget?.classList.remove('hidden')
         aliasRedirectTarget?.classList.add('hidden')
+        // Reset app select
+        aliasAppIdInput.value = ''
+        aliasAppSelectText.textContent = 'Select an app...'
+        aliasAppSelectText.classList.add('text-muted')
+        aliasAppSelectText.classList.remove('text-primary')
+        aliasAppDropdown?.classList.add('hidden')
       }
 
       function openCreateAliasModal() {
-        // Populate app dropdown
-        const appList = apps.get()
-        aliasAppIdSelect.innerHTML = '<option value="">Select an app...</option>' +
-          appList.map(app => `<option value="${app.id}">${app.name}</option>`).join('')
-
+        renderAliasAppList()
         createAliasModal?.classList.remove('hidden')
         createAliasModal?.classList.add('flex')
         lucide.createIcons()
@@ -1989,7 +2080,7 @@
       submitCreateAliasBtn?.addEventListener('click', async () => {
         const subdomain = document.getElementById('aliasSubdomain')?.value?.trim()
         const type = aliasTypeInput?.value || 'proxy'
-        const appId = aliasAppIdSelect?.value
+        const appId = aliasAppIdInput?.value
         const redirectUrl = document.getElementById('aliasRedirectUrl')?.value?.trim()
 
         if (!subdomain) {
@@ -2031,6 +2122,10 @@
 
       createAliasModal?.addEventListener('click', (e) => {
         if (e.target === createAliasModal) closeCreateAliasModal()
+        // Close app dropdown when clicking outside
+        if (!e.target.closest('.app-select-container')) {
+          aliasAppDropdown?.classList.add('hidden')
+        }
       })
 
       // Edit Alias Modal
@@ -2040,7 +2135,61 @@
       const submitEditAliasBtn = document.getElementById('submitEditAlias')
       const deleteAliasBtn = document.getElementById('deleteAlias')
       const editAliasError = document.getElementById('editAliasError')
-      const editAliasAppIdSelect = document.getElementById('editAliasAppId')
+      const editAliasAppIdInput = document.getElementById('editAliasAppId')
+      const editAliasAppSelect = document.getElementById('editAliasAppSelect')
+      const editAliasAppDropdown = document.getElementById('editAliasAppDropdown')
+      const editAliasAppSearch = document.getElementById('editAliasAppSearch')
+      const editAliasAppList = document.getElementById('editAliasAppList')
+      const editAliasAppSelectText = document.getElementById('editAliasAppSelectText')
+
+      // Searchable app dropdown for Edit Alias
+      function renderEditAliasAppList(searchTerm = '') {
+        const appList = apps.get()
+        const filtered = searchTerm
+          ? appList.filter(app =>
+              app.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+              app.id.toLowerCase().includes(searchTerm.toLowerCase())
+            )
+          : appList
+
+        if (filtered.length === 0) {
+          editAliasAppList.innerHTML = `<div class="px-4 py-3 text-caption text-muted">No apps found</div>`
+          return
+        }
+
+        editAliasAppList.innerHTML = filtered.map(app => `
+          <div class="dropdown-item px-4 py-2 cursor-pointer" data-app-id="${app.id}" data-app-name="${app.name}">
+            <div class="text-label text-primary">${app.name}</div>
+            <div class="text-caption mono text-faint">${app.id}</div>
+          </div>
+        `).join('')
+
+        editAliasAppList.querySelectorAll('[data-app-id]').forEach(item => {
+          item.addEventListener('click', () => {
+            editAliasAppIdInput.value = item.dataset.appId
+            editAliasAppSelectText.textContent = item.dataset.appName
+            editAliasAppSelectText.classList.remove('text-muted')
+            editAliasAppSelectText.classList.add('text-primary')
+            editAliasAppDropdown.classList.add('hidden')
+          })
+        })
+      }
+
+      editAliasAppSelect?.addEventListener('click', (e) => {
+        e.stopPropagation()
+        editAliasAppDropdown.classList.toggle('hidden')
+        if (!editAliasAppDropdown.classList.contains('hidden')) {
+          editAliasAppSearch.value = ''
+          renderEditAliasAppList()
+          editAliasAppSearch.focus()
+        }
+      })
+
+      editAliasAppSearch?.addEventListener('input', (e) => {
+        renderEditAliasAppList(e.target.value)
+      })
+
+      editAliasAppSearch?.addEventListener('click', (e) => e.stopPropagation())
 
       function closeEditAliasModal() {
         editAliasModal?.classList.add('hidden')
@@ -2050,14 +2199,15 @@
         submitEditAliasBtn.disabled = false
         document.getElementById('submitEditAliasText').classList.remove('hidden')
         document.getElementById('submitEditAliasLoading').classList.add('hidden')
+        // Reset app select
+        editAliasAppIdInput.value = ''
+        editAliasAppSelectText.textContent = 'Select an app...'
+        editAliasAppSelectText.classList.add('text-muted')
+        editAliasAppSelectText.classList.remove('text-primary')
+        editAliasAppDropdown?.classList.add('hidden')
       }
 
       function openEditAliasModal(alias) {
-        // Populate app dropdown
-        const appList = apps.get()
-        editAliasAppIdSelect.innerHTML = '<option value="">Select an app...</option>' +
-          appList.map(app => `<option value="${app.id}">${app.name}</option>`).join('')
-
         // Fill form
         document.getElementById('editAliasSubdomain').value = alias.subdomain
         document.getElementById('editAliasSubtitle').textContent = alias.subdomain
@@ -2066,7 +2216,19 @@
         if (alias.type === 'proxy') {
           document.getElementById('editAliasProxyTarget')?.classList.remove('hidden')
           document.getElementById('editAliasRedirectTarget')?.classList.add('hidden')
-          editAliasAppIdSelect.value = alias.targets?.app_id || ''
+          editAliasAppIdInput.value = alias.targets?.app_id || ''
+          // Set the display text
+          const appList = apps.get()
+          const selectedApp = appList.find(a => a.id === alias.targets?.app_id)
+          if (selectedApp) {
+            editAliasAppSelectText.textContent = selectedApp.name
+            editAliasAppSelectText.classList.remove('text-muted')
+            editAliasAppSelectText.classList.add('text-primary')
+          } else {
+            editAliasAppSelectText.textContent = 'Select an app...'
+            editAliasAppSelectText.classList.add('text-muted')
+            editAliasAppSelectText.classList.remove('text-primary')
+          }
         } else if (alias.type === 'redirect') {
           document.getElementById('editAliasProxyTarget')?.classList.add('hidden')
           document.getElementById('editAliasRedirectTarget')?.classList.remove('hidden')
@@ -2076,6 +2238,7 @@
           document.getElementById('editAliasRedirectTarget')?.classList.add('hidden')
         }
 
+        renderEditAliasAppList()
         editAliasModal?.classList.remove('hidden')
         editAliasModal?.classList.add('flex')
         lucide.createIcons()
@@ -2088,7 +2251,7 @@
       submitEditAliasBtn?.addEventListener('click', async () => {
         const subdomain = document.getElementById('editAliasSubdomain')?.value
         const type = document.getElementById('editAliasTypeDisplay')?.textContent
-        const appId = editAliasAppIdSelect?.value
+        const appId = editAliasAppIdInput?.value
         const redirectUrl = document.getElementById('editAliasRedirectUrl')?.value?.trim()
 
         if (type === 'proxy' && !appId) {
@@ -2100,7 +2263,7 @@
         // Show loading
         submitEditAliasBtn.disabled = true
         document.getElementById('submitEditAliasText').classList.add('hidden')
-        document.getElementById('submitEditAliasLoading').classList.add('hidden')
+        document.getElementById('submitEditAliasLoading').classList.remove('hidden')
         editAliasError?.classList.add('hidden')
 
         try {
@@ -2132,6 +2295,36 @@
 
       editAliasModal?.addEventListener('click', (e) => {
         if (e.target === editAliasModal) closeEditAliasModal()
+        // Close app dropdown when clicking outside
+        if (!e.target.closest('.app-select-container')) {
+          editAliasAppDropdown?.classList.add('hidden')
+        }
+      })
+
+      // Global Escape key handler for all modals
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          if (!newAppModal?.classList.contains('hidden')) {
+            closeNewAppModal()
+          }
+          if (!createAliasModal?.classList.contains('hidden')) {
+            closeCreateAliasModal()
+          }
+          if (!editAliasModal?.classList.contains('hidden')) {
+            closeEditAliasModal()
+          }
+          // Close any open app dropdowns
+          aliasAppDropdown?.classList.add('hidden')
+          editAliasAppDropdown?.classList.add('hidden')
+        }
+      })
+
+      // Close dropdowns when clicking outside
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('.app-select-container')) {
+          aliasAppDropdown?.classList.add('hidden')
+          editAliasAppDropdown?.classList.add('hidden')
+        }
       })
 
       // Expose alias modals globally for use from pages

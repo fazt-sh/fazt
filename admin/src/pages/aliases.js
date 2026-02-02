@@ -1,13 +1,17 @@
 /**
- * Aliases Page
+ * Aliases Page - Component-Based Layout
  */
 
 import { aliases, apps } from '../stores/data.js'
 import { loading } from '../stores/app.js'
+import {
+  renderPanel, setupPanel,
+  renderToolbar, setupToolbar,
+  renderTable, setupTableClicks, renderTableFooter
+} from '../components/index.js'
 
 /**
  * Format relative time
- * @param {string} timestamp
  */
 function formatRelativeTime(timestamp) {
   const date = new Date(timestamp)
@@ -23,7 +27,6 @@ function formatRelativeTime(timestamp) {
 
 /**
  * Get type badge class
- * @param {string} type
  */
 function getTypeBadge(type) {
   switch (type) {
@@ -36,9 +39,84 @@ function getTypeBadge(type) {
 }
 
 /**
+ * Get app name by ID
+ */
+function getAppName(appId) {
+  const appList = apps.get()
+  const app = appList.find(a => a.id === appId)
+  return app?.name || appId
+}
+
+/**
+ * Get icon for alias type
+ */
+function getAliasIcon(type) {
+  switch (type) {
+    case 'redirect': return 'external-link'
+    case 'reserved': return 'lock'
+    default: return 'link'
+  }
+}
+
+/**
+ * Build columns config for aliases table
+ */
+function getColumns() {
+  return [
+    {
+      key: 'subdomain',
+      label: 'Subdomain',
+      render: (subdomain, alias) => `
+        <div class="flex items-center gap-2" style="min-width: 0">
+          <span class="status-dot ${alias.type === 'reserved' ? '' : 'status-dot-success pulse'} show-mobile" style="flex-shrink: 0"></span>
+          <div class="icon-box icon-box-sm" style="flex-shrink: 0">
+            <i data-lucide="${getAliasIcon(alias.type)}" class="w-3.5 h-3.5"></i>
+          </div>
+          <div style="min-width: 0; overflow: hidden">
+            <div class="text-label text-primary" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap">${subdomain}</div>
+            <div class="text-caption mono text-faint show-mobile">${alias.type}</div>
+          </div>
+        </div>
+      `
+    },
+    {
+      key: 'type',
+      label: 'Type',
+      hideOnMobile: true,
+      render: (type) => `<span class="badge ${getTypeBadge(type)}">${type}</span>`
+    },
+    {
+      key: 'target',
+      label: 'Target',
+      hideOnMobile: true,
+      render: (_, alias) => {
+        const target = alias.type === 'proxy' ? getAppName(alias.targets?.app_id) :
+                       alias.type === 'redirect' ? alias.targets?.url || '-' : '-'
+        return `<span class="text-caption mono text-muted" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; max-width: 180px">${target}</span>`
+      }
+    },
+    {
+      key: 'updated_at',
+      label: 'Updated',
+      hideOnMobile: true,
+      render: (v) => `<span class="text-caption text-muted">${formatRelativeTime(v)}</span>`
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      hideOnMobile: true,
+      render: (_, alias) => `
+        <span class="flex items-center gap-1 text-caption ${alias.type === 'reserved' ? 'text-muted' : 'text-success'}">
+          <span class="status-dot ${alias.type === 'reserved' ? '' : 'status-dot-success pulse'}"></span>
+          ${alias.type === 'reserved' ? 'Reserved' : 'Active'}
+        </span>
+      `
+    }
+  ]
+}
+
+/**
  * Render aliases page
- * @param {HTMLElement} container
- * @param {Object} ctx
  */
 export function render(container, ctx) {
   let filter = ''
@@ -49,132 +127,137 @@ export function render(container, ctx) {
 
     const filteredAliases = filter
       ? aliasList.filter(alias =>
-          alias.subdomain.toLowerCase().includes(filter.toLowerCase())
+          alias.subdomain.toLowerCase().includes(filter.toLowerCase()) ||
+          alias.type.toLowerCase().includes(filter.toLowerCase())
         )
       : aliasList
 
-    container.innerHTML = `
-      <div class="flex flex-col h-full overflow-hidden">
-        <!-- Header -->
-        <div class="flex items-center justify-between mb-4 flex-shrink-0">
-          <div>
-            <h1 class="text-title text-primary">Aliases</h1>
-            <p class="text-caption text-muted">${aliasList.length} subdomains configured</p>
-          </div>
-          <div class="flex items-center gap-2">
-            <div class="input">
-              <i data-lucide="search" class="w-4 h-4 text-faint"></i>
-              <input type="text" id="filter-input" placeholder="Filter aliases..." class="text-body" value="${filter}" style="width: 200px">
-            </div>
-            <button id="new-alias-btn" class="btn btn-primary">
-              <i data-lucide="plus" class="w-4 h-4"></i>
-              New Alias
-            </button>
-          </div>
-        </div>
+    // Render table content
+    const tableContent = isLoading
+      ? `<div class="flex items-center justify-center p-8"><div class="text-caption text-muted">Loading...</div></div>`
+      : renderTable({
+          columns: getColumns(),
+          data: filteredAliases,
+          rowKey: 'subdomain',
+          rowDataAttr: 'alias',
+          clickable: true,
+          emptyIcon: filter ? 'search-x' : 'link',
+          emptyTitle: filter ? 'No aliases found' : 'No aliases yet',
+          emptyMessage: filter ? 'Try a different search term' : 'Create your first alias to get started'
+        })
 
-        <!-- Aliases Table -->
-        <div class="card flex flex-col overflow-hidden flex-1">
-          <div class="flex-1 overflow-auto scroll-panel">
-            ${isLoading ? `
-              <div class="flex items-center justify-center h-full">
-                <div class="text-caption text-muted">Loading...</div>
-              </div>
-            ` : filteredAliases.length === 0 ? `
-              <div class="flex items-center justify-center h-full">
-                <div class="text-center">
-                  <i data-lucide="link" class="w-12 h-12 text-faint mx-auto mb-2"></i>
-                  <div class="text-caption text-muted">${filter ? 'No aliases match your filter' : 'No aliases configured'}</div>
-                </div>
-              </div>
-            ` : `
-              <div class="table-container">
-                <table>
-                <thead class="sticky" style="top: 0; background: var(--bg-1)">
-                  <tr class="border-b">
-                    <th class="px-4 py-3 text-left text-micro text-muted">Subdomain</th>
-                    <th class="px-4 py-3 text-left text-micro text-muted">Type</th>
-                    <th class="px-4 py-3 text-left text-micro text-muted">Target</th>
-                    <th class="px-4 py-3 text-left text-micro text-muted">Updated</th>
-                    <th class="px-4 py-3"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${filteredAliases.map(alias => `
-                    <tr class="row row-clickable border-b" data-alias="${alias.subdomain}" style="border-color: var(--border-subtle)">
-                      <td class="px-4 py-3">
-                        <div class="flex items-center gap-2">
-                          <div class="icon-box icon-box-sm">
-                            <i data-lucide="${alias.type === 'redirect' ? 'external-link' : alias.type === 'reserved' ? 'lock' : 'link'}" class="w-3.5 h-3.5"></i>
-                          </div>
-                          <div>
-                            <div class="text-label text-primary">${alias.subdomain}</div>
-                            <div class="text-caption mono text-faint">${alias.subdomain}.zyt.app</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td class="px-4 py-3">
-                        <span class="badge ${getTypeBadge(alias.type)}">${alias.type}</span>
-                      </td>
-                      <td class="px-4 py-3">
-                        <span class="text-caption mono text-muted">
-                          ${alias.type === 'proxy' ? alias.targets?.app_id || '-' :
-                            alias.type === 'redirect' ? alias.targets?.url || '-' :
-                            '-'}
-                        </span>
-                      </td>
-                      <td class="px-4 py-3 text-caption text-muted">${formatRelativeTime(alias.updated_at)}</td>
-                      <td class="px-4 py-3">
-                        <button class="btn btn-ghost btn-icon btn-sm" style="color: var(--text-4)">
-                          <i data-lucide="more-horizontal" class="w-4 h-4"></i>
-                        </button>
-                      </td>
-                    </tr>
-                  `).join('')}
-                </tbody>
-              </table>
-              </div>
-            `}
+    // Render toolbar
+    const toolbar = renderToolbar({
+      searchId: 'filter-input',
+      searchValue: filter,
+      searchPlaceholder: 'Filter...',
+      buttons: [
+        { id: 'new-alias-btn', icon: 'plus', title: 'New Alias', primary: true }
+      ]
+    })
+
+    // Render footer
+    const footer = filteredAliases.length > 0 ? renderTableFooter(filteredAliases.length, 'alias', 'aliases') : ''
+
+    container.innerHTML = `
+      <div class="design-system-page">
+        <div class="content-container">
+          <div class="content-scroll">
+            ${renderPanel({
+              id: 'aliases.list',
+              title: 'Aliases',
+              count: aliasList.length,
+              toolbar,
+              content: tableContent,
+              footer,
+              minHeight: 400,
+              maxHeight: 600
+            })}
           </div>
         </div>
       </div>
     `
 
-    // Re-render Lucide icons
-    if (window.lucide) {
-      window.lucide.createIcons()
-    }
+    // Setup handlers
+    setupPanel(container)
 
-    // Add filter input handler
-    const filterInput = container.querySelector('#filter-input')
-    if (filterInput) {
-      filterInput.addEventListener('input', (e) => {
-        filter = e.target.value
-        update()
-      })
-    }
-
-    // New alias button
-    container.querySelector('#new-alias-btn')?.addEventListener('click', () => {
-      if (window.__fazt_openCreateAliasModal) {
-        window.__fazt_openCreateAliasModal()
+    setupToolbar(container, {
+      onSearch: (value) => {
+        filter = value
+        renderContent()
+      },
+      buttons: {
+        'new-alias-btn': () => window.__fazt_openCreateAliasModal?.()
       }
     })
 
-    // Row click to edit
-    container.querySelectorAll('[data-alias]').forEach(row => {
-      row.addEventListener('click', () => {
-        const subdomain = row.dataset.alias
-        const alias = aliasList.find(a => a.subdomain === subdomain)
-        if (alias && window.__fazt_openEditAliasModal) {
-          window.__fazt_openEditAliasModal(alias)
-        }
-      })
+    setupTableClicks(container, 'alias', (subdomain) => {
+      const alias = aliasList.find(a => a.subdomain === subdomain)
+      if (alias) {
+        window.__fazt_openEditAliasModal?.(alias)
+      }
     })
+  }
+
+  /**
+   * Re-render just the content area (for filtering)
+   */
+  function renderContent() {
+    const aliasList = aliases.get()
+    const isLoading = loading.getKey('aliases')
+
+    const filteredAliases = filter
+      ? aliasList.filter(alias =>
+          alias.subdomain.toLowerCase().includes(filter.toLowerCase()) ||
+          alias.type.toLowerCase().includes(filter.toLowerCase())
+        )
+      : aliasList
+
+    const scrollArea = container.querySelector('.panel-scroll-area')
+    if (!scrollArea) return
+
+    if (isLoading) {
+      scrollArea.innerHTML = `<div class="flex items-center justify-center p-8"><div class="text-caption text-muted">Loading...</div></div>`
+      return
+    }
+
+    scrollArea.innerHTML = renderTable({
+      columns: getColumns(),
+      data: filteredAliases,
+      rowKey: 'subdomain',
+      rowDataAttr: 'alias',
+      clickable: true,
+      emptyIcon: filter ? 'search-x' : 'link',
+      emptyTitle: filter ? 'No aliases found' : 'No aliases yet',
+      emptyMessage: filter ? 'Try a different search term' : 'Create your first alias to get started'
+    })
+
+    if (window.lucide) window.lucide.createIcons()
+
+    setupTableClicks(scrollArea, 'alias', (subdomain) => {
+      const alias = aliasList.find(a => a.subdomain === subdomain)
+      if (alias) {
+        window.__fazt_openEditAliasModal?.(alias)
+      }
+    })
+
+    // Update footer
+    const panelInner = container.querySelector('.panel-inner')
+    let footer = panelInner?.querySelector('.card-footer')
+    if (filteredAliases.length > 0) {
+      if (!footer) {
+        panelInner?.insertAdjacentHTML('beforeend', renderTableFooter(filteredAliases.length, 'alias', 'aliases'))
+      } else {
+        footer.querySelector('span').textContent = `${filteredAliases.length} alias${filteredAliases.length === 1 ? '' : 'es'}`
+      }
+    } else if (footer) {
+      footer.remove()
+    }
   }
 
   // Subscribe to data changes
   const unsubAliases = aliases.subscribe(update)
+  const unsubApps = apps.subscribe(update)
   const unsubLoading = loading.subscribeKey('aliases', update)
 
   // Initial render
@@ -183,6 +266,7 @@ export function render(container, ctx) {
   // Return cleanup function
   return () => {
     unsubAliases()
+    unsubApps()
     unsubLoading()
   }
 }
