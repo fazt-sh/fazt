@@ -136,11 +136,11 @@ fazt peer status local 2>/dev/null || echo "Local not configured as peer"
 fazt peer list
 
 # Upgrade each peer (idempotent - returns "already latest" if up-to-date)
-fazt peer upgrade local 2>/dev/null || echo "Local peer not configured"
-fazt peer upgrade zyt   2>/dev/null || echo "zyt peer not configured"
+fazt @local upgrade 2>/dev/null || echo "Local peer not configured"
+fazt @zyt upgrade   2>/dev/null || echo "zyt peer not configured"
 
 # Or upgrade all peers automatically:
-# fazt peer list --format json | jq -r '.[].name' | xargs -I {} fazt peer upgrade {}
+# fazt peer list --format json | jq -r '.[].name' | xargs -I {} fazt @{} upgrade
 ```
 
 **Note**: Each upgrade is idempotent and returns "already latest" if the peer is already upgraded.
@@ -154,7 +154,7 @@ fazt peer upgrade zyt   2>/dev/null || echo "zyt peer not configured"
 | Tag exists? | `git tag -l "vX.Y.Z"` |
 | Need to push? | `git status -sb` (shows "ahead") |
 | All peer versions | `fazt peer list` |
-| Specific peer version | `fazt peer status <name>` |
+| Specific peer version | `fazt @<name> status` |
 
 ## Version Numbering
 

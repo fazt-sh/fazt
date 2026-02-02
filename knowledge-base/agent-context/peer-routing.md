@@ -7,18 +7,40 @@ updated: 2026-02-02
 
 ## Overview
 
-The `@peer` pattern enables remote command execution on Fazt peers. Commands prefixed with `@<peer>` are routed to the specified peer instead of executing locally.
+The `@peer` pattern is the **universal** way to execute commands on Fazt peers. ALL commands use the same syntax:
 
-**Example:**
+```bash
+fazt @<target> <command> [args...]
+```
+
+**Examples:**
 ```bash
 fazt @zyt app list        # List apps on zyt peer
 fazt @local app deploy    # Deploy to local peer
+fazt @zyt status          # Check peer health
+fazt @zyt upgrade         # Upgrade peer binary
 ```
+
+## Universal Syntax
+
+Every command follows the same pattern - no exceptions to remember:
+
+| Command | Description |
+|---------|-------------|
+| `fazt @<peer> app <cmd>` | App management |
+| `fazt @<peer> status` | Check peer health and version |
+| `fazt @<peer> upgrade` | Upgrade fazt binary on peer |
+| `fazt @<peer> sql <query>` | Execute SQL |
+| `fazt @<peer> auth <cmd>` | Auth operations |
+| `fazt @<peer> server <cmd>` | Server operations |
+| `fazt @<peer> service <cmd>` | Service operations |
+| `fazt @<peer> config <cmd>` | Config operations |
 
 ## Remote-Capable Commands
 
+These commands execute successfully on remote peers:
+
 ### App Commands
-Commands that support `@peer` prefix:
 - `list` - List apps
 - `info` - Show app details
 - `files` - List files in deployed app
@@ -36,31 +58,27 @@ Commands that support `@peer` prefix:
 - `lineage` - Show fork tree
 - `pull` - Pull app from git
 
+### Top-Level Commands
+- `status` - Check peer health and version
+- `upgrade` - Upgrade fazt binary on peer
+
 ### Auth Commands
 - `provider` - Show OAuth provider config
 - `providers` - List OAuth providers
 
-### Peer Commands
-- `list` - List configured peers
-- `status` - Check peer health and status
-- `add` - Add new peer
-- `remove` - Remove peer
-- `set-default` - Set default peer
-- `upgrade` - Upgrade remote peer
-
 ### SQL Commands
 - Any query execution (`fazt @peer sql <query>`)
 
-## Local-Only Commands
+## Commands with Helpful Errors
 
-These commands **do not** support `@peer` and will error if used with it:
+These commands accept @peer syntax but show helpful guidance since they require local access:
 
 ### App Commands (Local Operations)
-- `create` - Creates local files, not remote operation
-- `validate` - Validates local directory before deployment
+- `create` - Creates local files
+- `validate` - Validates local directory
 
-**Error message:**
 ```
+$ fazt @zyt app create my-app
 Error: 'app create' is a local operation
 This command operates on local files, not remote peers.
 Usage: fazt app create ...
@@ -72,30 +90,64 @@ Usage: fazt app create ...
 - `invite` - Create invite code
 - `invites` - List invites
 
-**Error message:**
 ```
+$ fazt @zyt auth users
 Error: 'auth users' is not available remotely
 
 User management requires direct database access for security.
 To manage users on a remote peer, SSH into the server:
-  ssh user@host
+  ssh user@zyt.app
   fazt auth users
 ```
+
+### Service Commands (System Access Required)
+- `install` - Install systemd service
+- `uninstall` - Remove systemd service
+- `start` / `stop` / `restart` - Manage service
+
+```
+$ fazt @zyt service install
+Error: 'service' requires local system access (systemd/sudo).
+
+To manage the service on zyt, SSH into the machine:
+  ssh user@zyt.app
+  fazt service install
+```
+
+### Server Commands (Some Local-Only)
+- `init` - Initialize server (requires local access)
+- `start` - Can work remotely via API
+- `create-key` - Works remotely
 
 ## How @Peer Routing Works
 
 ### 1. CLI Parsing
-The CLI parses `@peer` prefix before subcommands:
+The CLI parses `@peer` prefix as the first argument:
 ```bash
 fazt @zyt app list
-     ^^^^ parsed first
-          ^^^^^^^^ then subcommand routing
+     ^^^^ parsed first, sets target peer
+          ^^^^^^^^ then command routing
 ```
 
-### 2. Global Context
-Sets `targetPeerName` global variable that handlers check:
+### 2. Universal Routing
+All commands route through `handleAtPeerRouting()`:
 ```go
-var targetPeerName string  // Set by CLI parser
+func handleAtPeerRouting(peerName string, args []string) {
+    command := args[0]  // "app", "status", "upgrade", etc.
+
+    switch command {
+    case "app":
+        handleAppCommandV2(args[1:])
+    case "status":
+        handlePeerStatusDirect(peerName)
+    case "upgrade":
+        handlePeerUpgradeDirect(peerName)
+    case "service":
+        // Show helpful SSH guidance
+        showLocalOnlyError("service", peerName)
+    // ... all commands handled
+    }
+}
 ```
 
 ### 3. Peer Resolution
@@ -116,6 +168,8 @@ Commands route through either:
 fazt @zyt app list
 fazt @local app deploy ./myapp
 fazt @prod app files tetris
+fazt @zyt status
+fazt @zyt upgrade
 ```
 
 ### Default Peer
@@ -125,25 +179,20 @@ fazt app list              # Uses default peer
 fazt peer set-default zyt  # Set default peer
 ```
 
-### Positional Peer (legacy)
-Some commands support positional peer argument:
-```bash
-fazt app list zyt
-fazt app info myapp zyt
-```
-
 ### Local Operations (no peer)
 ```bash
 fazt app create my-app     # Always local
 fazt app validate ./myapp  # Always local
+fazt peer list             # Local peer config
+fazt peer add prod ...     # Local peer config
 ```
 
 ## Error Handling
 
-### Clear @Peer Errors
-When `@peer` is used incorrectly, commands provide helpful guidance:
+### Helpful Guidance for Local-Only Commands
+Commands that can't work remotely show guidance with SSH instructions:
 
-**Local-only command:**
+**Local file operations:**
 ```
 $ fazt @zyt app create my-app
 Error: 'app create' is a local operation
@@ -151,15 +200,25 @@ This command operates on local files, not remote peers.
 Usage: fazt app create ...
 ```
 
-**Remote user management:**
+**Security-restricted operations:**
 ```
 $ fazt @zyt auth users
 Error: 'auth users' is not available remotely
 
 User management requires direct database access for security.
 To manage users on a remote peer, SSH into the server:
-  ssh user@host
+  ssh user@zyt.app
   fazt auth users
+```
+
+**System access required:**
+```
+$ fazt @zyt service install
+Error: 'service' requires local system access (systemd/sudo).
+
+To manage the service on zyt, SSH into the machine:
+  ssh user@zyt.app
+  fazt service install
 ```
 
 ### Peer Resolution Errors
@@ -173,7 +232,6 @@ Run: fazt peer add <name> --url <url> --token <token>
 **No default peer:**
 ```
 Multiple peers configured. Specify which peer:
-  fazt app list <name>
   fazt @<peer> app list
 ```
 
@@ -188,42 +246,47 @@ Error: peer 'unknown' not found
 File: `cmd/server/main.go`
 
 ```go
-// Parse @peer prefix
+// Parse @peer prefix - ALWAYS first
 if len(args) > 0 && strings.HasPrefix(args[0], "@") {
-    targetPeerName = args[0][1:]  // Strip @
-    args = args[1:]               // Remove from args
+    peerName := args[0][1:]  // Strip @
+    handleAtPeerRouting(peerName, args[1:])
+    return
 }
 ```
 
-### Command Handlers
-File: `cmd/server/app_v2.go`, `cmd/server/auth.go`, etc.
+### Universal @Peer Router
+File: `cmd/server/main.go`
 
-**Remote-capable handler pattern:**
 ```go
-func handleAppList(args []string) {
-    db := getClientDB()
-    defer database.Close()
-
-    // Resolve peer (uses targetPeerName if set)
-    peer, err := remote.ResolvePeer(db, targetPeerName)
-
-    // Execute remotely
-    client := remote.NewClient(peer)
-    apps, err := client.Apps()
-}
-```
-
-**Local-only handler pattern:**
-```go
-func handleAppCreate(args []string) {
-    // Guard against @peer usage
-    if targetPeerName != "" {
-        fmt.Fprintf(os.Stderr, "Error: 'app create' is a local operation\n")
-        fmt.Fprintf(os.Stderr, "This command operates on local files, not remote peers.\n")
+func handleAtPeerRouting(peerName string, args []string) {
+    if len(args) == 0 {
+        fmt.Fprintf(os.Stderr, "Usage: fazt @%s <command> [args...]\n", peerName)
         os.Exit(1)
     }
 
-    // ... local file operations
+    command := args[0]
+    cmdArgs := args[1:]
+
+    switch command {
+    case "app":
+        targetPeerName = peerName
+        handleAppCommandV2(cmdArgs)
+    case "status":
+        handlePeerStatusDirect(peerName)
+    case "upgrade":
+        handlePeerUpgradeDirect(peerName)
+    case "sql":
+        targetPeerName = peerName
+        handleSQLCommand(cmdArgs)
+    case "service":
+        // Helpful error with SSH guidance
+        fmt.Fprintf(os.Stderr, "Error: 'service' requires local system access (systemd/sudo).\n\n")
+        fmt.Fprintf(os.Stderr, "To manage the service on %s, SSH into the machine:\n", peerName)
+        fmt.Fprintf(os.Stderr, "  ssh user@%s.app\n", peerName)
+        fmt.Fprintf(os.Stderr, "  fazt service %s\n", strings.Join(cmdArgs, " "))
+        os.Exit(1)
+    // ... other commands
+    }
 }
 ```
 
@@ -253,7 +316,10 @@ fazt @zyt app list
 fazt @zyt app files admin-ui
 
 # Should check status
-fazt peer status zyt
+fazt @zyt status
+
+# Should upgrade peer
+fazt @zyt upgrade
 ```
 
 ### Verify Local Commands Error
@@ -263,7 +329,8 @@ fazt @zyt app create test
 fazt @local app validate ./test
 
 # Should explain SSH requirement
-fazt @zyt auth users
+fazt @zyt server init
+fazt @zyt service install
 ```
 
 ### Verify JSON Output
@@ -271,21 +338,32 @@ fazt @zyt auth users
 # All commands support --format json
 fazt @zyt app list --format json
 fazt @zyt app files admin-ui --format json
-fazt peer status --format json
+fazt @zyt status --format json
 ```
 
 ## Best Practices
 
 1. **Use @peer for clarity** - Even with default peer set, `@peer` makes intent explicit
 2. **Set default peer** - Reduces typing for common target: `fazt peer set-default prod`
-3. **Local operations** - Never use `@peer` with `create` or `validate`
-4. **User management** - SSH into server for auth user operations
+3. **Universal syntax** - Use `fazt @peer <command>` for everything - errors guide you when needed
+4. **SSH for local-only** - Commands that need local access will tell you exactly what SSH command to run
 5. **JSON scripting** - Use `--format json` for programmatic access
 6. **Debugging** - Use `--verbose` flag to see detailed output: `fazt --verbose @zyt app list`
+
+## Peer Configuration (Local Commands)
+
+These commands manage local peer configuration (don't use @peer prefix):
+
+```bash
+fazt peer list             # List configured peers
+fazt peer add prod ...     # Add a peer
+fazt peer remove prod      # Remove a peer
+fazt peer set-default prod # Set default peer
+```
 
 ## Related Documentation
 
 - **CLI Reference**: `knowledge-base/agent-context/api.md`
 - **Remote Client**: `internal/remote/client.go`
 - **Command Gateway**: `internal/handlers/command_handler.go`
-- **Help Text**: `fazt app help`, `fazt auth help`, `fazt peer help`
+- **Help Text**: `fazt app help`, `fazt peer help`

@@ -1,36 +1,38 @@
 ---
 command: "peer"
-description: "Manage remote fazt instances (peers)"
+description: "Configure peer connections (add, remove, list)"
 syntax: "fazt peer <command> [options]"
-version: "0.20.0"
+version: "0.21.0"
 updated: "2026-02-02"
 
 examples:
   - title: "List peers"
     command: "fazt peer list"
-    description: "Show all configured peers with status"
+    description: "Show all configured peers"
   - title: "Add a peer"
     command: "fazt peer add zyt --url https://admin.zyt.app --token <TOKEN>"
     description: "Add a new remote peer"
   - title: "Check peer status"
-    command: "fazt peer status zyt"
-    description: "Show detailed status for a specific peer"
+    command: "fazt @zyt status"
+    description: "Check health of a specific peer"
   - title: "Upgrade peer"
-    command: "fazt peer upgrade zyt"
+    command: "fazt @zyt upgrade"
     description: "Upgrade fazt binary on remote peer"
 
 related:
+  - command: "@peer status"
+    description: "Check peer health"
+  - command: "@peer upgrade"
+    description: "Upgrade a peer"
   - command: "app"
-    description: "App management (use with @peer)"
-  - command: "sql"
-    description: "Execute SQL on peer"
+    description: "App management"
 ---
 
 # fazt peer
 
-Manage remote fazt instances (peers). Peers are remote servers that you can deploy apps to.
+Configure peer connections. Peers are remote fazt instances you can manage.
 
-## Commands
+## Configuration Commands
 
 | Command | Description |
 |---------|-------------|
@@ -38,8 +40,17 @@ Manage remote fazt instances (peers). Peers are remote servers that you can depl
 | `add` | Add a new peer |
 | `remove` | Remove a peer |
 | `default` | Set the default peer |
-| `status` | Check peer health and version |
-| `upgrade` | Upgrade fazt on remote peer |
+
+## @peer Commands
+
+Operations on a specific peer use the `@peer` prefix:
+
+| Command | Description |
+|---------|-------------|
+| `fazt @<peer> status` | Check peer health and version |
+| `fazt @<peer> upgrade` | Upgrade fazt on remote peer |
+| `fazt @<peer> app list` | List apps on peer |
+| `fazt @<peer> sql "..."` | Execute SQL on peer |
 
 ## Adding a Peer
 
@@ -60,6 +71,8 @@ fazt peer add prod --url https://admin.example.com --token <TOKEN>
 Once configured, use the `@peer` prefix to execute commands:
 
 ```bash
+fazt @prod status
+fazt @prod upgrade
 fazt @prod app list
 fazt @prod app deploy ./my-app
 fazt @prod sql "SELECT * FROM apps"

@@ -174,28 +174,158 @@ func handleAtPeerRouting(peerName string, args []string) {
 	command := args[0]
 	cmdArgs := args[1:]
 
-	// Only certain commands can be executed remotely
+	// Universal @peer routing - all commands accepted
+	// Commands that can't run remotely show helpful guidance
 	switch command {
+
+	// === REMOTE-CAPABLE COMMANDS ===
+
 	case "app":
-		// Route to app command handler (will use global targetPeerName)
 		handleAppCommandV2(cmdArgs)
-	case "server":
-		// Limited server commands (info only)
-		if len(cmdArgs) > 0 && cmdArgs[0] == "info" {
-			handlePeerServerInfo(peerName)
-		} else {
-			fmt.Printf("Error: only 'server info' can be executed remotely\n")
-			os.Exit(1)
-		}
+
 	case "auth":
-		// Auth commands via remote API
 		handleAuthCommandWithPeer(peerName, cmdArgs)
+
 	case "sql":
-		// SQL commands via remote API
 		handleSQLCommandWithPeer(peerName, cmdArgs)
+
+	case "status":
+		// Direct status check: fazt @peer status
+		handlePeerStatusDirect(peerName)
+
+	case "upgrade":
+		// Direct upgrade: fazt @peer upgrade
+		handlePeerUpgradeDirect(peerName)
+
+	case "peer":
+		// Peer management on remote: fazt @peer peer list
+		handlePeerCommandRemote(peerName, cmdArgs)
+
+	case "server":
+		handleServerCommandRemote(peerName, cmdArgs)
+
+	// === LOCAL-ONLY COMMANDS (helpful errors) ===
+
+	case "service":
+		fmt.Fprintf(os.Stderr, "Error: 'service' requires local system access (systemd/sudo).\n\n")
+		fmt.Fprintf(os.Stderr, "To manage the service on %s, SSH into the machine:\n", peerName)
+		fmt.Fprintf(os.Stderr, "  ssh user@%s-host\n", peerName)
+		fmt.Fprintf(os.Stderr, "  sudo fazt service %s\n", strings.Join(cmdArgs, " "))
+		os.Exit(1)
+
+	case "client":
+		fmt.Fprintf(os.Stderr, "Error: 'client' is a local command for configuring this machine.\n\n")
+		fmt.Fprintf(os.Stderr, "Run without @peer:\n")
+		fmt.Fprintf(os.Stderr, "  fazt client %s\n", strings.Join(cmdArgs, " "))
+		os.Exit(1)
+
+	case "deploy":
+		fmt.Fprintf(os.Stderr, "Error: 'deploy' is deprecated. Use 'app deploy' instead:\n\n")
+		fmt.Fprintf(os.Stderr, "  fazt @%s app deploy %s\n", peerName, strings.Join(cmdArgs, " "))
+		os.Exit(1)
+
+	case "servers":
+		fmt.Fprintf(os.Stderr, "Error: 'servers' is deprecated. Use 'peer' instead:\n\n")
+		fmt.Fprintf(os.Stderr, "  fazt peer list\n")
+		fmt.Fprintf(os.Stderr, "  fazt @%s peer list  # List peers configured on %s\n", peerName, peerName)
+		os.Exit(1)
+
 	default:
-		fmt.Printf("Error: command '%s' cannot be executed remotely\n", command)
-		fmt.Println("Remote execution supported for: app, auth, server info, sql")
+		fmt.Fprintf(os.Stderr, "Error: unknown command '%s'\n\n", command)
+		fmt.Fprintf(os.Stderr, "Usage: fazt @%s <command> [args...]\n\n", peerName)
+		fmt.Fprintf(os.Stderr, "Commands:\n")
+		fmt.Fprintf(os.Stderr, "  status              Check peer health\n")
+		fmt.Fprintf(os.Stderr, "  upgrade             Upgrade peer to latest version\n")
+		fmt.Fprintf(os.Stderr, "  app <subcommand>    App management\n")
+		fmt.Fprintf(os.Stderr, "  sql <query>         Execute SQL query\n")
+		fmt.Fprintf(os.Stderr, "  auth <subcommand>   Auth management\n")
+		fmt.Fprintf(os.Stderr, "  peer <subcommand>   Peer configuration on remote\n")
+		fmt.Fprintf(os.Stderr, "  server <subcommand> Server management\n")
+		os.Exit(1)
+	}
+}
+
+// handlePeerStatusDirect handles: fazt @peer status
+func handlePeerStatusDirect(peerName string) {
+	handlePeerStatus([]string{peerName})
+}
+
+// handlePeerUpgradeDirect handles: fazt @peer upgrade
+func handlePeerUpgradeDirect(peerName string) {
+	handlePeerUpgrade([]string{peerName})
+}
+
+// handlePeerCommandRemote handles: fazt @peer peer <subcommand>
+func handlePeerCommandRemote(peerName string, args []string) {
+	if len(args) < 1 {
+		// Show peer subcommands
+		fmt.Fprintf(os.Stderr, "Usage: fazt @%s peer <command>\n\n", peerName)
+		fmt.Fprintf(os.Stderr, "Commands:\n")
+		fmt.Fprintf(os.Stderr, "  list      List peers configured on %s\n", peerName)
+		fmt.Fprintf(os.Stderr, "  add       Add a peer to %s's config\n", peerName)
+		fmt.Fprintf(os.Stderr, "  remove    Remove a peer from %s's config\n", peerName)
+		os.Exit(1)
+	}
+
+	subcommand := args[0]
+	switch subcommand {
+	case "list", "add", "remove", "default":
+		// TODO: Implement remote peer management via API
+		fmt.Fprintf(os.Stderr, "Error: remote peer management not yet implemented.\n\n")
+		fmt.Fprintf(os.Stderr, "To manage peers on %s, SSH into the machine:\n", peerName)
+		fmt.Fprintf(os.Stderr, "  ssh user@%s-host\n", peerName)
+		fmt.Fprintf(os.Stderr, "  fazt peer %s\n", strings.Join(args, " "))
+		os.Exit(1)
+	default:
+		fmt.Fprintf(os.Stderr, "Error: unknown peer command '%s'\n", subcommand)
+		os.Exit(1)
+	}
+}
+
+// handleServerCommandRemote handles: fazt @peer server <subcommand>
+func handleServerCommandRemote(peerName string, args []string) {
+	if len(args) < 1 {
+		fmt.Fprintf(os.Stderr, "Usage: fazt @%s server <command>\n\n", peerName)
+		fmt.Fprintf(os.Stderr, "Remote commands:\n")
+		fmt.Fprintf(os.Stderr, "  info      Show server info (works remotely)\n")
+		fmt.Fprintf(os.Stderr, "  status    Show server status (works remotely)\n")
+		fmt.Fprintf(os.Stderr, "\nLocal-only commands (require SSH):\n")
+		fmt.Fprintf(os.Stderr, "  init, start, set-credentials, set-config, create-key, reset-admin\n")
+		os.Exit(1)
+	}
+
+	subcommand := args[0]
+	switch subcommand {
+	case "info", "status":
+		// These can work remotely
+		handlePeerServerInfo(peerName)
+
+	case "init":
+		fmt.Fprintf(os.Stderr, "Error: 'server init' requires direct access - no server exists yet.\n\n")
+		fmt.Fprintf(os.Stderr, "To initialize a new server:\n")
+		fmt.Fprintf(os.Stderr, "  ssh user@%s-host\n", peerName)
+		fmt.Fprintf(os.Stderr, "  fazt server init --username admin --password <secret> --domain <domain>\n")
+		os.Exit(1)
+
+	case "start":
+		fmt.Fprintf(os.Stderr, "Error: 'server start' requires direct access.\n\n")
+		fmt.Fprintf(os.Stderr, "To start the server:\n")
+		fmt.Fprintf(os.Stderr, "  ssh user@%s-host\n", peerName)
+		fmt.Fprintf(os.Stderr, "  fazt server start\n")
+		fmt.Fprintf(os.Stderr, "\nOr use systemd:\n")
+		fmt.Fprintf(os.Stderr, "  ssh user@%s-host\n", peerName)
+		fmt.Fprintf(os.Stderr, "  systemctl --user start fazt-local\n")
+		os.Exit(1)
+
+	case "set-credentials", "set-config", "create-key", "reset-admin":
+		fmt.Fprintf(os.Stderr, "Error: 'server %s' requires direct database access.\n\n", subcommand)
+		fmt.Fprintf(os.Stderr, "To run this command:\n")
+		fmt.Fprintf(os.Stderr, "  ssh user@%s-host\n", peerName)
+		fmt.Fprintf(os.Stderr, "  fazt server %s\n", strings.Join(args, " "))
+		os.Exit(1)
+
+	default:
+		fmt.Fprintf(os.Stderr, "Error: unknown server command '%s'\n", subcommand)
 		os.Exit(1)
 	}
 }
@@ -492,15 +622,27 @@ func handlePeerCommand(args []string) {
 	case "default":
 		handlePeerDefault(args[1:])
 	case "status":
-		handlePeerStatus(args[1:])
-	case "apps":
-		fmt.Fprintln(os.Stderr, "DEPRECATED: Use 'fazt app list [peer]' instead")
-		handlePeerApps(args[1:])
+		// Moved to @peer pattern
+		if len(args) > 1 {
+			fmt.Fprintf(os.Stderr, "Use: fazt @%s status\n", args[1])
+		} else {
+			fmt.Fprintln(os.Stderr, "Use: fazt @<peer> status")
+		}
+		os.Exit(1)
 	case "upgrade":
-		handlePeerUpgrade(args[1:])
+		// Moved to @peer pattern
+		if len(args) > 1 {
+			fmt.Fprintf(os.Stderr, "Use: fazt @%s upgrade\n", args[1])
+		} else {
+			fmt.Fprintln(os.Stderr, "Use: fazt @<peer> upgrade")
+		}
+		os.Exit(1)
+	case "apps":
+		fmt.Fprintln(os.Stderr, "Use: fazt @<peer> app list")
+		os.Exit(1)
 	case "deploy":
-		fmt.Fprintln(os.Stderr, "DEPRECATED: Use 'fazt app deploy <dir> --to <peer>' instead")
-		handlePeerDeploy(args[1:])
+		fmt.Fprintln(os.Stderr, "Use: fazt @<peer> app deploy <dir>")
+		os.Exit(1)
 	case "--help", "-h", "help":
 		printPeerHelp()
 	default:
@@ -950,7 +1092,7 @@ func handlePeerUpgrade(args []string) {
 		fmt.Println("Already running the latest version.")
 	case "check_only":
 		fmt.Println("Update available!")
-		fmt.Println("Run: fazt remote upgrade", peer.Name)
+		fmt.Printf("Run: fazt @%s upgrade\n", peer.Name)
 	case "upgraded":
 		fmt.Println("Upgraded! Server is restarting...")
 	}
@@ -1069,7 +1211,7 @@ func printPeerHelp() {
 	}
 
 	// LEGACY_CODE: migrate to cli/peer/_index.md
-	fmt.Println(`Fazt.sh - Remote Peer Management
+	fmt.Println(`Fazt.sh - Peer Configuration
 
 USAGE:
   fazt peer <command> [options]
@@ -1079,8 +1221,10 @@ COMMANDS:
   list             List configured peers
   remove <name>    Remove a peer
   default <name>   Set the default peer
-  status [name]    Check peer health and status
-  upgrade [name]   Check/perform upgrade on peer
+
+@PEER COMMANDS:
+  fazt @<peer> status     Check peer health
+  fazt @<peer> upgrade    Upgrade peer to latest
 
 GLOBAL FLAGS:
   --verbose        Show detailed output (migrations, debug info)
@@ -1090,20 +1234,17 @@ EXAMPLES:
   # Add a peer
   fazt peer add zyt --url https://admin.zyt.app --token xxx
 
-  # Check status
-  fazt peer status
+  # Check peer status
+  fazt @zyt status
 
-  # List apps on specific peer
+  # Upgrade a peer
+  fazt @zyt upgrade
+
+  # List apps on peer
   fazt @zyt app list
 
   # Deploy to peer
-  fazt @zyt app deploy ./my-site
-
-  # Check for upgrades
-  fazt peer upgrade check
-
-  # Perform upgrade
-  fazt peer upgrade zyt`)
+  fazt @zyt app deploy ./my-site`)
 }
 
 // handleServiceCommand handles service-related subcommands
