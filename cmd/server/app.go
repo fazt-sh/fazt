@@ -11,6 +11,7 @@ import (
 	"github.com/fazt-sh/fazt/internal/build"
 	"github.com/fazt-sh/fazt/internal/database"
 	"github.com/fazt-sh/fazt/internal/git"
+	"github.com/fazt-sh/fazt/internal/help"
 	"github.com/fazt-sh/fazt/internal/remote"
 )
 
@@ -102,6 +103,19 @@ func handleAppList(args []string) {
 
 // handleAppDeploy deploys a directory to a peer
 func handleAppDeploy(args []string) {
+	// Handle --help before parsing flags
+	for _, arg := range args {
+		if arg == "--help" || arg == "-h" || arg == "help" {
+			if help.Exists("app deploy") {
+				doc, _ := help.Load("app deploy")
+				fmt.Print(help.RenderBrief(doc))
+			} else {
+				fmt.Println("Usage: fazt app deploy <directory> [--name <app>] [--no-build] [--spa]")
+			}
+			return
+		}
+	}
+
 	flags := flag.NewFlagSet("app deploy", flag.ExitOnError)
 	siteName := flags.String("name", "", "App name (defaults to directory name)")
 	noBuild := flags.Bool("no-build", false, "Skip build step")
@@ -109,6 +123,13 @@ func handleAppDeploy(args []string) {
 	includePrivate := flags.Bool("include-private", false, "Include gitignored private/ directory")
 
 	flags.Usage = func() {
+		// Try markdown-based help first
+		if help.Exists("app deploy") {
+			doc, _ := help.Load("app deploy")
+			fmt.Print(help.RenderBrief(doc))
+			return
+		}
+		// LEGACY_CODE: migrate to cli/app/deploy.md
 		fmt.Println("Usage: fazt app deploy <directory> [--name <app>] [--no-build] [--spa] [--include-private]")
 		fmt.Println("       fazt @<peer> app deploy <directory> [options]")
 		fmt.Println()
@@ -756,6 +777,10 @@ OPTIONS:
   --json             Output validation results as JSON
   -f                 Follow log output (stream)
   -n <count>         Number of recent logs to show
+
+GLOBAL FLAGS:
+  --verbose          Show detailed output (migrations, debug info)
+  --format <fmt>     Output format: markdown (default) or json
 
 PEER SELECTION:
   Use @<peer> prefix for remote operations:

@@ -98,3 +98,35 @@ fazt @local app deploy servers/zyt/my-app
 # Or with curl:
 curl -H "Host: my-app.192.168.64.3" http://192.168.64.3:8080/api/hello
 ```
+
+## Troubleshooting
+
+### Verbose Output
+
+Use `--verbose` flag to see detailed output including database migrations and debug info:
+
+```bash
+fazt --verbose @local app list
+fazt --verbose peer status
+fazt sql "..." --verbose
+```
+
+This is useful when:
+- Debugging database issues
+- Understanding what migrations are running
+- Troubleshooting slow commands
+- Reporting bugs (include verbose output)
+
+### Common Issues
+
+**Service not starting:**
+```bash
+journalctl --user -u fazt-local -n 50    # Check logs
+systemctl --user restart fazt-local       # Restart service
+```
+
+**Database locked errors:**
+```bash
+# Check if multiple processes are accessing the DB
+lsof ~/.fazt/data.db
+```

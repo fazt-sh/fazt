@@ -5,11 +5,113 @@
 
 ## Status
 
-State: **CLEAN** - v0.20.0 released and deployed
+State: **WORKING** - Markdown-based CLI help system (unreleased)
 
 ---
 
-## Current Session (2026-02-02) - @Peer Pattern Audit Phase 3 & 4
+## Current Session (2026-02-02) - Markdown-Based CLI Help System
+
+**Completed**: CLI help now reads from embedded markdown files
+
+### What Was Done
+
+#### Markdown-Based Help System ✅
+- Created `internal/help/` package with types, loader, and renderer
+- Uses `//go:embed` to embed markdown docs at build time
+- Glamour library renders markdown with colors in terminal
+- Falls back to hardcoded help when markdown not found
+- Piped output returns plain markdown (no ANSI codes)
+
+#### Files Created
+- `internal/help/types.go` - CommandDoc, Argument, Flag, Example, Related structs
+- `internal/help/loader.go` - Load and parse markdown with YAML frontmatter
+- `internal/help/render.go` - Render docs with glamour
+- `internal/help/embed.go` - Embed directive for cli/ docs
+- `internal/help/loader_test.go` - Unit tests
+
+#### CLI Documentation (embedded)
+- `internal/help/cli/fazt.md` - Root help
+- `internal/help/cli/app/_index.md` - App group help
+- `internal/help/cli/app/deploy.md` - Deploy command
+- `internal/help/cli/app/list.md` - List command
+- `internal/help/cli/peer/_index.md` - Peer group help
+
+### What Works
+```bash
+# All these commands render markdown help
+fazt --help
+fazt app --help
+fazt app deploy --help
+fazt peer --help
+
+# Fallback for commands without markdown
+fazt server --help   # Uses hardcoded help
+fazt service --help  # Uses hardcoded help
+
+# Piped output is plain markdown
+fazt app --help | head -10
+```
+
+### Tests Passed
+- ✅ `TestResolveFilePath` - Path resolution works
+- ✅ `TestLoad` - Loading markdown docs works
+- ✅ `TestExists` - Existence check works
+- ✅ `TestRender` - Rendering produces output
+- ✅ Binary compiles and runs
+- ✅ Local server running with updated binary
+
+---
+
+## Previous Session (2026-02-02) - Migration Log Suppression
+
+**Completed**: Suppress migration logs unless --verbose flag is provided
+
+### What Was Done
+
+#### Migration Log Suppression ✅
+- Added `database.SetVerbose(bool)` function to control migration logging
+- Modified `database.Init()` and `runMigrations()` to respect verbose flag
+- Added `--verbose` flag extraction in main.go
+- Updated help text to document `--verbose` and `--format` flags
+- Migration logs now silent by default (clean CLI output)
+- Logs show when `--verbose` flag is provided (for debugging)
+
+### Files Modified
+- `internal/database/db.go` - Added SetVerbose(), conditional logging
+- `cmd/server/main.go` - Extract --verbose flag, call SetVerbose(), updated help (main + peer)
+- `cmd/server/app.go` - Added GLOBAL FLAGS section to app help
+- `knowledge-base/cli/commands.md` - Added Global Flags section, documented --verbose
+- `knowledge-base/agent-context/api.md` - Added Global CLI Flags section
+- `knowledge-base/agent-context/setup.md` - Added Troubleshooting section with --verbose usage
+- `knowledge-base/agent-context/peer-routing.md` - Added debugging best practice
+
+### What Works
+```bash
+# Clean output (no migration logs)
+fazt @local app list
+fazt peer list
+fazt sql "SELECT * FROM apps"
+
+# Verbose output (shows migrations)
+fazt --verbose @local app list
+fazt --verbose peer status
+
+# Help documents the flag
+fazt --help  # Shows --verbose in GLOBAL FLAGS section
+```
+
+### Tests Passed
+- ✅ `fazt @local app list` produces clean output (no migration logs)
+- ✅ `fazt --verbose @local app list` shows all migration logs
+- ✅ `fazt peer list` clean output
+- ✅ `fazt sql "query"` clean output
+- ✅ Help text documents --verbose flag
+- ✅ Binary compiles and runs
+- ✅ Local server running with updated binary
+
+---
+
+## Previous Session (2026-02-02) - @Peer Pattern Audit Phase 3 & 4
 
 **Completed**: Phase 3 & 4 of @peer pattern audit plan
 

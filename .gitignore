@@ -57,6 +57,7 @@ cookies.txt
 
 # Admin SPA (built artifacts - embedded in Go binary)
 /internal/assets/system/admin/
+
 /admin/node_modules/
 /admin/dist/
 .mcp.json

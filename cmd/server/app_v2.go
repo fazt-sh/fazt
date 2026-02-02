@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/fazt-sh/fazt/internal/database"
+	"github.com/fazt-sh/fazt/internal/help"
 	"github.com/fazt-sh/fazt/internal/output"
 	"github.com/fazt-sh/fazt/internal/remote"
 )
@@ -1033,6 +1034,14 @@ func getFloat(m map[string]interface{}, key string) float64 {
 }
 
 func printAppHelpV2() {
+	// Try markdown-based help first
+	if help.Exists("app") {
+		doc, _ := help.Load("app")
+		fmt.Print(help.Render(doc))
+		return
+	}
+
+	// LEGACY_CODE: migrate to cli/app/_index.md
 	fmt.Println(`Fazt.sh - App Management (v0.10)
 
 USAGE:
@@ -1060,60 +1069,22 @@ LOCAL COMMANDS (no @peer support):
   create <name>         Create local app from template (static, vue, vue-api)
   validate <dir>        Validate local directory before deployment
 
-ALIAS MANAGEMENT:
-  link <subdomain>      Link subdomain to app (--id required)
-  unlink <subdomain>    Remove alias
-  reserve <subdomain>   Reserve/block subdomain
-  swap <a1> <a2>        Atomically swap two aliases
-  split <subdomain>     Configure traffic splitting (--ids)
-
-LINEAGE:
-  fork                  Fork an app (--alias/--id, --as, --no-storage)
-  lineage               Show fork tree (--alias/--id)
-
 OPTIONS:
   --alias <name>        Reference app by alias
   --id <app_id>         Reference app by ID
   --with-forks          Delete app and all its forks
+
+GLOBAL FLAGS:
+  --verbose             Show detailed output (migrations, debug info)
+  --format <fmt>        Output format: markdown (default) or json
 
 PEER SELECTION:
   Use @<peer> prefix for remote operations:
     fazt @zyt app list              # List apps on zyt peer
     fazt @local app deploy ./myapp  # Deploy to local peer
 
-  Or use positional peer argument (list, info only):
-    fazt app list zyt
-    fazt app info myapp zyt
-
 EXAMPLES:
-  # List apps
   fazt @zyt app list
-  fazt @zyt app list --aliases
-
-  # Get app info
-  fazt @zyt app info --alias tetris
-  fazt @zyt app info --id app_abc123
-
-  # List files
-  fazt @zyt app files tetris
-  fazt @zyt app files --id app_abc123
-
-  # Deploy
   fazt @zyt app deploy ./my-site
-
-  # Manage aliases
-  fazt @zyt app link tetris --id app_abc123
-  fazt @zyt app unlink tetris-old
-  fazt @zyt app reserve admin
-
-  # Fork and swap (blue-green deployment)
-  fazt @zyt app fork --alias tetris --as tetris-v2
-  # ... make changes to tetris-v2 ...
-  fazt @zyt app swap tetris tetris-v2
-
-  # Traffic splitting
-  fazt @zyt app split tetris --ids app_v1:50,app_v2:50
-
-  # Show lineage
-  fazt @zyt app lineage --id app_abc123`)
+  fazt @zyt app info --alias tetris`)
 }

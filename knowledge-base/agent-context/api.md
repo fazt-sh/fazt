@@ -2,6 +2,24 @@
 
 **Updated**: 2026-02-02
 
+## Global CLI Flags
+
+These flags work with all commands and can be placed anywhere:
+
+| Flag | Description |
+|------|-------------|
+| `--verbose` | Show detailed output (database migrations, debug info) |
+| `--format <fmt>` | Output format: `markdown` (default) or `json` |
+
+**Examples**:
+```bash
+fazt --verbose @local app list      # Show migrations
+fazt peer list --format json        # JSON output
+fazt @zyt sql "..." --verbose       # Verbose + remote execution
+```
+
+---
+
 ## Admin API Endpoints
 
 | Endpoint | Method | Description |

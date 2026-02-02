@@ -17,6 +17,12 @@ import (
 var migrationFS embed.FS
 
 var db *sql.DB
+var verbose bool // Controls migration logging
+
+// SetVerbose enables or disables verbose logging for migrations
+func SetVerbose(v bool) {
+	verbose = v
+}
 
 // Init initializes the database connection with WAL mode
 func Init(dbPath string) error {
@@ -64,7 +70,9 @@ func Init(dbPath string) error {
 		return fmt.Errorf("failed to run migrations: %w", err)
 	}
 
-	log.Println("Database initialized successfully")
+	if verbose {
+		log.Println("Database initialized successfully")
+	}
 	return nil
 }
 
@@ -117,7 +125,9 @@ func runMigrations() error {
 		}
 
 		if count > 0 {
-			log.Printf("Migration %d (%s) already applied, skipping", migration.version, migration.name)
+			if verbose {
+				log.Printf("Migration %d (%s) already applied, skipping", migration.version, migration.name)
+			}
 			continue
 		}
 
@@ -138,10 +148,14 @@ func runMigrations() error {
 			return fmt.Errorf("failed to record migration: %w", err)
 		}
 
-		log.Printf("Applied migration %d: %s", migration.version, migration.name)
+		if verbose {
+			log.Printf("Applied migration %d: %s", migration.version, migration.name)
+		}
 	}
 
-	log.Println("Migrations completed successfully")
+	if verbose {
+		log.Println("Migrations completed successfully")
+	}
 	return nil
 }
 

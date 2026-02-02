@@ -1,6 +1,6 @@
 # Fazt CLI Commands Reference
 
-**Version**: 0.18.0
+**Version**: 0.20.0
 **Updated**: 2026-02-02
 
 This document catalogs all CLI commands, their arguments, flags, and patterns for consistency analysis.
@@ -10,8 +10,26 @@ This document catalogs all CLI commands, their arguments, flags, and patterns fo
 ## Command Structure
 
 ```
-fazt <command> [subcommand] [flags] [arguments]
-fazt @<peer> <command> [subcommand] [flags] [arguments]
+fazt [global-flags] <command> [subcommand] [flags] [arguments]
+fazt [global-flags] @<peer> <command> [subcommand] [flags] [arguments]
+```
+
+---
+
+## Global Flags
+
+These flags work with any command and can be placed anywhere in the command:
+
+| Flag | Description | Example |
+|------|-------------|---------|
+| `--verbose` | Show detailed output (migrations, debug info) | `fazt --verbose app list` |
+| `--format <fmt>` | Output format: `markdown` (default) or `json` | `fazt peer list --format json` |
+
+**Note**: Global flags are position-independent and can appear anywhere:
+```bash
+fazt --verbose @local app list
+fazt @local app list --verbose
+fazt @local --verbose app list
 ```
 
 ---

@@ -281,6 +281,7 @@ fazt peer status --format json
 3. **Local operations** - Never use `@peer` with `create` or `validate`
 4. **User management** - SSH into server for auth user operations
 5. **JSON scripting** - Use `--format json` for programmatic access
+6. **Debugging** - Use `--verbose` flag to see detailed output: `fazt --verbose @zyt app list`
 
 ## Related Documentation
 

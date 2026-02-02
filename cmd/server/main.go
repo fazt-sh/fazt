@@ -42,6 +42,7 @@ import (
 	"github.com/fazt-sh/fazt/internal/worker"
 	"github.com/fazt-sh/fazt/internal/term"
 	"github.com/fazt-sh/fazt/internal/output"
+	"github.com/fazt-sh/fazt/internal/help"
 	ignore "github.com/sabhiram/go-gitignore"
 	"golang.org/x/crypto/bcrypt"
 	_ "modernc.org/sqlite"
@@ -74,6 +75,18 @@ func main() {
 
 	// Parse global flags
 	flag.Parse()
+
+	// Extract --verbose flag manually (before routing to subcommands)
+	for i, arg := range os.Args {
+		if arg == "--verbose" || arg == "-verbose" {
+			*verbose = true
+			os.Args = append(os.Args[:i], os.Args[i+1:]...)
+			break
+		}
+	}
+
+	// Set database verbose mode based on flag
+	database.SetVerbose(*verbose)
 
 	// Extract --format flag manually (before routing to subcommands)
 	for i, arg := range os.Args {
@@ -1048,10 +1061,18 @@ func formatDuration(seconds float64) string {
 }
 
 func printPeerHelp() {
+	// Try markdown-based help first
+	if help.Exists("peer") {
+		doc, _ := help.Load("peer")
+		fmt.Print(help.Render(doc))
+		return
+	}
+
+	// LEGACY_CODE: migrate to cli/peer/_index.md
 	fmt.Println(`Fazt.sh - Remote Peer Management
 
 USAGE:
-  fazt remote <command> [options]
+  fazt peer <command> [options]
 
 COMMANDS:
   add <name>       Add a remote peer
@@ -1061,28 +1082,28 @@ COMMANDS:
   status [name]    Check peer health and status
   upgrade [name]   Check/perform upgrade on peer
 
-DEPRECATED (use 'fazt app' instead):
-  apps [name]      → fazt app list [peer]
-  deploy <dir>     → fazt app deploy <dir> --to <peer>
+GLOBAL FLAGS:
+  --verbose        Show detailed output (migrations, debug info)
+  --format <fmt>   Output format: markdown (default) or json
 
 EXAMPLES:
   # Add a peer
   fazt peer add zyt --url https://admin.zyt.app --token xxx
 
-  # Check status (uses default if only one peer)
-  fazt remote status
+  # Check status
+  fazt peer status
 
-  # List apps on specific peer (NEW)
-  fazt app list zyt
+  # List apps on specific peer
+  fazt @zyt app list
 
-  # Deploy to peer (NEW)
-  fazt app deploy ./my-site --to zyt
+  # Deploy to peer
+  fazt @zyt app deploy ./my-site
 
   # Check for upgrades
-  fazt remote upgrade check
+  fazt peer upgrade check
 
   # Perform upgrade
-  fazt remote upgrade zyt`)
+  fazt peer upgrade zyt`)
 }
 
 // handleServiceCommand handles service-related subcommands
@@ -2926,8 +2947,27 @@ func handleInstallCommand() {
 	}
 }
 
+// showCommandHelp displays help from markdown docs or falls back to hardcoded
+func showCommandHelp(cmdPath string, fallback func()) {
+	doc, err := help.Load(cmdPath)
+	if err != nil {
+		// Markdown help not found, use hardcoded fallback
+		fallback()
+		return
+	}
+	fmt.Print(help.Render(doc))
+}
+
 // printUsage displays the usage information
 func printUsage() {
+	// Try markdown-based help first
+	if help.Exists("") {
+		doc, _ := help.Load("")
+		fmt.Print(help.Render(doc))
+		return
+	}
+
+	// LEGACY_CODE: migrate to cli/fazt.md
 	fmt.Printf("Fazt.sh %s - Personal Cloud Platform\n", config.Version)
 	fmt.Println()
 	fmt.Println("USAGE:")
@@ -2935,21 +2975,25 @@ func printUsage() {
 	fmt.Println()
 	fmt.Println("COMMANDS:")
 	fmt.Println("  app        App management (list, deploy, info, remove)")
-	fmt.Println("  remote     Peer management (add, list, status, upgrade)")
+	fmt.Println("  peer       Peer management (add, list, status, upgrade)")
 	fmt.Println("  service    System service (install, start, logs)")
 	fmt.Println("  server     Server control (init, start, config)")
 	fmt.Println("  version    Show version info")
 	fmt.Println("  help       Show this message")
 	fmt.Println()
+	fmt.Println("GLOBAL FLAGS:")
+	fmt.Println("  --verbose  Show detailed output (migrations, debug info)")
+	fmt.Println("  --format   Output format: markdown (default) or json")
+	fmt.Println()
 	fmt.Println("QUICK START:")
 	fmt.Println("  # Deploy an app to a peer")
-	fmt.Println("  fazt app deploy ./my-site --to zyt")
+	fmt.Println("  fazt @zyt app deploy ./my-site")
 	fmt.Println()
 	fmt.Println("  # List apps on a peer")
-	fmt.Println("  fazt app list zyt")
+	fmt.Println("  fazt @zyt app list")
 	fmt.Println()
 	fmt.Println("  # Check peer status")
-	fmt.Println("  fazt remote status zyt")
+	fmt.Println("  fazt peer status zyt")
 	fmt.Println()
 }
 
