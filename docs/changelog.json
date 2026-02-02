@@ -1,5 +1,11 @@
 [
     {
+        "version": "v0.22.0",
+        "title": "Universal @Peer Pattern",
+        "description": "All remote commands now use 'fazt @<target> <command>' syntax. 'fazt @zyt status' and 'fazt @zyt upgrade' replace old 'fazt peer status/upgrade' subcommands. Commands that can't work remotely show helpful SSH guidance.",
+        "created_at": "2026-02-02"
+    },
+    {
         "version": "v0.21.0",
         "title": "Markdown-Based CLI Help System",
         "description": "CLI help now reads from embedded markdown files with YAML frontmatter. Glamour renders beautiful terminal output. Falls back to hardcoded help gracefully. Migration logs suppressed by default (use --verbose).",

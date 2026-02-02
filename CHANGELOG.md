@@ -4,6 +4,19 @@ All notable changes to fazt.sh will be documented in this file.
 
 ## [Unreleased]
 
+## [0.22.0] - 2026-02-02
+
+### Changed
+- **Universal @peer pattern**: All remote commands now use `fazt @<target> <command>` syntax
+  - `fazt @zyt status` (was: `fazt peer status zyt`)
+  - `fazt @zyt upgrade` (was: `fazt peer upgrade zyt`)
+  - Consistent syntax for all peer operations - no exceptions to remember
+
+### Improved
+- **Helpful SSH guidance**: Commands that can't work remotely now show SSH instructions
+  - `fazt @zyt service install` explains how to SSH in and run locally
+  - `fazt @zyt app create` explains it's a local-only operation
+
 ## [0.21.0] - 2026-02-02
 
 ### Added
