@@ -1,11 +1,11 @@
 # Fazt Implementation State
 
 **Last Updated**: 2026-02-02
-**Current Version**: v0.19.0
+**Current Version**: v0.19.0 (released)
 
 ## Status
 
-State: **RELEASED** - v0.19.0 deployed with complete Plan 31 implementation
+State: **CLEAN** - v0.19.0 released, bugfix committed but unreleased (3 commits ahead)
 
 ---
 
@@ -150,3 +150,17 @@ fazt @zyt sql "SELECT ..."        # New: remote SQL queries
 # Binary
 ~/.local/bin/fazt
 ```
+
+---
+
+## Post-Release Bugfix (unreleased)
+
+**Fix: peer list live status**
+- Changed `fazt peer list` to always show live status/version
+- Previously showed stale cached data from database
+- Now makes API calls to all peers (~1.2s for 2 peers)
+- More accurate, acceptable performance
+- Commit: b36c18f
+
+**Release recommendation:** Can defer to v0.19.1 or next feature release. Bugfix is minor (display only, doesn't affect functionality).
+
