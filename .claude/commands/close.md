@@ -7,8 +7,11 @@ Close session with proper handoff for next time. Leaves repo in a clean state.
 ### 1. Gather Current State
 
 ```bash
-# Versions
+# All version files (must be in sync!)
+cat version.json | jq -r '.version'
 grep "var Version" internal/config/config.go | grep -oE '[0-9]+\.[0-9]+\.[0-9]+'
+cat knowledge-base/version.json | jq -r '.version'
+cat admin/version.json | jq -r '.version'
 fazt --version | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+'
 
 # Latest release tag
@@ -16,9 +19,6 @@ git describe --tags --abbrev=0 2>/dev/null || echo "no tags"
 
 # Commits since last release (shows if unreleased changes exist)
 git log $(git describe --tags --abbrev=0 2>/dev/null)..HEAD --oneline 2>/dev/null | head -5
-
-# Knowledge-base version
-cat knowledge-base/version.json
 
 # All remotes health (shows version column)
 fazt remote list 2>/dev/null | tail -n +3
@@ -213,9 +213,12 @@ Should show nothing (clean working tree).
 ```
 ## Session Closed
 
-v0.18.0: Source, Binary, Release, local, zyt ✓
+v0.18.0: Root, Binary, KB, Admin, Release, local, zyt ✓
 
 Git: clean
+
+### Version Check
+[All versions in sync ✓] or [⚠️ Drift detected - see VERSIONING.md]
 
 ### Release
 [Released vX.Y.Z] or [Not released: reason]

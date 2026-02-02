@@ -13,8 +13,14 @@ git status
 # 2. Run tests
 go test ./...
 
-# 3. Get current version
-grep "var Version" internal/config/config.go
+# 3. Verify all versions are in sync (see VERSIONING.md)
+cat version.json | jq -r '.version'
+grep "var Version" internal/config/config.go | grep -oE '[0-9]+\.[0-9]+\.[0-9]+'
+cat knowledge-base/version.json | jq -r '.version'
+cat admin/version.json | jq -r '.version'
+git describe --tags --abbrev=0 2>/dev/null || echo "no tags"
+
+# All should match before proceeding!
 ```
 
 ## Release Steps
@@ -23,8 +29,11 @@ grep "var Version" internal/config/config.go
 
 Check what version to release:
 ```bash
-# Current version in code
-grep "var Version" internal/config/config.go
+# Current version in all files
+cat version.json | jq -r '.version'
+grep "var Version" internal/config/config.go | grep -oE '[0-9]+\.[0-9]+\.[0-9]+'
+cat knowledge-base/version.json | jq -r '.version'
+cat admin/version.json | jq -r '.version'
 
 # Latest git tag
 git describe --tags --abbrev=0 2>/dev/null || echo "no tags"
@@ -33,13 +42,32 @@ git describe --tags --abbrev=0 2>/dev/null || echo "no tags"
 git log $(git describe --tags --abbrev=0)..HEAD --oneline
 ```
 
-If code version matches latest tag and no pending changes, **nothing to release**.
+If all versions match latest tag and no pending changes, **nothing to release**.
 
-### 2. Update Version (if needed)
+### 2. Update ALL Version Files (if needed)
 
-Only if version needs bumping:
-```go
-var Version = "X.Y.Z"  // in internal/config/config.go
+**CRITICAL**: Update ALL version files together. See `VERSIONING.md` for complete workflow.
+
+```bash
+# Set new version
+NEW_VERSION="X.Y.Z"
+DATE=$(date +%Y-%m-%d)
+COMMIT=$(git rev-parse --short HEAD)
+
+# 1. Root version.json
+# Edit: "version": "X.Y.Z", "updated_at": "YYYY-MM-DD"
+
+# 2. Binary version
+# Edit: internal/config/config.go
+# Change: var Version = "X.Y.Z"
+
+# 3. Knowledge-base version
+# Edit: knowledge-base/version.json
+# Update: version, commit, updated_at, all sections
+
+# 4. Admin version
+# Edit: admin/version.json
+# Update: version, updated_at (status/completeness only if changed)
 ```
 
 ### 3. Update CHANGELOG.md (if needed)
@@ -68,12 +96,19 @@ If not, add at top of array.
 
 ### 5. Commit (if needed)
 
+**IMPORTANT**: Commit all version files together.
+
 ```bash
 # Check if there are changes to commit
 git status --porcelain
 
+# Stage all version files + CHANGELOG
+git add version.json internal/config/config.go knowledge-base/version.json admin/version.json CHANGELOG.md docs/changelog.json
+
+# Verify what's staged
+git diff --cached --name-only
+
 # Only commit if there are changes
-git add -A
 git diff --cached --quiet || git commit -m "release: vX.Y.Z
 
 <summary>
@@ -149,7 +184,11 @@ fazt @zyt upgrade   2>/dev/null || echo "zyt peer not configured"
 
 | Check | Command |
 |-------|---------|
-| Current version | `grep "var Version" internal/config/config.go` |
+| All versions in sync? | See VERSIONING.md verification commands |
+| Root version | `cat version.json \| jq -r '.version'` |
+| Binary version | `grep "var Version" internal/config/config.go` |
+| KB version | `cat knowledge-base/version.json \| jq -r '.version'` |
+| Admin version | `cat admin/version.json \| jq -r '.version'` |
 | Latest tag | `git describe --tags --abbrev=0` |
 | Tag exists? | `git tag -l "vX.Y.Z"` |
 | Need to push? | `git status -sb` (shows "ahead") |
