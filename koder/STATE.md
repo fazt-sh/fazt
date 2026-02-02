@@ -1,26 +1,30 @@
 # Fazt Implementation State
 
 **Last Updated**: 2026-02-02
-**Current Version**: v0.18.0
+**Current Version**: v0.19.0
 
 ## Status
 
-State: **IMPLEMENTATION COMPLETE** - Three major plans implemented
+State: **RELEASED** - v0.19.0 deployed with complete Plan 31 implementation
 
 ---
 
-## This Session (2026-02-02) - Autonomous Implementation
+## This Session (2026-02-02) - Complete CLI Refactor & Release
 
-**Completed Plans: 31 (partial), 33, 25**
+**Completed Plans: 31 (FULL), 33, 25**
+**Released**: v0.19.0
 
 ### What Was Done
 
-#### Plan 31: CLI Refactor (Partial) ✅
+#### Plan 31: CLI Refactor (COMPLETE) ✅
 - Renamed `remote` → `peer` command throughout codebase
-- Updated cmd/server/main.go and auth.go
-- `fazt peer list`, `fazt peer add`, etc. now work
-- @peer routing already existed, enhanced
-- **Not done**: Flag removal (--to/--from/--on) - deferred as large refactoring
+- **Removed ALL** `--to`, `--from`, `--on` flags from app commands
+- Added global peer context (`targetPeerName`) for @peer routing
+- Refactored ALL app handlers (deploy, remove, install, upgrade, pull, etc.)
+- Updated help messages to reflect @peer pattern
+- @peer is now PRIMARY pattern: `fazt @zyt app deploy ./app`
+- Local operations by default: `fazt app list` (no peer needed)
+- **BREAKING CHANGE** - Old flag syntax no longer works
 
 #### Plan 33: Standardized CLI Output ✅
 - Created `internal/output/` package with glamour rendering
@@ -39,15 +43,24 @@ State: **IMPLEMENTATION COMPLETE** - Three major plans implemented
 ### Files Created
 - `internal/output/format.go` - Output renderer with glamour
 - `internal/output/table.go` - Markdown table helper
-- `internal/output/builder.go` - Markdown builder utilities  
+- `internal/output/builder.go` - Markdown builder utilities
 - `cmd/server/sql.go` - SQL command implementation
 - `internal/handlers/sql.go` - SQL API endpoint
+- `knowledge-base/skills/app/fazt/cli-peer.md` - Renamed from cli-remote.md
 
 ### Files Modified
-- `cmd/server/main.go` - Renamed remote→peer, added --format flag, added sql command
+- `cmd/server/main.go` - Global peer context, @peer routing without flag injection
+- `cmd/server/app.go` - Removed ALL peer flags from handlers
+- `cmd/server/app_v2.go` - Removed ALL peer flags from v2 handlers
+- `cmd/server/app_logs.go` - Removed --peer flag
 - `cmd/server/auth.go` - Renamed remote functions to peer
 - `internal/remote/client.go` - Added SQL() method
+- `internal/config/config.go` - Version bump to 0.19.0
+- `version.json` - Version bump to 0.19.0
+- `CHANGELOG.md` - Added v0.19.0 entry
+- `docs/changelog.json` - Added v0.19.0 entry
 - `go.mod` - Added glamour dependency
+- **20+ documentation files** across knowledge-base updated
 
 ### What Works
 ```bash
@@ -55,6 +68,17 @@ State: **IMPLEMENTATION COMPLETE** - Three major plans implemented
 fazt peer list
 fazt peer list --format json
 fazt peer add <name> --url <url> --token <token>
+fazt peer upgrade zyt
+
+# @peer pattern (PRIMARY)
+fazt @zyt app list
+fazt @zyt app deploy ./myapp
+fazt @zyt app remove myapp
+fazt @local app list  # explicit local
+
+# Local by default (NEW)
+fazt app list         # uses default peer (or local if one peer)
+fazt app deploy ./app # no flags needed!
 
 # SQL queries (local)
 fazt sql "SELECT * FROM apps LIMIT 5"
@@ -71,32 +95,43 @@ fazt @local sql "SELECT COUNT(*) FROM peers"
 ```
 
 ### Tests Passed
-- ✅ `fazt peer list` returns peers
-- ✅ `fazt peer list --format json` returns valid JSON
+- ✅ `fazt peer list` returns peers with markdown/json formats
+- ✅ `fazt peer upgrade zyt` successfully upgraded to v0.19.0
 - ✅ `fazt sql "SELECT..."` works locally
+- ✅ `fazt @zyt sql "SELECT..."` works remotely
+- ✅ `fazt @zyt app list` works (no --to flag needed)
+- ✅ `fazt app list` defaults to configured peer
+- ✅ `fazt @local app list` explicit local works
 - ✅ Write protection requires --write flag
 - ✅ Binary compiles and runs
-- ✅ Local server runs with new binary
+- ✅ Local server restarted with new binary
+- ✅ GitHub release v0.19.0 published
+- ✅ All 4 platform binaries uploaded
 
 ---
 
 ## Next Up
 
-**Remaining Work:**
+**Session Complete!** All requested work finished:
+- ✅ Plan 31 fully implemented
+- ✅ All documentation updated
+- ✅ v0.19.0 released and deployed
+- ✅ Everything verified working
 
-1. **Plan 31 (continued)**: Remove --to/--from/--on flags from app commands
-   - Large refactoring affecting many commands
-   - Deferred to allow focus on new features
-   
-2. **Update more commands**: Convert app list, app info, etc. to use output package
-   - Currently only peer list uses new output system
-   
-3. **Documentation**: Update CLI docs in knowledge-base/cli/
-   - Document new peer command
-   - Document sql command
-   - Document --format flag
+**Future work (optional):**
 
-**Or continue with `koder/THINKING_DIRECTIONS.md` for new features.**
+1. **Expand output system**: Convert more commands to use output package
+   - Currently only peer list and sql use new output system
+   - Could add to: app list, app info, etc.
+
+2. **New features**: Continue with `koder/THINKING_DIRECTIONS.md`
+   - Explore remaining enhancement ideas
+   - Pick next high-impact feature
+
+3. **Polish**: Minor improvements
+   - Suppress migration logs in CLI output
+   - Add progress indicators for long operations
+   - Improve error messages
 
 ---
 
