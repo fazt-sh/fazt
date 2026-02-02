@@ -245,5 +245,5 @@ Check: Does backend support this workflow?
 | Check SDK | `cat admin/packages/fazt-sdk/index.js` |
 | View fixture | `cat admin/packages/fazt-sdk/fixtures/*.json` |
 | Test API | Browser console: `await client.resource.method()` |
-| Build & deploy | `cd admin && npm run build && fazt app deploy admin --to local --name admin-ui` |
+| Build & deploy | `cd admin && npm run build && fazt @local app deploy admin --name admin-ui` |
 

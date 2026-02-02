@@ -55,9 +55,12 @@ func handleAppCommand(args []string) {
 
 // handleAppList lists apps on a peer
 func handleAppList(args []string) {
+	// Use positional peer argument if provided, otherwise use global context
 	var peerName string
 	if len(args) > 0 && !strings.HasPrefix(args[0], "-") {
 		peerName = args[0]
+	} else {
+		peerName = targetPeerName
 	}
 
 	db := getClientDB()
@@ -71,6 +74,7 @@ func handleAppList(args []string) {
 		} else if err == remote.ErrNoDefaultPeer {
 			fmt.Println("Multiple peers configured. Specify which peer:")
 			fmt.Println("  fazt app list <peer>")
+			fmt.Println("  Or use: fazt @<peer> app list")
 		} else {
 			fmt.Printf("Error: %v\n", err)
 		}
@@ -100,13 +104,13 @@ func handleAppList(args []string) {
 func handleAppDeploy(args []string) {
 	flags := flag.NewFlagSet("app deploy", flag.ExitOnError)
 	siteName := flags.String("name", "", "App name (defaults to directory name)")
-	peerFlag := flags.String("to", "", "Target peer name")
 	noBuild := flags.Bool("no-build", false, "Skip build step")
 	spaFlag := flags.Bool("spa", false, "Enable SPA routing (clean URLs)")
 	includePrivate := flags.Bool("include-private", false, "Include gitignored private/ directory")
 
 	flags.Usage = func() {
-		fmt.Println("Usage: fazt app deploy <directory> [--name <app>] [--to <peer>] [--no-build] [--spa] [--include-private]")
+		fmt.Println("Usage: fazt app deploy <directory> [--name <app>] [--no-build] [--spa] [--include-private]")
+		fmt.Println("       fazt @<peer> app deploy <directory> [options]")
 		fmt.Println()
 		flags.PrintDefaults()
 	}
@@ -193,14 +197,14 @@ func handleAppDeploy(args []string) {
 	db := getClientDB()
 	defer database.Close()
 
-	peer, err := remote.ResolvePeer(db, *peerFlag)
+	peer, err := remote.ResolvePeer(db, targetPeerName)
 	if err != nil {
 		if err == remote.ErrNoPeers {
 			fmt.Println("No peers configured.")
 			fmt.Println("Run: fazt remote add <name> --url <url> --token <token>")
 		} else if err == remote.ErrNoDefaultPeer {
 			fmt.Println("Multiple peers configured. Specify target peer:")
-			fmt.Println("  fazt app deploy <dir> --to <peer>")
+			fmt.Println("  fazt @<peer> app deploy <dir>")
 		} else {
 			fmt.Printf("Error: %v\n", err)
 		}
@@ -275,13 +279,17 @@ func handleAppInfo(args []string) {
 	if len(args) < 1 {
 		fmt.Println("Error: app name is required")
 		fmt.Println("Usage: fazt app info <app> [peer]")
+		fmt.Println("       fazt @<peer> app info <app>")
 		os.Exit(1)
 	}
 
 	appName := args[0]
+	// Use positional peer argument if provided, otherwise use global context
 	var peerName string
 	if len(args) > 1 && !strings.HasPrefix(args[1], "-") {
 		peerName = args[1]
+	} else {
+		peerName = targetPeerName
 	}
 
 	db := getClientDB()
@@ -319,28 +327,19 @@ func handleAppInfo(args []string) {
 
 // handleAppRemove removes an app from a peer
 func handleAppRemove(args []string) {
-	flags := flag.NewFlagSet("app remove", flag.ExitOnError)
-	peerFlag := flags.String("from", "", "Target peer name")
-
-	flags.Usage = func() {
-		fmt.Println("Usage: fazt app remove <app> [--from <peer>]")
-		fmt.Println()
-		flags.PrintDefaults()
-	}
-
 	if len(args) < 1 {
 		fmt.Println("Error: app name is required")
-		flags.Usage()
+		fmt.Println("Usage: fazt app remove <app>")
+		fmt.Println("       fazt @<peer> app remove <app>")
 		os.Exit(1)
 	}
 
 	appName := args[0]
-	flags.Parse(args[1:])
 
 	db := getClientDB()
 	defer database.Close()
 
-	peer, err := remote.ResolvePeer(db, *peerFlag)
+	peer, err := remote.ResolvePeer(db, targetPeerName)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 		os.Exit(1)
@@ -359,11 +358,11 @@ func handleAppRemove(args []string) {
 // handleAppInstall installs an app from a git repository
 func handleAppInstall(args []string) {
 	flags := flag.NewFlagSet("app install", flag.ExitOnError)
-	peerFlag := flags.String("to", "", "Target peer name")
 	nameFlag := flags.String("name", "", "Override app name")
 
 	flags.Usage = func() {
-		fmt.Println("Usage: fazt app install <url> [--to <peer>] [--name <name>]")
+		fmt.Println("Usage: fazt app install <url> [--name <name>]")
+		fmt.Println("       fazt @<peer> app install <url> [--name <name>]")
 		fmt.Println()
 		fmt.Println("Install an app from a git repository.")
 		fmt.Println()
@@ -489,14 +488,14 @@ func handleAppInstall(args []string) {
 	db := getClientDB()
 	defer database.Close()
 
-	peer, err := remote.ResolvePeer(db, *peerFlag)
+	peer, err := remote.ResolvePeer(db, targetPeerName)
 	if err != nil {
 		if err == remote.ErrNoPeers {
 			fmt.Println("No peers configured.")
 			fmt.Println("Run: fazt remote add <name> --url <url> --token <token>")
 		} else if err == remote.ErrNoDefaultPeer {
 			fmt.Println("Multiple peers configured. Specify target peer:")
-			fmt.Println("  fazt app install <url> --to <peer>")
+			fmt.Println("  fazt @<peer> app install <url>")
 		} else {
 			fmt.Printf("Error: %v\n", err)
 		}
@@ -549,11 +548,11 @@ func handleAppInstall(args []string) {
 // handleAppUpgrade upgrades a git-sourced app to the latest version
 func handleAppUpgrade(args []string) {
 	flags := flag.NewFlagSet("app upgrade", flag.ExitOnError)
-	peerFlag := flags.String("from", "", "Target peer name")
 	checkOnly := flags.Bool("check", false, "Only check for updates, don't install")
 
 	flags.Usage = func() {
-		fmt.Println("Usage: fazt app upgrade <app> [--from <peer>] [--check]")
+		fmt.Println("Usage: fazt app upgrade <app> [--check]")
+		fmt.Println("       fazt @<peer> app upgrade <app> [--check]")
 		fmt.Println()
 		flags.PrintDefaults()
 	}
@@ -570,7 +569,7 @@ func handleAppUpgrade(args []string) {
 	db := getClientDB()
 	defer database.Close()
 
-	peer, err := remote.ResolvePeer(db, *peerFlag)
+	peer, err := remote.ResolvePeer(db, targetPeerName)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 		os.Exit(1)
@@ -620,19 +619,19 @@ func handleAppUpgrade(args []string) {
 		return
 	}
 
-	// Reinstall with same URL
+	// Reinstall with same URL (targetPeerName is already set)
 	fmt.Println("\nUpgrading...")
-	handleAppInstall([]string{sourceInfo.URL, "--to", peer.Name, "--name", appName})
+	handleAppInstall([]string{sourceInfo.URL, "--name", appName})
 }
 
 // handleAppPull downloads an app's files to a local directory
 func handleAppPull(args []string) {
 	flags := flag.NewFlagSet("app pull", flag.ExitOnError)
-	peerFlag := flags.String("from", "", "Source peer name")
 	targetFlag := flags.String("to", "", "Target directory (defaults to ./<app>)")
 
 	flags.Usage = func() {
-		fmt.Println("Usage: fazt app pull <app> [--from <peer>] [--to <dir>]")
+		fmt.Println("Usage: fazt app pull <app> [--to <dir>]")
+		fmt.Println("       fazt @<peer> app pull <app> [--to <dir>]")
 		fmt.Println()
 		flags.PrintDefaults()
 	}
@@ -649,7 +648,7 @@ func handleAppPull(args []string) {
 	db := getClientDB()
 	defer database.Close()
 
-	peer, err := remote.ResolvePeer(db, *peerFlag)
+	peer, err := remote.ResolvePeer(db, targetPeerName)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 		os.Exit(1)
@@ -734,6 +733,7 @@ func printAppHelp() {
 
 USAGE:
   fazt app <command> [options]
+  fazt @<peer> app <command> [options]
 
 COMMANDS:
   create <name>      Create new app from template
@@ -749,8 +749,6 @@ COMMANDS:
 
 OPTIONS:
   --template <name>  Template for create (static, vue, vue-api)
-  --to <peer>        Target peer for deploy/install
-  --from <peer>      Source peer for pull/remove/upgrade
   --name <name>      Override app name
   --spa              Enable SPA routing (clean URLs like /dashboard)
   --no-build         Skip build step, deploy source as-is
@@ -759,30 +757,40 @@ OPTIONS:
   -f                 Follow log output (stream)
   -n <count>         Number of recent logs to show
 
+PEER SELECTION:
+  Use @<peer> prefix for remote operations:
+    fazt @zyt app list              # List apps on zyt peer
+    fazt @local app deploy ./myapp  # Deploy to local peer
+
+  Or use positional peer argument (list, info only):
+    fazt app list zyt
+    fazt app info myapp zyt
+
 EXAMPLES:
   # Create new app
   fazt app create myapp
   fazt app create myapp --template vite
 
   # List apps
+  fazt @zyt app list
   fazt app list zyt
 
   # Deploy local directory
-  fazt app deploy ./my-site --to zyt
+  fazt @zyt app deploy ./my-site
 
   # Deploy with SPA routing (clean URLs)
-  fazt app deploy ./my-spa --to zyt --spa
+  fazt @zyt app deploy ./my-spa --spa
 
   # Install from GitHub
-  fazt app install github.com/user/repo --to zyt
-  fazt app install github:user/repo/apps/blog@v1.0.0
+  fazt @zyt app install github.com/user/repo
+  fazt @zyt app install github:user/repo/apps/blog@v1.0.0
 
   # Check for updates
-  fazt app upgrade myapp --check
+  fazt @zyt app upgrade myapp --check
 
   # Download app to local folder
-  fazt app pull myapp --to ./local-copy
+  fazt @zyt app pull myapp --to ./local-copy
 
   # Remove an app
-  fazt app remove myapp --from zyt`)
+  fazt @zyt app remove myapp`)
 }

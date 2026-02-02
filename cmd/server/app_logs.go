@@ -17,12 +17,12 @@ import (
 // handleAppLogs streams logs from a deployed app
 func handleAppLogs(args []string) {
 	flags := flag.NewFlagSet("app logs", flag.ExitOnError)
-	peerFlag := flags.String("peer", "", "Target peer (default: auto-select)")
 	follow := flags.Bool("f", false, "Follow log output (stream)")
 	limit := flags.Int("n", 50, "Number of recent logs to show")
 
 	flags.Usage = func() {
-		fmt.Println("Usage: fazt app logs <app> [--peer <peer>] [-f] [-n <count>]")
+		fmt.Println("Usage: fazt app logs <app> [-f] [-n <count>]")
+		fmt.Println("       fazt @<peer> app logs <app> [-f] [-n <count>]")
 		fmt.Println()
 		fmt.Println("View serverless execution logs for an app.")
 		fmt.Println()
@@ -51,14 +51,14 @@ func handleAppLogs(args []string) {
 	db := getClientDB()
 	defer database.Close()
 
-	peer, err := remote.ResolvePeer(db, *peerFlag)
+	peer, err := remote.ResolvePeer(db, targetPeerName)
 	if err != nil {
 		if err == remote.ErrNoPeers {
 			fmt.Println("No peers configured.")
 			fmt.Println("Run: fazt remote add <name> --url <url> --token <token>")
 		} else if err == remote.ErrNoDefaultPeer {
 			fmt.Println("Multiple peers configured. Specify which peer:")
-			fmt.Println("  fazt app logs <app> --peer <peer>")
+			fmt.Println("  fazt @<peer> app logs <app>")
 		} else {
 			fmt.Printf("Error: %v\n", err)
 		}

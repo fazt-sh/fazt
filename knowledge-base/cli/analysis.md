@@ -2,7 +2,8 @@
 
 **Version**: 0.18.0
 **Date**: 2026-02-01
-**Status**: Analysis Complete
+**Updated**: 2026-02-02
+**Status**: IMPLEMENTED in v0.18.0
 
 ---
 
@@ -50,12 +51,12 @@ fazt app split <subdomain> --ids <pairs> [--on peer]
 fazt app create <name> [--template]
 fazt app validate <dir>
 
-fazt remote add <name> --url <url> --token <token>
-fazt remote list
-fazt remote remove <name>
-fazt remote default <name>
-fazt remote status [name]
-fazt remote upgrade [name]
+fazt peer add <name> --url <url> --token <token>
+fazt peer list
+fazt peer remove <name>
+fazt peer default <name>
+fazt peer status [name]
+fazt peer upgrade [name]
 
 fazt server init [--username] [--password] [--domain] [--db]
 fazt server start [--domain] [--port] [--db]
@@ -226,7 +227,7 @@ Both work. Which is preferred? Documentation doesn't clarify.
 fazt app create myapp          # Creates LOCAL template
 fazt app install github:...    # Installs FROM URL to peer
 fazt app deploy ./dir          # Deploys FROM local TO peer
-fazt remote add zyt            # Adds peer config
+fazt peer add zyt            # Adds peer config
 ```
 
 Four different verbs for "bring something into existence."
@@ -235,7 +236,7 @@ Four different verbs for "bring something into existence."
 ```bash
 fazt app remove myapp          # Removes app
 fazt app unlink subdomain      # Removes alias
-fazt remote remove zyt         # Removes peer
+fazt peer remove zyt         # Removes peer
 ```
 
 `remove` vs `unlink` - why different verbs for similar actions?
@@ -356,12 +357,12 @@ fazt alias split <subdomain> --targets <pairs> [peer]
 fazt app lineage <identifier> [peer]               # was: --alias/--id required
 
 # Remote Peers
-fazt remote list
-fazt remote add <name> --url <url> --token <token>
-fazt remote remove <name>
-fazt remote default <name>
-fazt remote status [name]
-fazt remote upgrade [name]
+fazt peer list
+fazt peer add <name> --url <url> --token <token>
+fazt peer remove <name>
+fazt peer default <name>
+fazt peer status [name]
+fazt peer upgrade [name]
 
 # Local Server
 fazt server init [--username] [--password] [--domain]

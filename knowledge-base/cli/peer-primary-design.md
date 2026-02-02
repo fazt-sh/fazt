@@ -1,14 +1,15 @@
 # Fazt CLI: @peer-Primary Design
 
 **Version**: 0.18.0
-**Status**: Design Proposal
+**Status**: IMPLEMENTED
 **Date**: 2026-02-02
+**Updated**: 2026-02-02
 
 ---
 
 ## Executive Summary
 
-This document proposes elevating `@peer` from syntactic sugar to the **primary modality** for specifying remote operations. The core mental model: **all operations are local by default unless `@peer` is added**.
+This document describes the **implemented** `@peer`-primary CLI design in Fazt v0.18.0. The `@peer` prefix is now the **primary modality** for specifying remote operations. The core mental model: **all operations are local by default unless `@peer` is added**.
 
 ```bash
 fazt app list              # local
@@ -194,10 +195,11 @@ fazt @zyt app create myapp                  # ERROR: templates are local only
 Peer management commands configure the client's knowledge of remote peers.
 
 ```bash
-fazt remote add zyt --url https://admin.zyt.app --token xxx
-fazt remote list
-fazt remote remove zyt
-fazt remote default zyt                     # set default for when @peer is required but omitted
+fazt peer add zyt --url https://admin.zyt.app --token xxx
+fazt peer list
+fazt peer list --format json                # JSON output
+fazt peer remove zyt
+fazt peer default zyt                       # set default for when @peer is required but omitted
 ```
 
 These are always local operations (managing local config).
@@ -368,15 +370,16 @@ fazt @zyt @prod app list                    # ERROR: only one @peer allowed
 | `server set-credentials` | `fazt server set-credentials` | N/A | Local only |
 | `server create-key` | `fazt server create-key` | N/A | Local only |
 
-### Remote Management
+### Peer Management
 
 | Command | Description |
 |---------|-------------|
-| `remote add <name> --url <url> --token <token>` | Register new peer |
-| `remote list` | List configured peers |
-| `remote remove <name>` | Unregister peer |
-| `remote status [name]` | Check peer connectivity |
-| `remote upgrade [name]` | Check for peer updates |
+| `peer add <name> --url <url> --token <token>` | Register new peer |
+| `peer list` | List configured peers |
+| `peer list --format json` | List peers in JSON format |
+| `peer remove <name>` | Unregister peer |
+| `peer status [name]` | Check peer connectivity |
+| `peer upgrade [name]` | Check for peer updates |
 
 ### Service Commands (Local Only)
 
@@ -546,85 +549,58 @@ Fazt's `@peer` provides the **highest visibility** and **most consistent positio
 
 ---
 
-## Part 7: Migration Strategy
+## Part 7: Migration Strategy (COMPLETED)
 
-### Phase 1: Parallel Support (Current Release)
+### Implementation Status
 
-Both syntaxes work:
+**v0.18.0 (Current)**: Full implementation complete
 
+All `--to`, `--from`, `--on` flags have been removed from app commands. The `@peer` syntax is now the ONLY way to specify remote operations.
+
+**Breaking changes**:
 ```bash
-# Old (flag-based)
+# Old (REMOVED - no longer works)
 fazt app deploy ./app --to zyt
 fazt app list zyt
 fazt app info myapp --on zyt
+fazt app remove myapp --from zyt
 
-# New (@peer-based)
+# New (CURRENT - only way)
 fazt @zyt app deploy ./app
 fazt @zyt app list
 fazt @zyt app info myapp
+fazt @zyt app remove myapp
 ```
 
-No deprecation warnings yet. Documentation shows both, preferring new.
+### Command Renames
 
-### Phase 2: Soft Deprecation (Next Release)
+**`fazt remote` → `fazt peer`**
 
-Flag-based peer targeting shows deprecation notice:
-
-```
-$ fazt app deploy ./app --to zyt
-Deploying to zyt...
-
-Hint: Use @peer syntax for cleaner commands:
-  fazt @zyt app deploy ./app
-
-Done.
-```
-
-Documentation primarily shows `@peer` syntax.
-
-### Phase 3: Default Change (Future Release)
-
-Remove automatic peer resolution for flag-based commands.
+The `remote` command has been renamed to `peer` for consistency:
 
 ```bash
-# This would error:
-fazt app deploy ./app --to zyt
-# Error: Unknown flag --to. Use @peer syntax:
-#   fazt @zyt app deploy ./app
+# Old
+fazt remote list
+fazt remote add zyt --url ... --token ...
+
+# New
+fazt peer list
+fazt peer add zyt --url ... --token ...
 ```
 
-Flags only for local modifications (like `--name`, `--spa`).
+### New Features
 
-### Migration Messages
-
-**Deploy:**
-```
-Old: fazt app deploy ./app --to zyt
-New: fazt @zyt app deploy ./app
-```
-
-**List:**
-```
-Old: fazt app list zyt
-New: fazt @zyt app list
+**SQL query command**:
+```bash
+fazt sql "SELECT * FROM apps"                 # Local
+fazt @zyt sql "SELECT * FROM apps"            # Remote
+fazt sql "SELECT * FROM apps" --format json   # JSON output
 ```
 
-**Info:**
-```
-Old: fazt app info myapp --on zyt
-New: fazt @zyt app info myapp
-```
-
-**Remove:**
-```
-Old: fazt app remove myapp --from zyt
-New: fazt @zyt app remove myapp
-```
-
-**Pull:**
-```
-Old: fazt app pull myapp --from zyt
-New: fazt @zyt app pull myapp
+**Format flag for peer list**:
+```bash
+fazt peer list --format markdown              # Default
+fazt peer list --format json                  # JSON output
 ```
 
 ---
@@ -776,27 +752,33 @@ This aligns perfectly with Fazt's **sovereign compute** philosophy: your local i
 
 ## Part 10: Implementation Checklist
 
-### Phase 1: Foundation
-- [ ] Audit all commands for local vs remote capability
-- [ ] Ensure `/api/cmd` gateway handles all app subcommands
-- [ ] Add `@local` as explicit alias for local operations
-- [ ] Update `handlePeerCommand` to route all supported commands
+### Status: COMPLETED ✓
 
-### Phase 2: Documentation
-- [ ] Update all help text to show `@peer` syntax first
-- [ ] Create migration guide in knowledge-base
-- [ ] Update CLAUDE.md with new patterns
-- [ ] Add examples to error messages
+All phases have been completed in v0.18.0:
 
-### Phase 3: Deprecation
-- [ ] Add deprecation notices for flag-based peer targeting
-- [ ] Log usage of deprecated patterns for metrics
-- [ ] Set timeline for flag removal (2-3 releases)
+### Phase 1: Foundation ✓
+- [x] Audit all commands for local vs remote capability
+- [x] Ensure `/api/cmd` gateway handles all app subcommands
+- [x] Add `@local` as explicit alias for local operations
+- [x] Update `handlePeerCommand` to route all supported commands
 
-### Phase 4: Cleanup
-- [ ] Remove `--to`, `--from`, `--on` flags
-- [ ] Simplify command handlers
-- [ ] Update tests
+### Phase 2: Documentation ✓
+- [x] Update all help text to show `@peer` syntax first
+- [x] Create migration guide in knowledge-base
+- [x] Update CLAUDE.md with new patterns
+- [x] Add examples to error messages
+
+### Phase 3: Deprecation ✓
+- [x] Removed all flag-based peer targeting (no deprecation phase)
+- [x] Clean break in v0.18.0
+
+### Phase 4: Cleanup ✓
+- [x] Remove `--to`, `--from`, `--on` flags
+- [x] Simplify command handlers
+- [x] Update tests
+- [x] Rename `remote` command to `peer`
+- [x] Add `sql` command with `--format` flag
+- [x] Add `--format` flag to `peer list`
 
 ---
 
@@ -836,9 +818,16 @@ fazt app validate             # validation
 
 PEER MANAGEMENT
 ===============
-fazt remote add zyt --url ... --token ...
-fazt remote list
-fazt remote remove zyt
+fazt peer add zyt --url ... --token ...
+fazt peer list
+fazt peer list --format json
+fazt peer remove zyt
+
+SQL QUERIES
+===========
+fazt sql "SELECT * FROM apps"
+fazt @zyt sql "SELECT * FROM apps"
+fazt sql "SELECT * FROM apps" --format json
 ```
 
 ---

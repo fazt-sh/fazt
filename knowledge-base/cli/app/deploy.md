@@ -2,6 +2,7 @@
 # Command Definition
 command: "app deploy"
 version: "0.18.0"
+updated: "2026-02-02"
 category: "deployment"
 
 # Synopsis
@@ -41,9 +42,11 @@ peer:
   supported: true
   local: true
   remote: true
-  deprecated_flags:
+  syntax: "@peer prefix"
+  removed_flags:
     - name: "--to"
-      migration: "Use @peer prefix instead: fazt @peer app deploy ..."
+      removed_in: "0.18.0"
+      replacement: "Use @peer prefix: fazt @peer app deploy ..."
 
 # Examples
 examples:
@@ -121,7 +124,7 @@ errors:
     message: "Error: unauthorized"
     solution: |
       The peer rejected the request. Check:
-        1. Token is valid: fazt remote status <peer>
+        1. Token is valid: fazt peer status <peer>
         2. Token has deploy permissions
 ---
 
@@ -256,7 +259,7 @@ fazt @zyt app deploy ./my-app
 ```
 
 The `@zyt` prefix targets the peer named "zyt" (configured via
-`fazt remote add`).
+`fazt peer add`).
 
 ### Deploy SPA with clean URLs
 
@@ -373,20 +376,19 @@ Warning: private/ is gitignored but exists
 
 This is informational. Use `--include-private` if you need those files.
 
-## Deprecated Patterns
+## Removed Patterns (v0.18.0)
 
-**Old (flag-based):**
+**Old (REMOVED - no longer works):**
 ```bash
 fazt app deploy ./my-app --to zyt
 ```
 
-**New (@peer-based):**
+**Current (ONLY way):**
 ```bash
 fazt @zyt app deploy ./my-app
 ```
 
-The `--to` flag is deprecated and will be removed in v0.20.0.
-It currently works but shows a deprecation notice.
+The `--to` flag has been removed in v0.18.0. Use the `@peer` prefix instead.
 
 ## See Also
 

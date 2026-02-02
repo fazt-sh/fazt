@@ -28,7 +28,7 @@ commands:
       - split
       - lineage
 
-  - name: "remote"
+  - name: "peer"
     description: "Peer management"
     subcommands:
       - add
@@ -36,6 +36,10 @@ commands:
       - remove
       - default
       - status
+      - upgrade
+
+  - name: "sql"
+    description: "Execute SQL queries"
 
   - name: "server"
     description: "Server control"
@@ -90,22 +94,28 @@ peer_categories:
     description: "Local-only operations"
     commands: ["app create", "app validate", "server init", "server start", "service *"]
 
-# Flag deprecation schedule
-deprecations:
+# Removed flags (completed in v0.18.0)
+removed_flags:
   - flag: "--to"
     commands: ["app deploy", "app install", "app link", "app fork"]
-    migration: "Use @peer prefix"
-    removal_version: "0.20.0"
+    migration: "Use @peer prefix: fazt @peer app ..."
+    removed_version: "0.18.0"
 
   - flag: "--from"
     commands: ["app remove", "app unlink", "app upgrade", "app pull"]
-    migration: "Use @peer prefix"
-    removal_version: "0.20.0"
+    migration: "Use @peer prefix: fazt @peer app ..."
+    removed_version: "0.18.0"
 
   - flag: "--on"
     commands: ["app info", "app logs", "app reserve", "app swap", "app split", "app lineage"]
-    migration: "Use @peer prefix"
-    removal_version: "0.20.0"
+    migration: "Use @peer prefix: fazt @peer app ..."
+    removed_version: "0.18.0"
+
+# Command renames (completed in v0.18.0)
+renamed_commands:
+  - old: "remote"
+    new: "peer"
+    version: "0.18.0"
 
 # Build configuration
 build:

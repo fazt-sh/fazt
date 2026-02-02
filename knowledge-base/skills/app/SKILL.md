@@ -16,7 +16,7 @@ Build and deploy polished, PWA-ready apps to fazt instances with Claude.
 - **[fazt/deployment.md](fazt/deployment.md)** - Local vs remote, auto-build deploy, versioning
 - **[fazt/hosting-quirks.md](fazt/hosting-quirks.md)** - Static files vs API, hash routing, serverless limits
 - **[fazt/cli-app.md](fazt/cli-app.md)** - `fazt app` commands (deploy, list, fork, swap)
-- **[fazt/cli-remote.md](fazt/cli-remote.md)** - `fazt remote` commands (peers, status)
+- **[fazt/cli-peer.md](fazt/cli-peer.md)** - `fazt peer` commands (peers, status)
 - **[fazt/cli-auth.md](fazt/cli-auth.md)** - `fazt auth` commands (providers, users)
 - **[fazt/cli-server.md](fazt/cli-server.md)** - `fazt server` commands (init, start)
 - **[fazt/mock-oauth-spec.md](fazt/mock-oauth-spec.md)** - Proposed mock OAuth for local dev
@@ -52,7 +52,7 @@ If not installed, the fazt binary must be built and added to PATH.
 ### 2. Check Configured Peers
 
 ```bash
-fazt remote list
+fazt peer list
 ```
 
 You should see at least one peer configured. Common setup:
@@ -85,7 +85,8 @@ plus fazt's serverless API.
 
 **The output remains static-hostable:**
 ```bash
-fazt app deploy ./my-app --to <peer>  # Builds and deploys automatically
+fazt app deploy ./my-app              # Local - builds and deploys automatically
+fazt @zyt app deploy ./my-app         # Remote - builds and deploys automatically
 ```
 
 Fazt detects `package.json` with a build script, runs the build, and deploys
@@ -126,7 +127,7 @@ Parse the user's description to determine:
 
 **If auth needed, check remote peer:**
 ```bash
-fazt @<remote-peer> auth providers
+fazt @zyt auth providers
 ```
 If Google is already enabled, proceed. If not, ask user if they want to set it up.
 
@@ -206,7 +207,7 @@ Reference the documentation files for patterns and code.
 npm run dev
 
 # Test serverless API on local fazt (builds automatically)
-fazt app deploy . --to local
+fazt @local app deploy .
 ```
 
 Access at: `http://<name>.192.168.64.3.nip.io:8080`
@@ -224,7 +225,7 @@ Access at: `http://<name>.192.168.64.3.nip.io:8080`
 After user approval (builds automatically):
 
 ```bash
-fazt app deploy . --to <remote-peer>
+fazt @zyt app deploy .
 ```
 
 Report production URL: `https://<name>.<domain>`
@@ -239,10 +240,10 @@ Fazt builds automatically when `package.json` has a build script:
 
 ```bash
 # CORRECT - point at project root, fazt handles build
-fazt app deploy ./my-app --to <remote-peer>
+fazt @zyt app deploy ./my-app
 
 # Also valid - skip build for pre-built or static sites
-fazt app deploy ./my-app --to <peer> --no-build
+fazt @zyt app deploy ./my-app --no-build
 ```
 
 ### OAuth Requires Remote
@@ -270,7 +271,7 @@ login(window.location.pathname)
 ### Check Remote OAuth First
 
 ```bash
-fazt @<remote-peer> auth providers
+fazt @zyt auth providers
 ```
 
 If Google is enabled, proceed with auth. If not, ask user if they want to
@@ -288,12 +289,14 @@ set it up (see [patterns/google-oauth.md](patterns/google-oauth.md)).
 ### Essential Commands
 
 ```bash
-fazt remote list                              # List peers
-fazt @<peer> auth providers                   # Check OAuth status
-fazt app deploy ./my-app --to local           # Deploy to local (builds auto)
-fazt app deploy ./my-app --to <remote-peer>   # Deploy to prod (builds auto)
-fazt app deploy ./my-app --to <peer> --spa    # Deploy with SPA routing (clean URLs)
-fazt app logs <app> --on <peer> -f            # View logs
+fazt peer list                                # List peers
+fazt @zyt auth providers                      # Check OAuth status
+fazt @local app deploy ./my-app               # Deploy to local (builds auto)
+fazt @zyt app deploy ./my-app                 # Deploy to prod (builds auto)
+fazt @zyt app deploy ./my-app --spa           # Deploy with SPA routing (clean URLs)
+fazt @zyt app logs <app> -f                   # View logs
+fazt sql "SELECT * FROM apps"                 # Query local DB
+fazt @zyt sql "SELECT * FROM apps"            # Query remote DB
 ```
 
 ### Serverless Globals

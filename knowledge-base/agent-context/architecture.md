@@ -83,4 +83,4 @@ if (request.path === '/api/hello') {
 | Storage API | KV, Docs, Blobs |
 | Private Files | Auth-gated HTTP + serverless access |
 | Analytics | Event tracking |
-| Remote Management | `fazt remote` CLI |
+| Remote Management | `fazt peer` CLI |

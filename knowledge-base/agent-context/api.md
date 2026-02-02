@@ -1,5 +1,7 @@
 # API Reference
 
+**Updated**: 2026-02-02
+
 ## Admin API Endpoints
 
 | Endpoint | Method | Description |
@@ -30,24 +32,35 @@ api.InternalError(w, err)
 ### Peer Management
 
 ```bash
-fazt remote list                    # List all peers
-fazt remote status zyt              # Health, version, uptime
-fazt remote upgrade zyt             # Upgrade to latest version
-fazt remote add <name> --url <url> --token <token>
+fazt peer list                      # List all peers
+fazt peer list --format json        # List peers in JSON format
+fazt peer status zyt                # Health, version, uptime
+fazt peer upgrade zyt               # Upgrade to latest version
+fazt peer add <name> --url <url> --token <token>
 ```
 
 ### App Management
 
 ```bash
-fazt app list <peer>                # List deployed apps
-fazt app deploy <dir> --to <peer>   # Deploy from local directory
-fazt app deploy <dir> --to <peer> --include-private  # Include private/
-fazt app install <url> --to <peer>  # Install from GitHub
-fazt app upgrade <app> --on <peer>  # Upgrade git-sourced app
-fazt app pull <app> --to ./local    # Download app files
-fazt app info <app> --on <peer>     # Show app details
-fazt app remove <app> --from <peer> # Remove an app
-fazt app logs <app> --on <peer> -f  # Tail logs
+fazt app list                       # List local apps
+fazt @zyt app list                  # List apps on remote peer
+fazt app deploy <dir>               # Deploy to local
+fazt @zyt app deploy <dir>          # Deploy to remote peer
+fazt @zyt app deploy <dir> --include-private  # Include private/
+fazt @zyt app install <url>         # Install from GitHub
+fazt @zyt app upgrade <app>         # Upgrade git-sourced app
+fazt @zyt app pull <app> --to ./local    # Download app files
+fazt @zyt app info <app>            # Show app details
+fazt @zyt app remove <app>          # Remove an app
+fazt @zyt app logs <app> -f         # Tail logs
+```
+
+### SQL Queries
+
+```bash
+fazt sql "SELECT * FROM apps"       # Query local database
+fazt @zyt sql "SELECT * FROM apps"  # Query remote database
+fazt sql "..." --format json        # JSON output
 ```
 
 ### Server Management

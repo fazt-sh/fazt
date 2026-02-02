@@ -1,15 +1,19 @@
-# fazt remote - Peer Management
+# fazt peer - Peer Management
+
+**Updated**: 2026-02-02
 
 Manage connections to fazt instances (peers).
 
 ## Commands
 
-### fazt remote list
+### fazt peer list
 
 List all configured peers.
 
 ```bash
-fazt remote list
+fazt peer list
+fazt peer list --format json    # JSON output
+fazt peer list --format markdown # Markdown table (default)
 ```
 
 Output:
@@ -19,12 +23,12 @@ local    http://192.168.64.3:8080
 prod     https://admin.example.com    *
 ```
 
-### fazt remote add
+### fazt peer add
 
 Add a new peer connection.
 
 ```bash
-fazt remote add <name> --url <url> --token <api-key>
+fazt peer add <name> --url <url> --token <api-key>
 ```
 
 **Parameters:**
@@ -34,33 +38,33 @@ fazt remote add <name> --url <url> --token <api-key>
 
 **Example:**
 ```bash
-fazt remote add prod \
+fazt peer add prod \
   --url https://admin.example.com \
   --token fzt_abc123...
 ```
 
-### fazt remote remove
+### fazt peer remove
 
 Remove a peer.
 
 ```bash
-fazt remote remove <name>
+fazt peer remove <name>
 ```
 
-### fazt remote default
+### fazt peer default
 
 Set the default peer (used when peer not specified).
 
 ```bash
-fazt remote default <name>
+fazt peer default <name>
 ```
 
-### fazt remote status
+### fazt peer status
 
 Check peer health, version, and uptime.
 
 ```bash
-fazt remote status [name]
+fazt peer status [name]
 ```
 
 If name omitted, checks default peer.
@@ -75,16 +79,16 @@ Apps: 12
 Storage: 234 MB
 ```
 
-### fazt remote upgrade
+### fazt peer upgrade
 
 Check for or perform upgrades on a peer.
 
 ```bash
 # Check if upgrade available
-fazt remote upgrade check
+fazt peer upgrade check
 
 # Perform upgrade
-fazt remote upgrade <name>
+fazt peer upgrade <name>
 ```
 
 ## Remote Execution Shorthand
@@ -107,10 +111,10 @@ fazt app list --on prod
 fazt server create-key --name my-laptop --db /path/to/data.db
 
 # 2. Add peer on client
-fazt remote add prod \
+fazt peer add prod \
   --url https://admin.example.com \
   --token <token-from-step-1>
 
 # 3. Verify connection
-fazt remote status prod
+fazt peer status prod
 ```

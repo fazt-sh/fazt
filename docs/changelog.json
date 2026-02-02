@@ -1,5 +1,11 @@
 [
     {
+        "version": "v0.19.0",
+        "title": "CLI Refactor - @peer Pattern Complete",
+        "description": "BREAKING: Complete @peer-primary CLI pattern. 'remote' renamed to 'peer'. All --to/--from/--on flags removed. New SQL command for database queries. Standardized output formatting with --format flag.",
+        "created_at": "2026-02-02"
+    },
+    {
         "version": "v0.17.0",
         "title": "Dev OAuth Provider",
         "description": "Local auth testing without HTTPS. Dev login form at /auth/dev/login (local mode only). Role selection for testing admin/owner flows. Creates real sessions and users with provider: dev. Blocked on production/HTTPS instances.",

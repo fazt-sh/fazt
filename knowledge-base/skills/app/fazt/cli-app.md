@@ -1,5 +1,7 @@
 # fazt app - App Management
 
+**Updated**: 2026-02-02
+
 Deploy, manage, and monitor apps on fazt instances.
 
 ## Core Commands
@@ -9,8 +11,10 @@ Deploy, manage, and monitor apps on fazt instances.
 List apps on a peer.
 
 ```bash
-fazt app list <peer>
-fazt app list <peer> --aliases  # Include alias mappings
+fazt app list                   # Local apps
+fazt @zyt app list              # Remote apps
+fazt app list --aliases         # Include alias mappings
+fazt @zyt app list --aliases    # Remote with aliases
 ```
 
 ### fazt app info
@@ -18,8 +22,10 @@ fazt app list <peer> --aliases  # Include alias mappings
 Show app details.
 
 ```bash
-fazt app info --alias <name> --on <peer>
-fazt app info --id <app_id> --on <peer>
+fazt app info --alias <name>        # Local app
+fazt app info --id <app_id>         # Local app by ID
+fazt @zyt app info --alias <name>   # Remote app
+fazt @zyt app info --id <app_id>    # Remote app by ID
 ```
 
 ### fazt app deploy
@@ -28,7 +34,8 @@ Deploy a directory to a peer. **Builds automatically** if `package.json` has
 a build script.
 
 ```bash
-fazt app deploy <directory> [--to <peer>] [--no-build] [--spa] [--include-private]
+fazt app deploy <directory> [--no-build] [--spa] [--include-private] [--name <name>]
+fazt @peer app deploy <directory> [--no-build] [--spa] [--include-private] [--name <name>]
 ```
 
 **How it works:**
@@ -40,6 +47,7 @@ fazt app deploy <directory> [--to <peer>] [--no-build] [--spa] [--include-privat
 **Flags:**
 | Flag | Description |
 |------|-------------|
+| `--name <name>` | Override app name |
 | `--no-build` | Skip build step, deploy directory as-is |
 | `--spa` | Enable SPA routing (clean URLs, serves index.html for unknown routes) |
 | `--include-private` | Include gitignored `private/` directory in deployment |
@@ -47,17 +55,20 @@ fazt app deploy <directory> [--to <peer>] [--no-build] [--spa] [--include-privat
 **Examples:**
 ```bash
 # Standard deploy (builds automatically)
-fazt app deploy ./my-app --to local
-fazt app deploy ./my-app --to <remote-peer>
+fazt app deploy ./my-app              # Local
+fazt @zyt app deploy ./my-app         # Remote
 
 # Skip build (for pre-built or static sites)
-fazt app deploy ./my-app --to local --no-build
+fazt app deploy ./my-app --no-build
 
 # SPA routing for clean URLs (/dashboard instead of /#/dashboard)
-fazt app deploy ./my-app --to <remote-peer> --spa
+fazt @zyt app deploy ./my-app --spa
 
 # Include gitignored private/ directory
-fazt app deploy ./my-app --to <remote-peer> --include-private
+fazt @zyt app deploy ./my-app --include-private
+
+# Custom app name
+fazt @zyt app deploy ./my-app --name blog
 ```
 
 See [deployment.md](deployment.md) and [hosting-quirks.md](hosting-quirks.md)
@@ -81,8 +92,10 @@ Validates:
 View serverless execution logs.
 
 ```bash
-fazt app logs <app> --on <peer>
-fazt app logs <app> --on <peer> -f  # Follow (tail)
+fazt app logs <app>           # Local logs
+fazt @zyt app logs <app>      # Remote logs
+fazt app logs <app> -f        # Follow (tail)
+fazt @zyt app logs <app> -f   # Follow remote logs
 ```
 
 ### fazt app remove
@@ -90,9 +103,10 @@ fazt app logs <app> --on <peer> -f  # Follow (tail)
 Remove an app.
 
 ```bash
-fazt app remove --alias <name> --from <peer>
-fazt app remove --id <app_id> --from <peer>
-fazt app remove --alias <name> --from <peer> --with-forks  # Remove app and forks
+fazt app remove --alias <name>               # Local
+fazt app remove --id <app_id>                # Local by ID
+fazt @zyt app remove --alias <name>          # Remote
+fazt app remove --alias <name> --with-forks  # Remove app and forks
 ```
 
 ## App Creation
@@ -115,7 +129,8 @@ Templates:
 Install app from git repository.
 
 ```bash
-fazt app install <github-url> --to <peer>
+fazt app install <github-url>         # Local
+fazt @zyt app install <github-url>    # Remote
 ```
 
 ### fazt app upgrade
@@ -123,7 +138,8 @@ fazt app install <github-url> --to <peer>
 Upgrade git-sourced app to latest.
 
 ```bash
-fazt app upgrade <app> --on <peer>
+fazt app upgrade <app>         # Local
+fazt @zyt app upgrade <app>    # Remote
 ```
 
 ## Alias Management
@@ -135,7 +151,8 @@ Apps have IDs (`app_abc123`) and aliases (subdomains like `tetris`).
 Link a subdomain to an app.
 
 ```bash
-fazt app link <subdomain> --id <app_id> --to <peer>
+fazt app link <subdomain> --id <app_id>         # Local
+fazt @zyt app link <subdomain> --id <app_id>    # Remote
 ```
 
 ### fazt app unlink
@@ -143,7 +160,8 @@ fazt app link <subdomain> --id <app_id> --to <peer>
 Remove an alias.
 
 ```bash
-fazt app unlink <subdomain> --from <peer>
+fazt app unlink <subdomain>         # Local
+fazt @zyt app unlink <subdomain>    # Remote
 ```
 
 ### fazt app reserve
@@ -151,7 +169,8 @@ fazt app unlink <subdomain> --from <peer>
 Reserve/block a subdomain (prevents use).
 
 ```bash
-fazt app reserve <subdomain> --on <peer>
+fazt app reserve <subdomain>         # Local
+fazt @zyt app reserve <subdomain>    # Remote
 ```
 
 ### fazt app swap
@@ -159,21 +178,22 @@ fazt app reserve <subdomain> --on <peer>
 Atomically swap two aliases (blue-green deployment).
 
 ```bash
-fazt app swap <alias1> <alias2> --on <peer>
+fazt app swap <alias1> <alias2>         # Local
+fazt @zyt app swap <alias1> <alias2>    # Remote
 ```
 
 **Example - Zero-downtime deployment:**
 ```bash
 # 1. Fork current app
-fazt app fork --alias tetris --as tetris-v2 --to <peer>
+fazt @zyt app fork --alias tetris --as tetris-v2
 
 # 2. Deploy update to fork (builds automatically)
-fazt app deploy ./tetris-updated --to <peer> --alias tetris-v2
+fazt @zyt app deploy ./tetris-updated --name tetris-v2
 
 # 3. Test tetris-v2.<domain>
 
 # 4. Swap aliases (instant cutover)
-fazt app swap tetris tetris-v2 --on <peer>
+fazt @zyt app swap tetris tetris-v2
 ```
 
 ### fazt app split
@@ -181,12 +201,13 @@ fazt app swap tetris tetris-v2 --on <peer>
 Configure traffic splitting between app versions.
 
 ```bash
-fazt app split <alias> --ids <app1>:<percent>,<app2>:<percent> --on <peer>
+fazt app split <alias> --ids <app1>:<percent>,<app2>:<percent>         # Local
+fazt @zyt app split <alias> --ids <app1>:<percent>,<app2>:<percent>    # Remote
 ```
 
 **Example - Canary deployment:**
 ```bash
-fazt app split tetris --ids app_old:90,app_new:10 --on <peer>
+fazt @zyt app split tetris --ids app_old:90,app_new:10
 ```
 
 ## Lineage (Forking)
@@ -196,8 +217,9 @@ fazt app split tetris --ids app_old:90,app_new:10 --on <peer>
 Create a copy of an app (optionally without storage).
 
 ```bash
-fazt app fork --alias <source> --as <new-alias> --to <peer>
-fazt app fork --alias <source> --as <new-alias> --to <peer> --no-storage
+fazt app fork --alias <source> --as <new-alias>                # Local
+fazt @zyt app fork --alias <source> --as <new-alias>           # Remote
+fazt app fork --alias <source> --as <new-alias> --no-storage   # Without storage
 ```
 
 ### fazt app lineage
@@ -205,7 +227,8 @@ fazt app fork --alias <source> --as <new-alias> --to <peer> --no-storage
 Show fork tree for an app.
 
 ```bash
-fazt app lineage --id <app_id> --on <peer>
+fazt app lineage --id <app_id>         # Local
+fazt @zyt app lineage --id <app_id>    # Remote
 ```
 
 ## Reference Flags
@@ -214,10 +237,20 @@ fazt app lineage --id <app_id> --on <peer>
 |------|-------------|
 | `--alias <name>` | Reference app by subdomain |
 | `--id <app_id>` | Reference app by ID |
-| `--to <peer>` | Target peer for deployment |
-| `--on <peer>` | Target peer for queries |
-| `--from <peer>` | Source peer for removal |
+| `--name <name>` | Override app name (deploy only) |
 | `--with-forks` | Include forked apps in operation |
 | `--spa` | Enable SPA routing (deploy only) |
 | `--no-build` | Skip automatic build (deploy only) |
 | `--include-private` | Include gitignored private/ (deploy only) |
+| `--as <name>` | New alias name (fork only) |
+| `--no-storage` | Don't clone storage (fork only) |
+
+## Removed Flags (v0.18.0)
+
+These flags have been removed. Use `@peer` prefix instead:
+
+| Removed Flag | Replacement |
+|--------------|-------------|
+| `--to <peer>` | `fazt @peer app deploy ...` |
+| `--from <peer>` | `fazt @peer app remove ...` |
+| `--on <peer>` | `fazt @peer app info ...` |

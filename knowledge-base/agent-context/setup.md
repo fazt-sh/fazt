@@ -1,5 +1,7 @@
 # Local Development Setup
 
+**Updated**: 2026-02-02
+
 Detailed setup instructions for fazt local development.
 
 ## Remote Server Access
@@ -13,7 +15,7 @@ ssh root@$ZYT_IP   # SSH into production server
 ```
 
 The VM has SSH access to remote servers. Use this for emergency recovery
-or manual deployments when the `fazt remote upgrade` command can't reach
+or manual deployments when the `fazt peer upgrade` command can't reach
 the server.
 
 ## Local Server Setup
@@ -60,7 +62,7 @@ fazt server init \
 fazt server create-key --db servers/local/data.db
 # Save the token output
 
-fazt remote add local \
+fazt peer add local \
   --url http://192.168.64.3:8080 \
   --token <API_KEY>
 ```
@@ -90,7 +92,7 @@ python3 -m http.server 7780 --directory servers/zyt/my-app
 ### Deploy and Test
 
 ```bash
-fazt app deploy servers/zyt/my-app --to local
+fazt @local app deploy servers/zyt/my-app
 # Access at http://my-app.192.168.64.3.nip.io:8080
 
 # Or with curl:

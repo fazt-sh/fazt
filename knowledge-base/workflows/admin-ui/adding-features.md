@@ -387,7 +387,7 @@ Agent: "⚠️ The backend doesn't have a scaling API yet.
 
 ```bash
 cd admin && npm run build
-fazt app deploy admin --to local --name admin-ui
+fazt @local app deploy admin --name admin-ui
 ```
 
 ### 2. Test Mock Mode

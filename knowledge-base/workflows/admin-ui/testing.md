@@ -142,7 +142,7 @@ open http://localhost:5173?mock=true
 ```bash
 # Build and deploy
 cd admin && npm run build
-fazt app deploy admin --to local --name admin-ui
+fazt @local app deploy admin --name admin-ui
 
 # Open in real mode
 open http://admin-ui.192.168.64.3.nip.io:8080
@@ -419,7 +419,7 @@ Simulate slow network:
 cd admin && npm run build
 
 # 2. Deploy
-fazt app deploy admin --to local --name admin-ui
+fazt @local app deploy admin --name admin-ui
 
 # 3. Test real mode
 open http://admin-ui.192.168.64.3.nip.io:8080

@@ -69,15 +69,21 @@ func handleAppCommandV2(args []string) {
 
 // handleAppListV2 lists apps on a peer with v0.10 format
 func handleAppListV2(args []string) {
-	var peerName string
 	showAliases := false
 
+	// Use positional peer argument if provided, otherwise use global context
+	var peerName string
 	for i, arg := range args {
 		if arg == "--aliases" {
 			showAliases = true
 		} else if !strings.HasPrefix(arg, "-") && peerName == "" {
 			peerName = args[i]
 		}
+	}
+
+	// If no positional peer, use global context
+	if peerName == "" {
+		peerName = targetPeerName
 	}
 
 	db := getClientDB()
@@ -168,10 +174,10 @@ func handleAppInfoV2(args []string) {
 	flags := flag.NewFlagSet("app info", flag.ExitOnError)
 	aliasFlag := flags.String("alias", "", "Lookup by alias")
 	idFlag := flags.String("id", "", "Lookup by app ID")
-	peerFlag := flags.String("on", "", "Target peer")
 
 	flags.Usage = func() {
-		fmt.Println("Usage: fazt app info [--alias <alias> | --id <id>] [--on <peer>]")
+		fmt.Println("Usage: fazt app info [--alias <alias> | --id <id>]")
+		fmt.Println("       fazt @<peer> app info [--alias <alias> | --id <id>]")
 		fmt.Println()
 		flags.PrintDefaults()
 	}
@@ -208,7 +214,7 @@ func handleAppInfoV2(args []string) {
 	db := getClientDB()
 	defer database.Close()
 
-	peer, err := remote.ResolvePeer(db, *peerFlag)
+	peer, err := remote.ResolvePeer(db, targetPeerName)
 	if err != nil {
 		handlePeerError(err)
 		os.Exit(1)
@@ -268,11 +274,11 @@ func handleAppRemoveV2(args []string) {
 	flags := flag.NewFlagSet("app remove", flag.ExitOnError)
 	aliasFlag := flags.String("alias", "", "Remove alias only")
 	idFlag := flags.String("id", "", "Remove app by ID")
-	peerFlag := flags.String("from", "", "Target peer")
 	withForks := flags.Bool("with-forks", false, "Also delete all forks")
 
 	flags.Usage = func() {
-		fmt.Println("Usage: fazt app remove [--alias <alias> | --id <id>] [--from <peer>] [--with-forks]")
+		fmt.Println("Usage: fazt app remove [--alias <alias> | --id <id>] [--with-forks]")
+		fmt.Println("       fazt @<peer> app remove [--alias <alias> | --id <id>] [--with-forks]")
 		fmt.Println()
 		flags.PrintDefaults()
 	}
@@ -308,7 +314,7 @@ func handleAppRemoveV2(args []string) {
 	db := getClientDB()
 	defer database.Close()
 
-	peer, err := remote.ResolvePeer(db, *peerFlag)
+	peer, err := remote.ResolvePeer(db, targetPeerName)
 	if err != nil {
 		handlePeerError(err)
 		os.Exit(1)
@@ -346,10 +352,10 @@ func handleAppRemoveV2(args []string) {
 func handleAppLink(args []string) {
 	flags := flag.NewFlagSet("app link", flag.ExitOnError)
 	idFlag := flags.String("id", "", "App ID to link (required)")
-	peerFlag := flags.String("to", "", "Target peer")
 
 	flags.Usage = func() {
-		fmt.Println("Usage: fazt app link <subdomain> --id <app_id> [--to <peer>]")
+		fmt.Println("Usage: fazt app link <subdomain> --id <app_id>")
+		fmt.Println("       fazt @<peer> app link <subdomain> --id <app_id>")
 		fmt.Println()
 		flags.PrintDefaults()
 	}
@@ -378,7 +384,7 @@ func handleAppLink(args []string) {
 	db := getClientDB()
 	defer database.Close()
 
-	peer, err := remote.ResolvePeer(db, *peerFlag)
+	peer, err := remote.ResolvePeer(db, targetPeerName)
 	if err != nil {
 		handlePeerError(err)
 		os.Exit(1)
@@ -401,10 +407,10 @@ func handleAppLink(args []string) {
 // handleAppUnlink removes an alias
 func handleAppUnlink(args []string) {
 	flags := flag.NewFlagSet("app unlink", flag.ExitOnError)
-	peerFlag := flags.String("from", "", "Target peer")
 
 	flags.Usage = func() {
-		fmt.Println("Usage: fazt app unlink <subdomain> [--from <peer>]")
+		fmt.Println("Usage: fazt app unlink <subdomain>")
+		fmt.Println("       fazt @<peer> app unlink <subdomain>")
 		fmt.Println()
 		flags.PrintDefaults()
 	}
@@ -433,7 +439,7 @@ func handleAppUnlink(args []string) {
 	db := getClientDB()
 	defer database.Close()
 
-	peer, err := remote.ResolvePeer(db, *peerFlag)
+	peer, err := remote.ResolvePeer(db, targetPeerName)
 	if err != nil {
 		handlePeerError(err)
 		os.Exit(1)
@@ -451,10 +457,10 @@ func handleAppUnlink(args []string) {
 // handleAppReserve reserves a subdomain
 func handleAppReserve(args []string) {
 	flags := flag.NewFlagSet("app reserve", flag.ExitOnError)
-	peerFlag := flags.String("on", "", "Target peer")
 
 	flags.Usage = func() {
-		fmt.Println("Usage: fazt app reserve <subdomain> [--on <peer>]")
+		fmt.Println("Usage: fazt app reserve <subdomain>")
+		fmt.Println("       fazt @<peer> app reserve <subdomain>")
 		fmt.Println()
 		flags.PrintDefaults()
 	}
@@ -483,7 +489,7 @@ func handleAppReserve(args []string) {
 	db := getClientDB()
 	defer database.Close()
 
-	peer, err := remote.ResolvePeer(db, *peerFlag)
+	peer, err := remote.ResolvePeer(db, targetPeerName)
 	if err != nil {
 		handlePeerError(err)
 		os.Exit(1)
@@ -504,11 +510,11 @@ func handleAppFork(args []string) {
 	aliasFlag := flags.String("alias", "", "Source alias")
 	idFlag := flags.String("id", "", "Source app ID")
 	asFlag := flags.String("as", "", "New alias for fork")
-	peerFlag := flags.String("to", "", "Target peer")
 	noStorage := flags.Bool("no-storage", false, "Don't copy storage")
 
 	flags.Usage = func() {
-		fmt.Println("Usage: fazt app fork [--alias <alias> | --id <id>] [--as <new-alias>] [--to <peer>] [--no-storage]")
+		fmt.Println("Usage: fazt app fork [--alias <alias> | --id <id>] [--as <new-alias>] [--no-storage]")
+		fmt.Println("       fazt @<peer> app fork [--alias <alias> | --id <id>] [--as <new-alias>] [--no-storage]")
 		fmt.Println()
 		flags.PrintDefaults()
 	}
@@ -529,7 +535,7 @@ func handleAppFork(args []string) {
 	db := getClientDB()
 	defer database.Close()
 
-	peer, err := remote.ResolvePeer(db, *peerFlag)
+	peer, err := remote.ResolvePeer(db, targetPeerName)
 	if err != nil {
 		handlePeerError(err)
 		os.Exit(1)
@@ -570,10 +576,10 @@ func handleAppFork(args []string) {
 // handleAppSwap swaps two aliases
 func handleAppSwap(args []string) {
 	flags := flag.NewFlagSet("app swap", flag.ExitOnError)
-	peerFlag := flags.String("on", "", "Target peer")
 
 	flags.Usage = func() {
-		fmt.Println("Usage: fazt app swap <alias1> <alias2> [--on <peer>]")
+		fmt.Println("Usage: fazt app swap <alias1> <alias2>")
+		fmt.Println("       fazt @<peer> app swap <alias1> <alias2>")
 		fmt.Println()
 		flags.PrintDefaults()
 	}
@@ -599,7 +605,7 @@ func handleAppSwap(args []string) {
 	db := getClientDB()
 	defer database.Close()
 
-	peer, err := remote.ResolvePeer(db, *peerFlag)
+	peer, err := remote.ResolvePeer(db, targetPeerName)
 	if err != nil {
 		handlePeerError(err)
 		os.Exit(1)
@@ -634,13 +640,13 @@ func handleAppSwap(args []string) {
 func handleAppSplit(args []string) {
 	flags := flag.NewFlagSet("app split", flag.ExitOnError)
 	idsFlag := flags.String("ids", "", "Comma-separated app_id:weight pairs (e.g., app_abc:50,app_def:50)")
-	peerFlag := flags.String("on", "", "Target peer")
 
 	flags.Usage = func() {
-		fmt.Println("Usage: fazt app split <subdomain> --ids <id1:weight1,id2:weight2> [--on <peer>]")
+		fmt.Println("Usage: fazt app split <subdomain> --ids <id1:weight1,id2:weight2>")
+		fmt.Println("       fazt @<peer> app split <subdomain> --ids <id1:weight1,id2:weight2>")
 		fmt.Println()
 		fmt.Println("Example:")
-		fmt.Println("  fazt app split tetris --ids app_v1:50,app_v2:50 --on zyt")
+		fmt.Println("  fazt @zyt app split tetris --ids app_v1:50,app_v2:50")
 		fmt.Println()
 		flags.PrintDefaults()
 	}
@@ -686,7 +692,7 @@ func handleAppSplit(args []string) {
 	db := getClientDB()
 	defer database.Close()
 
-	peer, err := remote.ResolvePeer(db, *peerFlag)
+	peer, err := remote.ResolvePeer(db, targetPeerName)
 	if err != nil {
 		handlePeerError(err)
 		os.Exit(1)
@@ -725,10 +731,10 @@ func handleAppLineage(args []string) {
 	flags := flag.NewFlagSet("app lineage", flag.ExitOnError)
 	aliasFlag := flags.String("alias", "", "Lookup by alias")
 	idFlag := flags.String("id", "", "Lookup by app ID")
-	peerFlag := flags.String("on", "", "Target peer")
 
 	flags.Usage = func() {
-		fmt.Println("Usage: fazt app lineage [--alias <alias> | --id <id>] [--on <peer>]")
+		fmt.Println("Usage: fazt app lineage [--alias <alias> | --id <id>]")
+		fmt.Println("       fazt @<peer> app lineage [--alias <alias> | --id <id>]")
 		fmt.Println()
 		flags.PrintDefaults()
 	}
@@ -749,7 +755,7 @@ func handleAppLineage(args []string) {
 	db := getClientDB()
 	defer database.Close()
 
-	peer, err := remote.ResolvePeer(db, *peerFlag)
+	peer, err := remote.ResolvePeer(db, targetPeerName)
 	if err != nil {
 		handlePeerError(err)
 		os.Exit(1)
@@ -920,35 +926,42 @@ LINEAGE:
 OPTIONS:
   --alias <name>        Reference app by alias
   --id <app_id>         Reference app by ID
-  --to, --on <peer>     Target peer
-  --from <peer>         Source peer
   --with-forks          Delete app and all its forks
+
+PEER SELECTION:
+  Use @<peer> prefix for remote operations:
+    fazt @zyt app list              # List apps on zyt peer
+    fazt @local app deploy ./myapp  # Deploy to local peer
+
+  Or use positional peer argument (list, info only):
+    fazt app list zyt
+    fazt app info myapp zyt
 
 EXAMPLES:
   # List apps
-  fazt app list zyt
-  fazt app list zyt --aliases
+  fazt @zyt app list
+  fazt @zyt app list --aliases
 
   # Get app info
-  fazt app info --alias tetris --on zyt
-  fazt app info --id app_abc123 --on zyt
+  fazt @zyt app info --alias tetris
+  fazt @zyt app info --id app_abc123
 
   # Deploy
-  fazt app deploy ./my-site --to zyt
+  fazt @zyt app deploy ./my-site
 
   # Manage aliases
-  fazt app link tetris --id app_abc123 --to zyt
-  fazt app unlink tetris-old --from zyt
-  fazt app reserve admin --on zyt
+  fazt @zyt app link tetris --id app_abc123
+  fazt @zyt app unlink tetris-old
+  fazt @zyt app reserve admin
 
   # Fork and swap (blue-green deployment)
-  fazt app fork --alias tetris --as tetris-v2 --to zyt
+  fazt @zyt app fork --alias tetris --as tetris-v2
   # ... make changes to tetris-v2 ...
-  fazt app swap tetris tetris-v2 --on zyt
+  fazt @zyt app swap tetris tetris-v2
 
   # Traffic splitting
-  fazt app split tetris --ids app_v1:50,app_v2:50 --on zyt
+  fazt @zyt app split tetris --ids app_v1:50,app_v2:50
 
   # Show lineage
-  fazt app lineage --id app_abc123 --on zyt`)
+  fazt @zyt app lineage --id app_abc123`)
 }

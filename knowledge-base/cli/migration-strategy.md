@@ -1,8 +1,9 @@
 # Test-First Migration Strategy: @peer-Primary CLI
 
 **Version**: 0.18.0
-**Status**: Design Document
+**Status**: IMPLEMENTED in v0.18.0
 **Date**: 2026-02-02
+**Updated**: 2026-02-02
 
 ---
 
@@ -44,10 +45,10 @@ knowledge-base/cli/
 │   ├── swap.md                   # fazt app swap
 │   ├── split.md                  # fazt app split
 │   └── lineage.md                # fazt app lineage
-├── remote/
-│   ├── _index.md                 # Remote command overview
-│   ├── add.md                    # fazt remote add
-│   ├── list.md                   # fazt remote list
+├── peer/
+│   ├── _index.md                 # Peer command overview
+│   ├── add.md                    # fazt peer add
+│   ├── list.md                   # fazt peer list
 │   ├── remove.md                 # fazt remote remove
 │   ├── default.md                # fazt remote default
 │   └── status.md                 # fazt remote status

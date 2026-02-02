@@ -62,6 +62,10 @@ var serverlessHandler *jsruntime.ServerlessHandler
 // siteAuthService is the auth service for site-level auth checks (private files)
 var siteAuthService *auth.Service
 
+// targetPeerName is the global peer context set by @peer routing
+// Empty string means use default peer resolution
+var targetPeerName string
+
 func main() {
 	if len(os.Args) < 2 {
 		printUsage()
@@ -151,15 +155,17 @@ func handleAtPeerRouting(peerName string, args []string) {
 		os.Exit(1)
 	}
 
+	// Set global peer context for this command
+	targetPeerName = peerName
+
 	command := args[0]
 	cmdArgs := args[1:]
 
 	// Only certain commands can be executed remotely
 	switch command {
 	case "app":
-		// Inject peer into args for app commands
-		// Most app commands already support --to/--from/--on flags
-		handleAppCommandV2WithPeer(peerName, cmdArgs)
+		// Route to app command handler (will use global targetPeerName)
+		handleAppCommandV2(cmdArgs)
 	case "server":
 		// Limited server commands (info only)
 		if len(cmdArgs) > 0 && cmdArgs[0] == "info" {
@@ -177,53 +183,6 @@ func handleAtPeerRouting(peerName string, args []string) {
 	default:
 		fmt.Printf("Error: command '%s' cannot be executed remotely\n", command)
 		fmt.Println("Remote execution supported for: app, auth, server info, sql")
-		os.Exit(1)
-	}
-}
-
-// handleAppCommandV2WithPeer handles app commands with an explicit peer
-func handleAppCommandV2WithPeer(peerName string, args []string) {
-	if len(args) < 1 {
-		// Default: list apps on specified peer
-		handleAppListV2([]string{peerName})
-		return
-	}
-
-	subcommand := args[0]
-	subArgs := args[1:]
-
-	// Inject peer name into the args based on the subcommand
-	switch subcommand {
-	case "list":
-		handleAppListV2(append([]string{peerName}, subArgs...))
-	case "info":
-		handleAppInfoV2(append(subArgs, "--on", peerName))
-	case "deploy":
-		handleAppDeploy(append(subArgs, "--to", peerName))
-	case "install":
-		handleAppInstall(append(subArgs, "--to", peerName))
-	case "remove":
-		handleAppRemoveV2(append(subArgs, "--from", peerName))
-	case "link":
-		handleAppLink(append(subArgs, "--to", peerName))
-	case "unlink":
-		handleAppUnlink(append(subArgs, "--from", peerName))
-	case "reserve":
-		handleAppReserve(append(subArgs, "--on", peerName))
-	case "fork":
-		handleAppFork(append(subArgs, "--to", peerName))
-	case "swap":
-		handleAppSwap(append(subArgs, "--on", peerName))
-	case "split":
-		handleAppSplit(append(subArgs, "--on", peerName))
-	case "lineage":
-		handleAppLineage(append(subArgs, "--on", peerName))
-	case "upgrade":
-		handleAppUpgrade(append(subArgs, "--from", peerName))
-	case "pull":
-		handleAppPull(append(subArgs, "--from", peerName))
-	default:
-		fmt.Printf("Unknown app command: %s\n", subcommand)
 		os.Exit(1)
 	}
 }
@@ -3178,8 +3137,6 @@ func handleSQLCommandWithPeer(peerName string, args []string) {
 		os.Exit(1)
 	}
 
-	client := remote.NewClient(peer.URL, peer.Token)
-
 	// Prepare request
 	reqBody := map[string]interface{}{
 		"query": query,
@@ -3188,9 +3145,22 @@ func handleSQLCommandWithPeer(peerName string, args []string) {
 	}
 
 	// Make API request
-	var response map[string]interface{}
-	if err := client.Post("/api/sql", reqBody, &response); err != nil {
+	jsonBody, _ := json.Marshal(reqBody)
+	req, _ := http.NewRequest("POST", peer.URL+"/api/sql", bytes.NewBuffer(jsonBody))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+peer.Token)
+
+	httpClient := &http.Client{}
+	resp, err := httpClient.Do(req)
+	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error executing remote SQL: %v\n", err)
+		os.Exit(1)
+	}
+	defer resp.Body.Close()
+
+	var response map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+		fmt.Fprintf(os.Stderr, "Error decoding response: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -3219,8 +3189,8 @@ func handleSQLCommandWithPeer(peerName string, args []string) {
 		headers[i] = col.(string)
 	}
 
-	tableRows := make([][]string, len(rows.([]interface{})))
-	for i, row := range rows.([]interface{}) {
+	tableRows := make([][]string, len(rows))
+	for i, row := range rows {
 		rowVals := row.([]interface{})
 		tableRows[i] = make([]string, len(rowVals))
 		for j, val := range rowVals {

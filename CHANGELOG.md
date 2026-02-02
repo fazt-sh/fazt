@@ -4,6 +4,36 @@ All notable changes to fazt.sh will be documented in this file.
 
 ## [Unreleased]
 
+## [0.19.0] - 2026-02-02
+
+### Changed
+- **BREAKING: CLI refactor (Plan 31)** - Complete @peer-primary pattern
+  - `fazt remote` command renamed to `fazt peer`
+  - Removed ALL `--to`, `--from`, `--on` flags from app commands
+  - `@peer` is now the primary pattern: `fazt @zyt app deploy ./app`
+  - Local operations by default: `fazt app list` (no peer needed)
+  - Cleaner, more consistent CLI interface
+
+### Added
+- **SQL command (Plan 25)**: Direct database queries
+  - `fazt sql "SELECT * FROM apps"` for local queries
+  - `fazt @peer sql "query"` for remote queries
+  - Write protection with `--write` flag
+  - JSON output support with `--format json`
+
+- **Standardized CLI output (Plan 33)**: Beautiful terminal rendering
+  - New `internal/output/` package with glamour rendering
+  - `--format` flag (markdown, json) for all commands
+  - Markdown tables with proper formatting
+  - Applied to `peer list` and `sql` commands
+
+### Documentation
+- Updated ALL docs to reflect @peer pattern
+  - 20+ files across knowledge-base updated
+  - Removed all references to old flag syntax
+  - Added SQL command documentation
+  - Updated workflows and agent context
+
 ## [0.18.0] - 2026-02-01
 
 ### Changed

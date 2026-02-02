@@ -67,8 +67,8 @@ go build -o fazt ./cmd/server
 go test ./...
 
 # Deploy
-fazt app deploy ./my-app --to zyt
-fazt app deploy ./my-app --to local
+fazt @zyt app deploy ./my-app
+fazt @local app deploy ./my-app
 
 # Local server
 systemctl --user restart fazt-local

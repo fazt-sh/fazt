@@ -1,5 +1,7 @@
 # Deployment Guide
 
+**Updated**: 2026-02-02
+
 How to deploy apps to fazt instances.
 
 ## App Versioning
@@ -64,8 +66,9 @@ const { version, build } = await res.json()
 root**, not `dist/`.
 
 ```bash
-fazt app deploy ./my-app --to local
-fazt app deploy ./my-app --to <remote-peer>
+fazt app deploy ./my-app              # Local
+fazt @local app deploy ./my-app       # Local (explicit)
+fazt @zyt app deploy ./my-app         # Remote
 ```
 
 ### What Happens
@@ -90,14 +93,15 @@ fazt app deploy ./my-app --to <remote-peer>
 
 ```bash
 # Vue/React app with build script - builds and deploys dist/
-fazt app deploy ./my-vue-app --to local
+fazt app deploy ./my-vue-app              # Local
+fazt @zyt app deploy ./my-vue-app         # Remote
 
 # Simple static site (no package.json) - deploys as-is
-fazt app deploy ./static-site --to local
+fazt app deploy ./static-site
 
 # Skip build (deploy source or pre-built dist/)
-fazt app deploy ./my-app --to local --no-build
-fazt app deploy ./my-app/dist --to local --no-build
+fazt app deploy ./my-app --no-build
+fazt app deploy ./my-app/dist --no-build
 ```
 
 ## Local vs Remote Deployment
@@ -110,7 +114,8 @@ fazt app deploy ./my-app/dist --to local --no-build
 ### Local Deployment
 
 ```bash
-fazt app deploy ./my-app --to local
+fazt app deploy ./my-app              # Local (default)
+fazt @local app deploy ./my-app       # Local (explicit)
 ```
 
 **Advantages:**
@@ -126,7 +131,7 @@ fazt app deploy ./my-app --to local
 ### Remote Deployment
 
 ```bash
-fazt app deploy ./my-app --to <remote-peer>
+fazt @zyt app deploy ./my-app         # Deploy to remote peer
 ```
 
 **Advantages:**
@@ -141,10 +146,10 @@ fazt app deploy ./my-app --to <remote-peer>
 npm run dev                          # Vite dev server
 
 # 2. Test on local fazt (builds automatically)
-fazt app deploy ./my-app --to local  # Test full stack including API
+fazt @local app deploy ./my-app      # Test full stack including API
 
 # 3. Production (builds automatically)
-fazt app deploy ./my-app --to <remote-peer>
+fazt @zyt app deploy ./my-app        # Deploy to remote peer
 ```
 
 ## OAuth Requires Remote Deployment
@@ -172,10 +177,10 @@ Until mock OAuth is available, use these strategies:
 **1. Test non-auth features locally, auth on remote:**
 ```bash
 # Test UI and API logic locally
-fazt app deploy ./my-app --to local
+fazt @local app deploy ./my-app
 
 # Test auth flow on remote (builds automatically)
-fazt app deploy ./my-app --to <remote-peer>
+fazt @zyt app deploy ./my-app
 ```
 
 **2. Mock auth in serverless API:**
@@ -196,7 +201,7 @@ if (!user && request.headers['x-mock-user']) {
 
 **3. Check if remote already has OAuth:**
 ```bash
-fazt @<remote-peer> auth providers
+fazt @zyt auth providers
 ```
 
 If Google is already enabled, you can test auth immediately on remote.
@@ -236,13 +241,13 @@ By default, if `private/` is gitignored, it won't be deployed:
 
 ```bash
 # Warning shown when private/ exists but is gitignored
-$ fazt app deploy ./my-app --to zyt
+$ fazt @zyt app deploy ./my-app
 Warning: private/ is gitignored but exists
   Use --include-private to deploy private files
   Skipping private/...
 
 # Explicitly include gitignored private/
-$ fazt app deploy ./my-app --to zyt --include-private
+$ fazt @zyt app deploy ./my-app --include-private
 Including gitignored private/ (5 files)
 ```
 
@@ -288,16 +293,16 @@ curl http://my-app.<local-ip>.nip.io:<port>/_fazt/info
 
 ### Local (Development)
 
-- [ ] `fazt remote list` shows `local` peer
+- [ ] `fazt peer list` shows `local` peer
 - [ ] Local server running (`systemctl --user status fazt-local`)
-- [ ] Deploy source: `fazt app deploy ./my-app --to local`
+- [ ] Deploy source: `fazt @local app deploy ./my-app`
 - [ ] Access via: `http://<app>.192.168.64.3.nip.io:8080`
-- [ ] Check logs if issues: `fazt app logs <app> --on local`
+- [ ] Check logs if issues: `fazt @local app logs <app>`
 
 ### Remote (Production)
 
-- [ ] `fazt remote list` shows remote peer
-- [ ] Deploy: `fazt app deploy ./my-app --to <peer>` (builds automatically)
+- [ ] `fazt peer list` shows remote peer
+- [ ] Deploy: `fazt @zyt app deploy ./my-app` (builds automatically)
 - [ ] Access via: `https://<app>.<domain>`
 - [ ] If using auth, verify OAuth provider enabled
 
@@ -307,20 +312,20 @@ curl http://my-app.<local-ip>.nip.io:<port>/_fazt/info
 
 The app exists but alias isn't linked. Check:
 ```bash
-fazt app list <peer> --aliases
+fazt @zyt app list --aliases
 ```
 
 ### OAuth redirect fails
 
 - Verify callback URL matches exactly in Google Console
 - Ensure HTTPS (won't work on local)
-- Check provider is enabled: `fazt @<peer> auth providers`
+- Check provider is enabled: `fazt @zyt auth providers`
 
 ### Serverless API returns 500
 
 Check logs:
 ```bash
-fazt app logs <app> --on <peer> -f
+fazt @zyt app logs <app> -f
 ```
 
 Or locally:

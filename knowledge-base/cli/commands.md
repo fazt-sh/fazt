@@ -1,7 +1,7 @@
 # Fazt CLI Commands Reference
 
 **Version**: 0.18.0
-**Generated**: 2026-02-01
+**Updated**: 2026-02-02
 
 This document catalogs all CLI commands, their arguments, flags, and patterns for consistency analysis.
 
@@ -24,11 +24,11 @@ fazt @<peer> <command> [subcommand] [flags] [arguments]
 
 #### Subcommands
 
-##### `app list [peer]`
-- **Args**: `[peer]` - Optional peer name
+##### `app list`
+- **Args**: None
 - **Flags**:
   - `--aliases` - Show alias list instead of apps
-- **Pattern**: Peer as positional arg OR via flag
+- **Pattern**: Local by default, remote via `@peer` prefix
 - **Remote**: `fazt @peer app list`
 
 ##### `app info [identifier]`
@@ -36,15 +36,16 @@ fazt @<peer> <command> [subcommand] [flags] [arguments]
 - **Flags**:
   - `--alias <name>` - Reference by alias
   - `--id <app_id>` - Reference by ID
-  - `--on <peer>` - Target peer
-- **Pattern**: Either positional OR flags, peer via `--on`
+- **Pattern**: Local by default, remote via `@peer` prefix
 
 ##### `app deploy <dir>`
 - **Args**: `<dir>` - Required directory path
 - **Flags**:
-  - `--to <peer>` - Target peer (REQUIRED)
   - `--name <name>` - Optional app name
-- **Pattern**: Source as positional, destination via flag
+  - `--spa` - Enable SPA routing
+  - `--no-build` - Skip build step
+  - `--include-private` - Include private/ directory
+- **Pattern**: Local by default, remote via `@peer` prefix
 
 ##### `app validate <dir>`
 - **Args**: `<dir>` - Required directory path
@@ -55,14 +56,12 @@ fazt @<peer> <command> [subcommand] [flags] [arguments]
 - **Args**: `<app>` - Required app identifier
 - **Flags**:
   - `-f` - Follow logs (tail)
-  - `--on <peer>` - Target peer
-- **Pattern**: App as positional, peer via flag
+- **Pattern**: Local by default, remote via `@peer` prefix
 
 ##### `app install <url>`
 - **Args**: `<url>` - Git repository URL
-- **Flags**:
-  - `--to <peer>` - Target peer
-- **Pattern**: Source as positional, destination via flag
+- **Flags**: None
+- **Pattern**: Local by default, remote via `@peer` prefix
 
 ##### `app create <name>`
 - **Args**: `<name>` - App name
@@ -75,110 +74,101 @@ fazt @<peer> <command> [subcommand] [flags] [arguments]
 - **Flags**:
   - `--alias <name>` - Reference by alias
   - `--id <app_id>` - Reference by ID
-  - `--on <peer>` - Target peer (implied context?)
-  - `--from <peer>` - Source peer
   - `--with-forks` - Delete app and all forks
-- **Pattern**: Multiple peer flags (`--on`, `--from`)
+- **Pattern**: Local by default, remote via `@peer` prefix
 
 ##### `app upgrade <app>`
 - **Args**: `<app>` - App identifier
-- **Flags**:
-  - `--on <peer>` - Target peer
-- **Pattern**: App as positional, peer via flag
+- **Flags**: None
+- **Pattern**: Local by default, remote via `@peer` prefix
 
 ##### `app link <subdomain>`
 - **Args**: `<subdomain>` - Subdomain to link
 - **Flags**:
   - `--id <app_id>` - REQUIRED app ID
-  - `--to <peer>` - Target peer
-- **Pattern**: Alias as positional, app via flag
+- **Pattern**: Local by default, remote via `@peer` prefix
 
 ##### `app unlink <subdomain>`
 - **Args**: `<subdomain>` - Subdomain to unlink
-- **Flags**:
-  - `--from <peer>` - Source peer
-- **Pattern**: Alias as positional, peer via `--from`
+- **Flags**: None
+- **Pattern**: Local by default, remote via `@peer` prefix
 
 ##### `app reserve <subdomain>`
 - **Args**: `<subdomain>` - Subdomain to reserve
-- **Flags**:
-  - `--on <peer>` - Target peer
-- **Pattern**: Alias as positional, peer via `--on`
+- **Flags**: None
+- **Pattern**: Local by default, remote via `@peer` prefix
 
 ##### `app swap <a1> <a2>`
 - **Args**: `<a1> <a2>` - Two aliases to swap
-- **Flags**:
-  - `--on <peer>` - Target peer
-- **Pattern**: Two aliases as positional, peer via flag
+- **Flags**: None
+- **Pattern**: Local by default, remote via `@peer` prefix
 
 ##### `app split <subdomain>`
 - **Args**: `<subdomain>` - Subdomain for traffic splitting
 - **Flags**:
   - `--ids <list>` - Comma-separated app_id:weight pairs
-  - `--on <peer>` - Target peer
-- **Pattern**: Alias as positional, targets via flag
+- **Pattern**: Local by default, remote via `@peer` prefix
 
 ##### `app fork`
 - **Args**: None
 - **Flags**:
   - `--alias <name>` OR `--id <app_id>` - Source app
   - `--as <name>` - New alias name
-  - `--to <peer>` - Target peer
   - `--no-storage` - Don't clone storage
-- **Pattern**: All flags, no positional args
+- **Pattern**: Local by default, remote via `@peer` prefix
 
 ##### `app lineage`
 - **Args**: None
 - **Flags**:
   - `--alias <name>` OR `--id <app_id>` - App to trace
-  - `--on <peer>` - Target peer
-- **Pattern**: All flags, no positional args
+- **Pattern**: Local by default, remote via `@peer` prefix
 
 ---
 
-### 2. `fazt remote`
+### 2. `fazt peer`
 
 **Purpose**: Peer management (add, list, status, upgrade)
 
 #### Subcommands
 
-##### `remote add <name>`
+##### `peer add <name>`
 - **Args**: `<name>` - Required peer name
 - **Flags**:
   - `--url <url>` - REQUIRED peer URL
   - `--token <token>` - REQUIRED auth token
 - **Pattern**: Name as positional, connection via flags
 
-##### `remote list`
+##### `peer list`
 - **Args**: None
-- **Flags**: None
+- **Flags**:
+  - `--format <format>` - Output format (markdown, json)
 - **Pattern**: Simple list, no args
 
-##### `remote remove <name>`
+##### `peer remove <name>`
 - **Args**: `<name>` - Required peer name
 - **Flags**: None
 - **Pattern**: Name as positional
 
-##### `remote default <name>`
+##### `peer default <name>`
 - **Args**: `<name>` - Required peer name
 - **Flags**: None
 - **Pattern**: Name as positional
 
-##### `remote status [name]`
+##### `peer status [name]`
 - **Args**: `[name]` - Optional peer name
 - **Flags**: None
 - **Pattern**: Name as positional, uses default if omitted
 
-##### `remote upgrade [name]`
+##### `peer upgrade [name]`
 - **Args**: `[name]` - Optional peer name
 - **Flags**: None
 - **Pattern**: Name as positional, checks all if omitted
 
-##### ~~`remote apps [name]`~~ (DEPRECATED)
-- **Replacement**: `fazt app list [peer]`
+##### ~~`peer apps [name]`~~ (DEPRECATED)
+- **Replacement**: `fazt app list` or `fazt @peer app list`
 
-##### ~~`remote deploy <dir>`~~ (DEPRECATED)
-- **Replacement**: `fazt app deploy <dir> --to <peer>`
+##### ~~`peer deploy <dir>`~~ (DEPRECATED)
+- **Replacement**: `fazt app deploy <dir>` or `fazt @peer app deploy <dir>`
 
 ---
 
@@ -345,93 +335,78 @@ fazt @<peer> <command> [args...]
 - `fazt @peer server info` - Get remote server info
 
 **Not Supported**:
-- `remote` commands (already about peers)
+- `peer` commands (already about peers)
 - `service` commands (local systemd only)
 - `server` commands (except info)
 - `client` commands (legacy)
 
 ---
 
-## Peer Flag Patterns
+## New Commands (v0.18.0)
 
-Different commands use different flag names for peers:
+### `fazt sql`
 
-| Command | Source Flag | Destination Flag | Context Flag |
-|---------|-------------|------------------|--------------|
-| `app deploy` | - | `--to` | - |
-| `app list` | - | - | positional |
-| `app info` | - | - | `--on` |
-| `app remove` | `--from` | - | `--on` |
-| `app link` | - | `--to` | - |
-| `app unlink` | `--from` | - | - |
-| `app reserve` | - | - | `--on` |
-| `app logs` | - | - | `--on` |
-| `app fork` | - | `--to` | - |
-| `app lineage` | - | - | `--on` |
+**Purpose**: Execute SQL queries on local or remote databases
 
-**Inconsistencies**:
-- Mix of `--to`, `--from`, `--on` for peer targeting
-- Some commands accept peer as positional arg
-- Some commands use `--on` for context
-- `app remove` has both `--on` and `--from`
+##### `sql <query>`
+- **Args**: `<query>` - SQL query string
+- **Flags**:
+  - `--format <format>` - Output format (markdown, json)
+- **Pattern**: Local by default, remote via `@peer` prefix
+
+**Examples**:
+```bash
+fazt sql "SELECT * FROM apps"                 # Query local database
+fazt @zyt sql "SELECT * FROM apps"            # Query remote database
+fazt sql "SELECT * FROM apps" --format json   # JSON output
+```
 
 ---
 
 ## Deprecated Commands
 
-### `fazt servers` (Removed in v0.18.0)
-- **Replacement**: `fazt remote`
-- **Reason**: Naming consistency (server vs remote)
+### `fazt remote` (Renamed in v0.18.0)
+- **Replacement**: `fazt peer`
+- **Reason**: Naming consistency and clarity
 
-### `fazt remote apps [name]` (Deprecated)
-- **Replacement**: `fazt app list [peer]`
+### `fazt peer apps [name]` (Removed)
+- **Replacement**: `fazt app list` or `fazt @peer app list`
 - **Reason**: App commands should be under `app` namespace
 
-### `fazt remote deploy <dir>` (Deprecated)
-- **Replacement**: `fazt app deploy <dir> --to <peer>`
+### `fazt peer deploy <dir>` (Removed)
+- **Replacement**: `fazt app deploy <dir>` or `fazt @peer app deploy <dir>`
 - **Reason**: App commands should be under `app` namespace
+
+### App Command Peer Flags (Removed in v0.18.0)
+- **`--to`, `--from`, `--on` flags removed from all app commands**
+- **Replacement**: Use `@peer` prefix for remote operations
+- **Reason**: Simplified, consistent syntax
+
+**Migration examples**:
+```bash
+# OLD (removed)
+fazt app deploy ./app --to zyt
+fazt app remove myapp --from zyt
+fazt app info myapp --on zyt
+
+# NEW (current)
+fazt @zyt app deploy ./app
+fazt @zyt app remove myapp
+fazt @zyt app info myapp
+```
 
 ### `fazt client` (Legacy)
-- **Replacement**: Use `fazt app` and `fazt remote` commands
+- **Replacement**: Use `fazt app` and `fazt peer` commands
 - **Reason**: Pre-peer architecture, superseded by modern commands
 
 ---
 
-## Analysis Questions
+## Design Philosophy
 
-1. **Peer Flag Consistency**: Should we standardize on one flag pattern?
-   - `--to` for destinations (deploy, link, fork)
-   - `--from` for sources (unlink, remove?)
-   - `--on` for context/target (info, logs, status)
-   - Or use positional peer args everywhere?
+The v0.18.0 CLI follows these principles:
 
-2. **Default Peer**: Should local operations omit peer flags?
-   - `fazt app deploy ./my-app` → defaults to `local`?
-   - `fazt app list` → defaults to `local`?
-
-3. **Positional vs Flags**: Inconsistent patterns
-   - `app list [peer]` - peer as positional
-   - `app info [identifier]` - identifier as positional but also `--alias`/`--id`
-   - `app fork` - everything as flags
-
-4. **Remote Execution**: `@peer` prefix vs flags
-   - When to use `fazt @zyt app list` vs `fazt app list zyt`?
-   - Both work, but which is preferred?
-
-5. **Legacy Cleanup**: Should `client` commands be fully removed?
-
-6. **Verb Consistency**:
-   - `list` vs `info` (both query)
-   - `remove` vs `delete` vs `unlink`
-   - `add` vs `create` vs `install`
-
----
-
-## POLS (Principle of Least Surprise) Issues
-
-1. **Deploy requires --to**: Even for local deploys?
-2. **Multiple ways to specify peer**: Positional, `--to`, `--on`, `--from`, `@peer` prefix
-3. **Identifier ambiguity**: `app info myapp` vs `app info --alias myapp` vs `app info --id app_123`
-4. **Inconsistent defaults**: Some commands default to local, others require explicit peer
-5. **Flag naming**: Why `--on` vs `--to` vs `--from`?
-6. **Remote prefix syntax**: `@peer` is elegant but discoverable?
+1. **Local-first**: Commands operate locally by default
+2. **Explicit remote**: Use `@peer` prefix for remote operations
+3. **Consistent syntax**: Same command works locally and remotely
+4. **No directional flags**: Removed `--to`, `--from`, `--on` confusion
+5. **Visual clarity**: `@peer` is always in the same position
