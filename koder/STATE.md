@@ -1,30 +1,34 @@
 # Fazt Implementation State
 
 **Last Updated**: 2026-02-04
-**Current Version**: v0.25.0
+**Current Version**: v0.25.1
 
 ## Status
 
-State: CLEAN
-Version: v0.25.0. Remote SQL command fixed - authentication and panic issues resolved.
+State: RELEASED
+v0.25.1 shipped - Remote SQL command fixed, tested, and deployed to all peers.
 
 ---
 
-## Current Session (2026-02-04) - Remote SQL Fix
+## Current Session (2026-02-04) - v0.25.1 Release
 
 ### What Was Done
 
-#### Fixed Remote SQL Command (v0.25.1)
-Resolved three critical issues with `fazt @peer sql`:
+#### Released v0.25.1 (Bug Fix)
+Fixed remote SQL command and released:
 - **Panic on nil fields**: Added safe type assertions for `count` and `time_ms` with ok-pattern checks
 - **Authentication failure**: Moved `/api/sql` to API key auth bypass list (was incorrectly using AdminMiddleware)
 - **Error handling**: Added HTTP status code checking before JSON decode for better error messages
-
-Command now works correctly: `fazt @local sql "SELECT * FROM apps LIMIT 1"` ✓
+- **Released**: Built all platforms, created GitHub release, pushed v0.25.1
+- **Deployed**: Upgraded local binary and all peers (local, zyt) via canonical `fazt upgrade` path
+- **Verified**: `fazt @zyt sql "SELECT * FROM apps LIMIT 3"` works correctly ✓
 
 ### Commits
 ```
+815a405 release: v0.25.1
+6af532f docs: update STATE.md - remote SQL fix complete
 3e91f95 fix: remote SQL command authentication and panic
+b232d93 docs: enforce canonical upgrade path in skills
 ```
 
 ---
