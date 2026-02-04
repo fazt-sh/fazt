@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/fazt-sh/fazt/internal/activity"
 	"github.com/fazt-sh/fazt/internal/api"
 	"github.com/fazt-sh/fazt/internal/audit"
 	"github.com/fazt-sh/fazt/internal/auth"
@@ -78,7 +79,8 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 
 	if req.Username != cfg.Auth.Username {
 		rateLimiter.RecordAttempt(ip)
-		audit.LogFailure(req.Username, ip, "login", "/api/login", "invalid username")
+		audit.LogFailure(req.Username, ip, "login", "/api/login", "invalid username") // LEGACY_CODE: Migrate to activity.Log()
+		activity.LogFailure(activity.ActorAnonymous, "", ip, "session", "", "login", "invalid username", activity.WeightAuth)
 		log.Printf("Login failed: invalid username from %s", ip)
 		api.InvalidCredentials(w)
 		return
@@ -86,7 +88,8 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 
 	if err := auth.VerifyPassword(req.Password, cfg.Auth.PasswordHash); err != nil {
 		rateLimiter.RecordAttempt(ip)
-		audit.LogFailure(req.Username, ip, "login", "/api/login", "invalid password")
+		audit.LogFailure(req.Username, ip, "login", "/api/login", "invalid password") // LEGACY_CODE: Migrate to activity.Log()
+		activity.LogFailure(activity.ActorAnonymous, "", ip, "session", "", "login", "invalid password", activity.WeightAuth)
 		log.Printf("Login failed: invalid password from %s", ip)
 		api.InvalidCredentials(w)
 		return
@@ -119,7 +122,8 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	rateLimiter.Reset(ip)
 
 	// Log successful login
-	audit.LogSuccess(req.Username, ip, "login", "/api/login")
+	audit.LogSuccess(req.Username, ip, "login", "/api/login") // LEGACY_CODE: Migrate to activity.Log()
+	activity.LogSuccess(activity.ActorUser, user.ID, ip, "session", "", "login", activity.WeightAuth, nil)
 	log.Printf("Login successful: %s from %s", req.Username, ip)
 
 	api.Success(w, http.StatusOK, map[string]interface{}{
@@ -148,7 +152,8 @@ func LogoutHandler(w http.ResponseWriter, r *http.Request) {
 	// Log logout
 	if username != "" {
 		ip := getClientIP(r)
-		audit.LogSuccess(username, ip, "logout", "/api/logout")
+		audit.LogSuccess(username, ip, "logout", "/api/logout") // LEGACY_CODE: Migrate to activity.Log()
+		activity.LogSuccess(activity.ActorUser, user.ID, ip, "session", "", "logout", activity.WeightAuth, nil)
 	}
 
 	// Return success for API requests

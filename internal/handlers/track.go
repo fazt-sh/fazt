@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/fazt-sh/fazt/internal/activity"
 	"github.com/fazt-sh/fazt/internal/analytics"
 	"github.com/fazt-sh/fazt/internal/api"
 	"github.com/fazt-sh/fazt/internal/models"
@@ -65,7 +66,7 @@ func TrackHandler(w http.ResponseWriter, r *http.Request) {
 	// Convert query params to JSON string
 	queryParamsJSON := req.ToQueryParamsJSON()
 
-	// Add to analytics buffer
+	// Add to analytics buffer (LEGACY_CODE: Migrate to activity.Log())
 	analytics.Add(analytics.Event{
 		Domain:      domain,
 		Tags:        tagsStr,
@@ -76,6 +77,25 @@ func TrackHandler(w http.ResponseWriter, r *http.Request) {
 		UserAgent:   userAgent,
 		IPAddress:   ipAddress,
 		QueryParams: queryParamsJSON,
+	})
+
+	// Log to unified activity system
+	details := map[string]interface{}{
+		"referrer": referrer,
+		"event":    req.EventType,
+	}
+	if tagsStr != "" {
+		details["tags"] = tagsStr
+	}
+	activity.Log(activity.Entry{
+		ActorType:    activity.ActorAnonymous,
+		ActorIP:      ipAddress,
+		ActorUA:      userAgent,
+		ResourceType: "page",
+		ResourceID:   domain + req.Path,
+		Action:       req.EventType,
+		Weight:       activity.WeightAnalytics,
+		Details:      details,
 	})
 
 	// Return 204 No Content on success

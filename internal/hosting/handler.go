@@ -88,6 +88,17 @@ func ServeVFSByAppID(w http.ResponseWriter, r *http.Request, appID string) {
 		w.Header().Set("Cache-Control", "public, max-age=300")
 	}
 
+	// For HTML files, inject analytics tracking script
+	if ShouldInjectAnalytics(path) {
+		data, err := io.ReadAll(file.Content)
+		if err == nil {
+			data = InjectAnalytics(data, appID)
+			w.Header().Set("Content-Length", fmt.Sprintf("%d", len(data)))
+			w.Write(data)
+			return
+		}
+	}
+
 	// Content Length
 	w.Header().Set("Content-Length", fmt.Sprintf("%d", file.Size))
 
@@ -199,6 +210,17 @@ func ServeVFS(w http.ResponseWriter, r *http.Request, siteID string) {
 	} else {
 		// Everything else: short cache (5 minutes)
 		w.Header().Set("Cache-Control", "public, max-age=300")
+	}
+
+	// For HTML files, inject analytics tracking script
+	if ShouldInjectAnalytics(path) {
+		data, err := io.ReadAll(file.Content)
+		if err == nil {
+			data = InjectAnalytics(data, siteID)
+			w.Header().Set("Content-Length", fmt.Sprintf("%d", len(data)))
+			w.Write(data)
+			return
+		}
 	}
 
 	// Content Length

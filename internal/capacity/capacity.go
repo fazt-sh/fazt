@@ -46,6 +46,9 @@ type Limits struct {
 	// File/site limits
 	MaxFileSizeBytes int64 `json:"max_file_size_bytes"`
 	MaxSiteSizeBytes int64 `json:"max_site_size_bytes"`
+
+	// Activity log limits
+	MaxActivityLogRows int `json:"max_activity_log_rows"` // Max rows before auto-cleanup
 }
 
 // Stats represents current capacity utilization.
@@ -143,6 +146,7 @@ func DefaultLimits() Limits {
 		MaxMemoryBytes:        50 * 1024 * 1024,  // 50MB per execution
 		MaxFileSizeBytes:      100 * 1024 * 1024, // 100MB
 		MaxSiteSizeBytes:      500 * 1024 * 1024, // 500MB
+		MaxActivityLogRows:    500000,            // ~100MB of activity logs
 	}
 }
 

@@ -25,6 +25,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/fazt-sh/fazt/internal/activity"
 	"github.com/fazt-sh/fazt/internal/analytics"
 	"github.com/fazt-sh/fazt/internal/audit"
 	"github.com/fazt-sh/fazt/internal/auth"
@@ -156,6 +157,8 @@ func main() {
 		handleUserCommand(os.Args[2:])
 	case "alias":
 		handleAliasCommand(os.Args[2:])
+	case "logs":
+		handleLogsCommand(os.Args[2:])
 	default:
 		fmt.Printf("Unknown command: %s\n\n", command)
 		printUsage()
@@ -1317,7 +1320,7 @@ func handleClientCommand(args []string) {
 	case "deploy":
 		handleDeployCommand()
 	case "logs":
-		handleLogsCommand()
+		handleClientLogsCommand()
 	case "sites":
 		handleSitesCommand()
 	case "apps":
@@ -2244,8 +2247,8 @@ func handleDeployCommand() {
 	os.Exit(1)
 }
 
-// handleLogsCommand handles the logs subcommand
-func handleLogsCommand() {
+// handleClientLogsCommand handles the client logs subcommand
+func handleClientLogsCommand() {
 	flags := flag.NewFlagSet("logs", flag.ExitOnError)
 	site := flags.String("site", "", "Site name (subdomain) (required)")
 	limit := flags.Int("limit", 50, "Number of logs to fetch")
@@ -2700,15 +2703,30 @@ func handleStartCommand() {
 	fmt.Printf("  Authentication: ✓ Enabled (user: %s)\n", cfg.Auth.Username)
 	fmt.Println()
 
-	// Initialize audit logging
+	// Initialize audit logging (LEGACY_CODE: Migrate to activity.Log())
 	if err := audit.Init(database.GetDB()); err != nil {
 		log.Fatalf("Failed to initialize audit logging: %v", err)
 	}
 
-	// Initialize global write queue (must come before analytics)
+	// Initialize global write queue (must come before analytics/activity)
 	storage.InitWriter()
 
-	// Initialize analytics buffer
+	// Initialize activity logger (unified logging system)
+	activity.Init()
+
+	// Log server start
+	activity.Log(activity.Entry{
+		ActorType:    activity.ActorSystem,
+		ResourceType: "server",
+		Action:       "start",
+		Weight:       activity.WeightSystem,
+		Details: map[string]interface{}{
+			"version": config.Version,
+			"port":    cliFlags.Port,
+		},
+	})
+
+	// Initialize analytics buffer (LEGACY_CODE: Migrate to activity.Log())
 	analytics.Init()
 
 	// Initialize worker pool
@@ -3047,8 +3065,22 @@ func handleStartCommand() {
 	}
 	workerCancel()
 
-	// Flush analytics buffer
+	// Flush analytics buffer (LEGACY_CODE: Migrate to activity.Log())
 	analytics.Shutdown()
+
+	// Log server stop before flushing
+	activity.Log(activity.Entry{
+		ActorType:    activity.ActorSystem,
+		ResourceType: "server",
+		Action:       "stop",
+		Weight:       activity.WeightSystem,
+		Details: map[string]interface{}{
+			"version": config.Version,
+		},
+	})
+
+	// Flush activity logger
+	activity.Shutdown()
 
 	// Graceful shutdown with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
