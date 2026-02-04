@@ -1,5 +1,11 @@
 [
     {
+        "version": "v0.24.5",
+        "title": "User List Table Rendering Fix",
+        "description": "Wrap emails in backticks to prevent glamour from auto-linking and showing footnotes on narrow terminals.",
+        "created_at": "2026-02-04"
+    },
+    {
         "version": "v0.24.4",
         "title": "User List JSON Fix",
         "description": "Fixed user list JSON output to return proper objects with named fields instead of arrays.",

@@ -4,6 +4,12 @@ All notable changes to fazt.sh will be documented in this file.
 
 ## [Unreleased]
 
+## [0.24.5] - 2026-02-04
+
+### Fixed
+- **User list table rendering**: Wrap emails in backticks to prevent glamour auto-linking
+  - Fixes footnote-style rendering on narrow terminals
+
 ## [0.24.4] - 2026-02-04
 
 ### Fixed

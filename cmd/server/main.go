@@ -3538,7 +3538,8 @@ func handleUserList(args []string) {
 	for rows.Next() {
 		var id, email, name, role, provider, createdAt, lastLogin string
 		rows.Scan(&id, &email, &name, &role, &provider, &createdAt, &lastLogin)
-		tableRows = append(tableRows, []string{email, name, role, provider, lastLogin})
+		// Wrap email in backticks to prevent glamour from auto-linking
+		tableRows = append(tableRows, []string{"`" + email + "`", name, role, provider, lastLogin})
 		users = append(users, map[string]string{
 			"id":         id,
 			"email":      email,
@@ -3678,7 +3679,8 @@ func handleUserListRemote(peerName string, args []string) {
 
 	var tableRows [][]string
 	for _, u := range response.Data {
-		tableRows = append(tableRows, []string{u.Email, u.Name, u.Role, u.Provider})
+		// Wrap email in backticks to prevent glamour from auto-linking
+		tableRows = append(tableRows, []string{"`" + u.Email + "`", u.Name, u.Role, u.Provider})
 	}
 
 	table := &output.Table{
