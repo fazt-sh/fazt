@@ -132,7 +132,7 @@ export function render(container, ctx) {
                   <button class="collapse-toggle">
                     <i data-lucide="chevron-right" class="chevron w-4 h-4"></i>
                     <span class="text-heading text-primary">Activity Logs</span>
-                    ${logsData.total > 0 ? `<span class="text-caption mono px-1.5 py-0.5 ml-2 badge-muted" style="border-radius: var(--radius-sm)">${logsData.total}</span>` : ''}
+                    <span class="text-caption mono px-1.5 py-0.5 ml-2 badge-muted" style="border-radius: var(--radius-sm)">${logsData.total || 0}</span>
                   </button>
                   <div class="flex items-center gap-2 ml-auto">
                     <select id="filter-weight" class="btn btn-secondary btn-sm hide-mobile" style="padding: 4px 8px; cursor: pointer">
