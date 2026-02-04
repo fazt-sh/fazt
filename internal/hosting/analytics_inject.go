@@ -7,11 +7,13 @@ import (
 )
 
 // analyticsScript is the minimal tracking snippet injected into HTML pages
-// It sends a pageview beacon to /track on page load
+// It sends a pageview beacon to the admin subdomain's /track endpoint
+// The script extracts the base domain and constructs the admin URL dynamically
 const analyticsScript = `<script>(function(){
-navigator.sendBeacon('/track',JSON.stringify({
-h:location.hostname,p:location.pathname,e:'pageview'
-}))
+var h=location.hostname,d=h.split('.').slice(1).join('.');
+if(!d)d=h;
+var u=location.protocol+'//admin.'+d+'/track';
+navigator.sendBeacon(u,JSON.stringify({h:h,p:location.pathname,e:'pageview'}))
 })();</script>`
 
 // InjectAnalytics injects the analytics tracking script into HTML content
