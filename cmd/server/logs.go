@@ -169,7 +169,7 @@ func handleLogsList(args []string) {
 
 	// Build table
 	table := &output.Table{
-		Headers: []string{"Time", "W", "Actor", "Resource", "Action", "Result"},
+		Headers: []string{"Time", "Wt", "Actor", "Resource", "Action", "Result"},
 		Rows:    make([][]string, len(entries)),
 	}
 
@@ -662,7 +662,7 @@ func handleLogsListRemote(peerName string, args []string) {
 	}
 
 	table := &output.Table{
-		Headers: []string{"Time", "W", "Actor", "Resource", "Action", "Result"},
+		Headers: []string{"Time", "Wt", "Actor", "Resource", "Action", "Result"},
 		Rows:    make([][]string, len(entries)),
 	}
 
