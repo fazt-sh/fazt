@@ -1566,7 +1566,7 @@
         const authDomain = window.location.hostname.split('.').slice(1).join('.')
         // Include redirect parameter so user returns to admin after re-login
         const currentUrl = window.location.href
-        const loginUrl = window.location.protocol + '//' + authDomain + (window.location.port ? ':' + window.location.port : '') + '/auth/dev/login?redirect=' + encodeURIComponent(currentUrl)
+        const loginUrl = window.location.protocol + '//' + authDomain + (window.location.port ? ':' + window.location.port : '') + '/auth/login?redirect=' + encodeURIComponent(currentUrl)
         window.location.href = loginUrl
       })
     }
@@ -1595,7 +1595,7 @@
       // Not authenticated -> redirect to login with full URL
       if (!authState.authenticated || !authState.user) {
         const authDomain = getAuthDomain()
-        const authUrl = `${window.location.protocol}//${authDomain}${window.location.port ? ':' + window.location.port : ''}/auth/dev/login?redirect=${encodeURIComponent(currentUrl)}`
+        const authUrl = `${window.location.protocol}//${authDomain}${window.location.port ? ':' + window.location.port : ''}/auth/login?redirect=${encodeURIComponent(currentUrl)}`
         console.log('[Auth] Redirecting to login:', authUrl)
         window.location.href = authUrl
         return false
