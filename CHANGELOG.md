@@ -4,6 +4,18 @@ All notable changes to fazt.sh will be documented in this file.
 
 ## [Unreleased]
 
+## [0.25.1] - 2026-02-04
+
+### Fixed
+- **Remote SQL command panic**: Fixed interface conversion panic when response fields are nil
+  - Added safe type assertions with ok-pattern checks for `count` and `time_ms`
+  - Fixed authentication: moved `/api/sql` to API key auth bypass list
+  - Added HTTP status code checking for better error messages
+  - Command now works correctly: `fazt @peer sql "SELECT ..."`
+
+### Changed
+- **Release process**: Enforce canonical `fazt upgrade` path in all skills and documentation
+
 ## [0.25.0] - 2026-02-04
 
 ### Added
