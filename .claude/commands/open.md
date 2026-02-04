@@ -85,14 +85,14 @@ v0.17.0: local ⚠️ → fazt remote upgrade local
 ```
 
 **Fixes:**
-- Binary behind → `go build -o ~/.local/bin/fazt ./cmd/server`
+- Binary behind → `fazt upgrade` (use canonical upgrade, not manual build)
 - Remote behind → `fazt remote upgrade <name>`
 
 ## Quick Commands
 
 | Action | Command |
 |--------|---------|
-| Rebuild binary | `go build -o ~/.local/bin/fazt ./cmd/server` |
+| Upgrade binary | `fazt upgrade` (canonical upgrade) |
 | Restart local | `systemctl --user restart fazt-local` |
 | Local logs | `journalctl --user -u fazt-local -f` |
 | Local status | `systemctl --user status fazt-local` |

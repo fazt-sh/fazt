@@ -68,9 +68,13 @@ Config Priority:
 ## Essential Commands
 
 ```bash
-# Build & Test
-go build -o fazt ./cmd/server
+# Build & Test (development)
+go build -o fazt ./cmd/server  # Quick iteration only
 go test ./...
+
+# Upgrade (releases & testing)
+fazt upgrade                    # ALWAYS use for releases - tests user experience
+fazt --version
 
 # Deploy
 fazt @zyt app deploy ./my-app
@@ -80,6 +84,8 @@ fazt @local app deploy ./my-app
 systemctl --user restart fazt-local
 journalctl --user -u fazt-local -f
 ```
+
+**IMPORTANT**: When releasing or testing upgrades, ALWAYS use `fazt upgrade` instead of `go build`. This ensures we test the actual user experience and verify the upgrade path works elegantly.
 
 ## Key Paths
 

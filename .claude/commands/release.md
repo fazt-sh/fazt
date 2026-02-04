@@ -147,11 +147,14 @@ This script:
 git push origin master && git push origin vX.Y.Z
 ```
 
-### 9. Install Locally and Restart Service
+### 9. Upgrade Local Binary and Service
+
+**IMPORTANT**: Always use the canonical `fazt upgrade` command to test the actual user experience. Never manually build with `go build` during releases.
 
 ```bash
-# Build and install binary
-go build -o ~/.local/bin/fazt ./cmd/server
+# Upgrade local binary using the canonical upgrade command
+# This tests the actual user experience and ensures upgrade works elegantly
+fazt upgrade
 fazt --version
 
 # Restart local systemd service (if running)
@@ -163,6 +166,13 @@ sleep 2
 # Verify local peer upgraded (if configured as peer)
 fazt @local status 2>/dev/null || echo "Local not configured as peer"
 ```
+
+**Why use `fazt upgrade` instead of `go build`?**
+- Tests the same upgrade path users will use
+- Verifies GitHub release assets are valid
+- Ensures upgrade experience is elegant
+- Catches issues users would encounter
+- Maintains developer empathy
 
 ### 10. Upgrade All Peers
 
