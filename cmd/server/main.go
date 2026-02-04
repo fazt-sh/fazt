@@ -1490,6 +1490,11 @@ func createRootHandler(cfg *config.Config, dashboardMux *http.ServeMux, authHand
 
 		// admin.* routing: API endpoints go to dashboardMux, everything else serves the app
 		if host == "admin."+mainDomain {
+			// Deploy endpoint has its own API key auth - bypass AdminMiddleware
+			if r.URL.Path == "/api/deploy" {
+				dashboardMux.ServeHTTP(w, r)
+				return
+			}
 			// Admin API endpoints require admin/owner role
 			if strings.HasPrefix(r.URL.Path, "/api/") {
 				middleware.AdminMiddleware(authHandler.Service())(dashboardMux).ServeHTTP(w, r)
