@@ -1,0 +1,182 @@
+{
+  "entries": [
+    {
+      "id": 1,
+      "timestamp": "2026-02-04T10:30:15Z",
+      "actor_type": "anonymous",
+      "actor_ip": "192.168.1.100",
+      "actor_ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+      "resource_type": "page",
+      "resource_id": "tetris.zyt.app/",
+      "action": "pageview",
+      "result": "success",
+      "weight": 2,
+      "details": {
+        "path": "/",
+        "referrer": ""
+      }
+    },
+    {
+      "id": 2,
+      "timestamp": "2026-02-04T10:29:45Z",
+      "actor_type": "user",
+      "actor_id": "user_01hw3xyz",
+      "actor_ip": "192.168.1.100",
+      "actor_ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+      "resource_type": "app",
+      "resource_id": "my-app",
+      "action": "deploy",
+      "result": "success",
+      "weight": 6,
+      "details": {
+        "files": 12,
+        "size_bytes": 45678
+      }
+    },
+    {
+      "id": 3,
+      "timestamp": "2026-02-04T10:28:00Z",
+      "actor_type": "anonymous",
+      "actor_ip": "203.0.113.42",
+      "actor_ua": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0)",
+      "resource_type": "page",
+      "resource_id": "fun-game.zyt.app/play",
+      "action": "pageview",
+      "result": "success",
+      "weight": 2,
+      "details": {
+        "path": "/play",
+        "referrer": "https://google.com"
+      }
+    },
+    {
+      "id": 4,
+      "timestamp": "2026-02-04T10:25:00Z",
+      "actor_type": "user",
+      "actor_id": "user_01hw3xyz",
+      "actor_ip": "192.168.1.100",
+      "actor_ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+      "resource_type": "alias",
+      "resource_id": "api",
+      "action": "create",
+      "result": "success",
+      "weight": 7,
+      "details": {
+        "type": "proxy",
+        "target": "backend.example.com"
+      }
+    },
+    {
+      "id": 5,
+      "timestamp": "2026-02-04T10:20:00Z",
+      "actor_type": "user",
+      "actor_id": "user_01hw3xyz",
+      "actor_ip": "192.168.1.100",
+      "actor_ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+      "resource_type": "session",
+      "resource_id": "sess_abc123",
+      "action": "login",
+      "result": "success",
+      "weight": 8,
+      "details": {
+        "provider": "github"
+      }
+    },
+    {
+      "id": 6,
+      "timestamp": "2026-02-04T10:15:00Z",
+      "actor_type": "system",
+      "resource_type": "system",
+      "resource_id": "backup",
+      "action": "backup",
+      "result": "success",
+      "weight": 1,
+      "details": {
+        "size_bytes": 1234567
+      }
+    },
+    {
+      "id": 7,
+      "timestamp": "2026-02-04T09:45:00Z",
+      "actor_type": "anonymous",
+      "actor_ip": "198.51.100.123",
+      "actor_ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+      "resource_type": "page",
+      "resource_id": "tetris.zyt.app/game",
+      "action": "pageview",
+      "result": "success",
+      "weight": 2,
+      "details": {
+        "path": "/game",
+        "referrer": "https://tetris.zyt.app/"
+      }
+    },
+    {
+      "id": 8,
+      "timestamp": "2026-02-04T09:30:00Z",
+      "actor_type": "user",
+      "actor_id": "user_01hw3xyz",
+      "actor_ip": "192.168.1.100",
+      "actor_ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+      "resource_type": "kv",
+      "resource_id": "my-app:settings",
+      "action": "set",
+      "result": "success",
+      "weight": 5,
+      "details": {
+        "key": "settings",
+        "size_bytes": 256
+      }
+    },
+    {
+      "id": 9,
+      "timestamp": "2026-02-04T08:45:00Z",
+      "actor_type": "api_key",
+      "actor_id": "key_test123",
+      "actor_ip": "203.0.113.50",
+      "resource_type": "app",
+      "resource_id": "api-service",
+      "action": "deploy",
+      "result": "success",
+      "weight": 6,
+      "details": {
+        "files": 8,
+        "size_bytes": 23456
+      }
+    },
+    {
+      "id": 10,
+      "timestamp": "2026-02-04T08:30:00Z",
+      "actor_type": "anonymous",
+      "actor_ip": "192.0.2.100",
+      "actor_ua": "Mozilla/5.0 (Linux; Android 13)",
+      "resource_type": "page",
+      "resource_id": "fun-game.zyt.app/",
+      "action": "pageview",
+      "result": "success",
+      "weight": 2,
+      "details": {
+        "path": "/",
+        "referrer": ""
+      }
+    }
+  ],
+  "stats": {
+    "total_count": 1547,
+    "count_by_weight": {
+      "0": 45,
+      "1": 123,
+      "2": 892,
+      "3": 78,
+      "4": 156,
+      "5": 89,
+      "6": 67,
+      "7": 54,
+      "8": 32,
+      "9": 11
+    },
+    "oldest_entry": "2026-01-15T08:00:00Z",
+    "newest_entry": "2026-02-04T10:30:15Z",
+    "size_estimate_bytes": 1234567
+  }
+}

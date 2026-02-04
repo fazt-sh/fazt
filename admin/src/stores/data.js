@@ -60,7 +60,25 @@ export const currentApp = map({
 // Events data
 export const events = list([])
 
-// Logs data
+// Activity logs data
+export const activityLogs = map({
+  entries: [],
+  total: 0,
+  showing: 0,
+  offset: 0,
+  limit: 20
+})
+
+// Activity logs stats
+export const activityStats = map({
+  total_count: 0,
+  count_by_weight: {},
+  oldest_entry: null,
+  newest_entry: null,
+  size_estimate_bytes: 0
+})
+
+// LEGACY_CODE: Old logs data (application logs)
 export const logs = list([])
 
 /**
@@ -217,11 +235,39 @@ export async function loadEvents(client, options = {}) {
 }
 
 /**
- * Load logs from API
+ * Load activity logs from API
  * @param {import('../../packages/fazt-sdk/index.js').createClient} client
- * @param {string} siteId - App ID to get logs for
- * @param {Object} options - Filter options
+ * @param {Object} filters - Filter options (min_weight, max_weight, type, resource, app, alias, user, actor_type, action, result, since, until, limit, offset)
  */
+export async function loadActivityLogs(client, filters = {}) {
+  loading.setKey('activity-logs', true)
+  try {
+    const data = await client.logs.list(filters)
+    activityLogs.set(data || { entries: [], total: 0, showing: 0, offset: 0, limit: 20 })
+    error.set(null)
+  } catch (err) {
+    error.set(err.message)
+    notify({ type: 'error', message: 'Failed to load activity logs' })
+  } finally {
+    loading.setKey('activity-logs', false)
+  }
+}
+
+/**
+ * Load activity logs stats from API
+ * @param {import('../../packages/fazt-sdk/index.js').createClient} client
+ * @param {Object} filters - Same filters as loadActivityLogs
+ */
+export async function loadActivityStats(client, filters = {}) {
+  try {
+    const data = await client.logs.stats(filters)
+    activityStats.set(data || {})
+  } catch (err) {
+    console.warn('Failed to load activity stats:', err.message)
+  }
+}
+
+// LEGACY_CODE: Old logs function for application logs
 export async function loadLogs(client, siteId, options = {}) {
   loading.setKey('logs', true)
   try {

@@ -156,12 +156,16 @@ export function createClient(options = {}) {
     },
 
     /**
-     * Logs endpoints
+     * Activity logs endpoints
      */
     logs: {
-      /** List logs for a site */
-      list: (siteId, options = {}) => http.get('/api/logs', { params: { site_id: siteId, ...options } })
-      // options: { limit }
+      /** Query activity logs with filters */
+      list: (filters = {}) => http.get('/api/system/logs', { params: filters }),
+      // filters: { min_weight, max_weight, type, resource, app, alias, user, actor_type, action, result, since, until, limit, offset }
+
+      /** Get activity log statistics */
+      stats: (filters = {}) => http.get('/api/system/logs/stats', { params: filters })
+      // filters: same as list()
     }
   }
 }

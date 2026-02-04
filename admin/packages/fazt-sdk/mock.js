@@ -8,7 +8,7 @@ import aliases from './fixtures/aliases.json' with { type: 'json' }
 import health from './fixtures/health.json' with { type: 'json' }
 import user from './fixtures/user.json' with { type: 'json' }
 import events from './fixtures/events.json' with { type: 'json' }
-import logsData from './fixtures/logs.json' with { type: 'json' }
+import activityLogs from './fixtures/activity-logs.json' with { type: 'json' }
 
 // Simulated delay
 const delay = (ms = 100) => new Promise(resolve => setTimeout(resolve, ms))
@@ -90,15 +90,80 @@ const routes = {
     const offset = parseInt(query?.offset) || 0
     return result.slice(offset, offset + limit)
   },
-  'GET /api/logs': (params, body, query) => {
-    let logs = [...logsData.logs]
-    // Filter by site_id if provided
-    if (query?.site_id) {
-      logs = logs.filter(l => l.site_id === query.site_id)
+  'GET /api/system/logs': (params, body, query) => {
+    let entries = [...activityLogs.entries]
+
+    // Filter by weight
+    if (query?.min_weight) {
+      const minWeight = parseInt(query.min_weight)
+      entries = entries.filter(e => e.weight >= minWeight)
     }
-    // Apply limit
-    const limit = parseInt(query?.limit) || 50
-    return { logs: logs.slice(0, limit) }
+    if (query?.max_weight) {
+      const maxWeight = parseInt(query.max_weight)
+      entries = entries.filter(e => e.weight <= maxWeight)
+    }
+
+    // Filter by resource type
+    if (query?.type) {
+      entries = entries.filter(e => e.resource_type === query.type)
+    }
+
+    // Filter by resource ID
+    if (query?.resource) {
+      entries = entries.filter(e => e.resource_id === query.resource)
+    }
+
+    // Filter by app (matches resource_id starting with app name)
+    if (query?.app) {
+      entries = entries.filter(e =>
+        (e.resource_type === 'app' && e.resource_id === query.app) ||
+        e.resource_id?.startsWith(`${query.app}:`) ||
+        e.resource_id?.startsWith(`${query.app}.`)
+      )
+    }
+
+    // Filter by alias (matches subdomain in pageviews)
+    if (query?.alias) {
+      entries = entries.filter(e => e.resource_id?.startsWith(`${query.alias}.`))
+    }
+
+    // Filter by actor type
+    if (query?.actor_type) {
+      entries = entries.filter(e => e.actor_type === query.actor_type)
+    }
+
+    // Filter by user (actor_type=user and actor_id=user)
+    if (query?.user) {
+      entries = entries.filter(e => e.actor_type === 'user' && e.actor_id === query.user)
+    }
+
+    // Filter by action
+    if (query?.action) {
+      entries = entries.filter(e => e.action === query.action)
+    }
+
+    // Filter by result
+    if (query?.result) {
+      entries = entries.filter(e => e.result === query.result)
+    }
+
+    // Apply pagination
+    const total = entries.length
+    const limit = parseInt(query?.limit) || 20
+    const offset = parseInt(query?.offset) || 0
+    entries = entries.slice(offset, offset + limit)
+
+    return {
+      entries,
+      total,
+      showing: entries.length,
+      offset,
+      limit
+    }
+  },
+  'GET /api/system/logs/stats': (params, body, query) => {
+    // For mock, return the full stats (filters would be applied in real backend)
+    return activityLogs.stats
   },
   'POST /api/apps/create': (params, body) => {
     const newApp = {

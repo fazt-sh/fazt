@@ -1,14 +1,44 @@
 /**
- * Logs Page
- * Application logs viewer
+ * Activity Logs Page
+ * View and filter activity logs
  */
 
-import { logs, loadLogs, apps } from '../stores/data.js'
+import { activityLogs, activityStats, loadActivityLogs, loadActivityStats } from '../stores/data.js'
 import { loading } from '../stores/app.js'
+import {
+  renderPanel, setupPanel,
+  renderToolbar, setupToolbar,
+  renderTable, setupTableClicks, renderTableFooter
+} from '../components/index.js'
+
+/**
+ * Weight labels and colors
+ */
+const WEIGHT_INFO = {
+  9: { label: 'Security', color: 'var(--error)' },
+  8: { label: 'Auth', color: 'var(--error)' },
+  7: { label: 'Config', color: 'var(--warning)' },
+  6: { label: 'Deploy', color: 'var(--accent)' },
+  5: { label: 'Data', color: 'var(--accent)' },
+  4: { label: 'Action', color: 'var(--text-2)' },
+  3: { label: 'Nav', color: 'var(--text-3)' },
+  2: { label: 'Analytics', color: 'var(--text-3)' },
+  1: { label: 'System', color: 'var(--text-4)' },
+  0: { label: 'Debug', color: 'var(--text-4)' }
+}
+
+/**
+ * Actor type labels and icons
+ */
+const ACTOR_INFO = {
+  user: { label: 'User', icon: 'user' },
+  system: { label: 'System', icon: 'server' },
+  api_key: { label: 'API Key', icon: 'key' },
+  anonymous: { label: 'Anonymous', icon: 'user-x' }
+}
 
 /**
  * Format timestamp
- * @param {string} timestamp
  */
 function formatTimestamp(timestamp) {
   const date = new Date(timestamp)
@@ -22,164 +52,229 @@ function formatTimestamp(timestamp) {
 }
 
 /**
- * Get log level styling
- * @param {string} level
+ * Format relative time
  */
-function getLevelStyle(level) {
-  const styles = {
-    info: { bg: 'var(--accent-soft)', color: 'var(--accent)' },
-    warn: { bg: 'var(--warning-soft)', color: 'var(--warning)' },
-    error: { bg: 'var(--error-soft)', color: 'var(--error)' },
-    debug: { bg: 'var(--bg-3)', color: 'var(--text-3)' }
-  }
-  return styles[level] || styles.info
+function formatRelativeTime(timestamp) {
+  const date = new Date(timestamp)
+  const now = new Date()
+  const diff = now - date
+  const seconds = Math.floor(diff / 1000)
+  const minutes = Math.floor(seconds / 60)
+  const hours = Math.floor(minutes / 60)
+  const days = Math.floor(hours / 24)
+
+  if (days > 0) return `${days}d ago`
+  if (hours > 0) return `${hours}h ago`
+  if (minutes > 0) return `${minutes}m ago`
+  return 'Just now'
 }
 
 /**
- * Get UI state from localStorage
+ * Build columns config for activity logs table
  */
-function getUIState(key, defaultValue = false) {
-  try {
-    const state = JSON.parse(localStorage.getItem('fazt.web.ui.state') || '{}')
-    return state[key] !== undefined ? state[key] : defaultValue
-  } catch {
-    return defaultValue
-  }
+function getColumns() {
+  return [
+    {
+      key: 'action',
+      label: 'Activity',
+      render: (action, entry) => {
+        const weightInfo = WEIGHT_INFO[entry.weight] || {}
+        const actorInfo = ACTOR_INFO[entry.actor_type] || {}
+        return `
+          <div class="flex items-center gap-2" style="min-width: 0">
+            <div class="icon-box icon-box-sm" style="flex-shrink: 0; border-color: ${weightInfo.color}">
+              <i data-lucide="${actorInfo.icon || 'activity'}" class="w-3.5 h-3.5" style="color: ${weightInfo.color}"></i>
+            </div>
+            <div style="min-width: 0; overflow: hidden">
+              <div class="text-label text-primary" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap">${action}</div>
+              <div class="text-caption text-faint show-mobile">${entry.resource_type} · ${formatRelativeTime(entry.timestamp)}</div>
+            </div>
+          </div>
+        `
+      }
+    },
+    {
+      key: 'resource_type',
+      label: 'Resource',
+      hideOnMobile: true,
+      render: (type, entry) => {
+        const id = entry.resource_id || '-'
+        return `
+          <div style="min-width: 0; overflow: hidden">
+            <span class="badge badge-muted">${type}</span>
+            ${id !== '-' ? `<div class="text-caption mono text-muted mt-0.5" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 160px">${id}</div>` : ''}
+          </div>
+        `
+      }
+    },
+    {
+      key: 'actor_type',
+      label: 'Actor',
+      hideOnMobile: true,
+      render: (type, entry) => {
+        const actorInfo = ACTOR_INFO[type] || {}
+        const actorId = entry.actor_id || actorInfo.label
+        return `<span class="text-caption text-muted">${actorId}</span>`
+      }
+    },
+    {
+      key: 'weight',
+      label: 'Priority',
+      hideOnMobile: true,
+      render: (weight) => {
+        const info = WEIGHT_INFO[weight] || {}
+        return `<span class="text-caption" style="color: ${info.color}">${info.label}</span>`
+      }
+    },
+    {
+      key: 'result',
+      label: 'Result',
+      hideOnMobile: true,
+      render: (result) => {
+        const isSuccess = result === 'success'
+        return `
+          <span class="flex items-center gap-1 text-caption ${isSuccess ? 'text-success' : 'text-error'}">
+            <span class="status-dot ${isSuccess ? 'status-dot-success' : 'status-dot-error'}"></span>
+            ${result}
+          </span>
+        `
+      }
+    },
+    {
+      key: 'timestamp',
+      label: 'Time',
+      hideOnMobile: true,
+      render: (timestamp) => `<span class="text-caption text-muted">${formatRelativeTime(timestamp)}</span>`
+    }
+  ]
 }
 
 /**
- * Set UI state to localStorage
- */
-function setUIState(key, value) {
-  try {
-    const state = JSON.parse(localStorage.getItem('fazt.web.ui.state') || '{}')
-    state[key] = value
-    localStorage.setItem('fazt.web.ui.state', JSON.stringify(state))
-  } catch (e) {
-    console.error('Failed to save UI state:', e)
-  }
-}
-
-/**
- * Render logs page
- * @param {HTMLElement} container
- * @param {Object} ctx
+ * Render activity logs page
  */
 export function render(container, ctx) {
   const { client } = ctx
-  let selectedAppId = ''
-  let filterLevel = ''
+  let filters = {
+    limit: 50,
+    offset: 0
+  }
+
+  function applyFilters() {
+    loadActivityLogs(client, filters)
+    loadActivityStats(client, filters)
+  }
 
   function update() {
-    const logList = logs.get()
-    const appList = apps.get()
-    const isLoading = loading.getKey('logs')
+    const logsData = activityLogs.get()
+    const statsData = activityStats.get()
+    const isLoading = loading.getKey('activity-logs')
 
-    // Apply level filter
-    let filteredLogs = [...logList]
-    if (filterLevel) {
-      filteredLogs = filteredLogs.filter(l => l.level === filterLevel)
-    }
+    // Render table content
+    const tableContent = isLoading
+      ? `<div class="flex items-center justify-center p-8"><div class="text-caption text-muted">Loading...</div></div>`
+      : renderTable({
+          columns: getColumns(),
+          data: logsData.entries || [],
+          rowKey: 'id',
+          rowDataAttr: 'log-id',
+          clickable: false,
+          emptyIcon: 'activity',
+          emptyTitle: 'No activity logs',
+          emptyMessage: 'Activity will appear here as it happens'
+        })
 
-    // Get unique levels for filter
-    const levels = ['info', 'warn', 'error', 'debug']
+    // Build filter toolbar
+    const toolbar = renderToolbar({
+      title: 'Activity Logs',
+      badge: logsData.total > 0 ? logsData.total : null,
+      actions: [
+        {
+          id: 'refresh',
+          label: 'Refresh',
+          icon: 'refresh-cw',
+          variant: 'secondary'
+        }
+      ],
+      filters: [
+        {
+          id: 'weight',
+          type: 'select',
+          placeholder: 'All Priorities',
+          options: [
+            { value: '', label: 'All Priorities' },
+            { value: '5', label: 'Important (5+)' },
+            { value: '7', label: 'Critical (7+)' },
+            { value: '9', label: 'Security (9)' }
+          ]
+        },
+        {
+          id: 'action',
+          type: 'select',
+          placeholder: 'All Actions',
+          options: [
+            { value: '', label: 'All Actions' },
+            { value: 'pageview', label: 'Pageview' },
+            { value: 'deploy', label: 'Deploy' },
+            { value: 'login', label: 'Login' },
+            { value: 'create', label: 'Create' },
+            { value: 'delete', label: 'Delete' }
+          ]
+        },
+        {
+          id: 'actor_type',
+          type: 'select',
+          placeholder: 'All Actors',
+          options: [
+            { value: '', label: 'All Actors' },
+            { value: 'user', label: 'User' },
+            { value: 'system', label: 'System' },
+            { value: 'api_key', label: 'API Key' },
+            { value: 'anonymous', label: 'Anonymous' }
+          ]
+        },
+        {
+          id: 'type',
+          type: 'select',
+          placeholder: 'All Types',
+          options: [
+            { value: '', label: 'All Types' },
+            { value: 'page', label: 'Page' },
+            { value: 'app', label: 'App' },
+            { value: 'alias', label: 'Alias' },
+            { value: 'kv', label: 'KV Store' },
+            { value: 'session', label: 'Session' }
+          ]
+        }
+      ]
+    })
 
-    const listCollapsed = getUIState('logs.list.collapsed', false)
+    // Render footer with stats
+    const footer = logsData.total > 0 ? `
+      <div class="card-footer flex items-center justify-between gap-4" style="border-radius: 0">
+        <div class="flex items-center gap-2 text-caption text-muted">
+          <span>Showing ${logsData.showing} of ${logsData.total}</span>
+          ${statsData.size_estimate_bytes > 0 ? `<span class="hide-mobile">·</span><span class="hide-mobile">${formatBytes(statsData.size_estimate_bytes)} used</span>` : ''}
+        </div>
+        <div class="flex items-center gap-2">
+          ${logsData.offset > 0 ? `<button id="prev-btn" class="btn btn-secondary btn-sm">Previous</button>` : ''}
+          ${logsData.offset + logsData.showing < logsData.total ? `<button id="next-btn" class="btn btn-secondary btn-sm">Next</button>` : ''}
+        </div>
+      </div>
+    ` : ''
+
+    // Render panel
+    const panel = renderPanel({
+      id: 'logs-list',
+      title: toolbar,
+      body: tableContent + footer,
+      noPadding: true
+    })
 
     container.innerHTML = `
       <div class="design-system-page">
         <div class="content-container">
           <div class="content-scroll">
-
-            <!-- Panel Group: Logs List -->
-            <div class="panel-group ${listCollapsed ? 'collapsed' : ''}">
-              <div class="panel-group-card card">
-                <header class="panel-group-header" data-group="list">
-                  <button class="collapse-toggle">
-                    <i data-lucide="chevron-right" class="chevron w-4 h-4"></i>
-                    <span class="text-heading text-primary">Logs</span>
-                    ${selectedAppId ? `<span class="text-caption mono px-1.5 py-0.5 ml-2 badge-muted" style="border-radius: var(--radius-sm)">${filteredLogs.length}</span>` : ''}
-                  </button>
-                  <div class="flex items-center gap-2 ml-auto">
-                    <select id="app-select" class="btn btn-secondary btn-sm" style="padding: 4px 8px; cursor: pointer; max-width: 140px">
-                      <option value="">Select App</option>
-                      ${appList.map(app => `
-                        <option value="${app.id}" ${selectedAppId === app.id ? 'selected' : ''}>${app.name}</option>
-                      `).join('')}
-                    </select>
-                    <select id="filter-level" class="btn btn-secondary btn-sm hide-mobile" style="padding: 4px 8px; cursor: pointer" ${!selectedAppId ? 'disabled' : ''}>
-                      <option value="">All Levels</option>
-                      ${levels.map(level => `
-                        <option value="${level}" ${filterLevel === level ? 'selected' : ''}>${level}</option>
-                      `).join('')}
-                    </select>
-                    <button id="refresh-btn" class="btn btn-secondary btn-sm" style="padding: 4px 8px" title="Refresh" ${!selectedAppId ? 'disabled' : ''}>
-                      <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
-                    </button>
-                  </div>
-                </header>
-                <div class="panel-group-body" style="padding: 0">
-                  <div class="flex-1 overflow-auto scroll-panel" style="max-height: 600px">
-                    ${!selectedAppId ? `
-                      <div class="flex flex-col items-center justify-center p-8 text-center">
-                        <div class="icon-box mb-3" style="width:48px;height:48px;opacity:0.5">
-                          <i data-lucide="terminal" class="w-6 h-6"></i>
-                        </div>
-                        <div class="text-heading text-primary mb-1">Select an app</div>
-                        <div class="text-caption text-muted">Choose an app from the dropdown to view its logs</div>
-                      </div>
-                    ` : isLoading ? `
-                      <div class="flex items-center justify-center p-8">
-                        <div class="text-caption text-muted">Loading logs...</div>
-                      </div>
-                    ` : filteredLogs.length === 0 ? `
-                      <div class="flex flex-col items-center justify-center p-8 text-center">
-                        <div class="icon-box mb-3" style="width:48px;height:48px;opacity:0.5">
-                          <i data-lucide="file-text" class="w-6 h-6"></i>
-                        </div>
-                        <div class="text-heading text-primary mb-1">No logs</div>
-                        <div class="text-caption text-muted">${filterLevel ? 'No logs match your filter' : 'No logs for this app yet'}</div>
-                      </div>
-                    ` : `
-                      <div class="table-container">
-                        <table>
-                          <thead class="sticky" style="top: 0; background: var(--bg-1)">
-                            <tr class="border-b">
-                              <th class="px-4 py-2 text-left text-micro text-muted" style="width: 80px">Level</th>
-                              <th class="px-4 py-2 text-left text-micro text-muted hide-mobile" style="width: 140px">Time</th>
-                              <th class="px-4 py-2 text-left text-micro text-muted">Message</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            ${filteredLogs.map(log => {
-                              const style = getLevelStyle(log.level)
-                              return `
-                                <tr class="row" style="border-bottom: 1px solid var(--border-subtle)">
-                                  <td class="px-4 py-2">
-                                    <span class="text-caption px-2 py-0.5 font-medium" style="background: ${style.bg}; color: ${style.color}; border-radius: var(--radius-sm); text-transform: uppercase">${log.level}</span>
-                                  </td>
-                                  <td class="px-4 py-2 text-caption text-muted mono hide-mobile">${formatTimestamp(log.created_at)}</td>
-                                  <td class="px-4 py-2">
-                                    <div class="text-caption mono text-primary" style="word-break: break-all">${escapeHtml(log.message)}</div>
-                                    <div class="text-caption text-faint show-mobile">${formatTimestamp(log.created_at)}</div>
-                                  </td>
-                                </tr>
-                              `
-                            }).join('')}
-                          </tbody>
-                        </table>
-                      </div>
-                    `}
-                  </div>
-                  ${selectedAppId && filteredLogs.length > 0 ? `
-                    <div class="card-footer flex items-center justify-between" style="border-radius: 0">
-                      <span class="text-caption text-muted">${filteredLogs.length} log${filteredLogs.length === 1 ? '' : 's'}</span>
-                    </div>
-                  ` : ''}
-                </div>
-              </div>
-            </div>
-
+            ${panel}
           </div>
         </div>
       </div>
@@ -188,65 +283,65 @@ export function render(container, ctx) {
     // Re-render Lucide icons
     if (window.lucide) window.lucide.createIcons()
 
-    // Setup collapse handlers
-    container.querySelectorAll('.collapse-toggle').forEach(toggle => {
-      toggle.addEventListener('click', () => {
-        const header = toggle.closest('.panel-group-header')
-        const group = header.dataset.group
-        const panelGroup = header.closest('.panel-group')
-        const isCollapsed = panelGroup.classList.toggle('collapsed')
-        setUIState(`logs.${group}.collapsed`, isCollapsed)
-      })
-    })
+    // Setup panel collapse
+    setupPanel(container)
 
-    // App select handler
-    container.querySelector('#app-select')?.addEventListener('change', (e) => {
-      selectedAppId = e.target.value
-      filterLevel = ''
-      if (selectedAppId) {
-        loadLogs(client, selectedAppId)
-      } else {
-        logs.set([])
+    // Setup toolbar
+    setupToolbar(container, (action) => {
+      if (action === 'refresh') {
+        applyFilters()
       }
-      update()
-    })
-
-    // Level filter handler
-    container.querySelector('#filter-level')?.addEventListener('change', (e) => {
-      filterLevel = e.target.value
-      update()
-    })
-
-    // Refresh handler
-    container.querySelector('#refresh-btn')?.addEventListener('click', () => {
-      if (selectedAppId) {
-        loadLogs(client, selectedAppId)
+    }, (filterId, value) => {
+      // Handle filter changes
+      if (filterId === 'weight') {
+        filters.min_weight = value || undefined
+      } else if (filterId === 'action') {
+        filters.action = value || undefined
+      } else if (filterId === 'actor_type') {
+        filters.actor_type = value || undefined
+      } else if (filterId === 'type') {
+        filters.type = value || undefined
       }
+      filters.offset = 0 // Reset pagination
+      applyFilters()
+    })
+
+    // Setup pagination
+    container.querySelector('#prev-btn')?.addEventListener('click', () => {
+      filters.offset = Math.max(0, filters.offset - filters.limit)
+      applyFilters()
+    })
+
+    container.querySelector('#next-btn')?.addEventListener('click', () => {
+      filters.offset += filters.limit
+      applyFilters()
     })
   }
 
   // Subscribe to data changes
-  const unsubLogs = logs.subscribe(update)
-  const unsubApps = apps.subscribe(update)
-  const unsubLoading = loading.subscribeKey('logs', update)
+  const unsubLogs = activityLogs.subscribe(update)
+  const unsubStats = activityStats.subscribe(update)
+  const unsubLoading = loading.subscribeKey('activity-logs', update)
 
-  // Initial render
+  // Initial load
+  applyFilters()
   update()
 
   // Return cleanup function
   return () => {
     unsubLogs()
-    unsubApps()
+    unsubStats()
     unsubLoading()
   }
 }
 
 /**
- * Escape HTML entities
- * @param {string} str
+ * Format bytes to human readable
  */
-function escapeHtml(str) {
-  const div = document.createElement('div')
-  div.textContent = str
-  return div.innerHTML
+function formatBytes(bytes) {
+  if (bytes === 0) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
