@@ -34,6 +34,7 @@ type QueryParams struct {
 	ResourceType string
 	ResourceID   string
 	AppID        string // Matches resources belonging to an app (app:X, X:key, X.domain/path)
+	Alias        string // Matches pageviews by subdomain (e.g., "fun-game" matches "fun-game.zyt.app/...")
 
 	// Actor filters
 	ActorType string // user/system/api_key/anonymous
@@ -122,6 +123,14 @@ func Query(db *sql.DB, params QueryParams) ([]LogEntry, int, error) {
 		query += appFilter
 		countQuery += appFilter
 		args = append(args, params.AppID, params.AppID+":%", params.AppID+".%")
+	}
+
+	// Alias filter: matches pageviews by subdomain (e.g., "fun-game" matches "fun-game.zyt.app/...")
+	if params.Alias != "" {
+		aliasFilter := " AND resource_id LIKE ?"
+		query += aliasFilter
+		countQuery += aliasFilter
+		args = append(args, params.Alias+".%")
 	}
 
 	// Actor filters
@@ -245,6 +254,10 @@ func Cleanup(db *sql.DB, params QueryParams, dryRun bool) (int64, error) {
 		where += " AND ((resource_type = 'app' AND resource_id = ?) OR resource_id LIKE ? OR resource_id LIKE ?)"
 		args = append(args, params.AppID, params.AppID+":%", params.AppID+".%")
 	}
+	if params.Alias != "" {
+		where += " AND resource_id LIKE ?"
+		args = append(args, params.Alias+".%")
+	}
 	if params.ActorType != "" {
 		where += " AND actor_type = ?"
 		args = append(args, params.ActorType)
@@ -333,6 +346,10 @@ func GetStatsFiltered(db *sql.DB, params QueryParams) (*Stats, error) {
 	if params.AppID != "" {
 		where += " AND ((resource_type = 'app' AND resource_id = ?) OR resource_id LIKE ? OR resource_id LIKE ?)"
 		args = append(args, params.AppID, params.AppID+":%", params.AppID+".%")
+	}
+	if params.Alias != "" {
+		where += " AND resource_id LIKE ?"
+		args = append(args, params.Alias+".%")
 	}
 	if params.ActorType != "" {
 		where += " AND actor_type = ?"
@@ -449,6 +466,9 @@ func DescribeFilters(params QueryParams) string {
 	}
 	if params.AppID != "" {
 		parts = append(parts, "app="+params.AppID)
+	}
+	if params.Alias != "" {
+		parts = append(parts, "alias="+params.Alias)
 	}
 	if params.UserID != "" {
 		parts = append(parts, "user="+params.UserID)

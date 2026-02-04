@@ -218,6 +218,9 @@ func parseLogQueryParams(r *http.Request) activity.QueryParams {
 	if v := q.Get("app"); v != "" {
 		params.AppID = v
 	}
+	if v := q.Get("alias"); v != "" {
+		params.Alias = v
+	}
 	if v := q.Get("user"); v != "" {
 		params.UserID = v
 	}

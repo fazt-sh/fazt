@@ -24,6 +24,7 @@ type filterFlags struct {
 	resourceType *string
 	resourceID   *string
 	appID        *string
+	alias        *string
 	userID       *string
 	actorType    *string
 	action       *string
@@ -43,6 +44,7 @@ func addFilterFlags(flags *flag.FlagSet) *filterFlags {
 	f.resourceType = flags.String("type", "", "Filter by resource type (app/user/session/kv/doc/page/config)")
 	f.resourceID = flags.String("resource", "", "Filter by resource ID")
 	f.appID = flags.String("app", "", "Filter by app ID (matches app resources, KV, pages)")
+	f.alias = flags.String("alias", "", "Filter by subdomain/alias (e.g., fun-game)")
 	f.userID = flags.String("user", "", "Filter by user ID")
 	f.actorType = flags.String("actor-type", "", "Filter by actor type (user/system/api_key/anonymous)")
 	f.action = flags.String("action", "", "Filter by action")
@@ -76,6 +78,9 @@ func (f *filterFlags) toQueryParams() (activity.QueryParams, error) {
 	}
 	if *f.appID != "" {
 		params.AppID = *f.appID
+	}
+	if *f.alias != "" {
+		params.Alias = *f.alias
 	}
 	if *f.userID != "" {
 		params.UserID = *f.userID
@@ -482,6 +487,7 @@ Filters (work with all commands):
   --min-weight N    Minimum weight (0-9)
   --max-weight N    Maximum weight (0-9)
   --app ID          Filter by app ID
+  --alias NAME      Filter by subdomain/alias (e.g., fun-game)
   --user ID         Filter by user ID
   --actor-type T    Filter by actor type (user/system/api_key/anonymous)
   --type T          Filter by resource type (app/session/kv/doc/page/config)
@@ -503,6 +509,7 @@ Command-specific options:
 
 Examples:
   fazt logs list                                     # Recent activity
+  fazt logs list --alias fun-game                    # Pageviews for fun-game.zyt.app
   fazt logs list --app my-app --since 24h           # App activity last 24h
   fazt logs list --user abc123 --min-weight 5       # User's important events
   fazt logs cleanup --app old-app                    # Preview cleanup (dry-run)
@@ -946,6 +953,9 @@ func buildRemoteQueryParams(f *filterFlags) url.Values {
 	}
 	if *f.appID != "" {
 		params.Set("app", *f.appID)
+	}
+	if *f.alias != "" {
+		params.Set("alias", *f.alias)
 	}
 	if *f.userID != "" {
 		params.Set("user", *f.userID)
