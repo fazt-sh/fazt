@@ -1504,6 +1504,7 @@ func createRootHandler(cfg *config.Config, dashboardMux *http.ServeMux, authHand
 			// These are used by remote peers and CLI tools
 			if r.URL.Path == "/api/deploy" ||
 				strings.HasPrefix(r.URL.Path, "/api/users") ||
+				strings.HasPrefix(r.URL.Path, "/api/aliases") ||
 				(strings.HasPrefix(r.URL.Path, "/api/apps/") && strings.HasSuffix(r.URL.Path, "/status")) ||
 				r.URL.Path == "/api/system/health" ||
 				r.URL.Path == "/api/upgrade" {

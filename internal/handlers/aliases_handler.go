@@ -4,10 +4,12 @@ import (
 	"database/sql"
 	"encoding/json"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/fazt-sh/fazt/internal/api"
 	"github.com/fazt-sh/fazt/internal/database"
+	"github.com/fazt-sh/fazt/internal/hosting"
 )
 
 // Alias represents a routing alias
@@ -35,11 +37,58 @@ type RedirectTarget struct {
 	URL string `json:"url"`
 }
 
+// requireAliasAuth checks for API key or session auth with admin/owner role
+// Returns true if authorized, false if already sent error response
+func requireAliasAuth(w http.ResponseWriter, r *http.Request) bool {
+	db := database.GetDB()
+	if db == nil {
+		api.InternalError(w, nil)
+		return false
+	}
+
+	// Check API key auth first (used by CLI)
+	authHeader := r.Header.Get("Authorization")
+	if authHeader != "" && strings.HasPrefix(authHeader, "Bearer ") {
+		token := strings.TrimPrefix(authHeader, "Bearer ")
+		_, _, err := hosting.ValidateAPIKey(db, token)
+		if err != nil {
+			api.Unauthorized(w, "Invalid API key")
+			return false
+		}
+		return true // API key auth successful
+	}
+
+	// Fall back to session auth (used by UI)
+	// authService is a package-level variable set by InitAuth
+	if authService == nil {
+		api.Unauthorized(w, "Authentication not initialized")
+		return false
+	}
+	user, err := authService.GetSessionFromRequest(r)
+	if err != nil {
+		api.Unauthorized(w, "Authentication required")
+		return false
+	}
+
+	// Check role
+	if user.Role != "admin" && user.Role != "owner" {
+		api.Error(w, http.StatusForbidden, "FORBIDDEN", "Admin or owner role required", nil)
+		return false
+	}
+
+	return true
+}
+
 // AliasesListHandler returns the list of all aliases with pagination
 // Query params: ?offset=0&limit=20
 func AliasesListHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		api.ErrorResponse(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Method not allowed", "")
+		return
+	}
+
+	// Auth check - API key or session with admin/owner role
+	if !requireAliasAuth(w, r) {
 		return
 	}
 
@@ -103,6 +152,11 @@ func AliasDetailHandler(w http.ResponseWriter, r *http.Request) {
 	subdomain := r.PathValue("subdomain")
 	if subdomain == "" {
 		api.BadRequest(w, "subdomain required")
+		return
+	}
+
+	// Auth check - API key or session with admin/owner role
+	if !requireAliasAuth(w, r) {
 		return
 	}
 
