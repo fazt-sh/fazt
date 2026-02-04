@@ -4,6 +4,25 @@ All notable changes to fazt.sh will be documented in this file.
 
 ## [Unreleased]
 
+## [0.23.0] - 2026-02-04
+
+### Fixed
+- **Admin auth redirect flow**: Users with insufficient role now return to admin subdomain after re-login
+  - Sign out captures current URL and passes as `?redirect=` parameter
+  - Backend dev auth correctly redirects back after login
+  - Fixes issue where users ended up on root domain instead of admin subdomain
+
+### Changed
+- **Removed PWA/Service Worker from admin**: Eliminates caching issues during development
+  - Service worker caused stale JS bundles to persist
+  - Simpler deployment workflow without aggressive caching
+
+### Improved
+- **Admin unauthorized modal**: Clear feedback when user lacks admin/owner role
+  - Shows user name and current role
+  - Single "Sign Out & Try Again" button
+- **Backend auth session management**: Cleaner role validation and session handling
+
 ## [0.22.0] - 2026-02-02
 
 ### Changed

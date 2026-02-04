@@ -1,5 +1,11 @@
 [
     {
+        "version": "v0.23.0",
+        "title": "Admin Auth Redirect Fix",
+        "description": "Fixed auth redirect flow so users return to admin subdomain after re-login. Removed PWA/Service Worker to eliminate caching issues during development. Added unauthorized modal with clear role feedback.",
+        "created_at": "2026-02-04"
+    },
+    {
         "version": "v0.22.0",
         "title": "Universal @Peer Pattern",
         "description": "All remote commands now use 'fazt @<target> <command>' syntax. 'fazt @zyt status' and 'fazt @zyt upgrade' replace old 'fazt peer status/upgrade' subcommands. Commands that can't work remotely show helpful SSH guidance.",
