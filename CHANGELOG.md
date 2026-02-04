@@ -4,6 +4,15 @@ All notable changes to fazt.sh will be documented in this file.
 
 ## [Unreleased]
 
+## [0.25.2] - 2026-02-04
+
+### Fixed
+- **Root domain pageview tracking**: Analytics script now properly handles root domains
+  - Fixed domain extraction logic to detect valid domain.tld format
+  - Root domains (zyt.app) now correctly send to admin.zyt.app/track
+  - Before: zyt.app → admin.app/track ❌, After: zyt.app → admin.zyt.app/track ✓
+  - Subdomains (tetris.zyt.app) continue working correctly
+
 ## [0.25.1] - 2026-02-04
 
 ### Fixed

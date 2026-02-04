@@ -1,5 +1,11 @@
 [
     {
+        "version": "v0.25.2",
+        "title": "Root Domain Pageview Tracking",
+        "description": "Fixed analytics script to properly track pageviews on root domains (zyt.app). Domain extraction now checks for valid domain.tld format before using sliced result.",
+        "created_at": "2026-02-04"
+    },
+    {
         "version": "v0.25.1",
         "title": "Remote SQL Command Fix",
         "description": "Fixed panic in remote SQL command due to nil response fields. Added safe type assertions, proper authentication via API key, and better error messages.",
