@@ -203,7 +203,7 @@ export function render(container, ctx) {
         searchPlaceholder: 'Search logs...',
         buttons: []
       })}
-      <div class="flex items-center justify-end gap-2" style="border-top: 1px solid var(--border-subtle); padding: 12px 16px">
+      <div class="flex items-center justify-end gap-2" style="padding: 12px 16px">
         <select id="filter-weight" class="btn btn-secondary btn-sm hide-mobile" style="padding: 4px 8px; cursor: pointer">
           <option value="">All Priorities</option>
           <option value="5" ${filterWeight === '5' ? 'selected' : ''}>Important (5+)</option>
