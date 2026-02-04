@@ -40,8 +40,21 @@ fazt logs list --url https://tetris.zyt.app/
 fazt logs list --link tetris.zyt.app/game
 ```
 
+#### Documentation Updates
+Comprehensive CLI documentation for logs command:
+- Created `internal/help/cli/logs/_index.md` - Complete reference
+  - All subcommands documented (list, stats, cleanup, export)
+  - Full filter options reference
+  - Weight scale table
+  - Permissive URL parsing examples
+  - Common workflows and use cases
+- Updated `commands.md` - Added logs to command catalog (v0.20.0 → v0.24.13)
+- Updated `fazt.md` - Added logs to main CLI overview
+- Documentation accessible via symlink: `knowledge-base/cli/logs/`
+
 ### Commits
 ```
+9430d2d docs: add comprehensive logs command documentation
 ab0faf4 feat: add --url and --link aliases for --alias flag
 1a822ba feat: permissive URL parsing for --alias filter
 ```
@@ -93,8 +106,13 @@ Created comprehensive activity logging to replace separate audit/analytics syste
 
 ### High Priority
 1. **Root domain tracking** - Currently no pageviews for `zyt.app` (only subdomains tracked)
-2. **Consider `--domain` filter** - Match full domain pattern vs alias prefix
-3. **Admin UI integration** - Display activity logs in web dashboard
+2. **Admin UI integration** - Display activity logs in web dashboard
+
+### Bugs to Fix
+1. **Remote SQL panic** - `fazt @zyt sql` causes panic
+   - Error: interface conversion: interface {} is nil, not float64
+   - Location: cmd/server/main.go:3492
+   - Type assertion needs fixing in SQL remote handler
 
 ### Future Work
 1. **Cleanup automation** - Scheduled cleanup of low-weight old entries
