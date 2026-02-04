@@ -4,6 +4,12 @@ All notable changes to fazt.sh will be documented in this file.
 
 ## [Unreleased]
 
+## [0.24.8] - 2026-02-04
+
+### Fixed
+- **Alias CLI auth**: Add API key auth to alias endpoints for CLI access
+  - Fixes `fazt @peer alias list` returning decode errors
+
 ## [0.24.7] - 2026-02-04
 
 ### Added
