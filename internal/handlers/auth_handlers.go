@@ -198,6 +198,35 @@ func requireAPIKeyAuth(w http.ResponseWriter, r *http.Request) bool {
 	return true
 }
 
+// requireAdminAuth allows EITHER API key auth OR session auth with admin/owner role
+// Returns the authenticated user's role (or "owner" for API key auth)
+func requireAdminAuth(w http.ResponseWriter, r *http.Request) (role string, ok bool) {
+	// Try API key auth first (CLI usage) - API key holders are treated as owners
+	authHeader := r.Header.Get("Authorization")
+	if authHeader != "" && strings.HasPrefix(authHeader, "Bearer ") {
+		token := strings.TrimPrefix(authHeader, "Bearer ")
+		_, _, err := hosting.ValidateAPIKey(database.GetDB(), token)
+		if err == nil {
+			return "owner", true // API key holders have full access
+		}
+	}
+
+	// Try session auth (UI usage)
+	user, err := authService.GetSessionFromRequest(r)
+	if err != nil {
+		api.Unauthorized(w, "Authentication required")
+		return "", false
+	}
+
+	// Check role
+	if user.Role != "admin" && user.Role != "owner" {
+		api.Error(w, http.StatusForbidden, "FORBIDDEN", "Admin or owner role required", nil)
+		return "", false
+	}
+
+	return user.Role, true
+}
+
 // UsersListHandler returns a list of all users
 func UsersListHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
@@ -205,8 +234,8 @@ func UsersListHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Require API key auth
-	if !requireAPIKeyAuth(w, r) {
+	// Require admin auth (API key or session with admin/owner role)
+	if _, ok := requireAdminAuth(w, r); !ok {
 		return
 	}
 
@@ -222,14 +251,19 @@ func UsersListHandler(w http.ResponseWriter, r *http.Request) {
 // UserSetRoleHandler sets a user's role
 // POST /api/users/role
 // Body: { "user_id": "...", "role": "admin|owner|user" }
+//
+// RBAC rules:
+//   - owner: can set any role on any user
+//   - admin: can set user/admin roles, but NOT owner; cannot modify owners
 func UserSetRoleHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		api.BadRequest(w, "Method not allowed")
 		return
 	}
 
-	// Require API key auth
-	if !requireAPIKeyAuth(w, r) {
+	// Require admin auth and get caller's role
+	callerRole, ok := requireAdminAuth(w, r)
+	if !ok {
 		return
 	}
 
@@ -250,37 +284,49 @@ func UserSetRoleHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get user by ID or email
-	var userID string
+	// Get target user by ID or email
+	var targetUser *auth.User
+	var err error
 	if req.UserID != "" {
-		userID = req.UserID
+		targetUser, err = authService.GetUserByID(req.UserID)
 	} else if req.Email != "" {
-		user, err := authService.GetUserByEmail(req.Email)
-		if err != nil {
-			api.NotFound(w, "USER_NOT_FOUND", "User not found with email: "+req.Email)
-			return
-		}
-		userID = user.ID
+		targetUser, err = authService.GetUserByEmail(req.Email)
 	} else {
 		api.BadRequest(w, "Must provide user_id or email")
 		return
 	}
 
+	if err != nil {
+		api.NotFound(w, "USER_NOT_FOUND", "User not found")
+		return
+	}
+
+	// RBAC checks for non-owners
+	if callerRole != "owner" {
+		// Admins cannot promote to owner
+		if req.Role == "owner" {
+			api.Error(w, http.StatusForbidden, "FORBIDDEN", "Only owners can promote users to owner role", nil)
+			return
+		}
+		// Admins cannot modify owners
+		if targetUser.Role == "owner" {
+			api.Error(w, http.StatusForbidden, "FORBIDDEN", "Only owners can modify other owners", nil)
+			return
+		}
+	}
+
 	// Update role
-	if err := authService.UpdateUserRole(userID, req.Role); err != nil {
+	if err := authService.UpdateUserRole(targetUser.ID, req.Role); err != nil {
 		api.InternalError(w, err)
 		return
 	}
 
-	// Get updated user info
-	user, _ := authService.GetUserByID(userID)
-
-	log.Printf("User role updated: %s (%s) -> %s", user.Email, userID, req.Role)
+	log.Printf("User role updated: %s (%s) -> %s (by %s)", targetUser.Email, targetUser.ID, req.Role, callerRole)
 
 	api.Success(w, http.StatusOK, map[string]interface{}{
 		"message": "Role updated successfully",
-		"user_id": userID,
-		"email":   user.Email,
+		"user_id": targetUser.ID,
+		"email":   targetUser.Email,
 		"role":    req.Role,
 	})
 }

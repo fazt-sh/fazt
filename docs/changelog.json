@@ -1,5 +1,11 @@
 [
     {
+        "version": "v0.24.3",
+        "title": "RBAC for User Management",
+        "description": "Added role-based access control. Owners have full access, admins can manage users but not promote to owner. Endpoints support both API key and session auth.",
+        "created_at": "2026-02-04"
+    },
+    {
         "version": "v0.24.2",
         "title": "Remote Peer Health Check Fix",
         "description": "Fixed remote peer health check to use /api/system/health with API key auth instead of non-existent /health endpoint.",

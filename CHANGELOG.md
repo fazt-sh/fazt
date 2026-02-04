@@ -4,6 +4,15 @@ All notable changes to fazt.sh will be documented in this file.
 
 ## [Unreleased]
 
+## [0.24.3] - 2026-02-04
+
+### Added
+- **RBAC for user management**: Role-based access control for `/api/users*` endpoints
+  - Owners: full access to all user management operations
+  - Admins: can manage users but cannot promote to owner or modify owners
+  - Users: no access to user management
+- **Dual auth support**: User endpoints accept both API key (CLI) and session auth (UI)
+
 ## [0.24.2] - 2026-02-04
 
 ### Fixed
