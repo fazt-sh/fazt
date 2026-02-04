@@ -5,11 +5,6 @@
 
 import { activityLogs, activityStats, loadActivityLogs, loadActivityStats } from '../stores/data.js'
 import { loading } from '../stores/app.js'
-import {
-  renderPanel, setupPanel,
-  renderToolbar, setupToolbar,
-  renderTable, setupTableClicks, renderTableFooter
-} from '../components/index.js'
 
 /**
  * Weight labels and colors
@@ -67,83 +62,28 @@ function formatBytes(bytes) {
 }
 
 /**
- * Build columns config for activity logs table
+ * Get UI state from localStorage
  */
-function getColumns() {
-  return [
-    {
-      key: 'action',
-      label: 'Activity',
-      render: (action, entry) => {
-        const weightInfo = WEIGHT_INFO[entry.weight] || {}
-        const actorInfo = ACTOR_INFO[entry.actor_type] || {}
-        return `
-          <div class="flex items-center gap-2" style="min-width: 0">
-            <div class="icon-box icon-box-sm" style="flex-shrink: 0; border-color: ${weightInfo.color}">
-              <i data-lucide="${actorInfo.icon || 'activity'}" class="w-3.5 h-3.5" style="color: ${weightInfo.color}"></i>
-            </div>
-            <div style="min-width: 0; overflow: hidden">
-              <div class="text-label text-primary" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap">${action}</div>
-              <div class="text-caption text-faint show-mobile">${entry.resource_type} · ${formatRelativeTime(entry.timestamp)}</div>
-            </div>
-          </div>
-        `
-      }
-    },
-    {
-      key: 'resource_type',
-      label: 'Resource',
-      hideOnMobile: true,
-      render: (type, entry) => {
-        const id = entry.resource_id || '-'
-        return `
-          <div style="min-width: 0; overflow: hidden">
-            <span class="badge badge-muted">${type}</span>
-            ${id !== '-' ? `<div class="text-caption mono text-muted mt-0.5" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 160px">${id}</div>` : ''}
-          </div>
-        `
-      }
-    },
-    {
-      key: 'actor_type',
-      label: 'Actor',
-      hideOnMobile: true,
-      render: (type, entry) => {
-        const actorInfo = ACTOR_INFO[type] || {}
-        const actorId = entry.actor_id || actorInfo.label
-        return `<span class="text-caption text-muted">${actorId}</span>`
-      }
-    },
-    {
-      key: 'weight',
-      label: 'Priority',
-      hideOnMobile: true,
-      render: (weight) => {
-        const info = WEIGHT_INFO[weight] || {}
-        return `<span class="text-caption" style="color: ${info.color}">${info.label}</span>`
-      }
-    },
-    {
-      key: 'result',
-      label: 'Result',
-      hideOnMobile: true,
-      render: (result) => {
-        const isSuccess = result === 'success'
-        return `
-          <span class="flex items-center gap-1 text-caption ${isSuccess ? 'text-success' : 'text-error'}">
-            <span class="status-dot ${isSuccess ? 'status-dot-success' : 'status-dot-error'}"></span>
-            ${result}
-          </span>
-        `
-      }
-    },
-    {
-      key: 'timestamp',
-      label: 'Time',
-      hideOnMobile: true,
-      render: (timestamp) => `<span class="text-caption text-muted">${formatRelativeTime(timestamp)}</span>`
-    }
-  ]
+function getUIState(key, defaultValue = false) {
+  try {
+    const state = JSON.parse(localStorage.getItem('fazt.web.ui.state') || '{}')
+    return state[key] !== undefined ? state[key] : defaultValue
+  } catch {
+    return defaultValue
+  }
+}
+
+/**
+ * Set UI state to localStorage
+ */
+function setUIState(key, value) {
+  try {
+    const state = JSON.parse(localStorage.getItem('fazt.web.ui.state') || '{}')
+    state[key] = value
+    localStorage.setItem('fazt.web.ui.state', JSON.stringify(state))
+  } catch (e) {
+    console.error('Failed to save UI state:', e)
+  }
 }
 
 /**
@@ -151,19 +91,23 @@ function getColumns() {
  */
 export function render(container, ctx) {
   const { client } = ctx
-  let searchQuery = ''
-  let filters = {
-    limit: 50,
-    offset: 0
-  }
+  let filterWeight = ''
+  let filterAction = ''
+  let filterActor = ''
+  let filterType = ''
+  let currentPage = 1
+  const pageSize = 50
 
   function applyFilters() {
-    // Combine search with filters
-    const params = { ...filters }
-    if (searchQuery) {
-      // Search across action, resource_id, actor_id
-      params.action = searchQuery
+    const params = {
+      limit: pageSize,
+      offset: (currentPage - 1) * pageSize
     }
+    if (filterWeight) params.min_weight = filterWeight
+    if (filterAction) params.action = filterAction
+    if (filterActor) params.actor_type = filterActor
+    if (filterType) params.type = filterType
+
     loadActivityLogs(client, params)
     loadActivityStats(client, params)
   }
@@ -173,113 +117,159 @@ export function render(container, ctx) {
     const statsData = activityStats.get()
     const isLoading = loading.getKey('activity-logs')
 
-    // Render table content
-    const tableContent = isLoading
-      ? `<div class="flex items-center justify-center p-8"><div class="text-caption text-muted">Loading...</div></div>`
-      : renderTable({
-          columns: getColumns(),
-          data: logsData.entries || [],
-          rowKey: 'id',
-          rowDataAttr: 'log-id',
-          clickable: false,
-          emptyIcon: 'activity',
-          emptyTitle: 'No activity logs',
-          emptyMessage: 'Activity will appear here as it happens'
-        })
-
-    // Calculate pagination
-    const totalPages = Math.ceil((logsData.total || 0) / filters.limit)
-    const currentPage = Math.floor(filters.offset / filters.limit) + 1
-
-    // Build toolbar (search bar)
-    const toolbar = renderToolbar({
-      searchId: 'logs-search',
-      searchValue: searchQuery,
-      searchPlaceholder: 'Search logs...',
-      buttons: [
-        { id: 'refresh-btn', icon: 'refresh-cw', title: 'Refresh' }
-      ]
-    })
-
-    // Build filters row (separate row below toolbar)
-    const filtersRow = `
-      <div class="card-header flex items-center justify-end gap-2" style="border-top: 1px solid var(--border-subtle); padding-top: 8px; padding-bottom: 8px">
-        <select id="filter-weight" class="btn btn-secondary btn-sm" style="padding: 4px 8px; cursor: pointer">
-          <option value="">All Priorities</option>
-          <option value="5" ${filters.min_weight === '5' ? 'selected' : ''}>Important (5+)</option>
-          <option value="7" ${filters.min_weight === '7' ? 'selected' : ''}>Critical (7+)</option>
-          <option value="9" ${filters.min_weight === '9' ? 'selected' : ''}>Security (9)</option>
-        </select>
-        <select id="filter-action" class="btn btn-secondary btn-sm" style="padding: 4px 8px; cursor: pointer">
-          <option value="">All Actions</option>
-          <option value="pageview" ${filters.action === 'pageview' ? 'selected' : ''}>Pageview</option>
-          <option value="deploy" ${filters.action === 'deploy' ? 'selected' : ''}>Deploy</option>
-          <option value="login" ${filters.action === 'login' ? 'selected' : ''}>Login</option>
-          <option value="create" ${filters.action === 'create' ? 'selected' : ''}>Create</option>
-          <option value="delete" ${filters.action === 'delete' ? 'selected' : ''}>Delete</option>
-        </select>
-        <select id="filter-actor" class="btn btn-secondary btn-sm" style="padding: 4px 8px; cursor: pointer">
-          <option value="">All Actors</option>
-          <option value="user" ${filters.actor_type === 'user' ? 'selected' : ''}>User</option>
-          <option value="system" ${filters.actor_type === 'system' ? 'selected' : ''}>System</option>
-          <option value="api_key" ${filters.actor_type === 'api_key' ? 'selected' : ''}>API Key</option>
-          <option value="anonymous" ${filters.actor_type === 'anonymous' ? 'selected' : ''}>Anonymous</option>
-        </select>
-        <select id="filter-type" class="btn btn-secondary btn-sm" style="padding: 4px 8px; cursor: pointer">
-          <option value="">All Types</option>
-          <option value="page" ${filters.type === 'page' ? 'selected' : ''}>Page</option>
-          <option value="app" ${filters.type === 'app' ? 'selected' : ''}>App</option>
-          <option value="alias" ${filters.type === 'alias' ? 'selected' : ''}>Alias</option>
-          <option value="kv" ${filters.type === 'kv' ? 'selected' : ''}>KV Store</option>
-          <option value="session" ${filters.type === 'session' ? 'selected' : ''}>Session</option>
-        </select>
-      </div>
-    `
-
-    // Render footer with pagination
-    const footer = logsData.total > 0 ? `
-      <div class="card-footer flex items-center justify-between gap-4" style="border-radius: 0">
-        <div class="flex items-center gap-2 text-caption text-muted">
-          <span>Showing ${logsData.showing} of ${logsData.total}</span>
-          ${statsData.size_estimate_bytes > 0 ? `<span class="hide-mobile">·</span><span class="hide-mobile">${formatBytes(statsData.size_estimate_bytes)} used</span>` : ''}
-        </div>
-        ${totalPages > 1 ? `
-          <div class="flex items-center gap-2">
-            <button id="first-page-btn" class="btn btn-secondary btn-sm" ${currentPage === 1 ? 'disabled' : ''} title="First page">
-              <i data-lucide="chevrons-left" class="w-3.5 h-3.5"></i>
-            </button>
-            <button id="prev-page-btn" class="btn btn-secondary btn-sm" ${currentPage === 1 ? 'disabled' : ''} title="Previous page">
-              <i data-lucide="chevron-left" class="w-3.5 h-3.5"></i>
-            </button>
-            <span class="text-caption text-muted px-2">Page ${currentPage} of ${totalPages}</span>
-            <button id="next-page-btn" class="btn btn-secondary btn-sm" ${currentPage === totalPages ? 'disabled' : ''} title="Next page">
-              <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
-            </button>
-            <button id="last-page-btn" class="btn btn-secondary btn-sm" ${currentPage === totalPages ? 'disabled' : ''} title="Last page">
-              <i data-lucide="chevrons-right" class="w-3.5 h-3.5"></i>
-            </button>
-          </div>
-        ` : ''}
-      </div>
-    ` : ''
-
-    // Render panel
-    const panel = renderPanel({
-      id: 'logs-list',
-      title: 'Activity Logs',
-      count: logsData.total,
-      toolbar: toolbar + filtersRow,
-      content: tableContent,
-      footer,
-      minHeight: 400,
-      maxHeight: 600
-    })
+    const totalPages = Math.ceil((logsData.total || 0) / pageSize)
+    const listCollapsed = getUIState('logs.list.collapsed', false)
 
     container.innerHTML = `
       <div class="design-system-page">
         <div class="content-container">
           <div class="content-scroll">
-            ${panel}
+
+            <!-- Panel Group: Activity Logs -->
+            <div class="panel-group ${listCollapsed ? 'collapsed' : ''}">
+              <div class="panel-group-card card">
+                <header class="panel-group-header" data-group="list">
+                  <button class="collapse-toggle">
+                    <i data-lucide="chevron-right" class="chevron w-4 h-4"></i>
+                    <span class="text-heading text-primary">Activity Logs</span>
+                    ${logsData.total > 0 ? `<span class="text-caption mono px-1.5 py-0.5 ml-2 badge-muted" style="border-radius: var(--radius-sm)">${logsData.total}</span>` : ''}
+                  </button>
+                  <div class="flex items-center gap-2 ml-auto">
+                    <select id="filter-weight" class="btn btn-secondary btn-sm hide-mobile" style="padding: 4px 8px; cursor: pointer">
+                      <option value="">All Priorities</option>
+                      <option value="5" ${filterWeight === '5' ? 'selected' : ''}>Important (5+)</option>
+                      <option value="7" ${filterWeight === '7' ? 'selected' : ''}>Critical (7+)</option>
+                      <option value="9" ${filterWeight === '9' ? 'selected' : ''}>Security (9)</option>
+                    </select>
+                    <select id="filter-action" class="btn btn-secondary btn-sm hide-mobile" style="padding: 4px 8px; cursor: pointer">
+                      <option value="">All Actions</option>
+                      <option value="pageview" ${filterAction === 'pageview' ? 'selected' : ''}>Pageview</option>
+                      <option value="deploy" ${filterAction === 'deploy' ? 'selected' : ''}>Deploy</option>
+                      <option value="login" ${filterAction === 'login' ? 'selected' : ''}>Login</option>
+                      <option value="create" ${filterAction === 'create' ? 'selected' : ''}>Create</option>
+                      <option value="delete" ${filterAction === 'delete' ? 'selected' : ''}>Delete</option>
+                    </select>
+                    <select id="filter-actor" class="btn btn-secondary btn-sm hide-mobile" style="padding: 4px 8px; cursor: pointer">
+                      <option value="">All Actors</option>
+                      <option value="user" ${filterActor === 'user' ? 'selected' : ''}>User</option>
+                      <option value="system" ${filterActor === 'system' ? 'selected' : ''}>System</option>
+                      <option value="api_key" ${filterActor === 'api_key' ? 'selected' : ''}>API Key</option>
+                      <option value="anonymous" ${filterActor === 'anonymous' ? 'selected' : ''}>Anonymous</option>
+                    </select>
+                    <select id="filter-type" class="btn btn-secondary btn-sm hide-mobile" style="padding: 4px 8px; cursor: pointer">
+                      <option value="">All Types</option>
+                      <option value="page" ${filterType === 'page' ? 'selected' : ''}>Page</option>
+                      <option value="app" ${filterType === 'app' ? 'selected' : ''}>App</option>
+                      <option value="alias" ${filterType === 'alias' ? 'selected' : ''}>Alias</option>
+                      <option value="kv" ${filterType === 'kv' ? 'selected' : ''}>KV</option>
+                      <option value="session" ${filterType === 'session' ? 'selected' : ''}>Session</option>
+                    </select>
+                    <button id="refresh-btn" class="btn btn-secondary btn-sm" style="padding: 4px 8px" title="Refresh">
+                      <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                    </button>
+                  </div>
+                </header>
+                <div class="panel-group-body" style="padding: 0">
+                  <div class="flex-1 overflow-auto scroll-panel" style="max-height: 600px">
+                    ${isLoading ? `
+                      <div class="flex items-center justify-center p-8">
+                        <div class="text-caption text-muted">Loading logs...</div>
+                      </div>
+                    ` : (logsData.entries || []).length === 0 ? `
+                      <div class="flex flex-col items-center justify-center p-8 text-center">
+                        <div class="icon-box mb-3" style="width:48px;height:48px;opacity:0.5">
+                          <i data-lucide="activity" class="w-6 h-6"></i>
+                        </div>
+                        <div class="text-heading text-primary mb-1">No activity logs</div>
+                        <div class="text-caption text-muted">${filterWeight || filterAction || filterActor || filterType ? 'No logs match your filters' : 'Activity will appear here as it happens'}</div>
+                      </div>
+                    ` : `
+                      <div class="table-container">
+                        <table>
+                          <thead class="sticky" style="top: 0; background: var(--bg-1)">
+                            <tr class="border-b">
+                              <th class="px-4 py-2 text-left text-micro text-muted" style="width: 120px">Activity</th>
+                              <th class="px-4 py-2 text-left text-micro text-muted hide-mobile" style="width: 140px">Resource</th>
+                              <th class="px-4 py-2 text-left text-micro text-muted hide-mobile" style="width: 100px">Actor</th>
+                              <th class="px-4 py-2 text-left text-micro text-muted hide-mobile" style="width: 80px">Priority</th>
+                              <th class="px-4 py-2 text-left text-micro text-muted hide-mobile" style="width: 80px">Result</th>
+                              <th class="px-4 py-2 text-left text-micro text-muted" style="width: 100px">Time</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            ${(logsData.entries || []).map(entry => {
+                              const weightInfo = WEIGHT_INFO[entry.weight] || {}
+                              const actorInfo = ACTOR_INFO[entry.actor_type] || {}
+                              const isSuccess = entry.result === 'success'
+                              return `
+                                <tr class="row" style="border-bottom: 1px solid var(--border-subtle)">
+                                  <td class="px-4 py-2">
+                                    <div class="flex items-center gap-2">
+                                      <div class="icon-box icon-box-sm" style="border-color: ${weightInfo.color}; flex-shrink: 0">
+                                        <i data-lucide="${actorInfo.icon || 'activity'}" class="w-3.5 h-3.5" style="color: ${weightInfo.color}"></i>
+                                      </div>
+                                      <div style="min-width: 0">
+                                        <div class="text-label text-primary">${entry.action}</div>
+                                        <div class="text-caption text-faint show-mobile">${entry.resource_type}</div>
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td class="px-4 py-2 hide-mobile">
+                                    <span class="badge badge-muted">${entry.resource_type}</span>
+                                    ${entry.resource_id ? `<div class="text-caption mono text-muted mt-0.5" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 120px">${entry.resource_id}</div>` : ''}
+                                  </td>
+                                  <td class="px-4 py-2 hide-mobile">
+                                    <span class="text-caption text-muted">${entry.actor_id || actorInfo.label}</span>
+                                  </td>
+                                  <td class="px-4 py-2 hide-mobile">
+                                    <span class="text-caption" style="color: ${weightInfo.color}">${weightInfo.label}</span>
+                                  </td>
+                                  <td class="px-4 py-2 hide-mobile">
+                                    <span class="flex items-center gap-1 text-caption ${isSuccess ? 'text-success' : 'text-error'}">
+                                      <span class="status-dot ${isSuccess ? 'status-dot-success' : 'status-dot-error'}"></span>
+                                      ${entry.result}
+                                    </span>
+                                  </td>
+                                  <td class="px-4 py-2">
+                                    <span class="text-caption text-muted">${formatRelativeTime(entry.timestamp)}</span>
+                                  </td>
+                                </tr>
+                              `
+                            }).join('')}
+                          </tbody>
+                        </table>
+                      </div>
+                    `}
+                  </div>
+                  ${logsData.total > 0 ? `
+                    <div class="card-footer flex items-center justify-between" style="border-radius: 0">
+                      <span class="text-caption text-muted">
+                        Showing ${logsData.showing} of ${logsData.total}
+                        ${statsData.size_estimate_bytes > 0 ? ` · ${formatBytes(statsData.size_estimate_bytes)}` : ''}
+                      </span>
+                      ${totalPages > 1 ? `
+                        <div class="flex items-center gap-2">
+                          <button id="first-page-btn" class="btn btn-secondary btn-sm" ${currentPage === 1 ? 'disabled' : ''} title="First page">
+                            <i data-lucide="chevrons-left" class="w-3.5 h-3.5"></i>
+                          </button>
+                          <button id="prev-page-btn" class="btn btn-secondary btn-sm" ${currentPage === 1 ? 'disabled' : ''} title="Previous">
+                            <i data-lucide="chevron-left" class="w-3.5 h-3.5"></i>
+                          </button>
+                          <span class="text-caption text-muted px-2">Page ${currentPage} of ${totalPages}</span>
+                          <button id="next-page-btn" class="btn btn-secondary btn-sm" ${currentPage === totalPages ? 'disabled' : ''} title="Next">
+                            <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+                          </button>
+                          <button id="last-page-btn" class="btn btn-secondary btn-sm" ${currentPage === totalPages ? 'disabled' : ''} title="Last page">
+                            <i data-lucide="chevrons-right" class="w-3.5 h-3.5"></i>
+                          </button>
+                        </div>
+                      ` : ''}
+                    </div>
+                  ` : ''}
+                </div>
+              </div>
+            </div>
+
           </div>
         </div>
       </div>
@@ -288,65 +278,69 @@ export function render(container, ctx) {
     // Re-render Lucide icons
     if (window.lucide) window.lucide.createIcons()
 
-    // Setup panel collapse
-    setupPanel(container)
+    // Setup collapse handlers
+    container.querySelectorAll('.collapse-toggle').forEach(toggle => {
+      toggle.addEventListener('click', () => {
+        const header = toggle.closest('.panel-group-header')
+        const group = header.dataset.group
+        const panelGroup = header.closest('.panel-group')
+        const isCollapsed = panelGroup.classList.toggle('collapsed')
+        setUIState(`logs.${group}.collapsed`, isCollapsed)
+      })
+    })
 
-    // Setup toolbar (search + refresh)
-    setupToolbar(container, {
-      onSearch: (value) => {
-        searchQuery = value
-        filters.offset = 0 // Reset pagination
-        applyFilters()
-      },
-      buttons: {
-        'refresh-btn': () => applyFilters()
-      }
-    }, 'logs-search')
-
-    // Setup filter dropdowns
+    // Filter handlers
     container.querySelector('#filter-weight')?.addEventListener('change', (e) => {
-      filters.min_weight = e.target.value || undefined
-      filters.offset = 0
+      filterWeight = e.target.value
+      currentPage = 1
       applyFilters()
     })
 
     container.querySelector('#filter-action')?.addEventListener('change', (e) => {
-      filters.action = e.target.value || undefined
-      filters.offset = 0
+      filterAction = e.target.value
+      currentPage = 1
       applyFilters()
     })
 
     container.querySelector('#filter-actor')?.addEventListener('change', (e) => {
-      filters.actor_type = e.target.value || undefined
-      filters.offset = 0
+      filterActor = e.target.value
+      currentPage = 1
       applyFilters()
     })
 
     container.querySelector('#filter-type')?.addEventListener('change', (e) => {
-      filters.type = e.target.value || undefined
-      filters.offset = 0
+      filterType = e.target.value
+      currentPage = 1
       applyFilters()
     })
 
-    // Setup pagination
+    // Refresh handler
+    container.querySelector('#refresh-btn')?.addEventListener('click', () => {
+      applyFilters()
+    })
+
+    // Pagination handlers
     container.querySelector('#first-page-btn')?.addEventListener('click', () => {
-      filters.offset = 0
+      currentPage = 1
       applyFilters()
     })
 
     container.querySelector('#prev-page-btn')?.addEventListener('click', () => {
-      filters.offset = Math.max(0, filters.offset - filters.limit)
-      applyFilters()
+      if (currentPage > 1) {
+        currentPage--
+        applyFilters()
+      }
     })
 
     container.querySelector('#next-page-btn')?.addEventListener('click', () => {
-      filters.offset += filters.limit
-      applyFilters()
+      if (currentPage < totalPages) {
+        currentPage++
+        applyFilters()
+      }
     })
 
     container.querySelector('#last-page-btn')?.addEventListener('click', () => {
-      const lastPageOffset = Math.floor((logsData.total - 1) / filters.limit) * filters.limit
-      filters.offset = lastPageOffset
+      currentPage = totalPages
       applyFilters()
     })
   }
