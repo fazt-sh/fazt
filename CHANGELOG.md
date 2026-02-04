@@ -4,6 +4,11 @@ All notable changes to fazt.sh will be documented in this file.
 
 ## [Unreleased]
 
+## [0.24.10] - 2026-02-04
+
+### Fixed
+- **Remote logs support**: Add `fazt @peer logs` commands for remote peer access
+
 ## [0.24.9] - 2026-02-04
 
 ### Added
