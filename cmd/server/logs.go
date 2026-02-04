@@ -5,12 +5,16 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"net/http"
+	"net/url"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/fazt-sh/fazt/internal/activity"
 	"github.com/fazt-sh/fazt/internal/database"
 	"github.com/fazt-sh/fazt/internal/output"
+	"github.com/fazt-sh/fazt/internal/remote"
 )
 
 // Common filter flags shared across list, cleanup, and export
@@ -581,3 +585,398 @@ func truncate(s string, max int) string {
 }
 
 // formatBytes is defined in app_v2.go
+
+// === Remote Peer Handlers ===
+
+// handleLogsCommandWithPeer handles logs commands on remote peer
+func handleLogsCommandWithPeer(peerName string, args []string) {
+	if len(args) < 1 {
+		printLogsHelp()
+		os.Exit(1)
+	}
+
+	subCmd := args[0]
+	switch subCmd {
+	case "list":
+		handleLogsListRemote(peerName, args[1:])
+	case "stats":
+		handleLogsStatsRemote(peerName, args[1:])
+	case "cleanup":
+		handleLogsCleanupRemote(peerName, args[1:])
+	case "export":
+		handleLogsExportRemote(peerName, args[1:])
+	case "--help", "-h", "help":
+		printLogsHelp()
+	default:
+		fmt.Printf("Unknown logs subcommand: %s\n", subCmd)
+		printLogsHelp()
+		os.Exit(1)
+	}
+}
+
+func handleLogsListRemote(peerName string, args []string) {
+	flags := flag.NewFlagSet("logs list", flag.ExitOnError)
+	f := addFilterFlags(flags)
+	flags.Parse(args)
+
+	db := getClientDB()
+	defer database.Close()
+
+	peer, err := remote.ResolvePeer(db, peerName)
+	if err != nil {
+		handlePeerError(err)
+		os.Exit(1)
+	}
+
+	params := buildRemoteQueryParams(f)
+	req, _ := http.NewRequest("GET", peer.URL+"/api/system/logs?"+params.Encode(), nil)
+	req.Header.Set("Authorization", "Bearer "+peer.Token)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+	defer resp.Body.Close()
+
+	var response struct {
+		Data struct {
+			Entries []activity.LogEntry `json:"entries"`
+			Total   int                 `json:"total"`
+			Showing int                 `json:"showing"`
+		} `json:"data"`
+		Error string `json:"error"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+		fmt.Fprintf(os.Stderr, "Error decoding response: %v\n", err)
+		os.Exit(1)
+	}
+
+	if response.Error != "" {
+		fmt.Fprintf(os.Stderr, "Error: %s\n", response.Error)
+		os.Exit(1)
+	}
+
+	renderer := getRenderer()
+	entries := response.Data.Entries
+
+	if len(entries) == 0 {
+		renderer.Print("No activity logs found.", map[string]interface{}{"entries": []interface{}{}, "total": 0})
+		return
+	}
+
+	table := &output.Table{
+		Headers: []string{"Time", "W", "Actor", "Resource", "Action", "Result"},
+		Rows:    make([][]string, len(entries)),
+	}
+
+	for i, e := range entries {
+		timeStr := formatTime(e.Timestamp)
+		actor := e.ActorType
+		if e.ActorID != "" {
+			actor = e.ActorID
+		}
+		if len(actor) > 12 {
+			actor = actor[:9] + "..."
+		}
+		resource := e.ResourceType
+		if e.ResourceID != "" {
+			resource = fmt.Sprintf("%s:%s", e.ResourceType, truncate(e.ResourceID, 15))
+		}
+		table.Rows[i] = []string{
+			timeStr,
+			fmt.Sprintf("%d", e.Weight),
+			actor,
+			resource,
+			e.Action,
+			e.Result,
+		}
+	}
+
+	md := output.NewMarkdown().
+		H1("Activity Logs").
+		Table(table).
+		Para(fmt.Sprintf("Showing %d of %d entries", response.Data.Showing, response.Data.Total)).
+		String()
+
+	renderer.Print(md, map[string]interface{}{
+		"entries": entries,
+		"total":   response.Data.Total,
+		"showing": response.Data.Showing,
+	})
+}
+
+func handleLogsStatsRemote(peerName string, args []string) {
+	flags := flag.NewFlagSet("logs stats", flag.ExitOnError)
+	f := addFilterFlags(flags)
+	flags.Parse(args)
+
+	db := getClientDB()
+	defer database.Close()
+
+	peer, err := remote.ResolvePeer(db, peerName)
+	if err != nil {
+		handlePeerError(err)
+		os.Exit(1)
+	}
+
+	params := buildRemoteQueryParams(f)
+	req, _ := http.NewRequest("GET", peer.URL+"/api/system/logs/stats?"+params.Encode(), nil)
+	req.Header.Set("Authorization", "Bearer "+peer.Token)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+	defer resp.Body.Close()
+
+	var response struct {
+		Data struct {
+			TotalCount    int            `json:"total_count"`
+			CountByWeight map[string]int `json:"count_by_weight"`
+			OldestEntry   *time.Time     `json:"oldest_entry"`
+			NewestEntry   *time.Time     `json:"newest_entry"`
+			SizeEstimate  int64          `json:"size_estimate_bytes"`
+		} `json:"data"`
+		Error string `json:"error"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+		fmt.Fprintf(os.Stderr, "Error decoding response: %v\n", err)
+		os.Exit(1)
+	}
+
+	if response.Error != "" {
+		fmt.Fprintf(os.Stderr, "Error: %s\n", response.Error)
+		os.Exit(1)
+	}
+
+	stats := response.Data
+	renderer := getRenderer()
+
+	weightLabels := map[int]string{
+		0: "Debug", 1: "System", 2: "Analytics", 3: "Navigation", 4: "User Action",
+		5: "Data Mutation", 6: "Deployment", 7: "Config", 8: "Auth", 9: "Security",
+	}
+
+	table := &output.Table{
+		Headers: []string{"Weight", "Category", "Count"},
+		Rows:    make([][]string, 0),
+	}
+
+	for w := 9; w >= 0; w-- {
+		count := stats.CountByWeight[strconv.Itoa(w)]
+		if count > 0 {
+			table.Rows = append(table.Rows, []string{
+				fmt.Sprintf("%d", w),
+				weightLabels[w],
+				fmt.Sprintf("%d", count),
+			})
+		}
+	}
+
+	var timeRange string
+	if stats.OldestEntry != nil && stats.NewestEntry != nil {
+		timeRange = fmt.Sprintf("%s to %s", stats.OldestEntry.Format("2006-01-02"), stats.NewestEntry.Format("2006-01-02"))
+	} else {
+		timeRange = "N/A"
+	}
+
+	md := output.NewMarkdown().
+		H1("Activity Log Stats").
+		Para(fmt.Sprintf("**Total entries:** %d", stats.TotalCount)).
+		Para(fmt.Sprintf("**Size estimate:** %s", formatBytes(stats.SizeEstimate))).
+		Para(fmt.Sprintf("**Time range:** %s", timeRange)).
+		H2("Entries by Weight").
+		Table(table).
+		String()
+
+	renderer.Print(md, stats)
+}
+
+func handleLogsCleanupRemote(peerName string, args []string) {
+	flags := flag.NewFlagSet("logs cleanup", flag.ExitOnError)
+	f := addFilterFlags(flags)
+	force := flags.Bool("force", false, "Actually delete entries")
+	flags.Parse(args)
+
+	db := getClientDB()
+	defer database.Close()
+
+	peer, err := remote.ResolvePeer(db, peerName)
+	if err != nil {
+		handlePeerError(err)
+		os.Exit(1)
+	}
+
+	params := buildRemoteQueryParams(f)
+	if *force {
+		params.Set("force", "true")
+	}
+	req, _ := http.NewRequest("POST", peer.URL+"/api/system/logs/cleanup?"+params.Encode(), nil)
+	req.Header.Set("Authorization", "Bearer "+peer.Token)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+	defer resp.Body.Close()
+
+	var response struct {
+		Data struct {
+			Deleted int64  `json:"deleted"`
+			DryRun  bool   `json:"dry_run"`
+			Filters string `json:"filters"`
+		} `json:"data"`
+		Error string `json:"error"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+		fmt.Fprintf(os.Stderr, "Error decoding response: %v\n", err)
+		os.Exit(1)
+	}
+
+	if response.Error != "" {
+		fmt.Fprintf(os.Stderr, "Error: %s\n", response.Error)
+		os.Exit(1)
+	}
+
+	renderer := getRenderer()
+	if response.Data.DryRun {
+		md := fmt.Sprintf("Would delete **%d** entries matching: %s\n\nUse --force to actually delete.", response.Data.Deleted, response.Data.Filters)
+		renderer.Print(md, response.Data)
+	} else {
+		md := fmt.Sprintf("Deleted **%d** entries matching: %s", response.Data.Deleted, response.Data.Filters)
+		renderer.Print(md, response.Data)
+	}
+}
+
+func handleLogsExportRemote(peerName string, args []string) {
+	flags := flag.NewFlagSet("logs export", flag.ExitOnError)
+	f := addFilterFlags(flags)
+	exportFormat := flags.String("f", "json", "Export format: json or csv")
+	outputFile := flags.String("o", "", "Output file (default: stdout)")
+	flags.Parse(args)
+
+	if *f.limit == activity.DefaultLimit {
+		*f.limit = activity.MaxLimit
+	}
+
+	db := getClientDB()
+	defer database.Close()
+
+	peer, err := remote.ResolvePeer(db, peerName)
+	if err != nil {
+		handlePeerError(err)
+		os.Exit(1)
+	}
+
+	params := buildRemoteQueryParams(f)
+	req, _ := http.NewRequest("GET", peer.URL+"/api/system/logs?"+params.Encode(), nil)
+	req.Header.Set("Authorization", "Bearer "+peer.Token)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+	defer resp.Body.Close()
+
+	var response struct {
+		Data struct {
+			Entries []activity.LogEntry `json:"entries"`
+			Total   int                 `json:"total"`
+		} `json:"data"`
+		Error string `json:"error"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+		fmt.Fprintf(os.Stderr, "Error decoding response: %v\n", err)
+		os.Exit(1)
+	}
+
+	if response.Error != "" {
+		fmt.Fprintf(os.Stderr, "Error: %s\n", response.Error)
+		os.Exit(1)
+	}
+
+	var out *os.File
+	if *outputFile == "" {
+		out = os.Stdout
+	} else {
+		out, err = os.Create(*outputFile)
+		if err != nil {
+			fmt.Printf("Error creating output file: %v\n", err)
+			os.Exit(1)
+		}
+		defer out.Close()
+	}
+
+	switch *exportFormat {
+	case "json":
+		exportJSON(out, response.Data.Entries, response.Data.Total)
+	case "csv":
+		exportCSV(out, response.Data.Entries)
+	default:
+		fmt.Printf("Unknown format: %s (use json or csv)\n", *exportFormat)
+		os.Exit(1)
+	}
+
+	if *outputFile != "" {
+		fmt.Fprintf(os.Stderr, "Exported %d entries to %s\n", len(response.Data.Entries), *outputFile)
+	}
+}
+
+// buildRemoteQueryParams converts filter flags to URL query params
+func buildRemoteQueryParams(f *filterFlags) url.Values {
+	params := url.Values{}
+
+	if *f.minWeight >= 0 {
+		params.Set("min_weight", strconv.Itoa(*f.minWeight))
+	}
+	if *f.maxWeight >= 0 {
+		params.Set("max_weight", strconv.Itoa(*f.maxWeight))
+	}
+	if *f.resourceType != "" {
+		params.Set("type", *f.resourceType)
+	}
+	if *f.resourceID != "" {
+		params.Set("resource", *f.resourceID)
+	}
+	if *f.appID != "" {
+		params.Set("app", *f.appID)
+	}
+	if *f.userID != "" {
+		params.Set("user", *f.userID)
+	}
+	if *f.actorType != "" {
+		params.Set("actor_type", *f.actorType)
+	}
+	if *f.action != "" {
+		params.Set("action", *f.action)
+	}
+	if *f.result != "" {
+		params.Set("result", *f.result)
+	}
+	if *f.since != "" {
+		params.Set("since", *f.since)
+	}
+	if *f.until != "" {
+		params.Set("until", *f.until)
+	}
+	if *f.limit > 0 {
+		params.Set("limit", strconv.Itoa(*f.limit))
+	}
+	if *f.offset > 0 {
+		params.Set("offset", strconv.Itoa(*f.offset))
+	}
+
+	return params
+}

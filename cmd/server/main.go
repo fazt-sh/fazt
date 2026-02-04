@@ -217,6 +217,9 @@ func handleAtPeerRouting(peerName string, args []string) {
 	case "server":
 		handleServerCommandRemote(peerName, cmdArgs)
 
+	case "logs":
+		handleLogsCommandWithPeer(peerName, cmdArgs)
+
 	// === LOCAL-ONLY COMMANDS (helpful errors) ===
 
 	case "service":
@@ -1510,6 +1513,7 @@ func createRootHandler(cfg *config.Config, dashboardMux *http.ServeMux, authHand
 				strings.HasPrefix(r.URL.Path, "/api/aliases") ||
 				(strings.HasPrefix(r.URL.Path, "/api/apps/") && strings.HasSuffix(r.URL.Path, "/status")) ||
 				r.URL.Path == "/api/system/health" ||
+				strings.HasPrefix(r.URL.Path, "/api/system/logs") ||
 				r.URL.Path == "/api/upgrade" {
 				dashboardMux.ServeHTTP(w, r)
 				return
@@ -2814,6 +2818,9 @@ func handleStartCommand() {
 	dashboardMux.HandleFunc("/api/config", handlers.SystemConfigHandler) // Alias
 	dashboardMux.HandleFunc("GET /api/system/health", handlers.SystemHealthHandler)
 	dashboardMux.HandleFunc("GET /api/system/capacity", handlers.SystemCapacityHandler)
+	dashboardMux.HandleFunc("GET /api/system/logs", handlers.SystemLogsHandler)
+	dashboardMux.HandleFunc("GET /api/system/logs/stats", handlers.SystemLogsStatsHandler)
+	dashboardMux.HandleFunc("POST /api/system/logs/cleanup", handlers.SystemLogsCleanupHandler)
 
 	// API routes - Hosting/Deploy
 	dashboardMux.HandleFunc("/api/deploy", handlers.DeployHandler)
