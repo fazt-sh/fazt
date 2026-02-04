@@ -43,8 +43,8 @@ export function createClient(options = {}) {
      * Apps endpoints
      */
     apps: {
-      /** List all apps */
-      list: () => http.get('/api/apps'),
+      /** List all apps (includes unlisted apps in admin context) */
+      list: () => http.get('/api/apps', { params: { all: 'true' } }),
 
       /** Get app by ID or name */
       get: (id) => http.get(`/api/apps/${id}`),
@@ -131,8 +131,8 @@ export function createClient(options = {}) {
      * Stats endpoints
      */
     stats: {
-      /** Get overview stats */
-      overview: () => http.get('/api/stats'),
+      /** Get analytics stats (events-based) */
+      analytics: () => http.get('/api/stats'),
 
       /** Get app-specific stats */
       app: (id) => http.get(`/api/stats/apps/${id}`)

@@ -49,9 +49,10 @@ export function createHttpClient(options = {}) {
       method: requestOptions.method || 'GET',
       headers: {
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
         ...requestOptions.headers
       },
-      credentials: 'same-origin', // Include cookies for auth
+      credentials: 'include', // Include cookies for cross-origin auth
       signal: requestOptions.signal
     }
 

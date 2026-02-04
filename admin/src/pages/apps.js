@@ -75,7 +75,7 @@ function renderList(container, ctx) {
     // Filter apps
     const filteredApps = filter
       ? appList.filter(app =>
-          app.name.toLowerCase().includes(filter.toLowerCase()) ||
+          app.title.toLowerCase().includes(filter.toLowerCase()) ||
           app.id.toLowerCase().includes(filter.toLowerCase()) ||
           (appAliases[app.id] || []).some(a => a.toLowerCase().includes(filter.toLowerCase()))
         )
@@ -84,16 +84,16 @@ function renderList(container, ctx) {
     // Table columns - mobile shows only Name (with status dot)
     const columns = [
       {
-        key: 'name',
+        key: 'title',
         label: 'Name',
-        render: (name, app) => `
+        render: (title, app) => `
           <div class="flex items-center gap-2" style="min-width: 0">
             <span class="status-dot status-dot-success pulse show-mobile" style="flex-shrink: 0"></span>
             <div class="icon-box icon-box-sm" style="flex-shrink: 0">
               <i data-lucide="box" class="w-3.5 h-3.5"></i>
             </div>
             <div style="min-width: 0; overflow: hidden">
-              <div class="text-label text-primary" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap">${name}</div>
+              <div class="text-label text-primary" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap">${title}</div>
               <div class="text-caption mono text-faint show-mobile">${app.file_count} files · ${formatBytes(app.size_bytes)}</div>
             </div>
           </div>
@@ -213,7 +213,7 @@ function renderList(container, ctx) {
 
     const filteredApps = filter
       ? appList.filter(app =>
-          app.name.toLowerCase().includes(filter.toLowerCase()) ||
+          app.title.toLowerCase().includes(filter.toLowerCase()) ||
           app.id.toLowerCase().includes(filter.toLowerCase()) ||
           (appAliases[app.id] || []).some(a => a.toLowerCase().includes(filter.toLowerCase()))
         )
@@ -373,7 +373,7 @@ function renderDetail(container, ctx) {
                     <i data-lucide="arrow-left" class="w-4 h-4"></i>
                   </button>
                   <div>
-                    <h1 class="text-title text-primary">${app.name}</h1>
+                    <h1 class="text-title text-primary">${app.title}</h1>
                     <p class="text-caption mono text-muted">${app.id}</p>
                   </div>
                 </div>
@@ -538,7 +538,7 @@ function renderDetail(container, ctx) {
 
     // Delete button
     container.querySelector('#delete-btn')?.addEventListener('click', async () => {
-      if (confirm(`Delete app "${app.name}"? This cannot be undone.`)) {
+      if (confirm(`Delete app "${app.title}"? This cannot be undone.`)) {
         const success = await deleteApp(client, appId)
         if (success) router.push('/apps')
       }

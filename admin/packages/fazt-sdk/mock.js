@@ -17,12 +17,12 @@ const delay = (ms = 100) => new Promise(resolve => setTimeout(resolve, ms))
 const routes = {
   'GET /api/apps': () => apps,
   'GET /api/apps/:id': (params) => {
-    const app = apps.find(a => a.id === params.id || a.name === params.id)
+    const app = apps.find(a => a.id === params.id || a.title === params.id)
     if (!app) throw { code: 'APP_NOT_FOUND', message: 'App not found', status: 404 }
     return app
   },
   'GET /api/apps/:id/files': (params) => {
-    const app = apps.find(a => a.id === params.id || a.name === params.id)
+    const app = apps.find(a => a.id === params.id || a.title === params.id)
     if (!app) throw { code: 'APP_NOT_FOUND', message: 'App not found', status: 404 }
     return [
       { path: 'index.html', size: 1234, mime_type: 'text/html' },
@@ -31,9 +31,9 @@ const routes = {
     ]
   },
   'DELETE /api/apps/:id': (params) => {
-    const app = apps.find(a => a.id === params.id || a.name === params.id)
+    const app = apps.find(a => a.id === params.id || a.title === params.id)
     if (!app) throw { code: 'APP_NOT_FOUND', message: 'App not found', status: 404 }
-    return { message: 'App deleted', name: app.name }
+    return { message: 'App deleted', title: app.title }
   },
   'GET /api/aliases': () => aliases,
   'GET /api/aliases/:subdomain': (params) => {
@@ -62,10 +62,14 @@ const routes = {
   'GET /auth/session': () => ({ authenticated: true, user }),
   'POST /auth/logout': () => ({ message: 'Logged out' }),
   'GET /api/stats': () => ({
-    apps: 24,
-    requests_24h: 12847,
-    storage_bytes: 2410000000,
-    uptime_percent: 99.97
+    total_events_today: 847,
+    total_events_week: 5234,
+    total_events_month: 22847,
+    total_events_all_time: 125000,
+    events_by_source_type: { 'api': 5000, 'web': 3000 },
+    top_domains: [],
+    top_tags: [],
+    events_timeline: []
   }),
   'GET /api/events': (params, body, query) => {
     let result = [...events]
@@ -99,9 +103,12 @@ const routes = {
   'POST /api/apps/create': (params, body) => {
     const newApp = {
       id: 'app_' + Math.random().toString(36).substr(2, 8),
-      name: body.name,
+      title: body.name,
+      description: '',
+      tags: '[]',
+      visibility: 'unlisted',
       source: 'template',
-      manifest: { name: body.name },
+      source_url: '',
       file_count: 3,
       size_bytes: 4096,
       created_at: new Date().toISOString(),

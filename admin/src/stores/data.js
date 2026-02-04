@@ -23,27 +23,33 @@ export const health = map({
   runtime: null
 })
 
-// Stats data
+// Analytics stats data (events-based)
 export const stats = map({
-  apps: 0,
-  requests_24h: 0,
-  storage_bytes: 0,
-  uptime_percent: 0
+  total_events_today: 0,
+  total_events_week: 0,
+  total_events_month: 0,
+  total_events_all_time: 0,
+  events_by_source_type: {},
+  top_domains: [],
+  top_tags: []
 })
 
 // Auth state
 export const auth = map({
   authenticated: false,
   user: null,
-  loading: true
+  loading: true,
+  unauthorized: false // true when user lacks required role
 })
 
 // Current app detail
 export const currentApp = map({
   id: null,
-  name: null,
+  title: null,
+  description: null,
+  visibility: null,
   source: null,
-  manifest: null,
+  source_url: null,
   file_count: 0,
   size_bytes: 0,
   created_at: null,
@@ -112,12 +118,12 @@ export async function loadHealth(client) {
 }
 
 /**
- * Load stats from API
+ * Load analytics stats from API (events-based)
  * @param {import('../../packages/fazt-sdk/index.js').createClient} client
  */
 export async function loadStats(client) {
   try {
-    const data = await client.stats.overview()
+    const data = await client.stats.analytics()
     stats.set(data || {})
   } catch (err) {
     // Stats are optional, don't show error
@@ -158,7 +164,7 @@ export async function loadAppDetail(client, id) {
 export async function deleteApp(client, id) {
   try {
     await client.apps.delete(id)
-    apps.remove(app => app.id === id || app.name === id)
+    apps.remove(app => app.id === id || app.title === id)
     notify({ type: 'success', message: 'App deleted' })
     return true
   } catch (err) {
@@ -322,15 +328,18 @@ export async function signOut(client) {
 
     notify({ type: 'success', message: 'Signed out successfully' })
 
-    // Get auth domain for redirect
-    const parts = window.location.hostname.split('.')
-    let authDomain = window.location.hostname
-    if (parts.length > 2 && parts[0] !== 'www') {
-      authDomain = parts.slice(1).join('.')
-    }
+    // Capture full current URL to return after re-login
+    const currentUrl = window.location.href
+    const redirectParam = encodeURIComponent(currentUrl)
 
-    // Redirect to auth login on root domain
-    const loginUrl = `${window.location.protocol}//${authDomain}${window.location.port ? ':' + window.location.port : ''}/auth/dev/login`
+    // Compute root domain for auth (dev auth lives on root domain)
+    const parts = window.location.hostname.split('.')
+    const rootDomain = parts.length > 2 && parts[0] !== 'www'
+      ? parts.slice(1).join('.')
+      : window.location.hostname
+
+    // Redirect to auth login on root domain with redirect parameter
+    const loginUrl = `${window.location.protocol}//${rootDomain}${window.location.port ? ':' + window.location.port : ''}/auth/dev/login?redirect=${redirectParam}`
     console.log('[Auth] Redirecting to:', loginUrl)
 
     setTimeout(() => {

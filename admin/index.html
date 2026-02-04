@@ -726,7 +726,7 @@
       gap: 16px;
     }
 
-    /* 5-column grid (stats) */
+    /* 5-column grid */
     .panel-grid.grid-5 {
       grid-template-columns: repeat(5, 1fr);
     }
@@ -739,6 +739,23 @@
 
     @media (max-width: 480px) {
       .panel-grid.grid-5 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* 4-column grid (system status) */
+    .panel-grid.grid-4 {
+      grid-template-columns: repeat(4, 1fr);
+    }
+
+    @media (max-width: 1023px) {
+      .panel-grid.grid-4 {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 480px) {
+      .panel-grid.grid-4 {
         grid-template-columns: 1fr;
       }
     }
@@ -1366,10 +1383,27 @@
 
     // Use mock adapter for dev
     const useMock = new URLSearchParams(window.location.search).get('mock') === 'true'
-    const client = createClient(useMock ? { adapter: mockAdapter } : {})
+
+    // Compute API base URL - admin UI may be served from different subdomain than API
+    // API always lives on admin.* subdomain
+    function getApiBaseUrl() {
+      const hostname = window.location.hostname
+      const port = window.location.port ? ':' + window.location.port : ''
+      const protocol = window.location.protocol
+      // Replace any subdomain with 'admin' to get API URL
+      const parts = hostname.split('.')
+      if (parts.length >= 2) {
+        parts[0] = 'admin'
+        return `${protocol}//${parts.join('.')}${port}`
+      }
+      return '' // Fallback: same origin
+    }
+
+    const apiBaseUrl = useMock ? '' : getApiBaseUrl()
+    const client = createClient(useMock ? { adapter: mockAdapter } : { baseUrl: apiBaseUrl })
 
     console.log('[Admin] Mode:', useMock ? 'MOCK' : 'REAL')
-    console.log('[Admin] URL:', window.location.href)
+    console.log('[Admin] API Base:', apiBaseUrl || '(same origin)')
 
     // State (declared early so callbacks can reference them)
     let pageContainer = null
@@ -1486,6 +1520,57 @@
       })
     }
 
+    // Show unauthorized modal
+    // NOTE: This is UX only - real security is enforced on backend via AdminMiddleware
+    // Backend returns 403 Forbidden for all /api/* requests from users without admin/owner role
+    function showUnauthorizedModal(user) {
+      const userName = user.name || user.email || 'User'
+      const userRole = user.role || 'user'
+
+      // Create modal HTML
+      const modalHTML = `
+        <div id="unauthorized-modal" style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 9999;">
+          <div style="background: var(--bg-1); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); max-width: 28rem; width: 100%; margin: 1rem; padding: 1.5rem;">
+            <div style="display: flex; align-items: start; gap: 1rem; margin-bottom: 1rem;">
+              <div style="flex-shrink: 0; width: 3rem; height: 3rem; border-radius: 50%; background: var(--error-soft); display: flex; align-items: center; justify-content: center;">
+                <svg style="width: 1.5rem; height: 1.5rem; color: var(--error);" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <div style="flex: 1;">
+                <h3 style="font-size: 1.125rem; font-weight: 600; color: var(--text-1); margin-bottom: 0.5rem;">Access Denied</h3>
+                <p style="font-size: 0.875rem; color: var(--text-2); margin-bottom: 0.75rem;">
+                  Sorry, <strong>${userName}</strong> (<code style="background: var(--bg-2); padding: 0.125rem 0.375rem; border-radius: 0.25rem;">${userRole}</code> role), you don't have permission to access the admin dashboard.
+                </p>
+                <p style="font-size: 0.875rem; color: var(--text-3);">
+                  Admin access requires <strong>admin</strong> or <strong>owner</strong> role.
+                </p>
+              </div>
+            </div>
+            <div style="margin-top: 1.5rem;">
+              <button id="unauthorized-signout" style="width: 100%; padding: 0.5rem 1rem; background: var(--accent); color: white; font-weight: 500; border: none; border-radius: 0.375rem; cursor: pointer; transition: background 0.2s;">
+                Sign Out & Try Again
+              </button>
+            </div>
+          </div>
+        </div>
+      `
+
+      // Insert modal
+      document.body.insertAdjacentHTML('beforeend', modalHTML)
+
+      // Setup button
+      document.getElementById('unauthorized-signout').addEventListener('click', async () => {
+        // Sign out by clearing cookie and redirecting to login
+        document.cookie = 'fazt_session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+        const authDomain = window.location.hostname.split('.').slice(1).join('.')
+        // Include redirect parameter so user returns to admin after re-login
+        const currentUrl = window.location.href
+        const loginUrl = window.location.protocol + '//' + authDomain + (window.location.port ? ':' + window.location.port : '') + '/auth/dev/login?redirect=' + encodeURIComponent(currentUrl)
+        window.location.href = loginUrl
+      })
+    }
+
     // Get auth domain (root domain without subdomain)
     function getAuthDomain() {
       const parts = window.location.hostname.split('.')
@@ -1516,10 +1601,11 @@
         return false
       }
 
-      // Not admin/owner -> show unauthorized page
+      // Check role - admin/owner only
       const user = authState.user
       if (user.role !== 'owner' && user.role !== 'admin') {
-        window.location.href = '/unauthorized.html'
+        console.log('[Auth] Unauthorized - showing modal for role:', user.role)
+        showUnauthorizedModal(user)
         return false
       }
 

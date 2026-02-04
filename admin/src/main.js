@@ -6,7 +6,7 @@ import { createRouter, createCommands, createAgentContext } from '../packages/za
 import { createClient, mockAdapter } from '../packages/fazt-sdk/index.js'
 import { routes } from './routes.js'
 import { initTheme, sidebarCollapsed, toggleSidebar, theme, palette, setTheme, setPalette } from './stores/app.js'
-import { loadApps, loadAliases, loadHealth, loadStats } from './stores/data.js'
+import { loadApps, loadAliases, loadHealth, loadAuth, auth, signOut } from './stores/data.js'
 
 // Pages
 import * as dashboardPage from './pages/dashboard.js'
@@ -29,7 +29,29 @@ const pages = {
 
 // Use mock adapter for development, real API in production
 const useMock = new URLSearchParams(window.location.search).get('mock') === 'true'
-const client = createClient(useMock ? { adapter: mockAdapter } : {})
+
+// Compute API base URL - admin UI may be served from different subdomain than API
+// API always lives on admin.* subdomain
+function getApiBaseUrl() {
+  const hostname = window.location.hostname
+  const port = window.location.port ? ':' + window.location.port : ''
+  const protocol = window.location.protocol
+
+  // Replace any subdomain with 'admin' to get API URL
+  const parts = hostname.split('.')
+  if (parts.length >= 2) {
+    parts[0] = 'admin'
+    return `${protocol}//${parts.join('.')}${port}`
+  }
+  // Fallback: same origin
+  return ''
+}
+
+const apiBaseUrl = useMock ? '' : getApiBaseUrl()
+console.log('[Admin] Mode:', useMock ? 'MOCK' : 'REAL')
+console.log('[Admin] API Base:', apiBaseUrl || '(same origin)')
+
+const client = createClient(useMock ? { adapter: mockAdapter } : { baseUrl: apiBaseUrl })
 
 // Create router
 const router = createRouter({
@@ -71,9 +93,75 @@ let navItems
 let currentCleanup = null
 
 /**
+ * Show unauthorized access modal
+ */
+function showUnauthorizedModal() {
+  const authState = auth.get()
+  const userName = authState.user?.name || authState.user?.email || 'User'
+  const userRole = authState.user?.role || 'user'
+
+  // Create modal overlay
+  const modalHTML = `
+    <div id="unauthorized-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+      <div class="bg-[var(--bg-1)] border border-[var(--border)] rounded-lg shadow-2xl max-w-md w-full mx-4 p-6">
+        <div class="flex items-start gap-4 mb-4">
+          <div class="flex-shrink-0 w-12 h-12 rounded-full bg-[var(--error-soft)] flex items-center justify-center">
+            <svg class="w-6 h-6 text-[var(--error)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <div class="flex-1">
+            <h3 class="text-lg font-semibold text-[var(--text-1)] mb-1">Access Denied</h3>
+            <p class="text-sm text-[var(--text-2)] mb-3">
+              Sorry, <strong>${userName}</strong> (<code>${userRole}</code> role), you don't have permission to access the admin dashboard.
+            </p>
+            <p class="text-sm text-[var(--text-3)]">
+              Admin access requires <strong>admin</strong> or <strong>owner</strong> role.
+            </p>
+          </div>
+        </div>
+
+        <div class="flex gap-3 mt-6">
+          <button
+            id="unauthorized-signout"
+            class="flex-1 px-4 py-2 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white font-medium rounded-md transition-colors"
+          >
+            Sign Out & Try Again
+          </button>
+        </div>
+      </div>
+    </div>
+  `
+
+  // Insert modal into DOM
+  document.body.insertAdjacentHTML('beforeend', modalHTML)
+
+  // Setup sign out button
+  document.getElementById('unauthorized-signout')?.addEventListener('click', async () => {
+    try {
+      await signOut(client)
+      // signOut handles redirect to login
+    } catch (err) {
+      console.error('[Unauthorized] Sign out failed:', err)
+      // Still redirect to login even if signout fails - include redirect parameter
+      const currentUrl = window.location.href
+      const redirectParam = encodeURIComponent(currentUrl)
+
+      const parts = window.location.hostname.split('.')
+      const rootDomain = parts.length > 2 && parts[0] !== 'www'
+        ? parts.slice(1).join('.')
+        : window.location.hostname
+
+      window.location.href = `${window.location.protocol}//${rootDomain}${window.location.port ? ':' + window.location.port : ''}/auth/dev/login?redirect=${redirectParam}`
+    }
+  })
+}
+
+/**
  * Initialize app
  */
 function init() {
+  console.log('[init] Starting initialization')
   // Initialize theme
   initTheme()
 
@@ -114,11 +202,35 @@ function init() {
  * Load data from API
  */
 async function loadData() {
+  console.log('[loadData] STARTING')
+  // Load auth first to check permissions
+  await loadAuth(client)
+  console.log('[loadData] Auth loaded')
+
+  // Check if user has required role
+  const authState = auth.get()
+  console.log('[loadData] Auth state:', authState)
+
+  if (authState.authenticated && authState.user) {
+    const user = authState.user
+    console.log('[loadData] User role:', user.role)
+
+    if (user.role !== 'owner' && user.role !== 'admin') {
+      // User authenticated but lacks required role
+      console.log('[loadData] UNAUTHORIZED - showing modal')
+      auth.setKey('unauthorized', true)
+      showUnauthorizedModal()
+      return // Don't load other data
+    }
+
+    console.log('[loadData] User authorized, loading data')
+  }
+
+  // User has required role, load data
   await Promise.all([
     loadApps(client),
     loadAliases(client),
-    loadHealth(client),
-    loadStats(client)
+    loadHealth(client)
   ])
 }
 
