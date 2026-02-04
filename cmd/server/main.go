@@ -152,6 +152,8 @@ func main() {
 		handleAuthCommand(os.Args[2:])
 	case "sql":
 		handleSQLCommand(os.Args[2:])
+	case "user":
+		handleUserCommand(os.Args[2:])
 	default:
 		fmt.Printf("Unknown command: %s\n\n", command)
 		printUsage()
@@ -188,6 +190,9 @@ func handleAtPeerRouting(peerName string, args []string) {
 
 	case "sql":
 		handleSQLCommandWithPeer(peerName, cmdArgs)
+
+	case "user":
+		handleUserCommandWithPeer(peerName, cmdArgs)
 
 	case "status":
 		// Direct status check: fazt @peer status
@@ -1490,8 +1495,8 @@ func createRootHandler(cfg *config.Config, dashboardMux *http.ServeMux, authHand
 
 		// admin.* routing: API endpoints go to dashboardMux, everything else serves the app
 		if host == "admin."+mainDomain {
-			// Deploy endpoint has its own API key auth - bypass AdminMiddleware
-			if r.URL.Path == "/api/deploy" {
+			// Endpoints with their own API key auth - bypass AdminMiddleware
+			if r.URL.Path == "/api/deploy" || strings.HasPrefix(r.URL.Path, "/api/users") {
 				dashboardMux.ServeHTTP(w, r)
 				return
 			}
@@ -2749,6 +2754,8 @@ func handleStartCommand() {
 	dashboardMux.HandleFunc("/api/logout", handlers.LogoutHandler)
 	dashboardMux.HandleFunc("/api/auth/status", handlers.AuthStatusHandler)
 	dashboardMux.HandleFunc("/api/user/me", handlers.UserMeHandler)
+	dashboardMux.HandleFunc("GET /api/users", handlers.UsersListHandler)
+	dashboardMux.HandleFunc("POST /api/users/role", handlers.UserSetRoleHandler)
 
 	// Multi-user auth routes (v0.16) - includes POST /auth/login for simple password login
 	authHandler.RegisterRoutes(dashboardMux)
@@ -3465,4 +3472,283 @@ func handleSQLCommandWithPeer(peerName string, args []string) {
 		String()
 
 	renderer.Print(md, response)
+}
+
+// handleUserCommand handles local user management
+func handleUserCommand(args []string) {
+	if len(args) < 1 {
+		printUserUsage()
+		os.Exit(1)
+	}
+
+	subCmd := args[0]
+	switch subCmd {
+	case "list":
+		handleUserList(args[1:])
+	case "set-role":
+		handleUserSetRole(args[1:])
+	case "--help", "-h", "help":
+		printUserUsage()
+	default:
+		fmt.Printf("Unknown user subcommand: %s\n", subCmd)
+		printUserUsage()
+		os.Exit(1)
+	}
+}
+
+func printUserUsage() {
+	fmt.Println("fazt user - User management commands")
+	fmt.Println()
+	fmt.Println("USAGE:")
+	fmt.Println("  fazt user <command> [options]")
+	fmt.Println()
+	fmt.Println("COMMANDS:")
+	fmt.Println("  list                    List all users")
+	fmt.Println("  set-role                Set a user's role")
+	fmt.Println()
+	fmt.Println("EXAMPLES:")
+	fmt.Println("  fazt user list")
+	fmt.Println("  fazt user set-role --email user@example.com --role admin")
+	fmt.Println("  fazt @zyt user set-role --email user@example.com --role owner")
+}
+
+func handleUserList(args []string) {
+	db := getClientDB()
+	defer database.Close()
+
+	rows, err := db.Query(`
+		SELECT id, email, name, role, provider, datetime(created_at, 'unixepoch', 'localtime'), datetime(last_login, 'unixepoch', 'localtime')
+		FROM auth_users
+		ORDER BY created_at DESC
+	`)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error listing users: %v\n", err)
+		os.Exit(1)
+	}
+	defer rows.Close()
+
+	renderer := getRenderer()
+
+	var tableRows [][]string
+	for rows.Next() {
+		var id, email, name, role, provider, createdAt, lastLogin string
+		rows.Scan(&id, &email, &name, &role, &provider, &createdAt, &lastLogin)
+		tableRows = append(tableRows, []string{email, name, role, provider, lastLogin})
+	}
+
+	table := &output.Table{
+		Headers: []string{"Email", "Name", "Role", "Provider", "Last Login"},
+		Rows:    tableRows,
+	}
+
+	md := output.NewMarkdown().
+		H1("Users").
+		Table(table).
+		String()
+
+	renderer.Print(md, map[string]interface{}{"users": tableRows, "count": len(tableRows)})
+}
+
+func handleUserSetRole(args []string) {
+	fs := flag.NewFlagSet("set-role", flag.ExitOnError)
+	email := fs.String("email", "", "User email")
+	userID := fs.String("id", "", "User ID")
+	role := fs.String("role", "", "Role to set (user, admin, owner)")
+
+	fs.Parse(args)
+
+	if *role == "" {
+		fmt.Fprintln(os.Stderr, "Error: --role is required")
+		fmt.Fprintln(os.Stderr, "Usage: fazt user set-role --email <EMAIL> --role <ROLE>")
+		os.Exit(1)
+	}
+
+	if *email == "" && *userID == "" {
+		fmt.Fprintln(os.Stderr, "Error: --email or --id is required")
+		fmt.Fprintln(os.Stderr, "Usage: fazt user set-role --email <EMAIL> --role <ROLE>")
+		os.Exit(1)
+	}
+
+	if *role != "user" && *role != "admin" && *role != "owner" {
+		fmt.Fprintln(os.Stderr, "Error: role must be: user, admin, or owner")
+		os.Exit(1)
+	}
+
+	db := getClientDB()
+	defer database.Close()
+
+	// Find user by email or ID
+	var targetID, targetEmail string
+	if *email != "" {
+		err := db.QueryRow("SELECT id, email FROM auth_users WHERE email = ?", *email).Scan(&targetID, &targetEmail)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "User not found: %s\n", *email)
+			os.Exit(1)
+		}
+	} else {
+		err := db.QueryRow("SELECT id, email FROM auth_users WHERE id = ?", *userID).Scan(&targetID, &targetEmail)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "User not found: %s\n", *userID)
+			os.Exit(1)
+		}
+	}
+
+	// Update role
+	_, err := db.Exec("UPDATE auth_users SET role = ? WHERE id = ?", *role, targetID)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error updating role: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("✓ User %s role updated to: %s\n", targetEmail, *role)
+}
+
+// handleUserCommandWithPeer handles user commands on remote peer
+func handleUserCommandWithPeer(peerName string, args []string) {
+	if len(args) < 1 {
+		printUserUsage()
+		os.Exit(1)
+	}
+
+	subCmd := args[0]
+	switch subCmd {
+	case "list":
+		handleUserListRemote(peerName, args[1:])
+	case "set-role":
+		handleUserSetRoleRemote(peerName, args[1:])
+	default:
+		fmt.Printf("Unknown user subcommand: %s\n", subCmd)
+		printUserUsage()
+		os.Exit(1)
+	}
+}
+
+func handleUserListRemote(peerName string, args []string) {
+	db := getClientDB()
+	defer database.Close()
+
+	peer, err := remote.ResolvePeer(db, peerName)
+	if err != nil {
+		handlePeerError(err)
+		os.Exit(1)
+	}
+
+	req, _ := http.NewRequest("GET", peer.URL+"/api/users", nil)
+	req.Header.Set("Authorization", "Bearer "+peer.Token)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+	defer resp.Body.Close()
+
+	var response struct {
+		Data []struct {
+			ID        string `json:"id"`
+			Email     string `json:"email"`
+			Name      string `json:"name"`
+			Role      string `json:"role"`
+			Provider  string `json:"provider"`
+			LastLogin int64  `json:"last_login"`
+		} `json:"data"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+		fmt.Fprintf(os.Stderr, "Error decoding response: %v\n", err)
+		os.Exit(1)
+	}
+
+	renderer := getRenderer()
+
+	var tableRows [][]string
+	for _, u := range response.Data {
+		tableRows = append(tableRows, []string{u.Email, u.Name, u.Role, u.Provider})
+	}
+
+	table := &output.Table{
+		Headers: []string{"Email", "Name", "Role", "Provider"},
+		Rows:    tableRows,
+	}
+
+	md := output.NewMarkdown().
+		H1(fmt.Sprintf("Users (@%s)", peerName)).
+		Table(table).
+		String()
+
+	renderer.Print(md, map[string]interface{}{"users": response.Data, "count": len(response.Data)})
+}
+
+func handleUserSetRoleRemote(peerName string, args []string) {
+	fs := flag.NewFlagSet("set-role", flag.ExitOnError)
+	email := fs.String("email", "", "User email")
+	userID := fs.String("id", "", "User ID")
+	role := fs.String("role", "", "Role to set (user, admin, owner)")
+
+	fs.Parse(args)
+
+	if *role == "" || (*email == "" && *userID == "") {
+		fmt.Fprintln(os.Stderr, "Usage: fazt @peer user set-role --email <EMAIL> --role <ROLE>")
+		os.Exit(1)
+	}
+
+	if *role != "user" && *role != "admin" && *role != "owner" {
+		fmt.Fprintln(os.Stderr, "Error: role must be: user, admin, or owner")
+		os.Exit(1)
+	}
+
+	db := getClientDB()
+	defer database.Close()
+
+	peer, err := remote.ResolvePeer(db, peerName)
+	if err != nil {
+		handlePeerError(err)
+		os.Exit(1)
+	}
+
+	reqBody := map[string]string{
+		"role": *role,
+	}
+	if *email != "" {
+		reqBody["email"] = *email
+	} else {
+		reqBody["user_id"] = *userID
+	}
+
+	jsonBody, _ := json.Marshal(reqBody)
+	req, _ := http.NewRequest("POST", peer.URL+"/api/users/role", bytes.NewBuffer(jsonBody))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+peer.Token)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+	defer resp.Body.Close()
+
+	var response map[string]interface{}
+	json.NewDecoder(resp.Body).Decode(&response)
+
+	if resp.StatusCode != http.StatusOK {
+		if errMsg, ok := response["error"].(map[string]interface{}); ok {
+			fmt.Fprintf(os.Stderr, "Error: %s\n", errMsg["message"])
+		} else if errStr, ok := response["error"].(string); ok {
+			fmt.Fprintf(os.Stderr, "Error: %s\n", errStr)
+		} else {
+			fmt.Fprintf(os.Stderr, "Error: request failed with status %d\n", resp.StatusCode)
+		}
+		os.Exit(1)
+	}
+
+	userEmail := *email
+	if userEmail == "" {
+		if e, ok := response["email"].(string); ok {
+			userEmail = e
+		}
+	}
+
+	fmt.Printf("✓ User %s role updated to: %s (on @%s)\n", userEmail, *role, peerName)
 }

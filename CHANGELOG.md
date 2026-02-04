@@ -4,6 +4,20 @@ All notable changes to fazt.sh will be documented in this file.
 
 ## [Unreleased]
 
+## [0.24.0] - 2026-02-04
+
+### Added
+- **User management CLI**: `fazt user list` and `fazt user set-role` commands
+  - List all users with email, name, role, provider, last login
+  - Set user roles (user, admin, owner) by email or user ID
+  - Works with remote peers: `fazt @zyt user set-role --email user@example.com --role admin`
+- **User management API**: `/api/users` (GET) and `/api/users/role` (POST) endpoints
+  - Secured with API key authentication (Bearer token)
+
+### Fixed
+- **API routing**: Bypass AdminMiddleware for `/api/deploy` and `/api/users*` endpoints
+  - These endpoints use API key auth, not session auth
+
 ## [0.23.0] - 2026-02-04
 
 ### Fixed

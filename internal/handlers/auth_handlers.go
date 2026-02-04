@@ -10,6 +10,8 @@ import (
 	"github.com/fazt-sh/fazt/internal/audit"
 	"github.com/fazt-sh/fazt/internal/auth"
 	"github.com/fazt-sh/fazt/internal/config"
+	"github.com/fazt-sh/fazt/internal/database"
+	"github.com/fazt-sh/fazt/internal/hosting"
 )
 
 var (
@@ -176,6 +178,110 @@ func AuthStatusHandler(w http.ResponseWriter, r *http.Request) {
 		"username":      user.Name,
 		"email":         user.Email,
 		"role":          user.Role,
+	})
+}
+
+// requireAPIKeyAuth validates API key from Authorization header
+func requireAPIKeyAuth(w http.ResponseWriter, r *http.Request) bool {
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
+		api.Unauthorized(w, "API key required (Authorization: Bearer <token>)")
+		return false
+	}
+
+	token := strings.TrimPrefix(authHeader, "Bearer ")
+	_, _, err := hosting.ValidateAPIKey(database.GetDB(), token)
+	if err != nil {
+		api.InvalidAPIKey(w)
+		return false
+	}
+	return true
+}
+
+// UsersListHandler returns a list of all users
+func UsersListHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		api.BadRequest(w, "Method not allowed")
+		return
+	}
+
+	// Require API key auth
+	if !requireAPIKeyAuth(w, r) {
+		return
+	}
+
+	users, err := authService.ListUsers()
+	if err != nil {
+		api.InternalError(w, err)
+		return
+	}
+
+	api.Success(w, http.StatusOK, users)
+}
+
+// UserSetRoleHandler sets a user's role
+// POST /api/users/role
+// Body: { "user_id": "...", "role": "admin|owner|user" }
+func UserSetRoleHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		api.BadRequest(w, "Method not allowed")
+		return
+	}
+
+	// Require API key auth
+	if !requireAPIKeyAuth(w, r) {
+		return
+	}
+
+	var req struct {
+		UserID string `json:"user_id"`
+		Email  string `json:"email"` // Alternative to user_id
+		Role   string `json:"role"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		api.InvalidJSON(w, "Invalid request body")
+		return
+	}
+
+	// Validate role
+	if req.Role != "user" && req.Role != "admin" && req.Role != "owner" {
+		api.BadRequest(w, "Invalid role. Must be: user, admin, or owner")
+		return
+	}
+
+	// Get user by ID or email
+	var userID string
+	if req.UserID != "" {
+		userID = req.UserID
+	} else if req.Email != "" {
+		user, err := authService.GetUserByEmail(req.Email)
+		if err != nil {
+			api.NotFound(w, "USER_NOT_FOUND", "User not found with email: "+req.Email)
+			return
+		}
+		userID = user.ID
+	} else {
+		api.BadRequest(w, "Must provide user_id or email")
+		return
+	}
+
+	// Update role
+	if err := authService.UpdateUserRole(userID, req.Role); err != nil {
+		api.InternalError(w, err)
+		return
+	}
+
+	// Get updated user info
+	user, _ := authService.GetUserByID(userID)
+
+	log.Printf("User role updated: %s (%s) -> %s", user.Email, userID, req.Role)
+
+	api.Success(w, http.StatusOK, map[string]interface{}{
+		"message": "Role updated successfully",
+		"user_id": userID,
+		"email":   user.Email,
+		"role":    req.Role,
 	})
 }
 
