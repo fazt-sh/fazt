@@ -113,14 +113,9 @@ func (c *Client) Status() (*StatusResponse, error) {
 	return &status, nil
 }
 
-// HealthCheck performs a simple health check (no auth required)
+// HealthCheck performs a simple health check
 func (c *Client) HealthCheck() (bool, error) {
-	req, err := http.NewRequest("GET", c.peer.URL+"/health", nil)
-	if err != nil {
-		return false, err
-	}
-
-	resp, err := c.client.Do(req)
+	resp, err := c.doRequest("GET", "/api/system/health", nil)
 	if err != nil {
 		return false, err
 	}

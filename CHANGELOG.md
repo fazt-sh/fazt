@@ -4,6 +4,12 @@ All notable changes to fazt.sh will be documented in this file.
 
 ## [Unreleased]
 
+## [0.24.2] - 2026-02-04
+
+### Fixed
+- **Remote peer health check**: Changed from `/health` (404) to `/api/system/health` with API key auth
+  - `fazt @peer status` now works correctly
+
 ## [0.24.1] - 2026-02-04
 
 ### Fixed

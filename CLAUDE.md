@@ -59,6 +59,12 @@ Config Priority:
 **Database contains:** Apps, aliases, storage, auth, events, peer configs - everything.
 **Override:** `FAZT_DB_PATH` env var or `--db` flag.
 
+**IMPORTANT - zyt SSH Access:**
+- `zyt.app` resolves to Cloudflare IPs (cannot SSH)
+- Actual server IP: `ZYT_IP` in `.env` file (currently `165.227.11.46`)
+- SSH: `ssh root@165.227.11.46`
+- Service DB: `/home/fazt/.fazt/data.db` (NOT `~/.fazt/data.db`)
+
 ## Essential Commands
 
 ```bash

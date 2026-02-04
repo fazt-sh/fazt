@@ -1,5 +1,11 @@
 [
     {
+        "version": "v0.24.2",
+        "title": "Remote Peer Health Check Fix",
+        "description": "Fixed remote peer health check to use /api/system/health with API key auth instead of non-existent /health endpoint.",
+        "created_at": "2026-02-04"
+    },
+    {
         "version": "v0.24.1",
         "title": "Remote Peer API Auth Fix",
         "description": "Fixed remote peer status and upgrade commands. /api/system/health and /api/upgrade now use API key auth instead of session auth.",
