@@ -526,13 +526,7 @@ Weight Scale (0-9):
 // Helper functions
 
 func resolveDBPath(dbPath string) string {
-	if dbPath != "" {
-		return dbPath
-	}
-	if envPath := os.Getenv("FAZT_DB_PATH"); envPath != "" {
-		return envPath
-	}
-	return "./data.db"
+	return database.ResolvePath(dbPath)
 }
 
 func parseDuration(s string) (time.Time, error) {
