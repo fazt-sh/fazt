@@ -6,11 +6,30 @@
 ## Status
 
 State: CLEAN
-All systems synchronized (v0.24.13). Activity logging complete with permissive URL parsing, flag aliases, and comprehensive documentation.
+Version: v0.25.0. Remote SQL command fixed - authentication and panic issues resolved.
 
 ---
 
-## Current Session (2026-02-04) - Permissive URL Parsing
+## Current Session (2026-02-04) - Remote SQL Fix
+
+### What Was Done
+
+#### Fixed Remote SQL Command (v0.25.1)
+Resolved three critical issues with `fazt @peer sql`:
+- **Panic on nil fields**: Added safe type assertions for `count` and `time_ms` with ok-pattern checks
+- **Authentication failure**: Moved `/api/sql` to API key auth bypass list (was incorrectly using AdminMiddleware)
+- **Error handling**: Added HTTP status code checking before JSON decode for better error messages
+
+Command now works correctly: `fazt @local sql "SELECT * FROM apps LIMIT 1"` ✓
+
+### Commits
+```
+3e91f95 fix: remote SQL command authentication and panic
+```
+
+---
+
+## Last Session (2026-02-04) - Permissive URL Parsing
 
 ### What Was Done
 
@@ -107,12 +126,6 @@ Created comprehensive activity logging to replace separate audit/analytics syste
 ### High Priority
 1. **Root domain tracking** - Currently no pageviews for `zyt.app` (only subdomains tracked)
 2. **Admin UI integration** - Display activity logs in web dashboard
-
-### Bugs to Fix
-1. **Remote SQL panic** - `fazt @zyt sql` causes panic
-   - Error: interface conversion: interface {} is nil, not float64
-   - Location: cmd/server/main.go:3492
-   - Type assertion needs fixing in SQL remote handler
 
 ### Future Work
 1. **Cleanup automation** - Scheduled cleanup of low-weight old entries
