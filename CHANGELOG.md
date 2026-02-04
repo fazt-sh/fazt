@@ -4,6 +4,27 @@ All notable changes to fazt.sh will be documented in this file.
 
 ## [Unreleased]
 
+## [0.25.4] - 2026-02-05
+
+### Fixed
+- **Admin UI system health endpoint**: Changed `/api/system/health` to use admin session auth
+  - Allows both API key auth (CLI/remote) and session auth (admin UI)
+  - Fixes 401 errors when admin UI fetches health status
+  - Matches the same fix applied to logs endpoints in v0.25.3
+
+## [0.25.3] - 2026-02-04
+
+### Fixed
+- **Admin UI logs endpoints**: Changed logs endpoints to use admin session auth
+  - Allows both API key auth (CLI/remote) and session auth (admin UI)
+  - Fixes 401 errors when accessing logs from admin UI
+
+### Added
+- **Activity logs page**: Added logs page to admin UI with filtering
+  - View activity logs with time range, app, action filters
+  - Pagination support for large result sets
+  - Matches events page pattern and layout
+
 ## [0.25.2] - 2026-02-04
 
 ### Fixed

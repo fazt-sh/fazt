@@ -1,10 +1,10 @@
 {
-  "version": "0.25.2",
-  "commit": "ff5f754",
-  "updated_at": "2026-02-04",
+  "version": "0.25.4",
+  "commit": "7873ef3",
+  "updated_at": "2026-02-05",
   "sections": {
-    "skills/app": "0.25.2",
-    "agent-context": "0.25.2",
-    "workflows": "0.25.2"
+    "skills/app": "0.25.4",
+    "agent-context": "0.25.4",
+    "workflows": "0.25.4"
   }
 }
