@@ -125,7 +125,7 @@ func WithAuth(req *http.Request, token string) *http.Request {
 // WithSession adds session cookie to a request
 func WithSession(req *http.Request, sessionID string) *http.Request {
 	req.AddCookie(&http.Cookie{
-		Name:  "cc_session", // Must match auth.SessionCookieName
+		Name:  "fazt_session", // Must match auth.SessionCookieName
 		Value: sessionID,
 	})
 	return req

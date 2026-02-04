@@ -11,10 +11,10 @@ import (
 )
 
 // AuthMiddleware checks if a user is authenticated before allowing access to protected routes
-func AuthMiddleware(sessionStore *auth.SessionStore) func(http.Handler) http.Handler {
+// Uses database-backed sessions via auth.Service
+func AuthMiddleware(authService *auth.Service) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// v0.4.0: Auth is always required, no longer configurable
 			// Check if the path requires authentication
 			if !requiresAuth(r.URL.Path) {
 				next.ServeHTTP(w, r)
@@ -39,60 +39,95 @@ func AuthMiddleware(sessionStore *auth.SessionStore) func(http.Handler) http.Han
 				}
 			}
 
-			// 2. Get session cookie
-			sessionID, err := auth.GetSessionCookie(r)
-			if err != nil {
-				// No session cookie, redirect to login
-				log.Printf("No session cookie for %s %s", r.Method, r.URL.Path)
-				redirectToLogin(w, r)
+			// 2. Check database-backed session
+			user, err := authService.GetSessionFromRequest(r)
+			if err == nil && user != nil {
+				next.ServeHTTP(w, r)
 				return
 			}
 
-			// Validate session
-			valid, err := sessionStore.ValidateSession(sessionID)
-			if err != nil {
-				log.Printf("Session validation error: %v", err)
-				redirectToLogin(w, r)
-				return
-			}
-
-			if !valid {
-				log.Printf("Invalid or expired session for %s %s", r.Method, r.URL.Path)
-				redirectToLogin(w, r)
-				return
-			}
-
-			// Session is valid, allow request
-			next.ServeHTTP(w, r)
+			// No valid session found
+			log.Printf("No valid session for %s %s", r.Method, r.URL.Path)
+			redirectToLogin(w, r)
 		})
 	}
 }
 
 // requiresAuth returns true if the path requires authentication
 func requiresAuth(path string) bool {
-	// Public endpoints (no auth required)
-	publicPaths := []string{
+	// Exact match paths (no prefix matching)
+	exactPaths := map[string]bool{
+		"/":                     true,
+		"/index.html":           true,
+		"/login.html":           true,
+		"/manifest.webmanifest": true,
+		"/registerSW.js":        true,
+		"/sw.js":                true,
+		"/favicon.png":          true,
+		"/favicon.ico":          true,
+		"/logo.png":             true,
+		"/vite.svg":             true,
+		"/health":               true,
+	}
+
+	if exactPaths[path] {
+		return false
+	}
+
+	// Prefix match paths
+	publicPrefixes := []string{
 		"/track",
 		"/pixel.gif",
 		"/r/",
 		"/webhook/",
 		"/static/",
-		"/login.html",
+		"/assets/",
+		"/workbox-",
 		"/api/login",
 		"/api/deploy",
-		"/health",
+		"/auth/login",
 		"/auth/",
 	}
 
-	// Check if path matches any public path
-	for _, public := range publicPaths {
-		if path == public || strings.HasPrefix(path, public) {
+	for _, prefix := range publicPrefixes {
+		if strings.HasPrefix(path, prefix) {
 			return false
 		}
 	}
 
 	// All other paths require authentication
 	return true
+}
+
+// AdminMiddleware checks if a user has admin or owner role before allowing access
+// This middleware should be applied to admin-only endpoints (apps, aliases, system management, etc.)
+func AdminMiddleware(authService *auth.Service) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Get user from session
+			user, err := authService.GetSessionFromRequest(r)
+			if err != nil || user == nil {
+				// Not authenticated
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusUnauthorized)
+				w.Write([]byte(`{"error":"Authentication required"}`))
+				return
+			}
+
+			// Check role - must be admin or owner
+			if user.Role != "admin" && user.Role != "owner" {
+				// Authenticated but insufficient permissions
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusForbidden)
+				w.Write([]byte(`{"error":"Admin or owner role required","user_role":"` + user.Role + `"}`))
+				log.Printf("Access denied: user %s (role: %s) attempted to access %s %s", user.Email, user.Role, r.Method, r.URL.Path)
+				return
+			}
+
+			// User has required role, proceed
+			next.ServeHTTP(w, r)
+		})
+	}
 }
 
 // redirectToLogin redirects the user to the login page

@@ -1,3 +1,8 @@
+// LEGACY_CODE: In-memory session store is no longer used.
+// All sessions now use database-backed auth.Service (sessions_db.go).
+// This file and session_test.go can be removed in future cleanup.
+// Kept for reference only.
+
 package auth
 
 import (

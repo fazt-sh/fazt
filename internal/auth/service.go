@@ -55,6 +55,26 @@ func (s *Service) DB() *sql.DB {
 	return s.db
 }
 
+// VerifyAdminCredentials verifies username/password against admin config
+func (s *Service) VerifyAdminCredentials(username, password string) error {
+	// Get admin credentials from config table
+	var storedUsername, storedHash string
+	err := s.db.QueryRow("SELECT value FROM configurations WHERE key = 'auth.username'").Scan(&storedUsername)
+	if err != nil {
+		return errors.New("admin not configured")
+	}
+	err = s.db.QueryRow("SELECT value FROM configurations WHERE key = 'auth.password_hash'").Scan(&storedHash)
+	if err != nil {
+		return errors.New("admin not configured")
+	}
+
+	if username != storedUsername {
+		return errors.New("invalid credentials")
+	}
+
+	return VerifyPassword(password, storedHash)
+}
+
 // generateToken generates a cryptographically secure random token
 func generateToken(bytes int) (string, error) {
 	b := make([]byte, bytes)

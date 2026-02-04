@@ -43,9 +43,9 @@ func Init(db *sql.DB) error {
 // EnsureSystemSites checks and seeds reserved sites from embedded assets
 func EnsureSystemSites() error {
 	sites := map[string]string{
-		"root":  "system/root",
-		"404":   "system/404",
-		"admin": "system/admin",
+		"root": "system/root",
+		"404":  "system/404",
+		// "admin" removed - now uses the deployed admin-ui app
 	}
 
 	for siteID, assetDir := range sites {
@@ -102,16 +102,10 @@ func EnsureSystemSites() error {
 	return nil
 }
 
-// ResetAdminSite force-resets the admin site from embedded assets
+// ResetAdminSite is deprecated - admin now uses the deployed admin-ui app
+// Kept for backward compatibility but does nothing
 func ResetAdminSite() error {
-	if err := fs.DeleteSite("admin"); err != nil {
-		return fmt.Errorf("failed to delete old admin site: %w", err)
-	}
-	fmt.Println("✓ Deleted existing admin site from VFS")
-	
-	// Re-seed (EnsureSystemSites logic handles this)
-	// We call EnsureSystemSites directly which will see "admin" is missing and seed it
-	return EnsureSystemSites()
+	return fmt.Errorf("admin site reset is no longer supported - admin now uses the deployed admin-ui app")
 }
 
 // GetFileSystem returns the active file system
@@ -153,8 +147,8 @@ func ValidateSubdomain(subdomain string) error {
 		return fmt.Errorf("subdomain must contain only lowercase letters, numbers, and hyphens, and cannot start or end with a hyphen")
 	}
 
-	// Reserved subdomains
-	reserved := []string{"www", "api", "admin", "mail", "ftp", "smtp", "pop", "imap", "ns1", "ns2", "localhost"}
+	// Reserved subdomains (admin removed - now serves the admin-ui app)
+	reserved := []string{"www", "api", "mail", "ftp", "smtp", "pop", "imap", "ns1", "ns2", "localhost"}
 	for _, r := range reserved {
 		if subdomain == r {
 			return fmt.Errorf("'%s' is a reserved subdomain", subdomain)

@@ -1349,7 +1349,14 @@ func corsMiddleware(next http.Handler) http.Handler {
 		cfg := config.Get()
 
 		if cfg.IsDevelopment() {
-			w.Header().Set("Access-Control-Allow-Origin", "*")
+			// Get origin from request - needed for credentials mode
+			origin := r.Header.Get("Origin")
+			if origin != "" {
+				w.Header().Set("Access-Control-Allow-Origin", origin)
+				w.Header().Set("Access-Control-Allow-Credentials", "true")
+			} else {
+				w.Header().Set("Access-Control-Allow-Origin", "*")
+			}
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 		}
@@ -1411,7 +1418,7 @@ func printVersion() {
 
 // - Requests to subdomains go to the site handler
 
-func createRootHandler(cfg *config.Config, dashboardMux *http.ServeMux, sessionStore *auth.SessionStore, authHandler *auth.Handler) http.Handler {
+func createRootHandler(cfg *config.Config, dashboardMux *http.ServeMux, authHandler *auth.Handler) http.Handler {
 
 	// Parse the main domain from config
 
@@ -1456,6 +1463,11 @@ func createRootHandler(cfg *config.Config, dashboardMux *http.ServeMux, sessionS
 		// Auth routes (/auth/*) available on root domain and all subdomains
 		// This enables OAuth login for app users across the entire domain
 		if strings.HasPrefix(r.URL.Path, "/auth/") {
+			// Simple password login for embedded admin (POST /auth/login)
+			if r.URL.Path == "/auth/login" && r.Method == http.MethodPost {
+				handlers.LoginHandler(w, r)
+				return
+			}
 			authHandler.ServeHTTP(w, r)
 			return
 		}
@@ -1468,7 +1480,7 @@ func createRootHandler(cfg *config.Config, dashboardMux *http.ServeMux, sessionS
 
 		if host == "localhost" {
 
-			middleware.AuthMiddleware(sessionStore)(dashboardMux).ServeHTTP(w, r)
+			middleware.AuthMiddleware(authHandler.Service())(dashboardMux).ServeHTTP(w, r)
 
 			return
 
@@ -1476,17 +1488,20 @@ func createRootHandler(cfg *config.Config, dashboardMux *http.ServeMux, sessionS
 
 
 
-		// 1. Dashboard Routing (admin.<domain>)
-
+		// admin.* routing: API endpoints go to dashboardMux, everything else serves the app
 		if host == "admin."+mainDomain {
-
-			middleware.AuthMiddleware(sessionStore)(dashboardMux).ServeHTTP(w, r)
-
-			return
-
+			// Admin API endpoints require admin/owner role
+			if strings.HasPrefix(r.URL.Path, "/api/") {
+				middleware.AdminMiddleware(authHandler.Service())(dashboardMux).ServeHTTP(w, r)
+				return
+			}
+			// Public tracking endpoint (no auth required)
+			if r.URL.Path == "/track" {
+				dashboardMux.ServeHTTP(w, r)
+				return
+			}
+			// Everything else falls through to normal app serving (via alias system)
 		}
-
-
 
 		// 2. Root Domain Routing (root.<domain> or <domain>)
 
@@ -2640,20 +2655,17 @@ func handleStartCommand() {
 	fmt.Printf("  Dashboard:    %s://admin.%s%s\n", protocol, cfg.Server.Domain, portSuffix)
 	fmt.Printf("  Apps:         %s://<app>.%s%s\n", protocol, cfg.Server.Domain, portSuffix)
 
-	// Initialize session store
-	sessionStore := auth.NewSessionStore(auth.SessionTTL)
-	defer sessionStore.Stop()
-
 	// Initialize rate limiter
 	rateLimiter := auth.NewRateLimiter()
 
-	// Initialize auth handlers with session store and rate limiter
-	handlers.InitAuth(sessionStore, rateLimiter, config.Version)
-
 	// Initialize multi-user auth service (v0.16)
+	// All sessions are database-backed for persistence and unified auth
 	isSecure := cfg.Server.Env == "production" || cfg.HTTPS.Enabled
 	authService := auth.NewService(database.GetDB(), cfg.Server.Domain, isSecure)
 	authHandler := auth.NewHandler(authService)
+
+	// Initialize auth handlers with auth service and rate limiter
+	handlers.InitAuth(authService, rateLimiter, config.Version)
 
 	// Set global auth service for site-level auth checks (private files)
 	siteAuthService = authService
@@ -2733,7 +2745,7 @@ func handleStartCommand() {
 	dashboardMux.HandleFunc("/api/auth/status", handlers.AuthStatusHandler)
 	dashboardMux.HandleFunc("/api/user/me", handlers.UserMeHandler)
 
-	// Multi-user auth routes (v0.16)
+	// Multi-user auth routes (v0.16) - includes POST /auth/login for simple password login
 	authHandler.RegisterRoutes(dashboardMux)
 
 	// API routes - Tracking
@@ -2817,10 +2829,7 @@ func handleStartCommand() {
 	dashboardMux.HandleFunc("POST /api/upgrade", handlers.UpgradeHandler)
 
 	// Dashboard (Admin VFS Site)
-	dashboardMux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		siteHandler(w, r, "admin")
-	})
-
+	// Serve directly from VFS bypassing alias resolution (admin is reserved)
 	// Health check (available on both dashboard and sites)
 	dashboardMux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		if err := database.HealthCheck(); err != nil {
@@ -2832,7 +2841,7 @@ func handleStartCommand() {
 	})
 
 	// Create the root handler with host-based routing
-	rootHandler := createRootHandler(cfg, dashboardMux, sessionStore, authHandler)
+	rootHandler := createRootHandler(cfg, dashboardMux, authHandler)
 
 	// Initialize global rate limiter (500 req/s sustained, 1000 burst per IP)
 	globalRateLimiter := middleware.NewRateLimiter(middleware.DefaultRateLimit, middleware.DefaultBurst)

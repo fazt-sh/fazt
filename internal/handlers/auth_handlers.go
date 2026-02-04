@@ -13,41 +13,37 @@ import (
 )
 
 var (
-	sessionStore *auth.SessionStore
-	rateLimiter  *auth.RateLimiter
+	authService   *auth.Service
+	rateLimiter   *auth.RateLimiter
 	serverVersion string
 )
 
-// InitAuth initializes the auth handlers with the session store and rate limiter
-func InitAuth(store *auth.SessionStore, limiter *auth.RateLimiter, version string) {
-	sessionStore = store
+// InitAuth initializes the auth handlers with the auth service and rate limiter
+func InitAuth(service *auth.Service, limiter *auth.RateLimiter, version string) {
+	authService = service
 	rateLimiter = limiter
 	serverVersion = version
 }
 
 // UserMeHandler returns the current authenticated user info
 func UserMeHandler(w http.ResponseWriter, r *http.Request) {
-	sessionID, err := auth.GetSessionCookie(r)
+	user, err := authService.GetSessionFromRequest(r)
 	if err != nil {
+		// All session errors result in 401 - the client should re-authenticate
 		api.Unauthorized(w, "Authentication required")
 		return
 	}
 
-	session, err := sessionStore.GetSession(sessionID)
-	if err != nil {
-		api.SessionExpired(w)
-		return
-	}
-
-	api.Success(w, http.StatusOK, map[string]string{
-		"username": session.Username,
+	api.Success(w, http.StatusOK, map[string]interface{}{
+		"username": user.Name,
+		"email":    user.Email,
+		"role":     user.Role,
 		"version":  serverVersion,
 	})
 }
 
-// LoginHandler handles the API login request
+// LoginHandler handles the API login request (password authentication)
 func LoginHandler(w http.ResponseWriter, r *http.Request) {
-
 	if r.Method != http.MethodPost {
 		api.BadRequest(w, "Method not allowed")
 		return
@@ -75,10 +71,9 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get config
+	// Get config and verify credentials
 	cfg := config.Get()
 
-	// Verify credentials
 	if req.Username != cfg.Auth.Username {
 		rateLimiter.RecordAttempt(ip)
 		audit.LogFailure(req.Username, ip, "login", "/api/login", "invalid username")
@@ -95,8 +90,16 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Credentials valid - create session
-	sessionID, err := sessionStore.CreateSession(req.Username)
+	// Get or create the local admin user
+	user, err := authService.GetOrCreateLocalAdmin(req.Username)
+	if err != nil {
+		log.Printf("Failed to get/create local admin user: %v", err)
+		api.InternalError(w, err)
+		return
+	}
+
+	// Create database session
+	token, err := authService.CreateSession(user.ID)
 	if err != nil {
 		log.Printf("Failed to create session: %v", err)
 		api.InternalError(w, err)
@@ -104,12 +107,11 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Set session cookie
-	ttl := auth.SessionTTL
+	maxAge := int(auth.DefaultSessionTTL.Seconds())
 	if req.RememberMe {
-		ttl = auth.RememberMeTTL
+		maxAge = int(auth.RememberMeTTL.Seconds())
 	}
-
-	auth.SetSessionCookie(w, sessionID, ttl, cfg.IsProduction())
+	http.SetCookie(w, authService.SessionCookie(token, maxAge))
 
 	// Reset rate limit on successful login
 	rateLimiter.Reset(ip)
@@ -118,7 +120,6 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	audit.LogSuccess(req.Username, ip, "login", "/api/login")
 	log.Printf("Login successful: %s from %s", req.Username, ip)
 
-	// Return success
 	api.Success(w, http.StatusOK, map[string]interface{}{
 		"message": "Login successful",
 	})
@@ -128,17 +129,19 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 func LogoutHandler(w http.ResponseWriter, r *http.Request) {
 	// Get session info for audit logging
 	var username string
-	sessionID, err := auth.GetSessionCookie(r)
+	user, err := authService.GetSessionFromRequest(r)
 	if err == nil {
-		if session, err := sessionStore.GetSession(sessionID); err == nil {
-			username = session.Username
-		}
-		// Delete session
-		sessionStore.DeleteSession(sessionID)
+		username = user.Name
+	}
+
+	// Delete session from database
+	cookie, err := r.Cookie("fazt_session")
+	if err == nil && cookie.Value != "" {
+		authService.DeleteSession(cookie.Value)
 	}
 
 	// Clear session cookie
-	auth.ClearSessionCookie(w)
+	http.SetCookie(w, authService.ClearSessionCookie())
 
 	// Log logout
 	if username != "" {
@@ -160,15 +163,7 @@ func LogoutHandler(w http.ResponseWriter, r *http.Request) {
 
 // AuthStatusHandler returns the current authentication status
 func AuthStatusHandler(w http.ResponseWriter, r *http.Request) {
-	sessionID, err := auth.GetSessionCookie(r)
-	if err != nil {
-		api.Success(w, http.StatusOK, map[string]interface{}{
-			"authenticated": false,
-		})
-		return
-	}
-
-	session, err := sessionStore.GetSession(sessionID)
+	user, err := authService.GetSessionFromRequest(r)
 	if err != nil {
 		api.Success(w, http.StatusOK, map[string]interface{}{
 			"authenticated": false,
@@ -178,8 +173,9 @@ func AuthStatusHandler(w http.ResponseWriter, r *http.Request) {
 
 	api.Success(w, http.StatusOK, map[string]interface{}{
 		"authenticated": true,
-		"username":      session.Username,
-		"expiresAt":     session.ExpiresAt,
+		"username":      user.Name,
+		"email":         user.Email,
+		"role":          user.Role,
 	})
 }
 

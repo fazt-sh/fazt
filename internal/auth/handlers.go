@@ -31,6 +31,11 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h.mux.ServeHTTP(w, r)
 }
 
+// Service returns the underlying auth service
+func (h *Handler) Service() *Service {
+	return h.service
+}
+
 // registerInternalRoutes registers auth routes on the internal mux
 func (h *Handler) registerInternalRoutes() {
 	// Public routes (OAuth flow)
@@ -52,7 +57,8 @@ func (h *Handler) registerInternalRoutes() {
 // RegisterRoutes registers auth routes on a mux
 func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	// Public routes
-	mux.HandleFunc("GET /auth/login", h.LoginPage)
+	mux.HandleFunc("/auth/login", h.LoginHandler) // Handles both GET (OAuth page) and POST (simple login)
+	mux.HandleFunc("/auth/simplelogin", h.SimpleLogin) // Alternative POST endpoint
 	mux.HandleFunc("GET /auth/login/{provider}", h.StartLogin)
 	mux.HandleFunc("GET /auth/callback/{provider}", h.Callback)
 	mux.HandleFunc("GET /auth/session", h.Session)
@@ -101,6 +107,48 @@ func (h *Handler) LoginPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.renderLoginPageWithRequest(w, r, providers, redirectTo, "")
+}
+
+// LoginHandler routes to either the OAuth login page (GET) or simple login (POST)
+func (h *Handler) LoginHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodPost {
+		h.SimpleLogin(w, r)
+		return
+	}
+	h.LoginPage(w, r)
+}
+
+// SimpleLogin handles simple username/password login (for embedded admin)
+func (h *Handler) SimpleLogin(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		api.BadRequest(w, "invalid request body")
+		return
+	}
+
+	// Verify credentials against config
+	if err := h.service.VerifyAdminCredentials(req.Username, req.Password); err != nil {
+		api.Unauthorized(w, "invalid credentials")
+		return
+	}
+
+	// Create session (uses userID as the username for admin login)
+	token, err := h.service.CreateSession(req.Username)
+	if err != nil {
+		api.InternalError(w, err)
+		return
+	}
+
+	// Set cookie (24 hour session)
+	http.SetCookie(w, h.service.SessionCookie(token, 24*60*60))
+
+	api.Success(w, http.StatusOK, map[string]interface{}{
+		"message": "Login successful",
+	})
 }
 
 // StartLogin initiates the OAuth flow for a provider

@@ -117,13 +117,24 @@ var (
 )
 
 // buildCSP constructs the Content-Security-Policy header
-func buildCSP(domain string) string {
+func buildCSP(domain string, port string, isSecure bool) string {
+	// Allow both http and https for cross-subdomain requests
+	connectDomain := "https://*." + domain
+	if !isSecure {
+		// In development with non-standard ports, include port in CSP
+		if port != "80" && port != "443" && port != "" {
+			connectDomain += " http://*." + domain + ":" + port
+		} else {
+			connectDomain += " http://*." + domain
+		}
+	}
+
 	return "default-src 'self'; " +
 		"script-src 'self' 'unsafe-inline' 'unsafe-eval' " + joinSources(scriptCDNs) + "; " +
 		"style-src 'self' 'unsafe-inline' " + joinSources(styleCDNs) + "; " +
 		"img-src 'self' data: blob: https:; " +
 		"font-src 'self' data: " + joinSources(fontCDNs) + "; " +
-		"connect-src 'self' " + joinSources(connectCDNs) + " https://*." + domain + "; " +
+		"connect-src 'self' " + joinSources(connectCDNs) + " " + connectDomain + "; " +
 		"media-src 'self' blob: https:; " +
 		"object-src 'none'; " +
 		"frame-ancestors *"
@@ -153,7 +164,9 @@ func SecurityHeaders(next http.Handler) http.Handler {
 		w.Header().Set("X-XSS-Protection", "1; mode=block")
 
 		// Content Security Policy with comprehensive CDN whitelist
-		w.Header().Set("Content-Security-Policy", buildCSP(cfg.Server.Domain))
+		// In development, allow both HTTP and HTTPS for cross-subdomain requests
+		isSecure := cfg.IsProduction() || cfg.HTTPS.Enabled
+		w.Header().Set("Content-Security-Policy", buildCSP(cfg.Server.Domain, cfg.Server.Port, isSecure))
 
 		// HSTS in production
 		if cfg.IsProduction() {

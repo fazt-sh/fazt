@@ -370,3 +370,37 @@ func (s *Service) CountUsers() (int, error) {
 	return count, err
 }
 
+// GetOrCreateLocalAdmin gets or creates the local admin user for password authentication
+// This bridges the config-based admin credentials with the database user system
+func (s *Service) GetOrCreateLocalAdmin(username string) (*User, error) {
+	// Look for existing local admin user
+	user, err := s.GetUserByProvider("local", username)
+	if err == nil {
+		return user, nil
+	}
+
+	// Create a new local admin user
+	email := username + "@local"
+	id := appid.GenerateUser()
+	now := time.Now().Unix()
+
+	_, err = s.db.Exec(`
+		INSERT INTO auth_users (id, email, name, picture, provider, provider_id, role, created_at, last_login)
+		VALUES (?, ?, ?, '', 'local', ?, 'owner', ?, ?)
+	`, id, email, username, username, now, now)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &User{
+		ID:        id,
+		Email:     email,
+		Name:      username,
+		Provider:  "local",
+		Role:      "owner",
+		CreatedAt: now,
+		LastLogin: &now,
+	}, nil
+}
+
