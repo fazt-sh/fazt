@@ -1,7 +1,7 @@
 # Fazt Implementation State
 
 **Last Updated**: 2026-02-04
-**Current Version**: v0.24.13
+**Current Version**: v0.25.0
 
 ## Status
 

@@ -4,6 +4,26 @@ All notable changes to fazt.sh will be documented in this file.
 
 ## [Unreleased]
 
+## [0.25.0] - 2026-02-04
+
+### Added
+- **Permissive URL parsing for `--alias` filter**: Accept URLs in any format
+  - Full URLs: `https://app.domain.com/path` → extracts `app`
+  - Domains: `app.domain.com` → extracts `app`
+  - With paths/queries: `app.domain.com/page?q=1` → extracts `app`
+  - Bare alias: `app` → uses as-is
+  - Users can copy-paste URLs directly from browser
+- **Flag aliases for `--alias`**: Added `--url` and `--link` as intuitive alternatives
+  - All three flags (`--alias`, `--url`, `--link`) are complete synonyms
+  - More natural UX: "I have this URL..." → use `--url`
+
+### Changed
+- **CLI documentation**: Comprehensive `fazt logs` command reference
+  - Created `internal/help/cli/logs/_index.md` with complete subcommand docs
+  - Updated `commands.md` version to 0.25.0
+  - Added logs command to main CLI overview
+  - Accessible via `knowledge-base/cli/` symlink
+
 ## [0.24.11] - 2026-02-04
 
 ### Fixed
