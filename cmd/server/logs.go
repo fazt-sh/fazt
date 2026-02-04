@@ -26,6 +26,8 @@ type filterFlags struct {
 	resourceID   *string
 	appID        *string
 	alias        *string
+	url          *string // Alias for alias
+	link         *string // Alias for alias
 	userID       *string
 	actorType    *string
 	action       *string
@@ -46,6 +48,8 @@ func addFilterFlags(flags *flag.FlagSet) *filterFlags {
 	f.resourceID = flags.String("resource", "", "Filter by resource ID")
 	f.appID = flags.String("app", "", "Filter by app ID (matches app resources, KV, pages)")
 	f.alias = flags.String("alias", "", "Filter by subdomain/alias (accepts URLs: https://alias.domain/path → alias)")
+	f.url = flags.String("url", "", "Alias for --alias")
+	f.link = flags.String("link", "", "Alias for --alias")
 	f.userID = flags.String("user", "", "Filter by user ID")
 	f.actorType = flags.String("actor-type", "", "Filter by actor type (user/system/api_key/anonymous)")
 	f.action = flags.String("action", "", "Filter by action")
@@ -80,8 +84,16 @@ func (f *filterFlags) toQueryParams() (activity.QueryParams, error) {
 	if *f.appID != "" {
 		params.AppID = *f.appID
 	}
-	if *f.alias != "" {
-		params.Alias = normalizeAlias(*f.alias)
+	// Support --alias, --url, and --link (all are synonyms)
+	aliasValue := *f.alias
+	if aliasValue == "" && *f.url != "" {
+		aliasValue = *f.url
+	}
+	if aliasValue == "" && *f.link != "" {
+		aliasValue = *f.link
+	}
+	if aliasValue != "" {
+		params.Alias = normalizeAlias(aliasValue)
 	}
 	if *f.userID != "" {
 		params.UserID = *f.userID
@@ -489,6 +501,8 @@ Filters (work with all commands):
   --max-weight N    Maximum weight (0-9)
   --app ID          Filter by app ID
   --alias URL       Filter by subdomain/alias (accepts any format)
+  --url URL         Alias for --alias
+  --link URL        Alias for --alias
                     Examples: fun-game, fun-game.zyt.app, https://fun-game.zyt.app/path
   --user ID         Filter by user ID
   --actor-type T    Filter by actor type (user/system/api_key/anonymous)
@@ -512,7 +526,8 @@ Command-specific options:
 Examples:
   fazt logs list                                     # Recent activity
   fazt logs list --alias fun-game                    # Pageviews for fun-game subdomain
-  fazt logs list --alias https://fun-game.zyt.app/path  # Same (URL auto-parsed)
+  fazt logs list --url https://fun-game.zyt.app/path # Same (--url and --link work too)
+  fazt logs list --link fun-game.zyt.app            # All three flags are synonyms
   fazt logs list --app my-app --since 24h           # App activity last 24h
   fazt logs list --user abc123 --min-weight 5       # User's important events
   fazt logs cleanup --app old-app                    # Preview cleanup (dry-run)
@@ -986,8 +1001,16 @@ func buildRemoteQueryParams(f *filterFlags) url.Values {
 	if *f.appID != "" {
 		params.Set("app", *f.appID)
 	}
-	if *f.alias != "" {
-		params.Set("alias", normalizeAlias(*f.alias))
+	// Support --alias, --url, and --link (all are synonyms)
+	aliasValue := *f.alias
+	if aliasValue == "" && *f.url != "" {
+		aliasValue = *f.url
+	}
+	if aliasValue == "" && *f.link != "" {
+		aliasValue = *f.link
+	}
+	if aliasValue != "" {
+		params.Set("alias", normalizeAlias(aliasValue))
 	}
 	if *f.userID != "" {
 		params.Set("user", *f.userID)
