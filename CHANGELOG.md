@@ -4,6 +4,13 @@ All notable changes to fazt.sh will be documented in this file.
 
 ## [Unreleased]
 
+## [0.24.4] - 2026-02-04
+
+### Fixed
+- **User list JSON output**: Now returns proper objects instead of arrays
+  - Before: `[["email", "name", ...]]`
+  - After: `[{"email": "...", "name": "...", ...}]`
+
 ## [0.24.3] - 2026-02-04
 
 ### Added

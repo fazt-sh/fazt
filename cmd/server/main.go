@@ -3534,10 +3534,20 @@ func handleUserList(args []string) {
 	renderer := getRenderer()
 
 	var tableRows [][]string
+	var users []map[string]string
 	for rows.Next() {
 		var id, email, name, role, provider, createdAt, lastLogin string
 		rows.Scan(&id, &email, &name, &role, &provider, &createdAt, &lastLogin)
 		tableRows = append(tableRows, []string{email, name, role, provider, lastLogin})
+		users = append(users, map[string]string{
+			"id":         id,
+			"email":      email,
+			"name":       name,
+			"role":       role,
+			"provider":   provider,
+			"created_at": createdAt,
+			"last_login": lastLogin,
+		})
 	}
 
 	table := &output.Table{
@@ -3550,7 +3560,7 @@ func handleUserList(args []string) {
 		Table(table).
 		String()
 
-	renderer.Print(md, map[string]interface{}{"users": tableRows, "count": len(tableRows)})
+	renderer.Print(md, map[string]interface{}{"users": users, "count": len(users)})
 }
 
 func handleUserSetRole(args []string) {

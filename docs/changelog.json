@@ -1,5 +1,11 @@
 [
     {
+        "version": "v0.24.4",
+        "title": "User List JSON Fix",
+        "description": "Fixed user list JSON output to return proper objects with named fields instead of arrays.",
+        "created_at": "2026-02-04"
+    },
+    {
         "version": "v0.24.3",
         "title": "RBAC for User Management",
         "description": "Added role-based access control. Owners have full access, admins can manage users but not promote to owner. Endpoints support both API key and session auth.",
