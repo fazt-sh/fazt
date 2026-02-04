@@ -1,16 +1,39 @@
 # Fazt Implementation State
 
-**Last Updated**: 2026-02-04
-**Current Version**: v0.25.2
+**Last Updated**: 2026-02-05
+**Current Version**: v0.25.4
 
 ## Status
 
 State: RELEASED
-v0.25.2 shipped - Root domain pageview tracking fixed and deployed to all peers.
+v0.25.4 shipped - Fixed admin UI health endpoint authentication (401 error resolved).
 
 ---
 
-## Current Session (2026-02-04) - v0.25.2 Release
+## Current Session (2026-02-05) - v0.25.4 Release
+
+### What Was Done
+
+#### Released v0.25.4 (Bug Fix)
+Fixed admin UI health endpoint and released:
+- **Problem**: User reported `GET https://admin.zyt.app/api/system/health 401 (Unauthorized)` when accessing admin/logs
+- **Root cause**: Health endpoint used `requireAPIKeyAuth` (only CLI/remote), not `requireAdminAuth` (CLI + admin UI sessions)
+- **Fix**: Changed `/api/system/health` to use `requireAdminAuth` instead of `requireAPIKeyAuth`
+  - Allows both API key auth (CLI/remote) and session auth with admin role (admin UI)
+  - Matches the same pattern applied to logs endpoints in v0.25.3
+- **Released**: Built all platforms, created GitHub release, pushed v0.25.4
+- **Deployed**: Upgraded local binary and all peers (local, zyt) via canonical `fazt upgrade` path
+- **Verified**: Both peers at v0.25.4, healthy status ✓
+
+### Commits
+```
+49fe2a5 release: v0.25.4
+7873ef3 fix: allow admin session auth for health endpoint
+```
+
+---
+
+## Last Session (2026-02-04) - v0.25.2 Release
 
 ### What Was Done
 
@@ -28,7 +51,6 @@ Fixed root domain pageview tracking and released:
 ```
 35dfea6 release: v0.25.2
 ff5f754 fix: root domain pageview tracking
-08f92e6 docs: update STATE.md - v0.25.1 released and deployed
 ```
 
 ---
@@ -53,108 +75,17 @@ Fixed remote SQL command and released:
 
 ---
 
-## Last Session (2026-02-04) - Permissive URL Parsing
-
-### What Was Done
-
-#### Permissive Alias URL Parsing
-Enhanced `--alias` filter to accept URLs in any format:
-- Added `normalizeAlias()` function that extracts subdomain from various inputs:
-  - Full URLs: `https://fun-game.zyt.app/path` → `fun-game`
-  - Domain only: `fun-game.zyt.app` → `fun-game`
-  - With path/query: `fun-game.zyt.app/game?level=5` → `fun-game`
-  - Just alias: `fun-game` → `fun-game`
-- Works seamlessly for both local and remote peer queries
-- Updated help text and examples to show flexible format
-- Users can now copy-paste full URLs directly from browser
-
-#### Flag Aliases: --url and --link
-Added intuitive aliases for the `--alias` flag:
-- `--url` - matches user mental model of "I have a URL"
-- `--link` - natural shorthand for "I have a link"
-- All three flags (`--alias`, `--url`, `--link`) are complete synonyms
-- Same permissive URL parsing applies to all variants
-
-**Example usage:**
-```bash
-# All of these work identically:
-fazt logs list --alias tetris
-fazt logs list --url https://tetris.zyt.app/
-fazt logs list --link tetris.zyt.app/game
-```
-
-#### Documentation Updates
-Comprehensive CLI documentation for logs command:
-- Created `internal/help/cli/logs/_index.md` - Complete reference
-  - All subcommands documented (list, stats, cleanup, export)
-  - Full filter options reference
-  - Weight scale table
-  - Permissive URL parsing examples
-  - Common workflows and use cases
-- Updated `commands.md` - Added logs to command catalog (v0.20.0 → v0.24.13)
-- Updated `fazt.md` - Added logs to main CLI overview
-- Documentation accessible via symlink: `knowledge-base/cli/logs/`
-
-### Commits
-```
-9430d2d docs: add comprehensive logs command documentation
-ab0faf4 feat: add --url and --link aliases for --alias flag
-1a822ba feat: permissive URL parsing for --alias filter
-```
-
----
-
-## Last Session (2026-02-04) - Activity Logging System
-
-### What Was Done
-
-#### 1. Unified Activity Logging (v0.24.8 - v0.24.12)
-Created comprehensive activity logging to replace separate audit/analytics systems:
-- **`internal/activity/`** package with buffered writes (10s flush interval)
-- **Weight-based prioritization** (0-9 scale): Security(9) → Debug(0)
-- **Full query/filter support**: app, user, action, result, time range, alias
-- **CLI commands**: `fazt logs list|stats|cleanup|export`
-- **Remote peer support**: `fazt @zyt logs list`
-- **Analytics SDK injection**: Auto-injects tracking script into HTML pages
-
-#### 2. Alias Filter (v0.24.13)
-- Added `--alias` filter to logs command
-- Filters pageviews by subdomain: `fazt logs list --alias fun-game`
-- Works across list, stats, cleanup, export commands
-- Remote peer support included
-
-#### 3. Analytics Tracking Fix (v0.24.12)
-- Fixed tracking URL to use centralized `admin.<domain>/track`
-- All app subdomains now send analytics to admin subdomain
-- Script extracts domain from hostname for proper routing
-
-### Key Files Created/Modified
-- `internal/activity/logger.go` - Buffer, logging helpers, weight constants
-- `internal/activity/query.go` - Query, cleanup, stats with full filter support
-- `internal/hosting/analytics_inject.go` - SDK injection before `</body>`
-- `cmd/server/logs.go` - CLI commands (local + remote)
-- `internal/handlers/system.go` - API endpoints for remote logs
-- `internal/database/migrations/018_activity_log.sql` - Schema
-
-### Commits
-```
-01ca974 release: v0.24.13 - add --alias filter to logs command
-3fac9cf release: v0.24.12 - fix analytics tracking URL
-... (multiple commits from v0.24.8 through v0.24.13)
-```
-
----
-
 ## Next Up
 
 ### High Priority
-1. **Root domain tracking** - Currently no pageviews for `zyt.app` (only subdomains tracked)
-2. **Admin UI integration** - Display activity logs in web dashboard
+1. **Admin UI testing** - Verify logs page works correctly with health endpoint fix
+2. **Admin UI integration** - Continue building out admin pages (apps, users, etc.)
 
 ### Future Work
-1. **Cleanup automation** - Scheduled cleanup of low-weight old entries
-2. **Real-time streaming** - WebSocket feed for live activity
-3. **Export formats** - Add more export options (Parquet, etc.)
+1. **Root domain tracking** - Verify pageviews working for `zyt.app` (fixed in v0.25.2)
+2. **Cleanup automation** - Scheduled cleanup of low-weight old entries
+3. **Real-time streaming** - WebSocket feed for live activity
+4. **Export formats** - Add more export options (Parquet, etc.)
 
 ---
 
@@ -175,9 +106,9 @@ fazt @zyt logs list --alias fun-game  # Remote peer with filters
 # 9=Security, 8=Auth, 7=Config, 6=Deploy, 5=Data, 4=UserAction, 3=Nav, 2=Analytics, 1=System, 0=Debug
 
 # Version verification
-cat version.json | jq -r '.version'                                    # 0.24.13
-grep "var Version" internal/config/config.go | grep -oE '[0-9..]+'    # 0.24.13
-fazt --version                                                         # 0.24.13
+cat version.json | jq -r '.version'                                    # 0.25.4
+grep "var Version" internal/config/config.go | grep -oE '[0-9..]+'    # 0.25.4
+fazt --version                                                         # 0.25.4
 
 # Remote peers
 fazt @zyt logs stats                  # Check activity on production
@@ -221,3 +152,10 @@ navigator.sendBeacon(u, JSON.stringify({h:h, p:location.pathname, e:'pageview'})
 ```
 
 All apps send to `admin.<domain>/track` (centralized tracking endpoint).
+
+### Admin Auth Pattern (v0.25.3+)
+
+System endpoints now use `requireAdminAuth` instead of `requireAPIKeyAuth`:
+- **Supports both**: API key auth (CLI/remote) + session auth with admin role (admin UI)
+- **Endpoints migrated**: `/api/system/health`, `/api/system/logs/*`
+- **Pattern**: Use `requireAdminAuth` for endpoints that admin UI needs to access
