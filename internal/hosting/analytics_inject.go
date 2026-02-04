@@ -9,9 +9,11 @@ import (
 // analyticsScript is the minimal tracking snippet injected into HTML pages
 // It sends a pageview beacon to the admin subdomain's /track endpoint
 // The script extracts the base domain and constructs the admin URL dynamically
+// For root domains (zyt.app), uses full hostname. For subdomains (tetris.zyt.app), strips subdomain.
 const analyticsScript = `<script>(function(){
-var h=location.hostname,d=h.split('.').slice(1).join('.');
-if(!d)d=h;
+var h=location.hostname;
+var s=h.split('.').slice(1).join('.');
+var d=(s&&s.includes('.'))?s:h;
 var u=location.protocol+'//admin.'+d+'/track';
 navigator.sendBeacon(u,JSON.stringify({h:h,p:location.pathname,e:'pageview'}))
 })();</script>`
