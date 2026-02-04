@@ -2,7 +2,7 @@
 command: ""
 description: "Sovereign compute - deploy static sites and serverless apps"
 syntax: "fazt <command> [options]"
-version: "0.24.7"
+version: "0.24.13"
 updated: "2026-02-04"
 
 examples:
@@ -12,6 +12,9 @@ examples:
   - title: "List apps"
     command: "fazt app list"
     description: "List deployed apps"
+  - title: "View activity logs"
+    command: "fazt logs list --url https://my-app.zyt.app/"
+    description: "Show pageviews and activity (accepts any URL format)"
   - title: "List users"
     command: "fazt user list --limit 20"
     description: "List users with pagination"
@@ -22,6 +25,8 @@ examples:
 related:
   - command: "app"
     description: "App management commands"
+  - command: "logs"
+    description: "Activity log management"
   - command: "user"
     description: "User management commands"
   - command: "alias"
@@ -54,6 +59,13 @@ Sovereign compute - single Go binary + SQLite database that runs anywhere.
 - `fazt alias list` - List all aliases
 - `fazt alias info --name <subdomain>` - Show alias details
 - `fazt @<peer> alias <command>` - Execute alias commands on a remote peer
+
+### Activity Logs
+- `fazt logs list` - List activity log entries
+- `fazt logs stats` - Show activity statistics
+- `fazt logs list --url <url>` - Filter by subdomain (accepts any URL format)
+- `fazt logs cleanup --max-weight 2 --until 7d --force` - Clean up old logs
+- `fazt @<peer> logs <command>` - Execute logs commands on a remote peer
 
 ### Peer Management
 - `fazt peer list` - List configured peers

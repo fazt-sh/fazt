@@ -6,7 +6,45 @@
 ## Status
 
 State: CLEAN
-Unified activity logging system complete with alias filter support.
+Activity logging with permissive URL parsing for alias filter.
+
+---
+
+## Current Session (2026-02-04) - Permissive URL Parsing
+
+### What Was Done
+
+#### Permissive Alias URL Parsing
+Enhanced `--alias` filter to accept URLs in any format:
+- Added `normalizeAlias()` function that extracts subdomain from various inputs:
+  - Full URLs: `https://fun-game.zyt.app/path` → `fun-game`
+  - Domain only: `fun-game.zyt.app` → `fun-game`
+  - With path/query: `fun-game.zyt.app/game?level=5` → `fun-game`
+  - Just alias: `fun-game` → `fun-game`
+- Works seamlessly for both local and remote peer queries
+- Updated help text and examples to show flexible format
+- Users can now copy-paste full URLs directly from browser
+
+#### Flag Aliases: --url and --link
+Added intuitive aliases for the `--alias` flag:
+- `--url` - matches user mental model of "I have a URL"
+- `--link` - natural shorthand for "I have a link"
+- All three flags (`--alias`, `--url`, `--link`) are complete synonyms
+- Same permissive URL parsing applies to all variants
+
+**Example usage:**
+```bash
+# All of these work identically:
+fazt logs list --alias tetris
+fazt logs list --url https://tetris.zyt.app/
+fazt logs list --link tetris.zyt.app/game
+```
+
+### Commits
+```
+ab0faf4 feat: add --url and --link aliases for --alias flag
+1a822ba feat: permissive URL parsing for --alias filter
+```
 
 ---
 

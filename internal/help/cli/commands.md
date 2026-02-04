@@ -1,7 +1,7 @@
 # Fazt CLI Commands Reference
 
-**Version**: 0.20.0
-**Updated**: 2026-02-02
+**Version**: 0.24.13
+**Updated**: 2026-02-04
 
 This document catalogs all CLI commands, their arguments, flags, and patterns for consistency analysis.
 
@@ -360,9 +360,9 @@ fazt @<peer> <command> [args...]
 
 ---
 
-## New Commands (v0.18.0)
+## Recent Command Additions
 
-### `fazt sql`
+### `fazt sql` (v0.18.0)
 
 **Purpose**: Execute SQL queries on local or remote databases
 
@@ -377,6 +377,112 @@ fazt @<peer> <command> [args...]
 fazt sql "SELECT * FROM apps"                 # Query local database
 fazt @zyt sql "SELECT * FROM apps"            # Query remote database
 fazt sql "SELECT * FROM apps" --format json   # JSON output
+```
+
+### `fazt user` (v0.24.7)
+
+**Purpose**: User management - list users, view status, set roles
+
+See detailed documentation in `knowledge-base/cli/user/`
+
+### `fazt alias` (v0.24.7)
+
+**Purpose**: Alias management - list and inspect routing aliases
+
+See detailed documentation in `knowledge-base/cli/alias/`
+
+### `fazt logs` (v0.24.8 - v0.24.13)
+
+**Purpose**: Activity log management - unified logging with weight-based prioritization
+
+**Features**:
+- Query logs with extensive filtering (weight, app, user, action, time)
+- Statistics and analysis
+- Cleanup with dry-run safety
+- Export to JSON/CSV
+- Permissive URL parsing for alias filters (v0.24.13)
+- Flag aliases: `--url` and `--link` work alongside `--alias` (v0.24.13)
+
+See detailed documentation in `knowledge-base/cli/logs/`
+
+---
+
+### `fazt logs`
+
+**Purpose**: Activity log management - query, analyze, and clean up activity logs
+
+#### Subcommands
+
+##### `logs list`
+- **Args**: None
+- **Flags**:
+  - `--min-weight N` - Minimum weight (0-9)
+  - `--max-weight N` - Maximum weight (0-9)
+  - `--app ID` - Filter by app ID
+  - `--alias URL` - Filter by subdomain/alias (permissive URL parsing)
+  - `--url URL` - Alias for `--alias`
+  - `--link URL` - Alias for `--alias`
+  - `--user ID` - Filter by user ID
+  - `--actor-type T` - Filter by actor type (user/system/api_key/anonymous)
+  - `--type T` - Filter by resource type (app/user/session/kv/doc/page/config)
+  - `--resource ID` - Filter by resource ID
+  - `--action A` - Filter by action (pageview, deploy, login, etc.)
+  - `--result R` - Filter by result (success/failure)
+  - `--since TIME` - Show entries since (e.g., '24h', '7d', '2024-01-15')
+  - `--until TIME` - Show entries until
+  - `--limit N` - Number of entries (default: 20)
+  - `--offset N` - Skip first n results
+- **Pattern**: Local by default, remote via `@peer` prefix
+
+##### `logs stats`
+- **Args**: None
+- **Flags**: Same filters as `logs list`
+- **Pattern**: Local by default, remote via `@peer` prefix
+
+##### `logs cleanup`
+- **Args**: None
+- **Flags**: Same filters as `logs list`, plus:
+  - `--force` - Actually delete (default: preview only)
+- **Pattern**: Local by default, remote via `@peer` prefix
+- **Safety**: Always runs dry-run unless `--force` specified
+
+##### `logs export`
+- **Args**: None
+- **Flags**: Same filters as `logs list`, plus:
+  - `-f FORMAT` - Output format: json or csv (default: json)
+  - `-o FILE` - Output file (default: stdout)
+- **Pattern**: Local by default, remote via `@peer` prefix
+
+**Weight Scale** (0-9):
+- 9: Security (API key changes, role changes)
+- 8: Auth (login/logout, sessions)
+- 7: Config (alias/redirect changes)
+- 6: Deployment (app deploy/delete)
+- 5: Data Mutation (KV/doc writes)
+- 4: User Action (form submissions)
+- 3: Navigation (page navigation)
+- 2: Analytics (pageviews, clicks)
+- 1: System (health checks, server events)
+- 0: Debug (timing, cache hits)
+
+**Permissive URL Parsing**: The `--alias`, `--url`, and `--link` flags accept URLs in any format and automatically extract the subdomain:
+```bash
+fazt logs list --alias tetris                        # Just alias
+fazt logs list --url https://tetris.zyt.app/         # Full URL
+fazt logs list --link tetris.zyt.app/game            # Domain with path
+```
+
+**Examples**:
+```bash
+fazt logs list                                       # Recent activity
+fazt logs list --url https://fun-game.zyt.app/path   # Pageviews for subdomain
+fazt logs list --app my-app --since 24h              # App activity (24h)
+fazt logs list --min-weight 5                        # Important events only
+fazt logs stats --app my-app                         # Statistics
+fazt logs cleanup --max-weight 2 --until 7d          # Preview cleanup
+fazt logs cleanup --max-weight 2 --until 7d --force  # Execute cleanup
+fazt logs export --app my-app -f csv -o logs.csv     # Export to CSV
+fazt @zyt logs list --link tetris.zyt.app            # Remote peer
 ```
 
 ---
