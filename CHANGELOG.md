@@ -4,6 +4,16 @@ All notable changes to fazt.sh will be documented in this file.
 
 ## [Unreleased]
 
+## [0.24.9] - 2026-02-04
+
+### Added
+- **Unified activity logging**: Replace separate audit/events with single `activity_log` table
+  - Weight-based prioritization (0-9 scale: Debug to Security)
+  - CLI: `fazt logs list/cleanup/export/stats` with unified filters
+  - Filters: `--app`, `--user`, `--min-weight`, `--since`, `--until`, etc.
+  - Auto-cleanup when exceeding configurable max rows (500k default)
+  - Analytics SDK injection for HTML pages (opt-out via manifest)
+
 ## [0.24.8] - 2026-02-04
 
 ### Fixed

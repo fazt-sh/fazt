@@ -1,5 +1,11 @@
 [
     {
+        "version": "v0.24.9",
+        "title": "Unified Activity Logging",
+        "description": "New activity logging system with weight-based prioritization. CLI commands: fazt logs list/cleanup/export/stats. Unified filters: --app, --user, --min-weight, --since. Auto-cleanup and analytics SDK injection.",
+        "created_at": "2026-02-04"
+    },
+    {
         "version": "v0.24.7",
         "title": "Aggregate Status Commands",
         "description": "New 'fazt user status' and 'fazt app status' commands show aggregate data. User status shows apps with data, app status shows users with data. Works with @peer pattern.",
