@@ -133,7 +133,7 @@ func SystemCapacityHandler(w http.ResponseWriter, r *http.Request) {
 
 // SystemLogsHandler returns activity log entries with filtering
 func SystemLogsHandler(w http.ResponseWriter, r *http.Request) {
-	if !requireAPIKeyAuth(w, r) {
+	if _, ok := requireAdminAuth(w, r); !ok {
 		return
 	}
 
@@ -155,7 +155,7 @@ func SystemLogsHandler(w http.ResponseWriter, r *http.Request) {
 
 // SystemLogsStatsHandler returns activity log statistics
 func SystemLogsStatsHandler(w http.ResponseWriter, r *http.Request) {
-	if !requireAPIKeyAuth(w, r) {
+	if _, ok := requireAdminAuth(w, r); !ok {
 		return
 	}
 
@@ -171,7 +171,7 @@ func SystemLogsStatsHandler(w http.ResponseWriter, r *http.Request) {
 
 // SystemLogsCleanupHandler deletes activity logs matching filters
 func SystemLogsCleanupHandler(w http.ResponseWriter, r *http.Request) {
-	if !requireAPIKeyAuth(w, r) {
+	if _, ok := requireAdminAuth(w, r); !ok {
 		return
 	}
 
