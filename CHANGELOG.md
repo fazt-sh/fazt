@@ -4,6 +4,11 @@ All notable changes to fazt.sh will be documented in this file.
 
 ## [Unreleased]
 
+## [0.24.11] - 2026-02-04
+
+### Fixed
+- **Logs default DB path**: Use `~/.fazt/data.db` instead of `./data.db`
+
 ## [0.24.10] - 2026-02-04
 
 ### Fixed

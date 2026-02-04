@@ -78,7 +78,7 @@ func WrapWithWildcardDNS(domain string) string {
 }
 
 // Version holds the current application version
-var Version = "0.24.10"
+var Version = "0.24.11"
 
 // Config holds all configuration for the application
 type Config struct {
