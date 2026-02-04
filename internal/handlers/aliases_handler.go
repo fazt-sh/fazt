@@ -35,7 +35,8 @@ type RedirectTarget struct {
 	URL string `json:"url"`
 }
 
-// AliasesListHandler returns the list of all aliases
+// AliasesListHandler returns the list of all aliases with pagination
+// Query params: ?offset=0&limit=20
 func AliasesListHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		api.ErrorResponse(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Method not allowed", "")
@@ -48,13 +49,21 @@ func AliasesListHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Parse pagination
+	offset, limit := api.ParsePagination(r)
+
+	// Get total count
+	var total int
+	db.QueryRow(`SELECT COUNT(*) FROM aliases`).Scan(&total)
+
 	query := `
 		SELECT subdomain, type, targets, created_at, updated_at
 		FROM aliases
 		ORDER BY subdomain
+		LIMIT ? OFFSET ?
 	`
 
-	rows, err := db.Query(query)
+	rows, err := db.Query(query, limit, offset)
 	if err != nil {
 		api.InternalError(w, err)
 		return
@@ -86,7 +95,7 @@ func AliasesListHandler(w http.ResponseWriter, r *http.Request) {
 		aliases = append(aliases, a)
 	}
 
-	api.Success(w, http.StatusOK, aliases)
+	api.PaginatedSuccess(w, http.StatusOK, aliases, offset, limit, total)
 }
 
 // AliasDetailHandler returns details for a single alias

@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 )
@@ -195,6 +196,60 @@ func InternalError(w http.ResponseWriter, err error) {
 // Use when database is locked, maintenance mode, etc.
 func ServiceUnavailable(w http.ResponseWriter, message string) {
 	Error(w, http.StatusServiceUnavailable, "SERVICE_UNAVAILABLE", message, nil)
+}
+
+// ============================================================================
+// Pagination Helpers
+// ============================================================================
+
+// Pagination represents pagination parameters and metadata
+type Pagination struct {
+	Offset  int  `json:"offset"`
+	Limit   int  `json:"limit"`
+	Total   int  `json:"total"`
+	HasMore bool `json:"has_more"`
+}
+
+// ParsePagination extracts pagination parameters from request query string
+// Defaults: offset=0, limit=20, max limit=100
+func ParsePagination(r *http.Request) (offset, limit int) {
+	offset = 0
+	limit = 20
+
+	if v := r.URL.Query().Get("offset"); v != "" {
+		if n, err := parseInt(v); err == nil && n >= 0 {
+			offset = n
+		}
+	}
+
+	if v := r.URL.Query().Get("limit"); v != "" {
+		if n, err := parseInt(v); err == nil && n > 0 {
+			limit = n
+			if limit > 100 {
+				limit = 100
+			}
+		}
+	}
+
+	return offset, limit
+}
+
+// parseInt is a simple int parser helper
+func parseInt(s string) (int, error) {
+	var n int
+	_, err := fmt.Sscanf(s, "%d", &n)
+	return n, err
+}
+
+// PaginatedSuccess writes a paginated response with data and pagination metadata
+func PaginatedSuccess(w http.ResponseWriter, status int, data interface{}, offset, limit, total int) {
+	meta := Pagination{
+		Offset:  offset,
+		Limit:   limit,
+		Total:   total,
+		HasMore: offset+limit < total,
+	}
+	SuccessWithMeta(w, status, data, meta)
 }
 
 // ============================================================================

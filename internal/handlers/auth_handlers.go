@@ -227,7 +227,8 @@ func requireAdminAuth(w http.ResponseWriter, r *http.Request) (role string, ok b
 	return user.Role, true
 }
 
-// UsersListHandler returns a list of all users
+// UsersListHandler returns a list of all users with pagination
+// Query params: ?offset=0&limit=20
 func UsersListHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		api.BadRequest(w, "Method not allowed")
@@ -239,13 +240,16 @@ func UsersListHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	users, err := authService.ListUsers()
+	// Parse pagination
+	offset, limit := api.ParsePagination(r)
+
+	users, total, err := authService.ListUsersPaginated(offset, limit)
 	if err != nil {
 		api.InternalError(w, err)
 		return
 	}
 
-	api.Success(w, http.StatusOK, users)
+	api.PaginatedSuccess(w, http.StatusOK, users, offset, limit, total)
 }
 
 // UserSetRoleHandler sets a user's role
@@ -328,6 +332,101 @@ func UserSetRoleHandler(w http.ResponseWriter, r *http.Request) {
 		"user_id": targetUser.ID,
 		"email":   targetUser.Email,
 		"role":    req.Role,
+	})
+}
+
+// UserStatusHandler returns detailed status for a specific user
+// GET /api/users/{id}/status
+func UserStatusHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		api.BadRequest(w, "Method not allowed")
+		return
+	}
+
+	// Require admin auth
+	if _, ok := requireAdminAuth(w, r); !ok {
+		return
+	}
+
+	// Extract user ID from path: /api/users/{id}/status
+	path := r.URL.Path
+	parts := strings.Split(path, "/")
+	if len(parts) < 4 {
+		api.BadRequest(w, "User ID required")
+		return
+	}
+	userIDOrEmail := parts[3] // /api/users/{id}/status
+
+	// Look up user by ID or email
+	var user *auth.User
+	var err error
+	if strings.Contains(userIDOrEmail, "@") {
+		user, err = authService.GetUserByEmail(userIDOrEmail)
+	} else {
+		user, err = authService.GetUserByID(userIDOrEmail)
+	}
+	if err != nil {
+		api.NotFound(w, "USER_NOT_FOUND", "User not found")
+		return
+	}
+
+	db := database.GetDB()
+
+	// Get apps this user has data in
+	type AppData struct {
+		AppID    string `json:"app_id"`
+		KVCount  int    `json:"kv_count"`
+		DocCount int    `json:"doc_count"`
+	}
+	var apps []AppData
+
+	rows, err := db.Query(`
+		SELECT
+			app_id,
+			(SELECT COUNT(*) FROM app_kv WHERE app_id = t.app_id AND user_id = ?) as kv_count,
+			(SELECT COUNT(*) FROM app_docs WHERE app_id = t.app_id AND user_id = ?) as doc_count
+		FROM (
+			SELECT DISTINCT app_id FROM app_kv WHERE user_id = ?
+			UNION
+			SELECT DISTINCT app_id FROM app_docs WHERE user_id = ?
+		) t
+		ORDER BY app_id
+	`, user.ID, user.ID, user.ID, user.ID)
+
+	if err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var app AppData
+			if err := rows.Scan(&app.AppID, &app.KVCount, &app.DocCount); err == nil {
+				apps = append(apps, app)
+			}
+		}
+	}
+
+	// Calculate totals
+	totalKV := 0
+	totalDocs := 0
+	for _, app := range apps {
+		totalKV += app.KVCount
+		totalDocs += app.DocCount
+	}
+
+	api.Success(w, http.StatusOK, map[string]interface{}{
+		"user": map[string]interface{}{
+			"id":         user.ID,
+			"email":      user.Email,
+			"name":       user.Name,
+			"role":       user.Role,
+			"provider":   user.Provider,
+			"created_at": user.CreatedAt,
+			"last_login": user.LastLogin,
+		},
+		"apps": apps,
+		"totals": map[string]interface{}{
+			"app_count": len(apps),
+			"kv_count":  totalKV,
+			"doc_count": totalDocs,
+		},
 	})
 }
 

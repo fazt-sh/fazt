@@ -30,6 +30,8 @@ func handleAppCommandV2(args []string) {
 		handleAppListV2(args[1:])
 	case "info":
 		handleAppInfoV2(args[1:])
+	case "status":
+		handleAppStatus(args[1:])
 	case "deploy":
 		handleAppDeploy(args[1:]) // Use existing deploy
 	case "create":
@@ -1051,6 +1053,7 @@ USAGE:
 REMOTE COMMANDS (support @peer):
   list [peer]           List apps (--aliases for alias list)
   info [identifier]     Show app details (--alias or --id)
+  status                Show app status with user data (requires --alias or --id)
   files <app>           List files in a deployed app (--alias or --id)
   deploy <dir>          Deploy directory to peer
   logs <app>            View serverless execution logs (-f to follow)
@@ -1087,4 +1090,363 @@ EXAMPLES:
   fazt @zyt app list
   fazt @zyt app deploy ./my-site
   fazt @zyt app info --alias tetris`)
+}
+
+// handleAppStatus shows detailed status for an app including user data
+func handleAppStatus(args []string) {
+	flags := flag.NewFlagSet("app status", flag.ExitOnError)
+	aliasFlag := flags.String("alias", "", "Lookup by alias")
+	idFlag := flags.String("id", "", "Lookup by app ID")
+	flags.Parse(args)
+
+	// Determine app identifier from flags only (no positional args)
+	var appID string
+	if *idFlag != "" {
+		appID = *idFlag
+	} else if *aliasFlag != "" {
+		appID = *aliasFlag
+	} else {
+		fmt.Fprintln(os.Stderr, "Error: --alias or --id flag required")
+		fmt.Fprintln(os.Stderr, "Usage: fazt app status --alias <ALIAS>")
+		fmt.Fprintln(os.Stderr, "       fazt app status --id <APP_ID>")
+		os.Exit(1)
+	}
+
+	// Remote peer support
+	if targetPeerName != "" {
+		handleAppStatusRemote(targetPeerName, appID)
+		return
+	}
+
+	db := getClientDB()
+	defer database.Close()
+
+	// Try to resolve alias to app ID first
+	// First check if it's an alias
+	var resolvedAppID, appTitle string
+	var targets string
+	err := db.QueryRow(`
+		SELECT targets FROM aliases WHERE subdomain = ? AND type = 'app'
+	`, appID).Scan(&targets)
+	if err == nil {
+		// Parse app_id from JSON targets
+		var targetData struct {
+			AppID string `json:"app_id"`
+		}
+		json.Unmarshal([]byte(targets), &targetData)
+		if targetData.AppID != "" {
+			resolvedAppID = targetData.AppID
+		}
+	}
+
+	// If not an alias, check by ID or title directly
+	if resolvedAppID == "" {
+		err = db.QueryRow(`
+			SELECT id, COALESCE(title, '') FROM apps WHERE id = ? OR title = ?
+		`, appID, appID).Scan(&resolvedAppID, &appTitle)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: App not found: %s\n", appID)
+			os.Exit(1)
+		}
+	} else {
+		// Get title for resolved app
+		db.QueryRow(`SELECT COALESCE(title, '') FROM apps WHERE id = ?`, resolvedAppID).Scan(&appTitle)
+	}
+	appID = resolvedAppID
+
+	// Get app details
+	var source string
+	var createdAt, updatedAt string
+	var fileCount int
+	var sizeBytes int64
+
+	err = db.QueryRow(`
+		SELECT
+			COALESCE(a.source, 'deploy'),
+			datetime(a.created_at) as created_at,
+			datetime(a.updated_at) as updated_at,
+			COALESCE(COUNT(f.path), 0) as file_count,
+			COALESCE(SUM(f.size_bytes), 0) as size_bytes
+		FROM apps a
+		LEFT JOIN files f ON a.title = f.site_id
+		WHERE a.id = ?
+		GROUP BY a.id
+	`, appID).Scan(&source, &createdAt, &updatedAt, &fileCount, &sizeBytes)
+
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: Failed to get app details: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Get aliases (from the aliases table, parse targets JSON for app_id)
+	var aliases []string
+	aliasRows, _ := db.Query(`SELECT subdomain, targets FROM aliases WHERE type = 'app'`)
+	if aliasRows != nil {
+		defer aliasRows.Close()
+		for aliasRows.Next() {
+			var subdomain, targetsJSON string
+			if aliasRows.Scan(&subdomain, &targetsJSON) == nil {
+				var targetData struct {
+					AppID string `json:"app_id"`
+				}
+				json.Unmarshal([]byte(targetsJSON), &targetData)
+				if targetData.AppID == appID {
+					aliases = append(aliases, subdomain)
+				}
+			}
+		}
+	}
+
+	// Get user stats for this app
+	type UserData struct {
+		UserID   string
+		Email    string
+		Name     string
+		KVCount  int
+		DocCount int
+	}
+	var users []UserData
+
+	userRows, err := db.Query(`
+		SELECT
+			u.id,
+			u.email,
+			u.name,
+			(SELECT COUNT(*) FROM app_kv WHERE app_id = ? AND user_id = u.id) as kv_count,
+			(SELECT COUNT(*) FROM app_docs WHERE app_id = ? AND user_id = u.id) as doc_count
+		FROM auth_users u
+		WHERE u.id IN (
+			SELECT DISTINCT user_id FROM app_kv WHERE app_id = ? AND user_id IS NOT NULL
+			UNION
+			SELECT DISTINCT user_id FROM app_docs WHERE app_id = ? AND user_id IS NOT NULL
+		)
+		ORDER BY u.email
+	`, appID, appID, appID, appID)
+
+	if err == nil {
+		defer userRows.Close()
+		for userRows.Next() {
+			var userData UserData
+			if err := userRows.Scan(&userData.UserID, &userData.Email, &userData.Name, &userData.KVCount, &userData.DocCount); err == nil {
+				users = append(users, userData)
+			}
+		}
+	}
+
+	// Calculate storage totals
+	var totalKV, totalDocs int
+	db.QueryRow(`SELECT COUNT(*) FROM app_kv WHERE app_id = ?`, appID).Scan(&totalKV)
+	db.QueryRow(`SELECT COUNT(*) FROM app_docs WHERE app_id = ?`, appID).Scan(&totalDocs)
+
+	renderer := getRenderer()
+
+	// Format output
+	md := output.NewMarkdown().
+		H1("App Status")
+
+	// App info
+	md.H2("App Info")
+	infoTable := &output.Table{
+		Headers: []string{"Field", "Value"},
+		Rows: [][]string{
+			{"ID", appID},
+			{"Name", appTitle},
+			{"Source", source},
+			{"Files", fmt.Sprintf("%d", fileCount)},
+			{"Size", formatBytes(sizeBytes)},
+			{"Created", output.TimeAgoString(createdAt)},
+			{"Updated", output.TimeAgoString(updatedAt)},
+		},
+	}
+	if len(aliases) > 0 {
+		infoTable.Rows = append(infoTable.Rows, []string{"Aliases", strings.Join(aliases, ", ")})
+	}
+	md.Table(infoTable)
+
+	// Users with data
+	md.H2("Users with Data")
+	if len(users) == 0 {
+		md.Para("No user data found for this app.")
+	} else {
+		userRows := make([][]string, len(users))
+		for i, u := range users {
+			userRows[i] = []string{u.Email, u.Name, fmt.Sprintf("%d", u.KVCount), fmt.Sprintf("%d", u.DocCount)}
+		}
+		userTable := &output.Table{
+			Headers: []string{"Email", "Name", "KV Count", "Doc Count"},
+			Rows:    userRows,
+		}
+		md.Table(userTable)
+	}
+
+	// Summary
+	md.H2("Summary")
+	summaryTable := &output.Table{
+		Headers: []string{"Metric", "Count"},
+		Rows: [][]string{
+			{"Users with Data", fmt.Sprintf("%d", len(users))},
+			{"Total KV Entries", fmt.Sprintf("%d", totalKV)},
+			{"Total Documents", fmt.Sprintf("%d", totalDocs)},
+		},
+	}
+	md.Table(summaryTable)
+
+	// JSON output
+	jsonData := map[string]interface{}{
+		"app": map[string]interface{}{
+			"id":         appID,
+			"name":       appTitle,
+			"source":     source,
+			"file_count": fileCount,
+			"size_bytes": sizeBytes,
+			"created_at": createdAt,
+			"updated_at": updatedAt,
+			"aliases":    aliases,
+		},
+		"users": users,
+		"totals": map[string]interface{}{
+			"user_count": len(users),
+			"kv_count":   totalKV,
+			"doc_count":  totalDocs,
+		},
+	}
+
+	renderer.Print(md.String(), jsonData)
+}
+
+// handleAppStatusRemote handles app status on a remote peer
+func handleAppStatusRemote(peerName, appID string) {
+	db := getClientDB()
+	defer database.Close()
+
+	peer, err := remote.ResolvePeer(db, peerName)
+	if err != nil {
+		handlePeerError(err)
+		os.Exit(1)
+	}
+
+	req, _ := http.NewRequest("GET", peer.URL+"/api/apps/"+appID+"/status", nil)
+	req.Header.Set("Authorization", "Bearer "+peer.Token)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+	defer resp.Body.Close()
+
+	var response struct {
+		Data struct {
+			App struct {
+				ID        string   `json:"id"`
+				Name      string   `json:"name"`
+				Source    string   `json:"source"`
+				FileCount int      `json:"file_count"`
+				SizeBytes int64    `json:"size_bytes"`
+				CreatedAt string   `json:"created_at"`
+				UpdatedAt string   `json:"updated_at"`
+				Aliases   []string `json:"aliases"`
+			} `json:"app"`
+			Users []struct {
+				UserID   string `json:"user_id"`
+				Email    string `json:"email"`
+				Name     string `json:"name"`
+				KVCount  int    `json:"kv_count"`
+				DocCount int    `json:"doc_count"`
+			} `json:"users"`
+			Totals struct {
+				UserCount int `json:"user_count"`
+				KVCount   int `json:"kv_count"`
+				DocCount  int `json:"doc_count"`
+			} `json:"totals"`
+		} `json:"data"`
+		Error *struct {
+			Code    string `json:"code"`
+			Message string `json:"message"`
+		} `json:"error"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+		fmt.Fprintf(os.Stderr, "Error decoding response: %v\n", err)
+		os.Exit(1)
+	}
+
+	if response.Error != nil {
+		fmt.Fprintf(os.Stderr, "Error: %s\n", response.Error.Message)
+		os.Exit(1)
+	}
+
+	app := response.Data.App
+	users := response.Data.Users
+	totals := response.Data.Totals
+
+	renderer := getRenderer()
+
+	// Format output
+	md := output.NewMarkdown().
+		H1("App Status (@" + peerName + ")")
+
+	// App info
+	md.H2("App Info")
+	infoTable := &output.Table{
+		Headers: []string{"Field", "Value"},
+		Rows: [][]string{
+			{"ID", app.ID},
+			{"Name", app.Name},
+			{"Source", app.Source},
+			{"Files", fmt.Sprintf("%d", app.FileCount)},
+			{"Size", formatBytes(app.SizeBytes)},
+			{"Created", output.TimeAgoString(app.CreatedAt)},
+			{"Updated", output.TimeAgoString(app.UpdatedAt)},
+		},
+	}
+	if len(app.Aliases) > 0 {
+		infoTable.Rows = append(infoTable.Rows, []string{"Aliases", strings.Join(app.Aliases, ", ")})
+	}
+	md.Table(infoTable)
+
+	// Users with data
+	md.H2("Users with Data")
+	if len(users) == 0 {
+		md.Para("No user data found for this app.")
+	} else {
+		userRows := make([][]string, len(users))
+		for i, u := range users {
+			userRows[i] = []string{u.Email, u.Name, fmt.Sprintf("%d", u.KVCount), fmt.Sprintf("%d", u.DocCount)}
+		}
+		userTable := &output.Table{
+			Headers: []string{"Email", "Name", "KV Count", "Doc Count"},
+			Rows:    userRows,
+		}
+		md.Table(userTable)
+	}
+
+	// Summary
+	md.H2("Summary")
+	summaryTable := &output.Table{
+		Headers: []string{"Metric", "Count"},
+		Rows: [][]string{
+			{"Users with Data", fmt.Sprintf("%d", totals.UserCount)},
+			{"Total KV Entries", fmt.Sprintf("%d", totals.KVCount)},
+			{"Total Documents", fmt.Sprintf("%d", totals.DocCount)},
+		},
+	}
+	md.Table(summaryTable)
+
+	renderer.Print(md.String(), response.Data)
+}
+
+// formatBytes formats bytes into human readable form
+func formatBytes(b int64) string {
+	const unit = 1024
+	if b < unit {
+		return fmt.Sprintf("%d B", b)
+	}
+	div, exp := int64(unit), 0
+	for n := b / unit; n >= unit; n /= unit {
+		div *= unit
+		exp++
+	}
+	return fmt.Sprintf("%.1f %cB", float64(b)/float64(div), "KMGTPE"[exp])
 }

@@ -266,14 +266,25 @@ func (s *Service) DeleteUser(userID string) error {
 	return nil
 }
 
-// ListUsers returns all users
+// ListUsers returns all users (deprecated: use ListUsersPaginated for new code)
 func (s *Service) ListUsers() ([]*User, error) {
+	users, _, err := s.ListUsersPaginated(0, 1000)
+	return users, err
+}
+
+// ListUsersPaginated returns users with pagination
+func (s *Service) ListUsersPaginated(offset, limit int) ([]*User, int, error) {
+	// Get total count
+	var total int
+	s.db.QueryRow(`SELECT COUNT(*) FROM auth_users`).Scan(&total)
+
 	rows, err := s.db.Query(`
 		SELECT id, email, name, picture, provider, provider_id, role, invited_by, created_at, last_login
-		FROM auth_users ORDER BY created_at DESC
-	`)
+		FROM auth_users ORDER BY last_login DESC
+		LIMIT ? OFFSET ?
+	`, limit, offset)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 
@@ -306,7 +317,7 @@ func (s *Service) ListUsers() ([]*User, error) {
 		users = append(users, &user)
 	}
 
-	return users, nil
+	return users, total, nil
 }
 
 // VerifyPassword checks if the provided password matches the user's stored hash

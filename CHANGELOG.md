@@ -4,6 +4,24 @@ All notable changes to fazt.sh will be documented in this file.
 
 ## [Unreleased]
 
+## [0.24.7] - 2026-02-04
+
+### Added
+- **Aggregate status commands**: `fazt user status --email <email>` and `fazt app status --alias <name>` show cross-entity relationships
+  - User status shows apps where user has data (KV/doc counts)
+  - App status shows users who have data in the app
+  - Both support `--email`/`--id` or `--alias`/`--id` flags (no positional args)
+- **Alias CLI commands**: `fazt alias list` and `fazt alias info --name <subdomain>`
+  - Full remote peer support: `fazt @peer alias list`
+- **Pagination**: List endpoints support `--offset` and `--limit` flags
+  - Consistent pagination metadata: `{offset, limit, total, has_more}`
+  - Applied to: user list, alias list
+- **CLI documentation**: Added `fazt user` and `fazt alias` command docs
+
+### Fixed
+- **Admin auth redirect**: Users who sign out from admin subdomain now return to admin after re-login
+  - Captures current URL and passes as `?redirect=` parameter
+
 ## [0.24.6] - 2026-02-04
 
 ### Added

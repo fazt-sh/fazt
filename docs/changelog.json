@@ -1,5 +1,11 @@
 [
     {
+        "version": "v0.24.7",
+        "title": "Aggregate Status Commands",
+        "description": "New 'fazt user status' and 'fazt app status' commands show aggregate data. User status shows apps with data, app status shows users with data. Works with @peer pattern.",
+        "created_at": "2026-02-04"
+    },
+    {
         "version": "v0.24.6",
         "title": "Time Ago & App User Filtering",
         "description": "User list shows relative time (1h ago). New --app flag filters users by app data.",

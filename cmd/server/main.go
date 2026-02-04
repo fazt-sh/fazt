@@ -154,6 +154,8 @@ func main() {
 		handleSQLCommand(os.Args[2:])
 	case "user":
 		handleUserCommand(os.Args[2:])
+	case "alias":
+		handleAliasCommand(os.Args[2:])
 	default:
 		fmt.Printf("Unknown command: %s\n\n", command)
 		printUsage()
@@ -193,6 +195,9 @@ func handleAtPeerRouting(peerName string, args []string) {
 
 	case "user":
 		handleUserCommandWithPeer(peerName, cmdArgs)
+
+	case "alias":
+		handleAliasCommandWithPeer(peerName, cmdArgs)
 
 	case "status":
 		// Direct status check: fazt @peer status
@@ -1499,6 +1504,7 @@ func createRootHandler(cfg *config.Config, dashboardMux *http.ServeMux, authHand
 			// These are used by remote peers and CLI tools
 			if r.URL.Path == "/api/deploy" ||
 				strings.HasPrefix(r.URL.Path, "/api/users") ||
+				(strings.HasPrefix(r.URL.Path, "/api/apps/") && strings.HasSuffix(r.URL.Path, "/status")) ||
 				r.URL.Path == "/api/system/health" ||
 				r.URL.Path == "/api/upgrade" {
 				dashboardMux.ServeHTTP(w, r)
@@ -2759,6 +2765,7 @@ func handleStartCommand() {
 	dashboardMux.HandleFunc("/api/auth/status", handlers.AuthStatusHandler)
 	dashboardMux.HandleFunc("/api/user/me", handlers.UserMeHandler)
 	dashboardMux.HandleFunc("GET /api/users", handlers.UsersListHandler)
+	dashboardMux.HandleFunc("GET /api/users/{id}/status", handlers.UserStatusHandler)
 	dashboardMux.HandleFunc("POST /api/users/role", handlers.UserSetRoleHandler)
 
 	// Multi-user auth routes (v0.16) - includes POST /auth/login for simple password login
@@ -2803,6 +2810,7 @@ func handleStartCommand() {
 	dashboardMux.HandleFunc("POST /api/apps/create", handlers.AppCreateHandler) // Legacy
 	dashboardMux.HandleFunc("GET /api/templates", handlers.TemplatesListHandler)
 	dashboardMux.HandleFunc("GET /api/apps/{id}", handlers.AppDetailHandlerV2)
+	dashboardMux.HandleFunc("GET /api/apps/{id}/status", handlers.AppStatusHandler)
 	dashboardMux.HandleFunc("PUT /api/apps/{id}", handlers.AppUpdateHandlerV2)
 	dashboardMux.HandleFunc("DELETE /api/apps/{id}", handlers.AppDeleteHandlerV2)
 	dashboardMux.HandleFunc("GET /api/apps/{id}/files", handlers.AppFilesHandler)
@@ -3489,6 +3497,8 @@ func handleUserCommand(args []string) {
 	switch subCmd {
 	case "list":
 		handleUserList(args[1:])
+	case "status":
+		handleUserStatus(args[1:])
 	case "set-role":
 		handleUserSetRole(args[1:])
 	case "--help", "-h", "help":
@@ -3508,17 +3518,29 @@ func printUserUsage() {
 	fmt.Println()
 	fmt.Println("COMMANDS:")
 	fmt.Println("  list                    List all users")
+	fmt.Println("  status                  Show user status with app data (requires --email or --id)")
 	fmt.Println("  set-role                Set a user's role")
+	fmt.Println()
+	fmt.Println("OPTIONS:")
+	fmt.Println("  --email <email>         User email (for status, set-role)")
+	fmt.Println("  --id <id>               User ID (for status, set-role)")
+	fmt.Println("  --app <app-id>          Filter by app (for list)")
+	fmt.Println("  --role <role>           Role to set (for set-role)")
 	fmt.Println()
 	fmt.Println("EXAMPLES:")
 	fmt.Println("  fazt user list")
+	fmt.Println("  fazt user list --app app_xxx")
+	fmt.Println("  fazt user status --email user@example.com")
+	fmt.Println("  fazt user status --id fazt_usr_xxx")
 	fmt.Println("  fazt user set-role --email user@example.com --role admin")
-	fmt.Println("  fazt @zyt user set-role --email user@example.com --role owner")
+	fmt.Println("  fazt @zyt user status --email user@example.com")
 }
 
 func handleUserList(args []string) {
 	fs := flag.NewFlagSet("list", flag.ExitOnError)
 	appID := fs.String("app", "", "Filter users by app (users with data in this app)")
+	offsetFlag := fs.Int("offset", 0, "Skip first n results")
+	limitFlag := fs.Int("limit", 20, "Max results to return")
 	fs.Parse(args)
 
 	db := getClientDB()
@@ -3528,10 +3550,22 @@ func handleUserList(args []string) {
 	var tableRows [][]string
 	var users []map[string]string
 	var title string
+	var total int
 
 	if *appID != "" {
 		// List users with data in the specified app
 		title = fmt.Sprintf("Users (app: %s)", *appID)
+
+		// Get total count
+		db.QueryRow(`
+			SELECT COUNT(DISTINCT u.id)
+			FROM auth_users u
+			WHERE u.id IN (
+				SELECT DISTINCT user_id FROM app_kv WHERE app_id = ? AND user_id IS NOT NULL
+				UNION
+				SELECT DISTINCT user_id FROM app_docs WHERE app_id = ? AND user_id IS NOT NULL
+			)
+		`, *appID, *appID).Scan(&total)
 
 		// Query users who have KV or doc data in this app
 		rows, err := db.Query(`
@@ -3547,7 +3581,8 @@ func handleUserList(args []string) {
 				SELECT DISTINCT user_id FROM app_docs WHERE app_id = ? AND user_id IS NOT NULL
 			)
 			ORDER BY u.last_login DESC
-		`, *appID, *appID, *appID, *appID)
+			LIMIT ? OFFSET ?
+		`, *appID, *appID, *appID, *appID, *limitFlag, *offsetFlag)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error listing app users: %v\n", err)
 			os.Exit(1)
@@ -3580,19 +3615,37 @@ func handleUserList(args []string) {
 
 		md := output.NewMarkdown().
 			H1(title).
-			Table(table).
-			String()
+			Table(table)
 
-		renderer.Print(md, map[string]interface{}{"users": users, "count": len(users), "app_id": *appID})
+		// Show pagination info
+		if total > *limitFlag || *offsetFlag > 0 {
+			md.Para(fmt.Sprintf("Showing %d-%d of %d (--offset %d --limit %d)",
+				*offsetFlag+1, minInt(*offsetFlag+len(users), total), total, *offsetFlag, *limitFlag))
+		}
+
+		renderer.Print(md.String(), map[string]interface{}{
+			"users":  users,
+			"app_id": *appID,
+			"pagination": map[string]interface{}{
+				"offset":   *offsetFlag,
+				"limit":    *limitFlag,
+				"total":    total,
+				"has_more": *offsetFlag+*limitFlag < total,
+			},
+		})
 	} else {
 		// List all users
 		title = "Users"
 
+		// Get total count
+		db.QueryRow(`SELECT COUNT(*) FROM auth_users`).Scan(&total)
+
 		rows, err := db.Query(`
 			SELECT id, email, name, role, provider, datetime(created_at, 'unixepoch', 'localtime'), datetime(last_login, 'unixepoch', 'localtime')
 			FROM auth_users
-			ORDER BY created_at DESC
-		`)
+			ORDER BY last_login DESC
+			LIMIT ? OFFSET ?
+		`, *limitFlag, *offsetFlag)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error listing users: %v\n", err)
 			os.Exit(1)
@@ -3621,11 +3674,204 @@ func handleUserList(args []string) {
 
 		md := output.NewMarkdown().
 			H1(title).
-			Table(table).
-			String()
+			Table(table)
 
-		renderer.Print(md, map[string]interface{}{"users": users, "count": len(users)})
+		// Show pagination info
+		if total > *limitFlag || *offsetFlag > 0 {
+			md.Para(fmt.Sprintf("Showing %d-%d of %d (--offset %d --limit %d)",
+				*offsetFlag+1, minInt(*offsetFlag+len(users), total), total, *offsetFlag, *limitFlag))
+		}
+
+		renderer.Print(md.String(), map[string]interface{}{
+			"users": users,
+			"pagination": map[string]interface{}{
+				"offset":   *offsetFlag,
+				"limit":    *limitFlag,
+				"total":    total,
+				"has_more": *offsetFlag+*limitFlag < total,
+			},
+		})
 	}
+}
+
+func minInt(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func handleUserStatus(args []string) {
+	fs := flag.NewFlagSet("status", flag.ExitOnError)
+	emailFlag := fs.String("email", "", "User email")
+	idFlag := fs.String("id", "", "User ID")
+	fs.Parse(args)
+
+	// Determine user identifier from flags only (no positional args)
+	var userIDOrEmail string
+	var lookupByEmail bool
+
+	if *emailFlag != "" {
+		userIDOrEmail = *emailFlag
+		lookupByEmail = true
+	} else if *idFlag != "" {
+		userIDOrEmail = *idFlag
+		lookupByEmail = false
+	} else {
+		fmt.Fprintln(os.Stderr, "Error: --email or --id flag required")
+		fmt.Fprintln(os.Stderr, "Usage: fazt user status --email <EMAIL>")
+		fmt.Fprintln(os.Stderr, "       fazt user status --id <ID>")
+		os.Exit(1)
+	}
+
+	// Remote peer support
+	if targetPeerName != "" {
+		handleUserStatusRemote(targetPeerName, []string{userIDOrEmail})
+		return
+	}
+
+	db := getClientDB()
+	defer database.Close()
+
+	// Get user info
+	var userID, email, name, role, provider string
+	var createdAt, lastLogin int64
+	var lastLoginPtr *int64
+
+	var row *sql.Row
+	if lookupByEmail {
+		row = db.QueryRow(`
+			SELECT id, email, name, role, provider, created_at, last_login
+			FROM auth_users WHERE email = ?
+		`, userIDOrEmail)
+	} else {
+		row = db.QueryRow(`
+			SELECT id, email, name, role, provider, created_at, last_login
+			FROM auth_users WHERE id = ?
+		`, userIDOrEmail)
+	}
+
+	var lastLoginNull sql.NullInt64
+	if err := row.Scan(&userID, &email, &name, &role, &provider, &createdAt, &lastLoginNull); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: User not found: %s\n", userIDOrEmail)
+		os.Exit(1)
+	}
+	if lastLoginNull.Valid {
+		lastLogin = lastLoginNull.Int64
+		lastLoginPtr = &lastLogin
+	}
+
+	// Get apps this user has data in
+	type AppData struct {
+		AppID    string
+		KVCount  int
+		DocCount int
+	}
+	var apps []AppData
+
+	rows, err := db.Query(`
+		SELECT
+			app_id,
+			(SELECT COUNT(*) FROM app_kv WHERE app_id = t.app_id AND user_id = ?) as kv_count,
+			(SELECT COUNT(*) FROM app_docs WHERE app_id = t.app_id AND user_id = ?) as doc_count
+		FROM (
+			SELECT DISTINCT app_id FROM app_kv WHERE user_id = ?
+			UNION
+			SELECT DISTINCT app_id FROM app_docs WHERE user_id = ?
+		) t
+		ORDER BY app_id
+	`, userID, userID, userID, userID)
+
+	if err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var app AppData
+			if err := rows.Scan(&app.AppID, &app.KVCount, &app.DocCount); err == nil {
+				apps = append(apps, app)
+			}
+		}
+	}
+
+	// Calculate totals
+	totalKV := 0
+	totalDocs := 0
+	for _, app := range apps {
+		totalKV += app.KVCount
+		totalDocs += app.DocCount
+	}
+
+	renderer := getRenderer()
+
+	// Format output
+	md := output.NewMarkdown().
+		H1("User Status")
+
+	// User info
+	md.H2("User Info")
+	infoTable := &output.Table{
+		Headers: []string{"Field", "Value"},
+		Rows: [][]string{
+			{"ID", userID},
+			{"Email", email},
+			{"Name", name},
+			{"Role", role},
+			{"Provider", provider},
+			{"Created", output.TimeAgo(time.Unix(createdAt, 0))},
+		},
+	}
+	if lastLoginPtr != nil {
+		infoTable.Rows = append(infoTable.Rows, []string{"Last Login", output.TimeAgo(time.Unix(*lastLoginPtr, 0))})
+	}
+	md.Table(infoTable)
+
+	// Apps with data
+	md.H2("Apps with Data")
+	if len(apps) == 0 {
+		md.Para("No app data found for this user.")
+	} else {
+		appRows := make([][]string, len(apps))
+		for i, app := range apps {
+			appRows[i] = []string{app.AppID, fmt.Sprintf("%d", app.KVCount), fmt.Sprintf("%d", app.DocCount)}
+		}
+		appTable := &output.Table{
+			Headers: []string{"App ID", "KV Count", "Doc Count"},
+			Rows:    appRows,
+		}
+		md.Table(appTable)
+	}
+
+	// Summary
+	md.H2("Summary")
+	summaryTable := &output.Table{
+		Headers: []string{"Metric", "Count"},
+		Rows: [][]string{
+			{"Apps", fmt.Sprintf("%d", len(apps))},
+			{"Total KV Entries", fmt.Sprintf("%d", totalKV)},
+			{"Total Documents", fmt.Sprintf("%d", totalDocs)},
+		},
+	}
+	md.Table(summaryTable)
+
+	// JSON output
+	jsonData := map[string]interface{}{
+		"user": map[string]interface{}{
+			"id":         userID,
+			"email":      email,
+			"name":       name,
+			"role":       role,
+			"provider":   provider,
+			"created_at": createdAt,
+			"last_login": lastLoginPtr,
+		},
+		"apps": apps,
+		"totals": map[string]interface{}{
+			"app_count": len(apps),
+			"kv_count":  totalKV,
+			"doc_count": totalDocs,
+		},
+	}
+
+	renderer.Print(md.String(), jsonData)
 }
 
 func handleUserSetRole(args []string) {
@@ -3693,6 +3939,8 @@ func handleUserCommandWithPeer(peerName string, args []string) {
 	switch subCmd {
 	case "list":
 		handleUserListRemote(peerName, args[1:])
+	case "status":
+		handleUserStatusRemote(peerName, args[1:])
 	case "set-role":
 		handleUserSetRoleRemote(peerName, args[1:])
 	default:
@@ -3700,6 +3948,132 @@ func handleUserCommandWithPeer(peerName string, args []string) {
 		printUserUsage()
 		os.Exit(1)
 	}
+}
+
+func handleUserStatusRemote(peerName string, args []string) {
+	if len(args) < 1 {
+		fmt.Fprintln(os.Stderr, "Error: user ID or email required")
+		fmt.Fprintln(os.Stderr, "Usage: fazt @<peer> user status <ID|EMAIL>")
+		os.Exit(1)
+	}
+
+	userIDOrEmail := args[0]
+
+	db := getClientDB()
+	defer database.Close()
+
+	peer, err := remote.ResolvePeer(db, peerName)
+	if err != nil {
+		handlePeerError(err)
+		os.Exit(1)
+	}
+
+	req, _ := http.NewRequest("GET", peer.URL+"/api/users/"+userIDOrEmail+"/status", nil)
+	req.Header.Set("Authorization", "Bearer "+peer.Token)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+	defer resp.Body.Close()
+
+	var response struct {
+		Data struct {
+			User struct {
+				ID        string `json:"id"`
+				Email     string `json:"email"`
+				Name      string `json:"name"`
+				Role      string `json:"role"`
+				Provider  string `json:"provider"`
+				CreatedAt int64  `json:"created_at"`
+				LastLogin *int64 `json:"last_login"`
+			} `json:"user"`
+			Apps []struct {
+				AppID    string `json:"app_id"`
+				KVCount  int    `json:"kv_count"`
+				DocCount int    `json:"doc_count"`
+			} `json:"apps"`
+			Totals struct {
+				AppCount int `json:"app_count"`
+				KVCount  int `json:"kv_count"`
+				DocCount int `json:"doc_count"`
+			} `json:"totals"`
+		} `json:"data"`
+		Error *struct {
+			Code    string `json:"code"`
+			Message string `json:"message"`
+		} `json:"error"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+		fmt.Fprintf(os.Stderr, "Error decoding response: %v\n", err)
+		os.Exit(1)
+	}
+
+	if response.Error != nil {
+		fmt.Fprintf(os.Stderr, "Error: %s\n", response.Error.Message)
+		os.Exit(1)
+	}
+
+	user := response.Data.User
+	apps := response.Data.Apps
+	totals := response.Data.Totals
+
+	renderer := getRenderer()
+
+	// Format output
+	md := output.NewMarkdown().
+		H1("User Status (@" + peerName + ")")
+
+	// User info
+	md.H2("User Info")
+	infoTable := &output.Table{
+		Headers: []string{"Field", "Value"},
+		Rows: [][]string{
+			{"ID", user.ID},
+			{"Email", user.Email},
+			{"Name", user.Name},
+			{"Role", user.Role},
+			{"Provider", user.Provider},
+			{"Created", output.TimeAgo(time.Unix(user.CreatedAt, 0))},
+		},
+	}
+	if user.LastLogin != nil {
+		infoTable.Rows = append(infoTable.Rows, []string{"Last Login", output.TimeAgo(time.Unix(*user.LastLogin, 0))})
+	}
+	md.Table(infoTable)
+
+	// Apps with data
+	md.H2("Apps with Data")
+	if len(apps) == 0 {
+		md.Para("No app data found for this user.")
+	} else {
+		appRows := make([][]string, len(apps))
+		for i, app := range apps {
+			appRows[i] = []string{app.AppID, fmt.Sprintf("%d", app.KVCount), fmt.Sprintf("%d", app.DocCount)}
+		}
+		appTable := &output.Table{
+			Headers: []string{"App ID", "KV Count", "Doc Count"},
+			Rows:    appRows,
+		}
+		md.Table(appTable)
+	}
+
+	// Summary
+	md.H2("Summary")
+	summaryTable := &output.Table{
+		Headers: []string{"Metric", "Count"},
+		Rows: [][]string{
+			{"Apps", fmt.Sprintf("%d", totals.AppCount)},
+			{"Total KV Entries", fmt.Sprintf("%d", totals.KVCount)},
+			{"Total Documents", fmt.Sprintf("%d", totals.DocCount)},
+		},
+	}
+	md.Table(summaryTable)
+
+	renderer.Print(md.String(), response.Data)
 }
 
 func handleUserListRemote(peerName string, args []string) {

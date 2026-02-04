@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"text/template"
 
 	"github.com/fazt-sh/fazt/internal/api"
@@ -700,4 +701,192 @@ func createZipFromDir(srcDir string) ([]byte, error) {
 	}
 
 	return buf.Bytes(), nil
+}
+
+// AppStatusHandler returns detailed status for a specific app
+// GET /api/apps/{id}/status
+// Returns app info with user counts and storage stats
+// Requires admin auth (API key or session with admin/owner role)
+func AppStatusHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		api.ErrorResponse(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Method not allowed", "")
+		return
+	}
+
+	// Require admin auth (API key or session with admin/owner role)
+	db := database.GetDB()
+	if db == nil {
+		api.InternalError(w, nil)
+		return
+	}
+
+	// Try API key auth first (CLI usage)
+	authHeader := r.Header.Get("Authorization")
+	if authHeader != "" && strings.HasPrefix(authHeader, "Bearer ") {
+		token := strings.TrimPrefix(authHeader, "Bearer ")
+		_, _, err := hosting.ValidateAPIKey(db, token)
+		if err != nil {
+			api.Unauthorized(w, "Invalid API key")
+			return
+		}
+		// API key is valid, proceed
+	} else {
+		// Try session auth (UI usage)
+		user, err := authService.GetSessionFromRequest(r)
+		if err != nil {
+			api.Unauthorized(w, "Authentication required")
+			return
+		}
+		if user.Role != "admin" && user.Role != "owner" {
+			api.Error(w, http.StatusForbidden, "FORBIDDEN", "Admin or owner role required", nil)
+			return
+		}
+	}
+
+	appID := r.PathValue("id")
+	if appID == "" {
+		api.BadRequest(w, "app_id required")
+		return
+	}
+
+	// First check if it's an alias
+	var resolvedAppID string
+	var targets string
+	err := db.QueryRow(`
+		SELECT targets FROM aliases WHERE subdomain = ? AND type = 'app'
+	`, appID).Scan(&targets)
+	if err == nil {
+		// Parse app_id from JSON targets
+		var targetData struct {
+			AppID string `json:"app_id"`
+		}
+		json.Unmarshal([]byte(targets), &targetData)
+		if targetData.AppID != "" {
+			resolvedAppID = targetData.AppID
+		}
+	}
+
+	// If not an alias, use the appID directly
+	if resolvedAppID == "" {
+		resolvedAppID = appID
+	}
+
+	// Get app details
+	query := `
+		SELECT
+			a.id,
+			COALESCE(a.title, ''),
+			COALESCE(a.source, 'deploy'),
+			a.created_at,
+			a.updated_at,
+			COALESCE(COUNT(f.path), 0) as file_count,
+			COALESCE(SUM(f.size_bytes), 0) as size_bytes
+		FROM apps a
+		LEFT JOIN files f ON a.title = f.site_id
+		WHERE a.id = ? OR a.title = ?
+		GROUP BY a.id
+	`
+
+	var app App
+	var createdAt, updatedAt interface{}
+
+	err = db.QueryRow(query, resolvedAppID, resolvedAppID).Scan(
+		&app.ID,
+		&app.Name,
+		&app.Source,
+		&createdAt,
+		&updatedAt,
+		&app.FileCount,
+		&app.SizeBytes,
+	)
+	if err != nil {
+		api.NotFound(w, "APP_NOT_FOUND", "App not found")
+		return
+	}
+	if createdAt != nil {
+		app.CreatedAt = formatTime(createdAt)
+	}
+	if updatedAt != nil {
+		app.UpdatedAt = formatTime(updatedAt)
+	}
+
+	// Get user stats for this app
+	type UserData struct {
+		UserID   string `json:"user_id"`
+		Email    string `json:"email"`
+		Name     string `json:"name"`
+		KVCount  int    `json:"kv_count"`
+		DocCount int    `json:"doc_count"`
+	}
+	var users []UserData
+
+	userRows, err := db.Query(`
+		SELECT
+			u.id,
+			u.email,
+			u.name,
+			(SELECT COUNT(*) FROM app_kv WHERE app_id = ? AND user_id = u.id) as kv_count,
+			(SELECT COUNT(*) FROM app_docs WHERE app_id = ? AND user_id = u.id) as doc_count
+		FROM auth_users u
+		WHERE u.id IN (
+			SELECT DISTINCT user_id FROM app_kv WHERE app_id = ? AND user_id IS NOT NULL
+			UNION
+			SELECT DISTINCT user_id FROM app_docs WHERE app_id = ? AND user_id IS NOT NULL
+		)
+		ORDER BY u.email
+	`, app.ID, app.ID, app.ID, app.ID)
+
+	if err == nil {
+		defer userRows.Close()
+		for userRows.Next() {
+			var userData UserData
+			if err := userRows.Scan(&userData.UserID, &userData.Email, &userData.Name, &userData.KVCount, &userData.DocCount); err == nil {
+				users = append(users, userData)
+			}
+		}
+	}
+
+	// Calculate storage totals
+	var totalKV, totalDocs int
+	db.QueryRow(`SELECT COUNT(*) FROM app_kv WHERE app_id = ?`, app.ID).Scan(&totalKV)
+	db.QueryRow(`SELECT COUNT(*) FROM app_docs WHERE app_id = ?`, app.ID).Scan(&totalDocs)
+
+	// Get aliases (from the aliases table, parse targets JSON for app_id)
+	var aliases []string
+	aliasRows, _ := db.Query(`SELECT subdomain, targets FROM aliases WHERE type = 'app'`)
+	if aliasRows != nil {
+		defer aliasRows.Close()
+		for aliasRows.Next() {
+			var subdomain, targetsJSON string
+			if aliasRows.Scan(&subdomain, &targetsJSON) == nil {
+				var targetData struct {
+					AppID string `json:"app_id"`
+				}
+				json.Unmarshal([]byte(targetsJSON), &targetData)
+				if targetData.AppID == app.ID {
+					aliases = append(aliases, subdomain)
+				}
+			}
+		}
+	}
+
+	api.Success(w, http.StatusOK, map[string]interface{}{
+		"app": map[string]interface{}{
+			"id":         app.ID,
+			"name":       app.Name,
+			"source":     app.Source,
+			"manifest":   app.Manifest,
+			"file_count": app.FileCount,
+			"size_bytes": app.SizeBytes,
+			"created_at": app.CreatedAt,
+			"updated_at": app.UpdatedAt,
+			"aliases":    aliases,
+		},
+		"users": users,
+		"totals": map[string]interface{}{
+			"user_count": len(users),
+			"kv_count":   totalKV,
+			"doc_count":  totalDocs,
+		},
+	})
 }
