@@ -4,6 +4,13 @@ All notable changes to fazt.sh will be documented in this file.
 
 ## [Unreleased]
 
+## [0.24.1] - 2026-02-04
+
+### Fixed
+- **Remote peer API auth**: `/api/system/health` and `/api/upgrade` now bypass AdminMiddleware and use API key auth
+  - Fixes "UNREACHABLE" status when using `fazt @peer status`
+  - Fixes remote upgrade failures
+
 ## [0.24.0] - 2026-02-04
 
 ### Added

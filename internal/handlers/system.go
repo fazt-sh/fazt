@@ -17,6 +17,11 @@ var startTime = time.Now()
 
 // SystemHealthHandler returns the system health status and metrics
 func SystemHealthHandler(w http.ResponseWriter, r *http.Request) {
+	// Require API key auth (bypasses AdminMiddleware for remote peer access)
+	if !requireAPIKeyAuth(w, r) {
+		return
+	}
+
 	// Get Memory Stats
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)

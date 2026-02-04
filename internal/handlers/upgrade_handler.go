@@ -46,6 +46,11 @@ func UpgradeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Require API key auth (bypasses AdminMiddleware for remote peer access)
+	if !requireAPIKeyAuth(w, r) {
+		return
+	}
+
 	checkOnly := r.URL.Query().Get("check") == "true"
 	forceRestart := r.URL.Query().Get("force") == "true"
 	currentVersion := config.Version
