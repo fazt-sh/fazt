@@ -38,20 +38,6 @@ const ACTOR_INFO = {
 }
 
 /**
- * Format timestamp
- */
-function formatTimestamp(timestamp) {
-  const date = new Date(timestamp)
-  return date.toLocaleString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-    second: '2-digit'
-  })
-}
-
-/**
  * Format relative time
  */
 function formatRelativeTime(timestamp) {
@@ -67,6 +53,17 @@ function formatRelativeTime(timestamp) {
   if (hours > 0) return `${hours}h ago`
   if (minutes > 0) return `${minutes}m ago`
   return 'Just now'
+}
+
+/**
+ * Format bytes to human readable
+ */
+function formatBytes(bytes) {
+  if (bytes === 0) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
 
 /**
@@ -154,14 +151,21 @@ function getColumns() {
  */
 export function render(container, ctx) {
   const { client } = ctx
+  let searchQuery = ''
   let filters = {
     limit: 50,
     offset: 0
   }
 
   function applyFilters() {
-    loadActivityLogs(client, filters)
-    loadActivityStats(client, filters)
+    // Combine search with filters
+    const params = { ...filters }
+    if (searchQuery) {
+      // Search across action, resource_id, actor_id
+      params.action = searchQuery
+    }
+    loadActivityLogs(client, params)
+    loadActivityStats(client, params)
   }
 
   function update() {
@@ -183,91 +187,92 @@ export function render(container, ctx) {
           emptyMessage: 'Activity will appear here as it happens'
         })
 
-    // Build filter toolbar
+    // Calculate pagination
+    const totalPages = Math.ceil((logsData.total || 0) / filters.limit)
+    const currentPage = Math.floor(filters.offset / filters.limit) + 1
+
+    // Build toolbar (search bar)
     const toolbar = renderToolbar({
-      title: 'Activity Logs',
-      badge: logsData.total > 0 ? logsData.total : null,
-      actions: [
-        {
-          id: 'refresh',
-          label: 'Refresh',
-          icon: 'refresh-cw',
-          variant: 'secondary'
-        }
-      ],
-      filters: [
-        {
-          id: 'weight',
-          type: 'select',
-          placeholder: 'All Priorities',
-          options: [
-            { value: '', label: 'All Priorities' },
-            { value: '5', label: 'Important (5+)' },
-            { value: '7', label: 'Critical (7+)' },
-            { value: '9', label: 'Security (9)' }
-          ]
-        },
-        {
-          id: 'action',
-          type: 'select',
-          placeholder: 'All Actions',
-          options: [
-            { value: '', label: 'All Actions' },
-            { value: 'pageview', label: 'Pageview' },
-            { value: 'deploy', label: 'Deploy' },
-            { value: 'login', label: 'Login' },
-            { value: 'create', label: 'Create' },
-            { value: 'delete', label: 'Delete' }
-          ]
-        },
-        {
-          id: 'actor_type',
-          type: 'select',
-          placeholder: 'All Actors',
-          options: [
-            { value: '', label: 'All Actors' },
-            { value: 'user', label: 'User' },
-            { value: 'system', label: 'System' },
-            { value: 'api_key', label: 'API Key' },
-            { value: 'anonymous', label: 'Anonymous' }
-          ]
-        },
-        {
-          id: 'type',
-          type: 'select',
-          placeholder: 'All Types',
-          options: [
-            { value: '', label: 'All Types' },
-            { value: 'page', label: 'Page' },
-            { value: 'app', label: 'App' },
-            { value: 'alias', label: 'Alias' },
-            { value: 'kv', label: 'KV Store' },
-            { value: 'session', label: 'Session' }
-          ]
-        }
+      searchId: 'logs-search',
+      searchValue: searchQuery,
+      searchPlaceholder: 'Search logs...',
+      buttons: [
+        { id: 'refresh-btn', icon: 'refresh-cw', title: 'Refresh' }
       ]
     })
 
-    // Render footer with stats
+    // Build filters row (separate row below toolbar)
+    const filtersRow = `
+      <div class="card-header flex items-center justify-end gap-2" style="border-top: 1px solid var(--border-subtle); padding-top: 8px; padding-bottom: 8px">
+        <select id="filter-weight" class="btn btn-secondary btn-sm" style="padding: 4px 8px; cursor: pointer">
+          <option value="">All Priorities</option>
+          <option value="5" ${filters.min_weight === '5' ? 'selected' : ''}>Important (5+)</option>
+          <option value="7" ${filters.min_weight === '7' ? 'selected' : ''}>Critical (7+)</option>
+          <option value="9" ${filters.min_weight === '9' ? 'selected' : ''}>Security (9)</option>
+        </select>
+        <select id="filter-action" class="btn btn-secondary btn-sm" style="padding: 4px 8px; cursor: pointer">
+          <option value="">All Actions</option>
+          <option value="pageview" ${filters.action === 'pageview' ? 'selected' : ''}>Pageview</option>
+          <option value="deploy" ${filters.action === 'deploy' ? 'selected' : ''}>Deploy</option>
+          <option value="login" ${filters.action === 'login' ? 'selected' : ''}>Login</option>
+          <option value="create" ${filters.action === 'create' ? 'selected' : ''}>Create</option>
+          <option value="delete" ${filters.action === 'delete' ? 'selected' : ''}>Delete</option>
+        </select>
+        <select id="filter-actor" class="btn btn-secondary btn-sm" style="padding: 4px 8px; cursor: pointer">
+          <option value="">All Actors</option>
+          <option value="user" ${filters.actor_type === 'user' ? 'selected' : ''}>User</option>
+          <option value="system" ${filters.actor_type === 'system' ? 'selected' : ''}>System</option>
+          <option value="api_key" ${filters.actor_type === 'api_key' ? 'selected' : ''}>API Key</option>
+          <option value="anonymous" ${filters.actor_type === 'anonymous' ? 'selected' : ''}>Anonymous</option>
+        </select>
+        <select id="filter-type" class="btn btn-secondary btn-sm" style="padding: 4px 8px; cursor: pointer">
+          <option value="">All Types</option>
+          <option value="page" ${filters.type === 'page' ? 'selected' : ''}>Page</option>
+          <option value="app" ${filters.type === 'app' ? 'selected' : ''}>App</option>
+          <option value="alias" ${filters.type === 'alias' ? 'selected' : ''}>Alias</option>
+          <option value="kv" ${filters.type === 'kv' ? 'selected' : ''}>KV Store</option>
+          <option value="session" ${filters.type === 'session' ? 'selected' : ''}>Session</option>
+        </select>
+      </div>
+    `
+
+    // Render footer with pagination
     const footer = logsData.total > 0 ? `
       <div class="card-footer flex items-center justify-between gap-4" style="border-radius: 0">
         <div class="flex items-center gap-2 text-caption text-muted">
           <span>Showing ${logsData.showing} of ${logsData.total}</span>
           ${statsData.size_estimate_bytes > 0 ? `<span class="hide-mobile">·</span><span class="hide-mobile">${formatBytes(statsData.size_estimate_bytes)} used</span>` : ''}
         </div>
-        <div class="flex items-center gap-2">
-          ${logsData.offset > 0 ? `<button id="prev-btn" class="btn btn-secondary btn-sm">Previous</button>` : ''}
-          ${logsData.offset + logsData.showing < logsData.total ? `<button id="next-btn" class="btn btn-secondary btn-sm">Next</button>` : ''}
-        </div>
+        ${totalPages > 1 ? `
+          <div class="flex items-center gap-2">
+            <button id="first-page-btn" class="btn btn-secondary btn-sm" ${currentPage === 1 ? 'disabled' : ''} title="First page">
+              <i data-lucide="chevrons-left" class="w-3.5 h-3.5"></i>
+            </button>
+            <button id="prev-page-btn" class="btn btn-secondary btn-sm" ${currentPage === 1 ? 'disabled' : ''} title="Previous page">
+              <i data-lucide="chevron-left" class="w-3.5 h-3.5"></i>
+            </button>
+            <span class="text-caption text-muted px-2">Page ${currentPage} of ${totalPages}</span>
+            <button id="next-page-btn" class="btn btn-secondary btn-sm" ${currentPage === totalPages ? 'disabled' : ''} title="Next page">
+              <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+            </button>
+            <button id="last-page-btn" class="btn btn-secondary btn-sm" ${currentPage === totalPages ? 'disabled' : ''} title="Last page">
+              <i data-lucide="chevrons-right" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+        ` : ''}
       </div>
     ` : ''
 
     // Render panel
     const panel = renderPanel({
       id: 'logs-list',
-      title: toolbar,
-      body: tableContent + footer,
-      noPadding: true
+      title: 'Activity Logs',
+      count: logsData.total,
+      toolbar: toolbar + filtersRow,
+      content: tableContent,
+      footer,
+      minHeight: 400,
+      maxHeight: 600
     })
 
     container.innerHTML = `
@@ -286,34 +291,62 @@ export function render(container, ctx) {
     // Setup panel collapse
     setupPanel(container)
 
-    // Setup toolbar
-    setupToolbar(container, (action) => {
-      if (action === 'refresh') {
+    // Setup toolbar (search + refresh)
+    setupToolbar(container, {
+      onSearch: (value) => {
+        searchQuery = value
+        filters.offset = 0 // Reset pagination
         applyFilters()
+      },
+      buttons: {
+        'refresh-btn': () => applyFilters()
       }
-    }, (filterId, value) => {
-      // Handle filter changes
-      if (filterId === 'weight') {
-        filters.min_weight = value || undefined
-      } else if (filterId === 'action') {
-        filters.action = value || undefined
-      } else if (filterId === 'actor_type') {
-        filters.actor_type = value || undefined
-      } else if (filterId === 'type') {
-        filters.type = value || undefined
-      }
-      filters.offset = 0 // Reset pagination
+    }, 'logs-search')
+
+    // Setup filter dropdowns
+    container.querySelector('#filter-weight')?.addEventListener('change', (e) => {
+      filters.min_weight = e.target.value || undefined
+      filters.offset = 0
+      applyFilters()
+    })
+
+    container.querySelector('#filter-action')?.addEventListener('change', (e) => {
+      filters.action = e.target.value || undefined
+      filters.offset = 0
+      applyFilters()
+    })
+
+    container.querySelector('#filter-actor')?.addEventListener('change', (e) => {
+      filters.actor_type = e.target.value || undefined
+      filters.offset = 0
+      applyFilters()
+    })
+
+    container.querySelector('#filter-type')?.addEventListener('change', (e) => {
+      filters.type = e.target.value || undefined
+      filters.offset = 0
       applyFilters()
     })
 
     // Setup pagination
-    container.querySelector('#prev-btn')?.addEventListener('click', () => {
+    container.querySelector('#first-page-btn')?.addEventListener('click', () => {
+      filters.offset = 0
+      applyFilters()
+    })
+
+    container.querySelector('#prev-page-btn')?.addEventListener('click', () => {
       filters.offset = Math.max(0, filters.offset - filters.limit)
       applyFilters()
     })
 
-    container.querySelector('#next-btn')?.addEventListener('click', () => {
+    container.querySelector('#next-page-btn')?.addEventListener('click', () => {
       filters.offset += filters.limit
+      applyFilters()
+    })
+
+    container.querySelector('#last-page-btn')?.addEventListener('click', () => {
+      const lastPageOffset = Math.floor((logsData.total - 1) / filters.limit) * filters.limit
+      filters.offset = lastPageOffset
       applyFilters()
     })
   }
@@ -333,15 +366,4 @@ export function render(container, ctx) {
     unsubStats()
     unsubLoading()
   }
-}
-
-/**
- * Format bytes to human readable
- */
-function formatBytes(bytes) {
-  if (bytes === 0) return '0 B'
-  const k = 1024
-  const sizes = ['B', 'KB', 'MB', 'GB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
