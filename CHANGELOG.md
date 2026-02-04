@@ -4,6 +4,14 @@ All notable changes to fazt.sh will be documented in this file.
 
 ## [Unreleased]
 
+## [0.24.6] - 2026-02-04
+
+### Added
+- **Time ago formatting**: User list shows "1h ago", "3d ago" instead of timestamps
+- **App user filtering**: `fazt user list --app <app-id>` shows users with data in an app
+  - Shows KV and doc counts per user
+  - Works with remote peers: `fazt @zyt user list --app <app-id>`
+
 ## [0.24.5] - 2026-02-04
 
 ### Fixed

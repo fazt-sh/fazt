@@ -3517,51 +3517,115 @@ func printUserUsage() {
 }
 
 func handleUserList(args []string) {
+	fs := flag.NewFlagSet("list", flag.ExitOnError)
+	appID := fs.String("app", "", "Filter users by app (users with data in this app)")
+	fs.Parse(args)
+
 	db := getClientDB()
 	defer database.Close()
 
-	rows, err := db.Query(`
-		SELECT id, email, name, role, provider, datetime(created_at, 'unixepoch', 'localtime'), datetime(last_login, 'unixepoch', 'localtime')
-		FROM auth_users
-		ORDER BY created_at DESC
-	`)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error listing users: %v\n", err)
-		os.Exit(1)
-	}
-	defer rows.Close()
-
 	renderer := getRenderer()
-
 	var tableRows [][]string
 	var users []map[string]string
-	for rows.Next() {
-		var id, email, name, role, provider, createdAt, lastLogin string
-		rows.Scan(&id, &email, &name, &role, &provider, &createdAt, &lastLogin)
-		// Wrap email in backticks to prevent glamour from auto-linking
-		tableRows = append(tableRows, []string{"`" + email + "`", name, role, provider, lastLogin})
-		users = append(users, map[string]string{
-			"id":         id,
-			"email":      email,
-			"name":       name,
-			"role":       role,
-			"provider":   provider,
-			"created_at": createdAt,
-			"last_login": lastLogin,
-		})
+	var title string
+
+	if *appID != "" {
+		// List users with data in the specified app
+		title = fmt.Sprintf("Users (app: %s)", *appID)
+
+		// Query users who have KV or doc data in this app
+		rows, err := db.Query(`
+			SELECT DISTINCT u.id, u.email, u.name, u.role, u.provider,
+				datetime(u.created_at, 'unixepoch', 'localtime'),
+				datetime(u.last_login, 'unixepoch', 'localtime'),
+				(SELECT COUNT(*) FROM app_kv WHERE app_id = ? AND user_id = u.id) as kv_count,
+				(SELECT COUNT(*) FROM app_docs WHERE app_id = ? AND user_id = u.id) as doc_count
+			FROM auth_users u
+			WHERE u.id IN (
+				SELECT DISTINCT user_id FROM app_kv WHERE app_id = ? AND user_id IS NOT NULL
+				UNION
+				SELECT DISTINCT user_id FROM app_docs WHERE app_id = ? AND user_id IS NOT NULL
+			)
+			ORDER BY u.last_login DESC
+		`, *appID, *appID, *appID, *appID)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error listing app users: %v\n", err)
+			os.Exit(1)
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			var id, email, name, role, provider, createdAt, lastLogin string
+			var kvCount, docCount int
+			rows.Scan(&id, &email, &name, &role, &provider, &createdAt, &lastLogin, &kvCount, &docCount)
+			items := fmt.Sprintf("%d kv, %d docs", kvCount, docCount)
+			tableRows = append(tableRows, []string{"`" + email + "`", name, items, output.TimeAgoString(lastLogin)})
+			users = append(users, map[string]string{
+				"id":         id,
+				"email":      email,
+				"name":       name,
+				"role":       role,
+				"provider":   provider,
+				"created_at": createdAt,
+				"last_login": lastLogin,
+				"kv_count":   fmt.Sprintf("%d", kvCount),
+				"doc_count":  fmt.Sprintf("%d", docCount),
+			})
+		}
+
+		table := &output.Table{
+			Headers: []string{"Email", "Name", "Data", "Last Login"},
+			Rows:    tableRows,
+		}
+
+		md := output.NewMarkdown().
+			H1(title).
+			Table(table).
+			String()
+
+		renderer.Print(md, map[string]interface{}{"users": users, "count": len(users), "app_id": *appID})
+	} else {
+		// List all users
+		title = "Users"
+
+		rows, err := db.Query(`
+			SELECT id, email, name, role, provider, datetime(created_at, 'unixepoch', 'localtime'), datetime(last_login, 'unixepoch', 'localtime')
+			FROM auth_users
+			ORDER BY created_at DESC
+		`)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error listing users: %v\n", err)
+			os.Exit(1)
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			var id, email, name, role, provider, createdAt, lastLogin string
+			rows.Scan(&id, &email, &name, &role, &provider, &createdAt, &lastLogin)
+			tableRows = append(tableRows, []string{"`" + email + "`", name, role, provider, output.TimeAgoString(lastLogin)})
+			users = append(users, map[string]string{
+				"id":         id,
+				"email":      email,
+				"name":       name,
+				"role":       role,
+				"provider":   provider,
+				"created_at": createdAt,
+				"last_login": lastLogin,
+			})
+		}
+
+		table := &output.Table{
+			Headers: []string{"Email", "Name", "Role", "Provider", "Last Login"},
+			Rows:    tableRows,
+		}
+
+		md := output.NewMarkdown().
+			H1(title).
+			Table(table).
+			String()
+
+		renderer.Print(md, map[string]interface{}{"users": users, "count": len(users)})
 	}
-
-	table := &output.Table{
-		Headers: []string{"Email", "Name", "Role", "Provider", "Last Login"},
-		Rows:    tableRows,
-	}
-
-	md := output.NewMarkdown().
-		H1("Users").
-		Table(table).
-		String()
-
-	renderer.Print(md, map[string]interface{}{"users": users, "count": len(users)})
 }
 
 func handleUserSetRole(args []string) {
