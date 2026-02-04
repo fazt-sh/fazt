@@ -1514,6 +1514,7 @@ func createRootHandler(cfg *config.Config, dashboardMux *http.ServeMux, authHand
 				(strings.HasPrefix(r.URL.Path, "/api/apps/") && strings.HasSuffix(r.URL.Path, "/status")) ||
 				r.URL.Path == "/api/system/health" ||
 				strings.HasPrefix(r.URL.Path, "/api/system/logs") ||
+				r.URL.Path == "/api/sql" ||
 				r.URL.Path == "/api/upgrade" {
 				dashboardMux.ServeHTTP(w, r)
 				return
@@ -3467,6 +3468,13 @@ func handleSQLCommandWithPeer(peerName string, args []string) {
 	}
 	defer resp.Body.Close()
 
+	// Check status code
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		fmt.Fprintf(os.Stderr, "Remote SQL error (%d): %s\n", resp.StatusCode, string(body))
+		os.Exit(1)
+	}
+
 	var response map[string]interface{}
 	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
 		fmt.Fprintf(os.Stderr, "Error decoding response: %v\n", err)
@@ -3489,8 +3497,16 @@ func handleSQLCommandWithPeer(peerName string, args []string) {
 	// It's a SELECT response
 	columns, _ := response["columns"].([]interface{})
 	rows, _ := response["rows"].([]interface{})
-	count := int(response["count"].(float64))
-	timeMS := int64(response["time_ms"].(float64))
+
+	count := 0
+	if c, ok := response["count"].(float64); ok {
+		count = int(c)
+	}
+
+	timeMS := int64(0)
+	if t, ok := response["time_ms"].(float64); ok {
+		timeMS = int64(t)
+	}
 
 	// Convert to string slices for table
 	headers := make([]string, len(columns))

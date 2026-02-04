@@ -33,6 +33,11 @@ type SQLWriteResponse struct {
 
 // HandleSQL executes SQL queries against the database
 func HandleSQL(w http.ResponseWriter, r *http.Request) {
+	// Require API key auth (bypasses AdminMiddleware for remote peer access)
+	if !requireAPIKeyAuth(w, r) {
+		return
+	}
+
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
