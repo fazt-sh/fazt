@@ -1,6 +1,6 @@
 # API Reference
 
-**Updated**: 2026-02-02
+**Updated**: 2026-02-04
 
 ## Global CLI Flags
 
@@ -30,8 +30,11 @@ fazt @zyt sql "..." --verbose       # Verbose + remote execution
 | `/api/apps/{id}/source` | GET | App source tracking |
 | `/api/apps/{id}/files` | GET | List app files |
 | `/api/apps/{id}/files/{path}` | GET | Get file content |
+| `/api/system/health` | GET | Health check |
+| `/api/system/logs` | GET | Activity logs (with query params) |
+| `/api/system/logs/stats` | GET | Activity log statistics |
+| `/api/system/logs/cleanup` | POST | Delete logs (with filters) |
 | `/api/upgrade` | POST | Upgrade server |
-| `/health` | GET | Health check |
 
 ## API Response Format
 
@@ -80,6 +83,56 @@ fazt sql "SELECT * FROM apps"       # Query local database
 fazt @zyt sql "SELECT * FROM apps"  # Query remote database
 fazt sql "..." --format json        # JSON output
 ```
+
+### Activity Logs
+
+```bash
+fazt logs list                      # Recent activity (default: 20)
+fazt logs list --limit 50           # More entries
+fazt logs stats                     # Overview statistics
+fazt logs cleanup --max-weight 2    # Preview cleanup (dry-run)
+fazt logs cleanup --max-weight 2 --force  # Actually delete
+fazt logs export -f csv -o out.csv  # Export to file
+
+# Remote peers
+fazt @zyt logs list
+fazt @local logs stats
+```
+
+**Filters** (work with list, stats, cleanup, export):
+
+| Filter | Description | Example |
+|--------|-------------|---------|
+| `--action` | Filter by action | `--action pageview` |
+| `--app` | Filter by app ID | `--app my-app` |
+| `--user` | Filter by user ID | `--user abc123` |
+| `--min-weight` | Minimum weight (0-9) | `--min-weight 5` |
+| `--max-weight` | Maximum weight (0-9) | `--max-weight 2` |
+| `--type` | Resource type | `--type page` |
+| `--result` | success/failure | `--result failure` |
+| `--since` | Time range start | `--since 24h` |
+| `--until` | Time range end | `--until 1h` |
+| `--limit` | Max results | `--limit 100` |
+| `--offset` | Pagination offset | `--offset 20` |
+
+**Weight Scale** (0-9, higher = more important):
+
+| Wt | Category | Actions |
+|----|----------|---------|
+| 9 | Security | API key create/delete |
+| 8 | Auth | `login`, `logout` |
+| 7 | Config | Alias/redirect changes |
+| 6 | Deployment | App deploy/delete |
+| 5 | Data | KV/doc mutations |
+| 4 | User Action | Form submissions |
+| 3 | Navigation | Internal page views |
+| 2 | Analytics | `pageview`, `click` |
+| 1 | System | `start`, `stop`, `upgraded` |
+| 0 | Debug | Timing, cache hits |
+
+**Resource Types**: `server`, `session`, `page`, `app`, `kv`, `doc`, `config`
+
+**Actor Types**: `user`, `system`, `api_key`, `anonymous`
 
 ### Server Management
 
