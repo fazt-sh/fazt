@@ -152,7 +152,7 @@ function showUnauthorizedModal() {
         ? parts.slice(1).join('.')
         : window.location.hostname
 
-      window.location.href = `${window.location.protocol}//${rootDomain}${window.location.port ? ':' + window.location.port : ''}/auth/dev/login?redirect=${redirectParam}`
+      window.location.href = `${window.location.protocol}//${rootDomain}${window.location.port ? ':' + window.location.port : ''}/auth/login?redirect=${redirectParam}`
     }
   })
 }

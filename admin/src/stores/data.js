@@ -339,7 +339,8 @@ export async function signOut(client) {
       : window.location.hostname
 
     // Redirect to auth login on root domain with redirect parameter
-    const loginUrl = `${window.location.protocol}//${rootDomain}${window.location.port ? ':' + window.location.port : ''}/auth/dev/login?redirect=${redirectParam}`
+    // Use /auth/login (not /auth/dev/login) - it shows appropriate providers (Google in prod, dev locally)
+    const loginUrl = `${window.location.protocol}//${rootDomain}${window.location.port ? ':' + window.location.port : ''}/auth/login?redirect=${redirectParam}`
     console.log('[Auth] Redirecting to:', loginUrl)
 
     setTimeout(() => {
