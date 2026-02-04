@@ -1,34 +1,54 @@
 # Fazt Implementation State
 
 **Last Updated**: 2026-02-04
-**Current Version**: v0.25.1
+**Current Version**: v0.25.2
 
 ## Status
 
 State: RELEASED
-v0.25.1 shipped - Remote SQL command fixed, tested, and deployed to all peers.
+v0.25.2 shipped - Root domain pageview tracking fixed and deployed to all peers.
 
 ---
 
-## Current Session (2026-02-04) - v0.25.1 Release
+## Current Session (2026-02-04) - v0.25.2 Release
+
+### What Was Done
+
+#### Released v0.25.2 (Bug Fix)
+Fixed root domain pageview tracking and released:
+- **Root domain tracking**: Fixed analytics script domain extraction logic
+  - Before: `zyt.app` → `admin.app/track` ❌ (invalid URL)
+  - After: `zyt.app` → `admin.zyt.app/track` ✓
+  - Logic: Check if sliced result contains `.` (domain.tld), else use full hostname
+- **Released**: Built all platforms, created GitHub release, pushed v0.25.2
+- **Deployed**: Upgraded local binary and all peers (local, zyt) via canonical `fazt upgrade` path
+- **Verified**: Analytics script deployed correctly on https://zyt.app/ ✓
+
+### Commits
+```
+35dfea6 release: v0.25.2
+ff5f754 fix: root domain pageview tracking
+08f92e6 docs: update STATE.md - v0.25.1 released and deployed
+```
+
+---
+
+## Last Session (2026-02-04) - v0.25.1 Release
 
 ### What Was Done
 
 #### Released v0.25.1 (Bug Fix)
 Fixed remote SQL command and released:
 - **Panic on nil fields**: Added safe type assertions for `count` and `time_ms` with ok-pattern checks
-- **Authentication failure**: Moved `/api/sql` to API key auth bypass list (was incorrectly using AdminMiddleware)
-- **Error handling**: Added HTTP status code checking before JSON decode for better error messages
-- **Released**: Built all platforms, created GitHub release, pushed v0.25.1
-- **Deployed**: Upgraded local binary and all peers (local, zyt) via canonical `fazt upgrade` path
-- **Verified**: `fazt @zyt sql "SELECT * FROM apps LIMIT 3"` works correctly ✓
+- **Authentication failure**: Moved `/api/sql` to API key auth bypass list
+- **Error handling**: Added HTTP status code checking before JSON decode
+- **Released & Deployed**: All peers upgraded to v0.25.1
 
 ### Commits
 ```
 815a405 release: v0.25.1
 6af532f docs: update STATE.md - remote SQL fix complete
 3e91f95 fix: remote SQL command authentication and panic
-b232d93 docs: enforce canonical upgrade path in skills
 ```
 
 ---
