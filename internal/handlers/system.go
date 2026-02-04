@@ -19,8 +19,8 @@ var startTime = time.Now()
 
 // SystemHealthHandler returns the system health status and metrics
 func SystemHealthHandler(w http.ResponseWriter, r *http.Request) {
-	// Require API key auth (bypasses AdminMiddleware for remote peer access)
-	if !requireAPIKeyAuth(w, r) {
+	// Require admin auth (allows both API key and session with admin role)
+	if _, ok := requireAdminAuth(w, r); !ok {
 		return
 	}
 
