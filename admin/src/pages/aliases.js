@@ -170,8 +170,7 @@ export function render(container, ctx) {
               toolbar,
               content: tableContent,
               footer,
-              minHeight: 400,
-              maxHeight: 600
+              fillHeight: true
             })}
           </div>
         </div>

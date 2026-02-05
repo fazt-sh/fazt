@@ -156,10 +156,10 @@ export function createClient(options = {}) {
     },
 
     /**
-     * Activity logs endpoints
+     * Logs endpoints
      */
     logs: {
-      /** Query activity logs with filters */
+      /** Query logs with filters */
       list: (filters = {}) => http.get('/api/system/logs', { params: filters }),
       // filters: { min_weight, max_weight, type, resource, app, alias, user, actor_type, action, result, since, until, limit, offset }
 

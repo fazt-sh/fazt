@@ -605,9 +605,19 @@
     .content-scroll {
       width: 100%;
       max-width: 1280px;
-      overflow-y: auto;
+      overflow-y: hidden;
       overflow-x: hidden;
       padding: 20px;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+
+    .design-system-page {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      min-height: 0;
     }
 
     @media (max-width: 1023px) {
@@ -1258,6 +1268,7 @@
             <a href="/aliases" class="nav-item flex items-center gap-2.5 px-3 py-2 text-label" data-route="aliases">
               <i data-lucide="link" class="w-4 h-4"></i>
               <span class="sidebar-text">Aliases</span>
+              <span class="nav-badge ml-auto text-caption mono px-1.5 py-0.5" style="background:var(--bg-2);color:var(--text-3);border-radius:var(--radius-sm)" id="aliases-count">0</span>
             </a>
           </div>
 
@@ -1268,13 +1279,10 @@
             </div>
           </div>
           <div class="submenu open space-y-0.5">
-            <a href="/events" class="nav-item flex items-center gap-2.5 px-3 py-2 text-label" data-route="events">
-              <i data-lucide="activity" class="w-4 h-4"></i>
-              <span class="sidebar-text">Events</span>
-            </a>
             <a href="/logs" class="nav-item flex items-center gap-2.5 px-3 py-2 text-label" data-route="logs">
               <i data-lucide="terminal" class="w-4 h-4"></i>
               <span class="sidebar-text">Logs</span>
+              <span class="nav-badge ml-auto text-caption mono px-1.5 py-0.5" style="background:var(--bg-2);color:var(--text-3);border-radius:var(--radius-sm)" id="logs-count">0</span>
             </a>
           </div>
 
@@ -1359,13 +1367,12 @@
     import { createClient, mockAdapter } from './packages/fazt-sdk/index.js'
     import { routes } from './src/routes.js'
     import { initTheme, sidebarCollapsed, toggleSidebar, theme, palette, setTheme, setPalette } from './src/stores/app.js'
-    import { loadApps, loadAliases, loadHealth, loadStats, apps, aliases, auth, loadAuth, signOut, currentApp, createApp, createAlias, updateAlias, deleteAlias } from './src/stores/data.js'
+    import { loadApps, loadAliases, loadHealth, loadStats, loadActivityStats, apps, aliases, activityLogs, activityStats, auth, loadAuth, signOut, currentApp, createApp, createAlias, updateAlias, deleteAlias } from './src/stores/data.js'
 
     // Pages
     import * as dashboardPage from './src/pages/dashboard.js'
     import * as appsPage from './src/pages/apps.js'
     import * as aliasesPage from './src/pages/aliases.js'
-    import * as eventsPage from './src/pages/events.js'
     import * as logsPage from './src/pages/logs.js'
     import * as systemPage from './src/pages/system.js'
     import * as settingsPage from './src/pages/settings.js'
@@ -1375,7 +1382,6 @@
       apps: appsPage,
       'app-detail': appsPage,
       aliases: aliasesPage,
-      events: eventsPage,
       logs: logsPage,
       system: systemPage,
       settings: settingsPage
@@ -1440,11 +1446,25 @@
         loadApps(client),
         loadAliases(client),
         loadHealth(client),
-        loadStats(client)
+        loadStats(client),
+        loadActivityStats(client)
       ])
-      // Update apps count in sidebar
+
+      // Update counts in sidebar
       const appsCount = document.getElementById('apps-count')
       if (appsCount) appsCount.textContent = apps.get().length
+
+      const aliasesCount = document.getElementById('aliases-count')
+      if (aliasesCount) aliasesCount.textContent = aliases.get().length
+
+      const logsCount = document.getElementById('logs-count')
+      if (logsCount) logsCount.textContent = activityStats.get().total_count || 0
+
+      // Subscribe to updates
+      activityStats.subscribe(() => {
+        const count = document.getElementById('logs-count')
+        if (count) count.textContent = activityStats.get().total_count || 0
+      })
     }
 
     function renderPage(match) {

@@ -1,6 +1,6 @@
 /**
- * Activity Logs Page
- * View and filter activity logs
+ * Logs Page
+ * View and filter logs
  */
 
 import { activityLogs, activityStats, loadActivityLogs, loadActivityStats } from '../stores/data.js'
@@ -67,7 +67,7 @@ function formatBytes(bytes) {
 }
 
 /**
- * Build columns config for activity logs table
+ * Build columns config for logs table
  */
 function getColumns() {
   return [
@@ -99,7 +99,7 @@ function getColumns() {
         return `
           <div style="min-width: 0; overflow: hidden">
             <span class="badge badge-muted">${type}</span>
-            ${id !== '-' ? `<div class="text-caption mono text-muted mt-0.5" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 120px">${id}</div>` : ''}
+            ${id !== '-' ? `<div class="text-caption mono text-muted mt-0.5" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap">${id}</div>` : ''}
           </div>
         `
       }
@@ -125,14 +125,13 @@ function getColumns() {
     },
     {
       key: 'result',
-      label: 'Result',
+      label: '',
       hideOnMobile: true,
       render: (result) => {
         const isSuccess = result === 'success'
         return `
-          <span class="flex items-center gap-1 text-caption ${isSuccess ? 'text-success' : 'text-error'}">
+          <span class="flex items-center justify-center" title="${result}">
             <span class="status-dot ${isSuccess ? 'status-dot-success' : 'status-dot-error'}"></span>
-            ${result}
           </span>
         `
       }
@@ -147,7 +146,7 @@ function getColumns() {
 }
 
 /**
- * Render activity logs page
+ * Render logs page
  */
 export function render(container, ctx) {
   const { client } = ctx
@@ -158,6 +157,7 @@ export function render(container, ctx) {
   let filterType = ''
   let currentPage = 1
   const pageSize = 50
+  let isInitialized = false
 
   function applyFilters() {
     const params = {
@@ -175,11 +175,17 @@ export function render(container, ctx) {
     loadActivityStats(client, params)
   }
 
-  function update() {
+  function updateTableContent() {
     const logsData = activityLogs.get()
     const statsData = activityStats.get()
     const isLoading = loading.getKey('activity-logs')
     const totalPages = Math.ceil((logsData.total || 0) / pageSize)
+
+    // Find the scroll area and footer to update
+    const scrollArea = container.querySelector('.panel-scroll-area')
+    const footerArea = container.querySelector('.card-footer')
+
+    if (!scrollArea) return
 
     // Render table content
     const tableContent = isLoading
@@ -191,57 +197,16 @@ export function render(container, ctx) {
           rowDataAttr: 'log-id',
           clickable: false,
           emptyIcon: 'activity',
-          emptyTitle: searchQuery ? 'No logs found' : 'No activity logs',
+          emptyTitle: searchQuery ? 'No logs found' : 'No logs',
           emptyMessage: searchQuery ? 'Try a different search' : 'Activity will appear here as it happens'
         })
 
-    // Build toolbar (search + filter dropdowns)
-    const toolbar = `
-      ${renderToolbar({
-        searchId: 'logs-search',
-        searchValue: searchQuery,
-        searchPlaceholder: 'Search logs...',
-        buttons: []
-      })}
-      <div class="flex items-center justify-end gap-2">
-        <select id="filter-weight" class="btn btn-secondary btn-sm hide-mobile" style="padding: 4px 8px; cursor: pointer">
-          <option value="">All Priorities</option>
-          <option value="5" ${filterWeight === '5' ? 'selected' : ''}>Important (5+)</option>
-          <option value="7" ${filterWeight === '7' ? 'selected' : ''}>Critical (7+)</option>
-          <option value="9" ${filterWeight === '9' ? 'selected' : ''}>Security (9)</option>
-        </select>
-        <select id="filter-action" class="btn btn-secondary btn-sm hide-mobile" style="padding: 4px 8px; cursor: pointer">
-          <option value="">All Actions</option>
-          <option value="pageview" ${filterAction === 'pageview' ? 'selected' : ''}>Pageview</option>
-          <option value="deploy" ${filterAction === 'deploy' ? 'selected' : ''}>Deploy</option>
-          <option value="login" ${filterAction === 'login' ? 'selected' : ''}>Login</option>
-          <option value="create" ${filterAction === 'create' ? 'selected' : ''}>Create</option>
-          <option value="delete" ${filterAction === 'delete' ? 'selected' : ''}>Delete</option>
-        </select>
-        <select id="filter-actor" class="btn btn-secondary btn-sm hide-mobile" style="padding: 4px 8px; cursor: pointer">
-          <option value="">All Actors</option>
-          <option value="user" ${filterActor === 'user' ? 'selected' : ''}>User</option>
-          <option value="system" ${filterActor === 'system' ? 'selected' : ''}>System</option>
-          <option value="api_key" ${filterActor === 'api_key' ? 'selected' : ''}>API Key</option>
-          <option value="anonymous" ${filterActor === 'anonymous' ? 'selected' : ''}>Anonymous</option>
-        </select>
-        <select id="filter-type" class="btn btn-secondary btn-sm hide-mobile" style="padding: 4px 8px; cursor: pointer">
-          <option value="">All Types</option>
-          <option value="page" ${filterType === 'page' ? 'selected' : ''}>Page</option>
-          <option value="app" ${filterType === 'app' ? 'selected' : ''}>App</option>
-          <option value="alias" ${filterType === 'alias' ? 'selected' : ''}>Alias</option>
-          <option value="kv" ${filterType === 'kv' ? 'selected' : ''}>KV</option>
-          <option value="session" ${filterType === 'session' ? 'selected' : ''}>Session</option>
-        </select>
-        <button id="refresh-btn" class="btn btn-secondary btn-sm" style="padding: 4px 8px" title="Refresh">
-          <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
-        </button>
-      </div>
-    `
+    // Update scroll area
+    scrollArea.innerHTML = tableContent
 
-    // Render footer with pagination
-    const footer = logsData.total > 0 ? `
-      <div class="flex items-center justify-between">
+    // Update footer
+    if (logsData.total > 0) {
+      const footerHTML = `
         <span class="text-caption text-muted">
           Showing ${logsData.showing} of ${logsData.total}
           ${statsData.size_estimate_bytes > 0 ? ` · ${formatBytes(statsData.size_estimate_bytes)}` : ''}
@@ -263,7 +228,186 @@ export function render(container, ctx) {
             </button>
           </div>
         ` : ''}
+      `
+
+      if (footerArea) {
+        footerArea.innerHTML = footerHTML
+      }
+    } else if (footerArea) {
+      footerArea.innerHTML = ''
+    }
+
+    // Re-render Lucide icons
+    if (window.lucide) window.lucide.createIcons()
+
+    // Setup pagination handlers
+    container.querySelector('#first-page-btn')?.addEventListener('click', () => {
+      currentPage = 1
+      applyFilters()
+    })
+
+    container.querySelector('#prev-page-btn')?.addEventListener('click', () => {
+      if (currentPage > 1) {
+        currentPage--
+        applyFilters()
+      }
+    })
+
+    container.querySelector('#next-page-btn')?.addEventListener('click', () => {
+      if (currentPage < totalPages) {
+        currentPage++
+        applyFilters()
+      }
+    })
+
+    container.querySelector('#last-page-btn')?.addEventListener('click', () => {
+      currentPage = totalPages
+      applyFilters()
+    })
+  }
+
+  function initialRender() {
+    const logsData = activityLogs.get()
+    const statsData = activityStats.get()
+    const isLoading = loading.getKey('activity-logs')
+    const totalPages = Math.ceil((logsData.total || 0) / pageSize)
+
+    // Render table content
+    const tableContent = isLoading
+      ? `<div class="flex items-center justify-center p-8"><div class="text-caption text-muted">Loading...</div></div>`
+      : renderTable({
+          columns: getColumns(),
+          data: logsData.entries || [],
+          rowKey: 'id',
+          rowDataAttr: 'log-id',
+          clickable: false,
+          emptyIcon: 'activity',
+          emptyTitle: searchQuery ? 'No logs found' : 'No logs',
+          emptyMessage: searchQuery ? 'Try a different search' : 'Activity will appear here as it happens'
+        })
+
+    // Get filter labels
+    const getWeightLabel = () => {
+      if (!filterWeight) return 'All Priorities'
+      const labels = { '5': 'Important (5+)', '7': 'Critical (7+)', '9': 'Security (9)' }
+      return labels[filterWeight] || 'All Priorities'
+    }
+
+    const getActionLabel = () => {
+      if (!filterAction) return 'All Actions'
+      return filterAction.charAt(0).toUpperCase() + filterAction.slice(1)
+    }
+
+    const getActorLabel = () => {
+      if (!filterActor) return 'All Actors'
+      const labels = { 'user': 'User', 'system': 'System', 'api_key': 'API Key', 'anonymous': 'Anonymous' }
+      return labels[filterActor] || 'All Actors'
+    }
+
+    const getTypeLabel = () => {
+      if (!filterType) return 'All Types'
+      return filterType.charAt(0).toUpperCase() + filterType.slice(1)
+    }
+
+    // Build toolbar (search + filter dropdowns)
+    const toolbar = `
+      ${renderToolbar({
+        searchId: 'logs-search',
+        searchValue: searchQuery,
+        searchPlaceholder: 'Search logs...',
+        buttons: []
+      })}
+      <div class="flex items-center justify-end gap-2">
+        <!-- Priority Filter -->
+        <div class="relative hide-mobile">
+          <button id="filter-weight-btn" class="btn btn-secondary btn-sm flex items-center gap-1.5" style="padding: 4px 8px">
+            <span class="text-caption">${getWeightLabel()}</span>
+            <i data-lucide="chevron-down" class="w-3.5 h-3.5" style="color:var(--text-3)"></i>
+          </button>
+          <div id="filter-weight-menu" class="dropdown hidden fixed z-50" style="min-width: 160px">
+            <div class="dropdown-item px-4 py-2 cursor-pointer text-caption" data-value="">All Priorities</div>
+            <div class="dropdown-item px-4 py-2 cursor-pointer text-caption" data-value="5">Important (5+)</div>
+            <div class="dropdown-item px-4 py-2 cursor-pointer text-caption" data-value="7">Critical (7+)</div>
+            <div class="dropdown-item px-4 py-2 cursor-pointer text-caption" data-value="9">Security (9)</div>
+          </div>
+        </div>
+
+        <!-- Action Filter -->
+        <div class="relative hide-mobile">
+          <button id="filter-action-btn" class="btn btn-secondary btn-sm flex items-center gap-1.5" style="padding: 4px 8px">
+            <span class="text-caption">${getActionLabel()}</span>
+            <i data-lucide="chevron-down" class="w-3.5 h-3.5" style="color:var(--text-3)"></i>
+          </button>
+          <div id="filter-action-menu" class="dropdown hidden fixed z-50" style="min-width: 140px">
+            <div class="dropdown-item px-4 py-2 cursor-pointer text-caption" data-value="">All Actions</div>
+            <div class="dropdown-item px-4 py-2 cursor-pointer text-caption" data-value="pageview">Pageview</div>
+            <div class="dropdown-item px-4 py-2 cursor-pointer text-caption" data-value="deploy">Deploy</div>
+            <div class="dropdown-item px-4 py-2 cursor-pointer text-caption" data-value="login">Login</div>
+            <div class="dropdown-item px-4 py-2 cursor-pointer text-caption" data-value="create">Create</div>
+            <div class="dropdown-item px-4 py-2 cursor-pointer text-caption" data-value="delete">Delete</div>
+          </div>
+        </div>
+
+        <!-- Actor Filter -->
+        <div class="relative hide-mobile">
+          <button id="filter-actor-btn" class="btn btn-secondary btn-sm flex items-center gap-1.5" style="padding: 4px 8px">
+            <span class="text-caption">${getActorLabel()}</span>
+            <i data-lucide="chevron-down" class="w-3.5 h-3.5" style="color:var(--text-3)"></i>
+          </button>
+          <div id="filter-actor-menu" class="dropdown hidden fixed z-50" style="min-width: 140px">
+            <div class="dropdown-item px-4 py-2 cursor-pointer text-caption" data-value="">All Actors</div>
+            <div class="dropdown-item px-4 py-2 cursor-pointer text-caption" data-value="user">User</div>
+            <div class="dropdown-item px-4 py-2 cursor-pointer text-caption" data-value="system">System</div>
+            <div class="dropdown-item px-4 py-2 cursor-pointer text-caption" data-value="api_key">API Key</div>
+            <div class="dropdown-item px-4 py-2 cursor-pointer text-caption" data-value="anonymous">Anonymous</div>
+          </div>
+        </div>
+
+        <!-- Type Filter -->
+        <div class="relative hide-mobile">
+          <button id="filter-type-btn" class="btn btn-secondary btn-sm flex items-center gap-1.5" style="padding: 4px 8px">
+            <span class="text-caption">${getTypeLabel()}</span>
+            <i data-lucide="chevron-down" class="w-3.5 h-3.5" style="color:var(--text-3)"></i>
+          </button>
+          <div id="filter-type-menu" class="dropdown hidden fixed z-50" style="min-width: 120px">
+            <div class="dropdown-item px-4 py-2 cursor-pointer text-caption" data-value="">All Types</div>
+            <div class="dropdown-item px-4 py-2 cursor-pointer text-caption" data-value="page">Page</div>
+            <div class="dropdown-item px-4 py-2 cursor-pointer text-caption" data-value="app">App</div>
+            <div class="dropdown-item px-4 py-2 cursor-pointer text-caption" data-value="alias">Alias</div>
+            <div class="dropdown-item px-4 py-2 cursor-pointer text-caption" data-value="kv">KV</div>
+            <div class="dropdown-item px-4 py-2 cursor-pointer text-caption" data-value="session">Session</div>
+          </div>
+        </div>
+
+        <button id="refresh-btn" class="btn btn-secondary btn-sm" style="padding: 4px 8px" title="Refresh">
+          <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+        </button>
       </div>
+    `
+
+    // Render footer with pagination
+    const footer = logsData.total > 0 ? `
+      <span class="text-caption text-muted">
+        Showing ${logsData.showing} of ${logsData.total}
+        ${statsData.size_estimate_bytes > 0 ? ` · ${formatBytes(statsData.size_estimate_bytes)}` : ''}
+      </span>
+      ${totalPages > 1 ? `
+        <div class="flex items-center gap-2">
+          <button id="first-page-btn" class="btn btn-secondary btn-sm" ${currentPage === 1 ? 'disabled' : ''} title="First page">
+            <i data-lucide="chevrons-left" class="w-3.5 h-3.5"></i>
+          </button>
+          <button id="prev-page-btn" class="btn btn-secondary btn-sm" ${currentPage === 1 ? 'disabled' : ''} title="Previous">
+            <i data-lucide="chevron-left" class="w-3.5 h-3.5"></i>
+          </button>
+          <span class="text-caption text-muted px-2">Page ${currentPage} of ${totalPages}</span>
+          <button id="next-page-btn" class="btn btn-secondary btn-sm" ${currentPage === totalPages ? 'disabled' : ''} title="Next">
+            <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+          </button>
+          <button id="last-page-btn" class="btn btn-secondary btn-sm" ${currentPage === totalPages ? 'disabled' : ''} title="Last page">
+            <i data-lucide="chevrons-right" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+      ` : ''}
     ` : ''
 
     // Render panel
@@ -273,13 +417,12 @@ export function render(container, ctx) {
           <div class="content-scroll">
             ${renderPanel({
               id: 'logs.list',
-              title: 'Activity Logs',
+              title: 'Logs',
               count: logsData.total || 0,
               toolbar,
               content: tableContent,
-              footer: footer ? renderTableFooter(logsData.total, 'log').replace('>${logsData.total} log', `>${footer}`) : '',
-              minHeight: 400,
-              maxHeight: 600
+              footer,
+              fillHeight: true
             })}
           </div>
         </div>
@@ -301,30 +444,74 @@ export function render(container, ctx) {
       }
     }, 'logs-search')
 
-    // Setup filter dropdowns
-    container.querySelector('#filter-weight')?.addEventListener('change', (e) => {
-      filterWeight = e.target.value
+    // Setup custom dropdown handlers
+    const setupDropdown = (btnId, menuId, onSelect) => {
+      const btn = container.querySelector(`#${btnId}`)
+      const menu = container.querySelector(`#${menuId}`)
+
+      if (!btn || !menu) return
+
+      // Toggle dropdown
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation()
+
+        // Close other dropdowns
+        container.querySelectorAll('.dropdown').forEach(d => {
+          if (d !== menu) d.classList.add('hidden')
+        })
+
+        // Toggle this dropdown
+        menu.classList.toggle('hidden')
+
+        // Position menu below button
+        if (!menu.classList.contains('hidden')) {
+          const rect = btn.getBoundingClientRect()
+          menu.style.top = `${rect.bottom + 4}px`
+          menu.style.left = `${rect.left}px`
+        }
+      })
+
+      // Handle item selection
+      menu.querySelectorAll('.dropdown-item').forEach(item => {
+        item.addEventListener('click', (e) => {
+          e.stopPropagation()
+          const value = item.dataset.value
+          onSelect(value)
+          menu.classList.add('hidden')
+        })
+      })
+    }
+
+    setupDropdown('filter-weight-btn', 'filter-weight-menu', (value) => {
+      filterWeight = value
       currentPage = 1
       applyFilters()
     })
 
-    container.querySelector('#filter-action')?.addEventListener('change', (e) => {
-      filterAction = e.target.value
+    setupDropdown('filter-action-btn', 'filter-action-menu', (value) => {
+      filterAction = value
       currentPage = 1
       applyFilters()
     })
 
-    container.querySelector('#filter-actor')?.addEventListener('change', (e) => {
-      filterActor = e.target.value
+    setupDropdown('filter-actor-btn', 'filter-actor-menu', (value) => {
+      filterActor = value
       currentPage = 1
       applyFilters()
     })
 
-    container.querySelector('#filter-type')?.addEventListener('change', (e) => {
-      filterType = e.target.value
+    setupDropdown('filter-type-btn', 'filter-type-menu', (value) => {
+      filterType = value
       currentPage = 1
       applyFilters()
     })
+
+    // Close dropdowns when clicking outside
+    const closeDropdowns = () => {
+      container.querySelectorAll('.dropdown').forEach(d => d.classList.add('hidden'))
+    }
+
+    document.addEventListener('click', closeDropdowns)
 
     // Refresh handler
     container.querySelector('#refresh-btn')?.addEventListener('click', () => {
@@ -355,6 +542,16 @@ export function render(container, ctx) {
       currentPage = totalPages
       applyFilters()
     })
+
+    isInitialized = true
+  }
+
+  function update() {
+    if (!isInitialized) {
+      initialRender()
+    } else {
+      updateTableContent()
+    }
   }
 
   // Subscribe to data changes

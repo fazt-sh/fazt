@@ -60,7 +60,7 @@ export const currentApp = map({
 // Events data
 export const events = list([])
 
-// Activity logs data
+// Logs data
 export const activityLogs = map({
   entries: [],
   total: 0,
@@ -69,7 +69,7 @@ export const activityLogs = map({
   limit: 20
 })
 
-// Activity logs stats
+// Logs stats
 export const activityStats = map({
   total_count: 0,
   count_by_weight: {},
@@ -235,7 +235,7 @@ export async function loadEvents(client, options = {}) {
 }
 
 /**
- * Load activity logs from API
+ * Load logs from API
  * @param {import('../../packages/fazt-sdk/index.js').createClient} client
  * @param {Object} filters - Filter options (min_weight, max_weight, type, resource, app, alias, user, actor_type, action, result, since, until, limit, offset)
  */
@@ -247,14 +247,14 @@ export async function loadActivityLogs(client, filters = {}) {
     error.set(null)
   } catch (err) {
     error.set(err.message)
-    notify({ type: 'error', message: 'Failed to load activity logs' })
+    notify({ type: 'error', message: 'Failed to load logs' })
   } finally {
     loading.setKey('activity-logs', false)
   }
 }
 
 /**
- * Load activity logs stats from API
+ * Load logs stats from API
  * @param {import('../../packages/fazt-sdk/index.js').createClient} client
  * @param {Object} filters - Same filters as loadActivityLogs
  */
