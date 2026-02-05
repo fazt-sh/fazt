@@ -2,7 +2,7 @@
 
 **Sovereign compute** - Single Go binary + SQLite database that runs anywhere.
 
-**Version**: 0.17.0 | **State**: `koder/STATE.md`
+**Version**: 0.25.4 | **State**: `koder/STATE.md`
 
 ## Monorepo Structure
 
@@ -15,7 +15,7 @@ Fazt uses **unified versioning** - all components share the same version for gua
 - **knowledge-base/** - Documentation [stable, 80%]
 
 **Versioning:**
-- One version (0.17.0) = everything works together
+- One version (0.25.4) = everything works together
 - Status markers track maturity: `stable`, `beta`, `alpha`
 - Completeness % shows progress towards full parity
 - See `version.json` at repo root for details
@@ -30,6 +30,31 @@ Fazt uses **unified versioning** - all components share the same version for gua
 - **Single DB philosophy** - Everything in SQLite. No config files. The database IS the instance.
 - **Static hosting first** - Serverless is enhancement, never blocks static deploy.
 - **Core vs test apps** - `admin/` is core (tracked in git). `servers/` are test/demo apps (gitignored).
+
+## Architecture: fazt-sdk (The Core Engine)
+
+**fazt-sdk is the foundation** - Admin UI can change tomorrow, but fazt-sdk must be rock solid. It will power:
+- Admin web UI (React)
+- Mobile apps (React Native)
+- CLI tools (Node.js)
+- Third-party integrations
+
+**Principles:**
+1. **Platform-agnostic core** - HTTP client + cache layer work anywhere (browser, Node, RN)
+2. **Smart caching** - Stale-while-revalidate pattern, no count=0 flicker
+3. **Request deduplication** - 10 components requesting same data = 1 network call
+4. **Type safety** - Full TypeScript, strict types
+5. **Framework adapters** - React hooks, Vue composables wrap the core
+
+**Architecture:**
+```
+fazt-sdk/
+├── core/           # Platform-agnostic (client, cache, types)
+├── adapters/       # fetch, mock, react-native
+└── integrations/   # React hooks (uses @tanstack/react-query)
+```
+
+**Critical rule:** Admin UI MUST use fazt-sdk, never duplicate HTTP logic. The SDK owns all API communication.
 
 ## Architecture: Config
 

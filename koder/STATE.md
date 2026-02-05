@@ -5,12 +5,84 @@
 
 ## Status
 
-State: RELEASED
-v0.25.4 shipped - Fixed admin UI health endpoint authentication (401 error resolved).
+State: IN PROGRESS
+Admin UI Vue port underway - rebuilding with fazt-app patterns and proper state management.
 
 ---
 
-## Current Session (2026-02-05) - v0.25.4 Release
+## Current Session (2026-02-05) - Admin Vue Port
+
+### In Progress
+
+#### Admin UI Vue Port
+Rebuilding admin UI from React to Vue using fazt-app patterns:
+- **Why**: Ecosystem consistency (all fazt apps use Vue), better reactivity model
+- **Approach**: Port components 1:1 (preserve design), rebuild data layer with fazt-sdk
+- **Key improvements**:
+  - Proper caching via @tanstack/vue-query
+  - fazt-sdk as single source of API communication
+  - No more count=0 flicker issues
+  - Consistent patterns with other fazt apps
+
+### Plan Location
+`koder/plans/38_admin_vue_port.md`
+
+---
+
+## Immediate Attention Required
+
+### fazt.http - External HTTP Calls in Serverless
+
+**Priority**: HIGH - Architectural decision needed before implementation
+
+**What**: Add `fazt.http.*` API for serverless functions to make external HTTP calls.
+
+**Current state**: Serverless can only access `fazt.storage.*` and `fazt.auth.*`. No external network calls.
+
+**Why it's possible**: Goja can call Go functions. Storage APIs already do this (sync Go calls from JS).
+
+**Key decisions needed** (I need to learn more about these):
+
+1. **Security Model**
+   - SSRF prevention (block private IPs: 10.x, 192.168.x, 127.x, 169.254.x)
+   - Domain allowlists per app?
+   - Rate limiting (calls per request, calls per minute)
+   - Only HTTPS or allow HTTP?
+
+2. **Async Model**
+   - Current runtime is synchronous (Goja ES5)
+   - Options:
+     a. **Blocking calls** (like storage) - simpler, may block VM pool
+     b. **Callback pattern** - awkward in ES5
+     c. **Promise polyfill** - complex, but modern feel
+   - Need to understand tradeoffs
+
+3. **Timeout Budget**
+   - Current: 5 seconds total per request
+   - With HTTP calls: need longer? (15s?)
+   - Share budget between JS execution and HTTP calls
+   - `timeout.Budget` system already exists
+
+**Proposed API** (tentative):
+```javascript
+var resp = fazt.http.get('https://api.example.com/data')
+var resp = fazt.http.post('https://api.example.com/data', {
+  body: { key: 'value' },
+  headers: { 'Authorization': 'Bearer ...' },
+  timeout: 3000  // ms
+})
+// resp = { status: 200, body: '...', headers: {...} }
+```
+
+**Next steps**:
+1. Research SSRF prevention best practices
+2. Understand async patterns in embedded JS runtimes
+3. Draft security spec
+4. Implement with proper guardrails
+
+---
+
+## Previous Session (2026-02-05) - v0.25.4 Release
 
 ### What Was Done
 
@@ -19,11 +91,8 @@ Fixed admin UI health endpoint and released:
 - **Problem**: User reported `GET https://admin.zyt.app/api/system/health 401 (Unauthorized)` when accessing admin/logs
 - **Root cause**: Health endpoint used `requireAPIKeyAuth` (only CLI/remote), not `requireAdminAuth` (CLI + admin UI sessions)
 - **Fix**: Changed `/api/system/health` to use `requireAdminAuth` instead of `requireAPIKeyAuth`
-  - Allows both API key auth (CLI/remote) and session auth with admin role (admin UI)
-  - Matches the same pattern applied to logs endpoints in v0.25.3
 - **Released**: Built all platforms, created GitHub release, pushed v0.25.4
 - **Deployed**: Upgraded local binary and all peers (local, zyt) via canonical `fazt upgrade` path
-- **Verified**: Both peers at v0.25.4, healthy status ✓
 
 ### Commits
 ```
@@ -33,59 +102,11 @@ Fixed admin UI health endpoint and released:
 
 ---
 
-## Last Session (2026-02-04) - v0.25.2 Release
+## Future Work
 
-### What Was Done
-
-#### Released v0.25.2 (Bug Fix)
-Fixed root domain pageview tracking and released:
-- **Root domain tracking**: Fixed analytics script domain extraction logic
-  - Before: `zyt.app` → `admin.app/track` ❌ (invalid URL)
-  - After: `zyt.app` → `admin.zyt.app/track` ✓
-  - Logic: Check if sliced result contains `.` (domain.tld), else use full hostname
-- **Released**: Built all platforms, created GitHub release, pushed v0.25.2
-- **Deployed**: Upgraded local binary and all peers (local, zyt) via canonical `fazt upgrade` path
-- **Verified**: Analytics script deployed correctly on https://zyt.app/ ✓
-
-### Commits
-```
-35dfea6 release: v0.25.2
-ff5f754 fix: root domain pageview tracking
-```
-
----
-
-## Last Session (2026-02-04) - v0.25.1 Release
-
-### What Was Done
-
-#### Released v0.25.1 (Bug Fix)
-Fixed remote SQL command and released:
-- **Panic on nil fields**: Added safe type assertions for `count` and `time_ms` with ok-pattern checks
-- **Authentication failure**: Moved `/api/sql` to API key auth bypass list
-- **Error handling**: Added HTTP status code checking before JSON decode
-- **Released & Deployed**: All peers upgraded to v0.25.1
-
-### Commits
-```
-815a405 release: v0.25.1
-6af532f docs: update STATE.md - remote SQL fix complete
-3e91f95 fix: remote SQL command authentication and panic
-```
-
----
-
-## Next Up
-
-### High Priority
-1. **Admin UI testing** - Verify logs page works correctly with health endpoint fix
-2. **Admin UI integration** - Continue building out admin pages (apps, users, etc.)
-
-### Future Work
-1. **Root domain tracking** - Verify pageviews working for `zyt.app` (fixed in v0.25.2)
-2. **Cleanup automation** - Scheduled cleanup of low-weight old entries
-3. **Real-time streaming** - WebSocket feed for live activity
-4. **Export formats** - Add more export options (Parquet, etc.)
+1. **Cleanup automation** - Scheduled cleanup of low-weight old entries
+2. **Real-time streaming** - WebSocket feed for live activity
+3. **Export formats** - Add more export options (Parquet, etc.)
 
 ---
 
