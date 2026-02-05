@@ -1,104 +1,51 @@
 # Fazt Implementation State
 
-**Last Updated**: 2026-02-05
+**Last Updated**: 2026-02-06
 **Current Version**: v0.25.4
 
 ## Status
 
-State: IN PROGRESS
-Admin UI Vue port underway - rebuilding with fazt-app patterns and proper state management.
+State: CLEAN
+Admin Vue port complete. Dashboard rendering errors resolved. All components granular.
 
 ---
 
-## Current Session (2026-02-05) - Admin Vue Port
+## Last Session (2026-02-06) - Fix Vue Rendering Errors
 
-### In Progress
+### What Was Done
 
-#### Admin UI Vue Port
-Rebuilding admin UI from React to Vue using fazt-app patterns:
-- **Why**: Ecosystem consistency (all fazt apps use Vue), better reactivity model
-- **Approach**: Port components 1:1 (preserve design), rebuild data layer with fazt-sdk
-- **Key improvements**:
-  - Proper caching via @tanstack/vue-query
-  - fazt-sdk as single source of API communication
-  - No more count=0 flicker issues
-  - Consistent patterns with other fazt apps
+#### 1. Fixed Vue `insertBefore` null crashes (issue #04)
+**Root cause**: `lucide.createIcons()` replaces `<i>` elements with `<svg>` in the DOM — external DOM mutation that breaks Vue's VDOM patcher. When Pinia store updates triggered re-renders, Vue referenced nodes that no longer existed.
 
-### Plan Location
-`koder/plans/38_admin_vue_port.md`
+**Fix**: Rewrote `admin/src/lib/icons.js` to inject SVGs **inside** `<i>` elements instead of replacing them. Vue still owns the outer element, patches work correctly.
+
+#### 2. Fixed router timing race condition
+Changed `main.js` to `router.isReady().then(() => app.mount('#app'))` — prevents router's `install()` from triggering navigation before DOM exists.
+
+#### 3. Extracted App.js into 7 granular components
+Broke 775-line monolith into: Sidebar, HeaderBar, CommandPalette, SettingsPanel, NewAppModal, CreateAliasModal, EditAliasModal. Single root element per component.
+
+#### 4. Consolidated dashboard to stat cards
+Replaced 3-panel layout (System + Apps table + Aliases table) with single panel of 7 stat cards. Clickable overview cards navigate to detail pages.
+
+#### 5. Updated fazt-app skill documentation
+Added "External DOM Mutation (CRITICAL)" section to `frontend-patterns.md` — documents the rule, common offenders, canonical fix pattern, and why it crashes.
 
 ---
 
-## Immediate Attention Required
+## Open Items
 
 ### fazt.http - External HTTP Calls in Serverless
-
-**Priority**: HIGH - Architectural decision needed before implementation
-
-**What**: Add `fazt.http.*` API for serverless functions to make external HTTP calls.
-
-**Current state**: Serverless can only access `fazt.storage.*` and `fazt.auth.*`. No external network calls.
-
-**Why it's possible**: Goja can call Go functions. Storage APIs already do this (sync Go calls from JS).
-
-**Key decisions needed** (I need to learn more about these):
-
-1. **Security Model**
-   - SSRF prevention (block private IPs: 10.x, 192.168.x, 127.x, 169.254.x)
-   - Domain allowlists per app?
-   - Rate limiting (calls per request, calls per minute)
-   - Only HTTPS or allow HTTP?
-
-2. **Async Model**
-   - Current runtime is synchronous (Goja ES5)
-   - Options:
-     a. **Blocking calls** (like storage) - simpler, may block VM pool
-     b. **Callback pattern** - awkward in ES5
-     c. **Promise polyfill** - complex, but modern feel
-   - Need to understand tradeoffs
-
-3. **Timeout Budget**
-   - Current: 5 seconds total per request
-   - With HTTP calls: need longer? (15s?)
-   - Share budget between JS execution and HTTP calls
-   - `timeout.Budget` system already exists
-
-**Proposed API** (tentative):
-```javascript
-var resp = fazt.http.get('https://api.example.com/data')
-var resp = fazt.http.post('https://api.example.com/data', {
-  body: { key: 'value' },
-  headers: { 'Authorization': 'Bearer ...' },
-  timeout: 3000  // ms
-})
-// resp = { status: 200, body: '...', headers: {...} }
-```
-
-**Next steps**:
-1. Research SSRF prevention best practices
-2. Understand async patterns in embedded JS runtimes
-3. Draft security spec
-4. Implement with proper guardrails
+**Priority**: HIGH - Architectural decision needed
+See `koder/STATE.md` history for full context. Key decisions: security model (SSRF), async model (blocking vs callbacks), timeout budget.
 
 ---
 
 ## Previous Session (2026-02-05) - v0.25.4 Release
 
-### What Was Done
-
-#### Released v0.25.4 (Bug Fix)
-Fixed admin UI health endpoint and released:
-- **Problem**: User reported `GET https://admin.zyt.app/api/system/health 401 (Unauthorized)` when accessing admin/logs
-- **Root cause**: Health endpoint used `requireAPIKeyAuth` (only CLI/remote), not `requireAdminAuth` (CLI + admin UI sessions)
-- **Fix**: Changed `/api/system/health` to use `requireAdminAuth` instead of `requireAPIKeyAuth`
-- **Released**: Built all platforms, created GitHub release, pushed v0.25.4
-- **Deployed**: Upgraded local binary and all peers (local, zyt) via canonical `fazt upgrade` path
-
-### Commits
-```
-49fe2a5 release: v0.25.4
-7873ef3 fix: allow admin session auth for health endpoint
-```
+### Released v0.25.4 (Bug Fix)
+- Fixed admin UI health endpoint: `requireAPIKeyAuth` → `requireAdminAuth`
+- Released and deployed to all peers
 
 ---
 
