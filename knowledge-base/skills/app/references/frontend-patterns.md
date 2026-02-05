@@ -2,6 +2,164 @@
 
 Common patterns for fazt app frontends using Vue 3.
 
+## Component Granularity (CRITICAL)
+
+**Every component MUST have a single root element.** Vue 3 supports fragments (multiple root elements) but they cause rendering crashes when combined with reactive store updates. This is not theoretical — it's a proven production issue.
+
+### Rules
+
+1. **Single root `<div>` per component** — never use multi-root fragments
+2. **One concern per component** — sidebar, header, modal, palette = separate files
+3. **Pinia stores for shared state** — no prop drilling for widely-used state (theme, auth, counts)
+4. **Each component refreshes its own icons** — `onMounted(() => refreshIcons())` and `onUpdated(() => refreshIcons())` (see [External DOM Mutation](#external-dom-mutation-critical) for how `refreshIcons` works safely)
+
+### Why No Fragments
+
+Vue's fragment patcher tracks start/end anchors for each root element. When multiple `v-if` roots toggle during concurrent reactive updates (common with Pinia stores loading data), the anchors desync → `insertBefore` null → crash. Single root = no fragment patching = no crash.
+
+### App Shell Pattern
+
+```javascript
+// App.js — thin orchestrator, single root div
+export default {
+  components: { Sidebar, HeaderBar, CommandPalette, SettingsPanel },
+  setup() {
+    // Initialize stores once here
+    // Global keyboard shortcuts here
+    return { ui, auth }
+  },
+  template: `
+    <div>
+      <SettingsPanel />
+      <CommandPalette />
+      <div class="flex h-screen">
+        <Sidebar />
+        <main class="flex-1 flex flex-col">
+          <HeaderBar />
+          <router-view />
+        </main>
+      </div>
+    </div>
+  `
+}
+```
+
+### Component File Pattern
+
+```javascript
+// components/Sidebar.js — owns its own store access and icon refresh
+import { computed, onMounted, onUpdated } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { useAppsStore } from '../stores/apps.js'
+import { refreshIcons } from '../lib/icons.js'
+
+export default {
+  name: 'AppSidebar',
+  setup() {
+    const apps = useAppsStore()
+    const appCount = computed(() => apps.items.length)  // resolve in computed, not template
+    onMounted(() => refreshIcons())
+    onUpdated(() => refreshIcons())
+    return { appCount }
+  },
+  template: `
+    <aside class="sidebar">
+      <span>{{ appCount }} apps</span>
+    </aside>
+  `
+}
+```
+
+### Anti-patterns
+
+```javascript
+// BAD: Multiple root elements with v-if (fragment)
+template: `
+  <div v-if="showA">...</div>
+  <div v-if="showB">...</div>
+  <div class="main">...</div>
+`
+
+// GOOD: Single root, children handle their own visibility
+template: `
+  <div>
+    <ModalA />
+    <ModalB />
+    <div class="main">...</div>
+  </div>
+`
+
+// BAD: Complex expressions in template strings
+template: `<span>{{ store.data?.nested?.value || 'default' }}</span>`
+
+// GOOD: Resolve in computed
+const displayValue = computed(() => store.data?.nested?.value || 'default')
+template: `<span>{{ displayValue }}</span>`
+```
+
+## External DOM Mutation (CRITICAL)
+
+**Never use libraries that REPLACE DOM elements Vue owns.** This is the #1 source of `insertBefore` null / `setElementText` null crashes in Vue apps.
+
+### The Rule
+
+If a library's API replaces or removes DOM elements, it will break Vue's virtual DOM patcher. Vue keeps references to real DOM nodes; when they vanish, the next reactive update crashes.
+
+### Common Offenders
+
+- `lucide.createIcons()` — replaces `<i data-lucide>` with `<svg>`
+- `highlight.js` auto-mode — replaces `<code>` elements
+- Any jQuery-style `.replaceWith()` or `.html()` on Vue-managed elements
+
+### The Fix: Inject Inside, Never Replace
+
+Instead of letting a library replace an element, **inject content inside it** so Vue's reference to the outer element stays valid:
+
+```javascript
+// lib/icons.js — canonical pattern for external icon libraries
+import { nextTick } from 'vue'
+
+let pending = false
+
+export function refreshIcons() {
+  if (pending) return
+  pending = true
+  nextTick(() => {
+    pending = false
+    document.querySelectorAll('i[data-lucide]').forEach(el => {
+      if (el.querySelector('svg')) return  // already rendered
+      const name = el.getAttribute('data-lucide')
+      if (!name) return
+      const svg = createIconSvg(name)
+      if (!svg) return
+      // Inject INSIDE — Vue still owns the <i> element
+      el.style.display = 'inline-flex'
+      el.style.alignItems = 'center'
+      el.style.justifyContent = 'center'
+      el.appendChild(svg)
+    })
+  })
+}
+```
+
+### Why This Works
+
+1. Vue's VNode references the `<i>` element — it never gets removed
+2. The `<i>` has no VNode children, so Vue won't touch the injected SVG
+3. `nextTick` + debounce ensures one scan per render cycle
+4. The `el.querySelector('svg')` guard prevents double-injection
+
+### Why `lucide.createIcons()` Crashes Vue
+
+```
+Template: <i data-lucide="heart"> → Vue VNode references this <i>
+createIcons() runs          → replaces <i> with <svg> in DOM
+Store update triggers render → Vue tries insertBefore on <i>
+<i> is gone                 → insertBefore(null) → crash
+```
+
+This is NOT a Vue bug or a BFBB pattern bug. It's a fundamental conflict between external DOM mutation and any VDOM framework (React, Vue, Svelte would all crash).
+
 ## Project Structure
 
 ```

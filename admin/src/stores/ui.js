@@ -15,6 +15,26 @@ export const useUIStore = defineStore('ui', () => {
   const editAliasModalOpen = ref(false)
   const editingAlias = ref(null)
 
+  // Transient UI states (shared across components)
+  const mobileMenuOpen = ref(false)
+  const userDropdownOpen = ref(false)
+  const notificationsOpen = ref(false)
+
+  function toggleUserDropdown() {
+    userDropdownOpen.value = !userDropdownOpen.value
+    notificationsOpen.value = false
+  }
+
+  function toggleNotifications() {
+    notificationsOpen.value = !notificationsOpen.value
+    userDropdownOpen.value = false
+  }
+
+  function closeDropdowns() {
+    userDropdownOpen.value = false
+    notificationsOpen.value = false
+  }
+
   function setTheme(newTheme) {
     theme.value = newTheme
     document.documentElement.classList.toggle('dark', newTheme === 'dark')
@@ -79,8 +99,9 @@ export const useUIStore = defineStore('ui', () => {
   return {
     theme, palette, sidebarCollapsed, settingsPanelOpen, commandPaletteOpen, notifications,
     newAppModalOpen, createAliasModalOpen, editAliasModalOpen, editingAlias,
+    mobileMenuOpen, userDropdownOpen, notificationsOpen,
     setTheme, setPalette, initTheme, toggleSidebar, notify,
-    openEditAliasModal,
+    openEditAliasModal, toggleUserDropdown, toggleNotifications, closeDropdowns,
     getUIState, setUIState,
     useMock
   }

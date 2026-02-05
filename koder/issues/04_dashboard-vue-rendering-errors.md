@@ -149,28 +149,44 @@ If fix proves complex:
 2. Add Logs panel as 4th panel instead of integrating
 3. Use different layout approach (not stat cards)
 
-## Current Status
+## Resolution (2026-02-06)
 
-**REVERTED**: Dashboard has been reverted to original working state and redeployed.
-- `git checkout admin/src/pages/DashboardPage.js` - executed
-- `fazt @local app deploy .` - redeployed
-- Dashboard should now load without errors (3 panels: System, Apps, Aliases)
+**Status**: CLOSED
 
-## Reference
+### Root Cause (actual)
 
-**Last working version**: Git HEAD (current state after revert)
-**Revert command**: `git checkout admin/src/pages/DashboardPage.js`
+**`lucide.createIcons()` — external DOM mutation breaking Vue's VDOM.**
 
-**Related**:
-- Admin UI Vue port is ongoing (see `koder/STATE.md`)
-- This is part of admin refinements work
-- Logs store added recently to track activity
+The original `refreshIcons()` called `window.lucide.createIcons()` which **replaces** `<i data-lucide>` elements with `<svg>` elements in the DOM. Vue's virtual DOM keeps references to those `<i>` elements. When a Pinia store update triggered a reactive re-render, Vue's patcher tried to operate on the original `<i>` nodes which no longer existed → `insertBefore` null, `setElementText` null.
 
-## For Next Session
+This was NOT caused by:
+- Template compilation issues (red herring)
+- Fragment patching (we fixed this too but it wasn't the crash cause)
+- Store timing (the stores were fine)
+- The BFBB pattern itself (pattern is sound)
 
-A more powerful model should:
-1. Investigate WHY removing panels causes Vue mounting errors
-2. Consider alternative approaches (maybe keep panels, add stats to them?)
-3. Debug the template/component structure more carefully
-4. Test incrementally (one change at a time)
-5. Check Vue DevTools for component tree issues
+The error sequence:
+```
+1. Vue renders <i data-lucide="heart-pulse">
+2. onUpdated → refreshIcons() → lucide.createIcons()
+3. createIcons() REPLACES <i> with <svg> in DOM
+4. Store update triggers re-render
+5. Vue's patcher references the old <i> → gone → crash
+```
+
+### Fixes Applied (3 layers)
+
+**Layer 1 — Icon rendering** (the actual fix):
+Rewrote `admin/src/lib/icons.js` to inject SVGs **inside** `<i>` elements instead of replacing them. Vue still owns the `<i>`, its references stay valid, patches work.
+
+**Layer 2 — Router timing**:
+Changed `main.js` to `router.isReady().then(() => app.mount('#app'))` to prevent router's `install()` from triggering navigation before DOM exists.
+
+**Layer 3 — Component granularity** (defense in depth):
+Extracted App.js from 775-line monolith into 7 granular components (Sidebar, HeaderBar, CommandPalette, SettingsPanel, NewAppModal, CreateAliasModal, EditAliasModal). Single root element per component.
+
+### Lesson Learned
+
+Never use libraries that **replace** DOM elements Vue owns. This includes `lucide.createIcons()`, `highlight.js` auto-mode, and any jQuery-style `.replaceWith()`. Always inject content **inside** Vue-owned elements instead.
+
+Documented in: `knowledge-base/skills/app/references/frontend-patterns.md` → "External DOM Mutation (CRITICAL)"
