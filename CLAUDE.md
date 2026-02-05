@@ -10,7 +10,8 @@ Fazt uses **unified versioning** - all components share the same version for gua
 
 **Components:**
 - **fazt-binary** (`internal/`) - Core Go binary [stable, 100%]
-- **admin** (`admin/`) - Web admin UI [alpha, 15%]
+- **admin** (`admin/`) - Web admin UI [alpha, 15%] ; fazt-app that follows BFBB
+  (fazt-app principles are available as a skill)
 - **fazt-sdk** (`admin/packages/fazt-sdk/`) - JavaScript API client [alpha, 20%]
 - **knowledge-base/** - Documentation [stable, 80%]
 
@@ -68,26 +69,27 @@ Config Priority:
 ```
 
 - **Database is truth**: `fazt server start --db /path/to/data.db` should be enough
+- default path: "~/.fazt/data.db"
 - **CLI flags are overrides**: For debugging/testing, not persistent
 - **No config files**: Removed. Everything in SQLite.
 
 ## Environment
 
-| What | Value |
-|------|-------|
-| VM | `192.168.64.3` (headless Ubuntu) |
-| Production | `zyt.app` |
-| Local server | `fazt-local` systemd service |
-| **Database** | `~/.fazt/data.db` (single DB for everything) |
-| Binary | `~/.local/bin/fazt` |
+ | What         | Value                                        |
+ | ------       | -------                                      |
+ | VM           | `192.168.64.3` (headless Ubuntu)             |
+ | Production   | `zyt.app`                                    |
+ | Local server | `fazt-local` systemd service                 |
+ | **Database** | `~/.fazt/data.db` (single DB for everything) |
+ | Binary       | `~/.local/bin/fazt`                          |
 
 **Database contains:** Apps, aliases, storage, auth, events, peer configs - everything.
 **Override:** `FAZT_DB_PATH` env var or `--db` flag.
 
 **IMPORTANT - zyt SSH Access:**
 - `zyt.app` resolves to Cloudflare IPs (cannot SSH)
-- Actual server IP: `ZYT_IP` in `.env` file (currently `165.227.11.46`)
-- SSH: `ssh root@165.227.11.46`
+- Actual server IP: `ZYT_IP` in `.env` file
+- SSH: `ssh root@<ZYT_IP>`
 - Service DB: `/home/fazt/.fazt/data.db` (NOT `~/.fazt/data.db`)
 
 ## Essential Commands
@@ -128,11 +130,13 @@ admin/                # Official Admin UI (TRACKED)
 └── version.json      # Version tracking
 koder/
 ├── STATE.md          # Current work
+├── issues/           # tracks issues
 └── plans/            # Implementation plans
 knowledge-base/
 ├── agent-context/    # Detailed dev context
 ├── workflows/        # Task-oriented development guides
-└── skills/app/       # App development patterns
+└── skills/app/       # App development patterns (SUPER IMPORTANT when
+developing apps)
 servers/              # Test/demo apps (GITIGNORED)
 ```
 
@@ -141,29 +145,30 @@ servers/              # Test/demo apps (GITIGNORED)
 Read these **as needed**, not every session:
 
 ### Architecture & Context
-| File | When to Read |
-|------|--------------|
-| `koder/STATE.md` | Start of session - current work |
-| `knowledge-base/agent-context/setup.md` | Local server setup, SSH access |
-| `knowledge-base/agent-context/architecture.md` | How fazt works, app model |
-| `knowledge-base/agent-context/api.md` | API endpoints, CLI commands |
-| `knowledge-base/agent-context/tooling.md` | Skills, knowledge-base, releasing |
-| `knowledge-base/skills/app/` | App development patterns |
+ | File                                           | When to Read                      |
+ | ------                                         | --------------                    |
+ | `koder/STATE.md`                               | Start of session - current work   |
+ | `knowledge-base/agent-context/setup.md`        | Local server setup, SSH access    |
+ | `knowledge-base/agent-context/architecture.md` | How fazt works, app model         |
+ | `knowledge-base/agent-context/api.md`          | API endpoints, CLI commands       |
+ | `knowledge-base/agent-context/tooling.md`      | Skills, knowledge-base, releasing |
+ | `knowledge-base/skills/app/`                   | App development patterns          |
 
 ### Development Workflows
-| Task | Read |
-|------|------|
-| Add Admin UI feature | `knowledge-base/workflows/admin-ui/adding-features.md` |
-| Understand UI state | `knowledge-base/workflows/admin-ui/architecture.md` |
-| Test mock vs real | `knowledge-base/workflows/admin-ui/testing.md` |
-| Pre-implementation check | `knowledge-base/workflows/admin-ui/checklist.md` |
-| Extend fazt-sdk | `knowledge-base/workflows/fazt-sdk/extending.md` |
-| Add backend API | `knowledge-base/workflows/fazt-binary/adding-apis.md` |
+ | Task                     | Read                                                   |
+ | ------                   | ------                                                 |
+ | Add Admin UI feature     | `knowledge-base/workflows/admin-ui/adding-features.md` |
+ | Understand UI state      | `knowledge-base/workflows/admin-ui/architecture.md`    |
+ | Test mock vs real        | `knowledge-base/workflows/admin-ui/testing.md`         |
+ | Pre-implementation check | `knowledge-base/workflows/admin-ui/checklist.md`       |
+ | Extend fazt-sdk          | `knowledge-base/workflows/fazt-sdk/extending.md`       |
+ | Add backend API          | `knowledge-base/workflows/fazt-binary/adding-apis.md`  |
 
 **Rules**:
 - Always check workflows **before** implementing features to validate backend support
 - Check the `updated:` date in frontmatter - if doc is >2 days old, verify info is still accurate
 - If doc seems stale, update it and change the `updated:` date
+- for koder/(issues|plans)/ following indexing that follows files inside it
 
 ## Quick Reference
 
