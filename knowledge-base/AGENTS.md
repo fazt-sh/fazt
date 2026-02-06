@@ -133,10 +133,18 @@ koder/
 ├── issues/           # tracks issues
 └── plans/            # Implementation plans
 knowledge-base/
+├── AGENTS.md         # This file (symlinked to root as CLAUDE.md & AGENTS.md)
 ├── agent-context/    # Detailed dev context
 ├── workflows/        # Task-oriented development guides
-└── skills/app/       # App development patterns (SUPER IMPORTANT when
-developing apps)
+└── skills/           # All skills (git-tracked)
+    ├── app/          # fazt-app (global skill)
+    ├── release/      # fazt-release (local skill)
+    ├── open/         # fazt-open (local skill)
+    ├── close/        # fazt-close (local skill)
+    ├── ideate/       # fazt-ideate (local skill)
+    └── lite-extract/ # fazt-lite-extract (local skill)
+.claude/skills/       # Symlinks to knowledge-base/skills/ (Claude discovery)
+.agents/skills/       # Symlinks to knowledge-base/skills/ (Codex discovery)
 servers/              # Test/demo apps (GITIGNORED)
 ```
 
