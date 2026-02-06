@@ -1,5 +1,6 @@
 ---
-description: Evaluate if a library/project can be "lite-extracted" into Fazt
+name: fazt-lite-extract
+description: Evaluate if a library/project can be "lite-extracted" into Fazt - analyzes size, dependencies, and integration feasibility against Fazt's vision.
 model: opus
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Task, WebFetch, WebSearch
 ---

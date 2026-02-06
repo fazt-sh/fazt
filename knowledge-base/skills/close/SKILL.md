@@ -1,3 +1,8 @@
+---
+name: fazt-close
+description: Fazt Session Close - Close session with proper handoff for next time. Updates STATE.md, summarizes work, and leaves repo in clean state.
+---
+
 # Fazt Session Close
 
 Close session with proper handoff for next time. Leaves repo in a clean state.

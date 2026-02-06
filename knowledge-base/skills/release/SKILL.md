@@ -1,3 +1,9 @@
+---
+name: fazt-release
+description: Release a new version of fazt with proper versioning, documentation, and deployment. Use when asked to release, publish, or deploy a new version.
+model: opus
+---
+
 # Fazt Release Skill
 
 Release a new version of fazt with proper versioning, documentation, and deployment.

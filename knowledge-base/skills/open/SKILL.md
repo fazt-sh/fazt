@@ -1,3 +1,8 @@
+---
+name: fazt-open
+description: Fazt Session Open - Get up to speed quickly at the beginning of a work session. Checks versions, health, and reads previous session state.
+---
+
 # Fazt Session Open
 
 Get up to speed quickly at the beginning of a work session.

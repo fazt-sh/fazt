@@ -1,5 +1,6 @@
 ---
-description: Brainstorm ideas for Fazt's evolution (project)
+name: fazt-ideate
+description: Brainstorm ideas for Fazt's evolution - uses reasoning model for strategic planning and creative exploration of architectural possibilities.
 model: opus
 allowed-tools: Read, Write, Edit, Glob, Grep
 ---
