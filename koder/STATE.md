@@ -6,55 +6,67 @@
 ## Status
 
 State: PLANNING
-Plan 40 (fazt.http) complete. Needs human understanding session before implementation.
+Plan 40 (fazt.http) fully specified — all 4 phases. Ready for implementation.
 
 ---
 
-## Last Session (2026-02-06) — fazt.http Design & Review
+## Last Session (2026-02-06) — Human Review & Plan Expansion
 
 ### What Was Done
 
-#### 1. AI-Chat Thread: fazt.http (11 messages, Claude + Codex)
-Full architectural discussion on adding external HTTP calls to serverless runtime.
-Thread at `koder/ai-chat/01_fazt-http/` — 11 messages covering security (SSRF,
-redirect, secrets), performance (budget, pooling, write pressure), and DX (API
-shape, error codes, docs).
+#### 1. Human Walkthrough of Plan 40
+Explained security model (SSRF, DialContext, redirect attacks, IP literal
+blocking) in plain terms. Human now understands the "why" behind each decision.
 
-#### 2. Plan 40: fazt.http — Written and Reviewed
-`koder/plans/40_fazt_http.md` — Full Phase 1 spec with Phases 2-3 sketched.
-Reviewed twice by Codex. All findings addressed. Key decisions:
-- `fazt.net.fetch()` sync API, returns response object
-- Kernel-level egress proxy with allowlist-only security
-- SSRF protection via DialContext IP validation
-- Budget system aligned with 5s runtime timeout
-- 28-test matrix covering security, limits, and DX
+#### 2. system.Limits Refactor (Step 0 added to plan)
+Human identified that plan's limits weren't integrated with fazt's existing
+`system.Limits` / `system.GetLimits()`. Major addition:
+- Flat `system.Limits` (10 fields) → nested structs: `Hardware`, `Storage`,
+  `Runtime`, `Capacity`, `Net`
+- Struct tags for metadata: `label`, `desc`, `unit`, `range`, `readonly`
+- Schema endpoint: `GET /api/system/limits/schema` (reflect-based, `sync.Once` cached)
+- Deletes `internal/capacity/` — absorbed into `system.Limits`
+- Future-enables: validation, config system, per-app overrides, admin UI forms
 
-**No code was written this session.** Plan only.
+#### 3. Phase 2 & 3 Expanded (Sketch → Full Spec)
+Human wanted thin layers with sane defaults, not deferred sketches:
+- **Phase 2**: Secrets store (Go-side injection, JS never sees values), rate
+  limiting (token bucket per domain, default disabled), per-domain config
+  (extends allowlist table, zero = inherit)
+- **Phase 3**: Async batch logging (buffer + flush, errors bypass, query
+  strings stripped), response cache (memory-only LRU, opt-in per domain)
+- All Phase 2/3 limits declared in `system.Limits.Net` from Step 0
+
+#### 4. AI-Chat Thread Extended (messages 12-13)
+- Message 12 (Claude): Summarized all additions, posed 9 review questions
+- Message 13 (Codex): Reviewed all 9, flagged cache key fix (applied) and
+  limits unification with `internal/capacity` (folded into plan)
+
+**No code was written this session.** Plan expansion and review only.
 
 ---
 
-## Next Session — DISCUSSION FIRST
+## Next Session — IMPLEMENT
 
-**IMPORTANT**: Human wants to understand the plan deeply before implementation.
-The plan covers complex security and runtime topics (SSRF, DNS rebinding, Goja
-Promise semantics, timeout budgets, connection pooling). Human needs a
-walkthrough session to feel technically confident before approving implementation.
+Plan 40 is complete. All phases specified. Codex-reviewed. Human understands
+the security model. Ready to write code.
 
-### Suggested approach:
-1. Open session, read this state
-2. **Discussion mode** — walk through Plan 40 section by section
-3. Human asks questions, Claude explains the "why" behind each decision
-4. Focus areas likely: SSRF attacks, how DialContext works, budget system,
-   allowlist mechanics, error flow from Go to JS
-5. Close session after understanding is solid
-6. Next session: implement
+### Implementation order:
+1. **Step 0**: `system.Limits` refactor (standalone, no egress code)
+   - Nested structs + tags in `internal/system/`
+   - Schema endpoint
+   - Delete `internal/capacity/`, rewire `activity/logger.go`
+   - Update fazt-sdk, knowledge-base API docs
+2. **Step 1-8**: Phase 1 egress (proxy, allowlist, budget, response, wiring, CLI, tests, docs)
+3. **Phase 2**: Secrets, rate limits, per-domain config
+4. **Phase 3**: Logging, cache
 
-### Key resources for discussion:
-- `koder/plans/40_fazt_http.md` — the full plan
-- `koder/ai-chat/01_fazt-http/` — 11-message design thread (deep context)
-- `internal/runtime/runtime.go` — current Goja runtime (what we're extending)
-- `internal/timeout/budget.go` — current budget system (what we're adding to)
-- `internal/runtime/handler.go` — request flow (where egress proxy plugs in)
+### Key resources:
+- `koder/plans/40_fazt_http.md` — the full plan (all phases)
+- `koder/ai-chat/01_fazt-http/` — 13-message design thread
+- `internal/system/probe.go` — current flat Limits (what Step 0 refactors)
+- `internal/capacity/capacity.go` — to be deleted (absorbed into system.Limits)
+- `internal/runtime/runtime.go` — Goja runtime (what Phase 1 extends)
 
 ---
 
@@ -67,8 +79,10 @@ cat koder/plans/40_fazt_http.md
 # AI-Chat thread
 ls koder/ai-chat/01_fazt-http/*.md
 
-# Key code files for understanding
-cat internal/runtime/runtime.go
-cat internal/timeout/budget.go
-cat internal/runtime/handler.go
+# Key code files
+cat internal/system/probe.go        # Current limits (Step 0 target)
+cat internal/capacity/capacity.go   # To be deleted
+cat internal/runtime/runtime.go     # Goja runtime
+cat internal/timeout/budget.go      # Budget system
+cat internal/runtime/handler.go     # Request flow
 ```
