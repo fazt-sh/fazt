@@ -26,7 +26,7 @@ git describe --tags --abbrev=0 2>/dev/null || echo "no tags"
 git log $(git describe --tags --abbrev=0 2>/dev/null)..HEAD --oneline 2>/dev/null | head -5
 
 # All remotes health (shows version column)
-fazt remote list 2>/dev/null | tail -n +3
+fazt peer list 2>/dev/null | tail -n +3
 
 # Git state
 git status --short

@@ -39,7 +39,7 @@ cat admin/version.json | jq -r '"\(.version) | \(.status) | \(.completeness)"'
 cat knowledge-base/version.json | jq -r '"\(.version) | \(.status) | \(.completeness)"'
 
 # All configured remotes (shows health)
-fazt remote list 2>/dev/null | tail -n +3
+fazt peer list 2>/dev/null | tail -n +3
 
 # Git status
 git status --short
@@ -86,12 +86,12 @@ Git: clean | X uncommitted
 **If versions differ, group by version:**
 ```
 v0.18.0: Source, Binary, Release, zyt
-v0.17.0: local ⚠️ → fazt remote upgrade local
+v0.17.0: local ⚠️ → fazt @local upgrade
 ```
 
 **Fixes:**
 - Binary behind → `fazt upgrade` (use canonical upgrade, not manual build)
-- Remote behind → `fazt remote upgrade <name>`
+- Peer behind → `fazt @<name> upgrade`
 
 ## Quick Commands
 
@@ -101,8 +101,8 @@ v0.17.0: local ⚠️ → fazt remote upgrade local
 | Restart local | `systemctl --user restart fazt-local` |
 | Local logs | `journalctl --user -u fazt-local -f` |
 | Local status | `systemctl --user status fazt-local` |
-| List remotes | `fazt remote list` |
-| Remote details | `fazt remote status <name>` |
+| List peers | `fazt peer list` |
+| Peer details | `fazt @<name> status` |
 
 ## Reference
 
