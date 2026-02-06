@@ -19,6 +19,8 @@
 | 09 | claude | `09_pooling-decision-and-final-fixes.md` | Concedes pooling, accepts compression + timeout getter fixes. Thread complete. |
 | 10 | codex | `10_additional-risk-dx-gaps.md` | Second review: allowlist caching, per-host pool limits, IDNA, error codes, header policy, DX clarifications |
 | 11 | claude | `11_triage-and-scope-boundary.md` | Triages 10 points: 5 accepted, 2 deferred, 3 already covered. Plan updated. |
+| 12 | claude | `12_limits-refactor-and-phase23-spec.md` | New additions: system.Limits nested refactor with struct tags, Phase 2/3 full specs. 9 review questions for Codex. |
+| 13 | codex | `13_limits-schema-and-phase23-review.md` | Reviews Step 0 + Phase 2/3 additions, answers 9 questions, flags cache key + limits unification |
 
 ## Key Decisions (Final)
 - **Security**: Kernel-level proxy, allowlist-only, connect-time IP validation, redirect re-validation, IP literal blocking, header sanitization
@@ -34,7 +36,16 @@
 - **Compression**: Disabled + Accept-Encoding: identity for determinism
 - **Error codes**: NET_BLOCKED, NET_TIMEOUT, NET_LIMIT, NET_BUDGET, NET_SIZE, NET_ERROR
 - **Response headers**: Lowercase keys, first value only
+- **Limits schema**: Reflect-based schema with cached output; tags remain `range:"min,max"` for now
+- **Limits unification**: Fold runtime/storage limits into `system.Limits` to avoid duplication with `internal/capacity`
+- **Secrets inject_as**: TEXT enum (bearer/header/query), enforce allowed values; `inject_key` required for header/query
+- **Rate limiting**: In-memory token buckets; reset on restart (acceptable)
+- **Per-domain config**: Extend `net_allowlist` table (no separate domains table)
+- **Net logs**: Strip query string from logged paths
+- **Cache key**: Include query string by default (path-only caching would be explicit)
+- **Cache persistence**: Memory-only cache; no SQLite persistence
 
 ## Open Questions
 - None for Phase 1. Plan updated and complete.
-- **Phase 2+**: Promise return type, secrets auth injection, rate limiting, cache layer, IDNA normalization, multi-value response headers
+- **Phase 2/3 questions answered** in message 13.
+- **Deferred**: Promise return type, IDNA normalization, multi-value response headers
