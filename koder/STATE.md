@@ -1,117 +1,81 @@
 # Fazt Implementation State
 
-**Last Updated**: 2026-02-06
+**Last Updated**: 2026-02-07
 **Current Version**: v0.26.0
 
 ## Status
 
-State: IMPLEMENTED
-Plan 40 (fazt.http) fully implemented — all 4 phases. Tests passing.
+State: CLEAN
+File upload support implemented, KB docs updated. Ready for integration testing.
 
 ---
 
-## Last Session (2026-02-06) — Plan 40 Full Implementation
+## Last Session (2026-02-07) — App File Upload Support
 
 ### What Was Done
 
-#### Plan 40: fazt.net.fetch() — Complete Implementation
+#### File Upload Support for Serverless Apps
 
-All 4 phases implemented in a single autonomous session:
+Apps can now receive file uploads via `multipart/form-data`. The gap was in
+request parsing — `buildRequest()` only handled JSON bodies, and the body size
+middleware capped all `/api/*` requests at 1MB.
 
-**Step 0: system.Limits Refactor**
-- Flat `Limits` → nested structs: `Hardware`, `Storage`, `Runtime`, `Capacity`, `Net`
-- Struct tags: `json`, `label`, `desc`, `unit`, `range`, `readonly`
-- Reflect-based schema endpoint: `GET /api/system/limits/schema` (sync.Once cached)
-- Rewired `activity/logger.go` to use `system.GetLimits().Storage.MaxLogRows`
-- Updated fazt-sdk: added `limitsSchema()`, deprecated `capacity()`
-- `internal/capacity/` is now dead code (nothing imports it)
+**Changes:**
 
-**Phase 1: Core Egress Proxy (Steps 1-8)**
-- `internal/egress/proxy.go` — SSRF-hardened HTTP client
-  - IP blocking (10 CIDR ranges: loopback, private, link-local, CGNAT, metadata)
-  - IP literal rejection, redirect re-validation, header sanitization
-  - Concurrency control (per-app + global atomic counters)
-  - `Proxy: nil`, `DisableCompression: true` for security
-- `internal/egress/allowlist.go` — Domain allowlist with DB + 30s TTL cache
-  - Wildcard support (`*.googleapis.com`), bare `*` rejected
-  - App-scoped + global, canonical host matching
-- `internal/egress/errors.go` — 8 structured error codes
-- `internal/egress/inject.go` — Goja VM injection (`fazt.net.fetch()`)
-- `internal/timeout/budget.go` — Extended with `NetContext()`
-- Budget alignment fix: uses runtime timeout (5s) not request timeout (10s)
-- Migration 019: net_allowlist table
-- CLI: `fazt net allow/list/remove`
+1. **`internal/runtime/runtime.go`** — Added `FileUpload` struct (`Name`, `Type`,
+   `Size`, `Data []byte`) and `Files map[string]FileUpload` field on `Request`.
+   Files injected as `ArrayBuffer` in the Goja VM via `injectGlobals()`.
 
-**Phase 2: Secrets, Rate Limits, Per-Domain Config**
-- `internal/egress/secrets.go` — Server-side credential store
-  - bearer/header/query injection, domain restriction, app scoping
-  - JS never sees secret values
-- `internal/egress/ratelimit.go` — Token bucket per domain
-- Migration 020: net_secrets table
-- CLI: `fazt secret set/list/remove`
+2. **`internal/runtime/handler.go`** — Extended `buildRequest()` to parse
+   `multipart/form-data`: form fields → `req.Body`, files → `req.Files`.
+   Added `parseMultipartFiles()` helper. Added `io` and `system` imports.
 
-**Phase 3: Logging + Cache**
-- `internal/egress/logger.go` — Async batch logging
-  - Buffer + periodic flush, errors bypass buffer, query strings stripped
-- `internal/egress/cache.go` — LRU response cache
-  - Memory-only, disabled by default, opt-in per domain via cache_ttl
-- Migration 021: net_log table
+3. **`internal/middleware/security.go`** — Multipart requests now use
+   `system.GetLimits().Storage.MaxUpload` (default ~10MB) instead of the 1MB
+   default. Added `strings` and `system` imports.
 
-**Tests: 55 tests, all passing**
-- `proxy_test.go` — 21 tests (IP blocking, allowlist, body size, response, errors, budget, canonicalization)
-- `allowlist_test.go` — 5 tests (domain matching, CRUD, wildcards, HTTPS-only, canonicalization)
-- `ratelimit_test.go` — 3 tests (disabled default, enforcement, per-domain)
-- `secrets_test.go` — 11 tests (CRUD, scoping, injection types, domain restriction, validation)
-- `cache_test.go` — 9 tests (get/put, expiration, eviction, LRU, stats, key rules)
-- `logger_test.go` — 5 tests (buffer/flush, error bypass, drop, query strip, start/stop)
-- Plus existing system tests updated and passing (14 tests)
+4. **`internal/runtime/handler_test.go`** — New file with 4 tests:
+   multipart with files, multipart without files, JSON body regression,
+   ArrayBuffer injection in VM. All passing.
 
-### Files Created
-```
-internal/egress/proxy.go
-internal/egress/allowlist.go
-internal/egress/errors.go
-internal/egress/inject.go
-internal/egress/secrets.go
-internal/egress/ratelimit.go
-internal/egress/logger.go
-internal/egress/cache.go
-internal/egress/proxy_test.go
-internal/egress/allowlist_test.go
-internal/egress/secrets_test.go
-internal/egress/ratelimit_test.go
-internal/egress/cache_test.go
-internal/egress/logger_test.go
-internal/system/schema.go
-internal/system/schema_test.go
-internal/database/migrations/019_net_allowlist.sql
-internal/database/migrations/020_net_secrets.sql
-internal/database/migrations/021_net_log.sql
-cmd/server/net.go
-cmd/server/secret.go
+5. **KB docs updated:**
+   - `knowledge-base/skills/app/references/serverless-api.md` — Added File
+     Uploads section with HTML form example, handler code, file object shape,
+     storage scoping guidance, and limits. Fixed stale "No network calls"
+     limitation.
+   - `knowledge-base/agent-context/architecture.md` — Added file uploads to
+     capabilities table.
+
+**Developer API:**
+```javascript
+// request.files.photo = { name, type, size, data (ArrayBuffer) }
+fazt.app.user.s3.put('uploads/' + file.name, file.data, file.type)
 ```
 
-### Files Modified
+User-scoped storage (`fazt.app.user.s3`) ensures file isolation per user.
+Shared storage (`fazt.app.s3`) available for app-wide assets.
+
+### Unreleased Commits
+
 ```
-internal/system/probe.go          # Nested structs + tags
-internal/system/probe_test.go     # Updated for nested access
-internal/handlers/system.go       # Schema handler, fixed health handler
-internal/activity/logger.go       # Rewired to system.GetLimits()
-internal/timeout/budget.go        # NetContext()
-internal/runtime/runtime.go       # Timeout() getter
-internal/runtime/handler.go       # Egress wiring, budget fix
-internal/database/db.go           # Migrations 019-021
-cmd/server/main.go                # Route + init wiring
-admin/packages/fazt-sdk/index.js  # limitsSchema()
+73c6ea4 Support large file uploads
 ```
 
 ---
 
 ## Next Session
 
-### Remaining:
-1. Integration test with real serverless app (deploy test app that uses `fazt.net.fetch()`)
-2. App file upload feature (see below)
+### Build a test app with recently implemented features
+
+Build and deploy a real app that exercises the new capabilities from v0.26.0:
+
+1. **File upload** — Form with image upload, stored via `fazt.app.user.s3`
+2. **`fazt.net.fetch()`** — Outbound HTTP call (e.g., external API)
+3. **Auth integration** — `fazt.auth.requireLogin()` + user-scoped storage
+4. **Verify isolation** — Confirm different users can't see each other's uploads
+
+This tests the full stack end-to-end: multipart parsing → ArrayBuffer in VM →
+user-scoped blob storage, plus egress proxy with secrets/allowlist.
 
 ### Pre-existing flaky tests (to fix):
 
@@ -120,29 +84,22 @@ across 100 clients, but VM consistently hits 75-79%. Has `testing.Short()` skip
 but `go test ./...` doesn't pass `-short`. Fix: lower threshold to 70%.
 
 **`worker/TestPoolList`** — SQLite `:memory:` connection pool race. Each new
-connection to `:memory:` gets an independent blank DB. Table creation on one
-connection, query on another. Fix: `db.SetMaxOpenConns(1)` in test helper.
-Same issue may affect other test helpers using `:memory:`.
-
-### Key resources:
-- `koder/plans/40_fazt_http.md` — the plan
-- `internal/egress/` — all new code
-- `internal/system/probe.go` — restructured limits
+connection to `:memory:` gets an independent blank DB. Fix: `db.SetMaxOpenConns(1)`.
 
 ---
 
 ## Quick Reference
 
 ```bash
-# Test egress
-go test ./internal/egress/ -v
+# Test file upload
+go test ./internal/runtime/ -v -run TestBuildRequest_Multipart
+go test ./internal/runtime/ -v -run TestFileUpload_ArrayBuffer
 
 # Test all affected packages
-go test ./internal/egress/ ./internal/system/ ./internal/runtime/ ./internal/timeout/ ./internal/handlers/ ./cmd/server/
+go test ./internal/runtime/ ./internal/middleware/
 
 # Key files
-cat internal/egress/proxy.go       # Core proxy
-cat internal/egress/inject.go      # JS binding
-cat internal/system/probe.go       # Nested limits
-cat internal/system/schema.go      # Schema extractor
+cat internal/runtime/handler.go     # buildRequest() + parseMultipartFiles()
+cat internal/runtime/runtime.go     # FileUpload struct, VM injection
+cat internal/middleware/security.go  # Multipart body limit
 ```
