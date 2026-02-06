@@ -2,7 +2,7 @@
 
 **Sovereign compute** - Single Go binary + SQLite database that runs anywhere.
 
-**Version**: 0.25.4 | **State**: `koder/STATE.md`
+**Version**: 0.26.0 | **State**: `koder/STATE.md`
 
 ## Monorepo Structure
 
@@ -16,7 +16,7 @@ Fazt uses **unified versioning** - all components share the same version for gua
 - **knowledge-base/** - Documentation [stable, 80%]
 
 **Versioning:**
-- One version (0.25.4) = everything works together
+- One version (0.26.0) = everything works together
 - Status markers track maturity: `stable`, `beta`, `alpha`
 - Completeness % shows progress towards full parity
 - See `version.json` at repo root for details

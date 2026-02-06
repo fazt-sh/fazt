@@ -47,7 +47,7 @@ func SystemHealthHandler(w http.ResponseWriter, r *http.Request) {
 		"mode":           config.Get().Server.Env,
 		"memory": map[string]interface{}{
 			"used_mb":      float64(m.Alloc) / 1024 / 1024,
-			"limit_mb":     float64(limits.TotalRAM) / 1024 / 1024,
+			"limit_mb":     float64(limits.Hardware.TotalRAM) / 1024 / 1024,
 			"vfs_cache_mb": float64(vfsStats.CacheSizeBytes) / 1024 / 1024,
 		},
 		"database": map[string]interface{}{
@@ -64,10 +64,17 @@ func SystemHealthHandler(w http.ResponseWriter, r *http.Request) {
 	api.Success(w, http.StatusOK, response)
 }
 
-// SystemLimitsHandler returns the resource limits
+// SystemLimitsHandler returns the resource limits (nested JSON).
 func SystemLimitsHandler(w http.ResponseWriter, r *http.Request) {
 	limits := system.GetLimits()
 	api.Success(w, http.StatusOK, limits)
+}
+
+// SystemLimitsSchemaHandler returns struct tag metadata for admin UI form generation.
+func SystemLimitsSchemaHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(system.GetSchemaJSON())
 }
 
 // SystemCacheHandler returns VFS cache statistics
@@ -96,39 +103,11 @@ func SystemConfigHandler(w http.ResponseWriter, r *http.Request) {
 	api.Success(w, http.StatusOK, safeCfg)
 }
 
-// SystemCapacityHandler returns capacity estimates and limits
+// SystemCapacityHandler redirects to the unified limits endpoint.
+// LEGACY_CODE: Remove after admin UI migrates to /api/system/limits
 func SystemCapacityHandler(w http.ResponseWriter, r *http.Request) {
 	limits := system.GetLimits()
-
-	capacity := map[string]interface{}{
-		"system": map[string]interface{}{
-			"total_ram_mb": float64(limits.TotalRAM) / 1024 / 1024,
-			"cpu_cores":    limits.CPUCount,
-		},
-		"capacity": map[string]interface{}{
-			"concurrent_users":     limits.ConcurrentUsers,
-			"concurrent_users_max": limits.ConcurrentUsersMax,
-			"read_throughput":      limits.ReadThroughput,
-			"write_throughput":     limits.WriteThroughput,
-			"mixed_throughput":     limits.MixedThroughput,
-		},
-		"limits": map[string]interface{}{
-			"max_vfs_mb":    float64(limits.MaxVFSBytes) / 1024 / 1024,
-			"max_upload_mb": float64(limits.MaxUploadBytes) / 1024 / 1024,
-		},
-		"architecture": map[string]interface{}{
-			"storage":           "SQLite + WAL mode",
-			"write_strategy":    "Single-writer serialization (WriteQueue)",
-			"overload_behavior": "HTTP 503 with Retry-After header",
-		},
-		"tested": map[string]interface{}{
-			"version":     "0.10.10",
-			"date":        "2026-01-24",
-			"environment": "Stress test with concurrent HTTP clients",
-		},
-	}
-
-	api.Success(w, http.StatusOK, capacity)
+	api.Success(w, http.StatusOK, limits)
 }
 
 // SystemLogsHandler returns activity log entries with filtering

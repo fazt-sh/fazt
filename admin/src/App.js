@@ -63,7 +63,7 @@ export default {
       window.removeEventListener('keydown', handleGlobalKeydown)
     })
 
-    const version = () => health.data.version || '0.25.4'
+    const version = () => health.data.version || '0.26.0'
 
     return { ui, auth, health, version }
   },

@@ -4,6 +4,26 @@ All notable changes to fazt.sh will be documented in this file.
 
 ## [Unreleased]
 
+## [0.26.0] - 2026-02-06
+
+### Added
+- **`fazt.net.fetch()`** — Secure outbound HTTP for serverless functions (Plan 40)
+  - SSRF-hardened proxy: blocked private IPs, redirect validation, IP literal rejection
+  - Domain allowlist with wildcard support (`*.googleapis.com`)
+  - Server-side secrets: `fazt secret set` — JS never sees credential values
+  - Token bucket rate limiting per domain (disabled by default)
+  - Async batch logging with error bypass
+  - LRU response cache (opt-in per domain)
+  - CLI: `fazt net allow/list/remove`, `fazt secret set/list/remove`
+- **Nested `system.Limits`** — Restructured from flat to `Hardware`, `Storage`, `Runtime`, `Capacity`, `Net`
+  - Struct tags for metadata: label, desc, unit, range, readonly
+  - Schema endpoint: `GET /api/system/limits/schema`
+- **3 DB migrations** (019-021): net_allowlist, net_secrets, net_log tables
+
+### Changed
+- **Budget alignment**: Runtime budget now correctly uses 5s VM lifetime (was 10s request timeout)
+- **`internal/capacity/`**: Removed — absorbed into `system.Limits`
+
 ## [0.25.4] - 2026-02-05
 
 ### Fixed

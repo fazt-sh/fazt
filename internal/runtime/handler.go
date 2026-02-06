@@ -12,6 +12,7 @@ import (
 
 	"github.com/dop251/goja"
 	"github.com/fazt-sh/fazt/internal/debug"
+	"github.com/fazt-sh/fazt/internal/egress"
 	"github.com/fazt-sh/fazt/internal/hosting"
 	"github.com/fazt-sh/fazt/internal/storage"
 	"github.com/fazt-sh/fazt/internal/timeout"
@@ -36,6 +37,7 @@ type ServerlessHandler struct {
 	db           *sql.DB
 	storage      *storage.Storage
 	authProvider AuthProvider
+	egressProxy  *egress.EgressProxy
 }
 
 // NewServerlessHandler creates a new serverless handler.
@@ -50,6 +52,11 @@ func NewServerlessHandler(db *sql.DB) *ServerlessHandler {
 // SetAuthProvider sets the auth provider for extracting user from requests
 func (h *ServerlessHandler) SetAuthProvider(provider AuthProvider) {
 	h.authProvider = provider
+}
+
+// SetEgressProxy sets the egress proxy for outbound HTTP from serverless.
+func (h *ServerlessHandler) SetEgressProxy(proxy *egress.EgressProxy) {
+	h.egressProxy = proxy
 }
 
 // NewServerlessHandlerWithRuntime creates a handler with a custom runtime.
@@ -107,7 +114,12 @@ func (h *ServerlessHandler) HandleRequest(w http.ResponseWriter, r *http.Request
 	cfg := timeout.DefaultConfig()
 	execCtx, cancel := context.WithTimeout(ctx, cfg.RequestTimeout)
 	defer cancel()
-	budget := timeout.NewBudget(execCtx, cfg)
+
+	// Budget tracks the JS execution window (5s), not the full request (10s).
+	// This ensures admission control matches actual VM lifetime.
+	budgetCtx, budgetCancel := context.WithTimeout(ctx, h.runtime.Timeout())
+	defer budgetCancel()
+	budget := timeout.NewBudget(budgetCtx, cfg)
 
 	result := h.executeWithFazt(execCtx, mainJS, req, loader, app, env, authCtx, budget)
 
@@ -136,9 +148,10 @@ func (h *ServerlessHandler) HandleRequest(w http.ResponseWriter, r *http.Request
 
 		w.Header().Set("Content-Type", "application/json")
 
-		// Check for retryable errors (overload, timeout, insufficient time)
+		// Check for retryable errors (overload, timeout, insufficient time, egress limits)
 		errMsg := result.Error.Error()
 		if storage.IsRetryableError(result.Error) ||
+			egress.IsRetryableError(result.Error) ||
 			strings.Contains(errMsg, "queue full") ||
 			strings.Contains(errMsg, "SQLITE_BUSY") ||
 			strings.Contains(errMsg, "insufficient time") {
@@ -260,7 +273,14 @@ func (h *ServerlessHandler) executeWithFazt(ctx context.Context, code string, re
 		return nil
 	}
 
-	return h.runtime.ExecuteWithInjectors(ctx, code, req, loader, faztInjector, storageInjector, appStorageInjector, realtimeInjector, workerInjector, authInjector, privateInjector)
+	netInjector := func(vm *goja.Runtime) error {
+		if h.egressProxy != nil && app != nil && app.ID != "" {
+			return egress.InjectNetNamespace(vm, h.egressProxy, app.ID, ctx, budget)
+		}
+		return nil
+	}
+
+	return h.runtime.ExecuteWithInjectors(ctx, code, req, loader, faztInjector, storageInjector, appStorageInjector, realtimeInjector, workerInjector, authInjector, privateInjector, netInjector)
 }
 
 // loadFile loads a file from the VFS for a given app.

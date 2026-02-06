@@ -12,6 +12,8 @@ type Config struct {
 	StorageOpTimeout   time.Duration // Max time for a single storage operation (default: 3s)
 	MinOperationTime   time.Duration // Minimum time required to start an operation (default: 500ms)
 	QueueAdmissionTime time.Duration // Minimum time required to enter write queue (default: 1s)
+	NetCallTimeout     time.Duration // Max time for a single HTTP call (default: 4s)
+	MinNetTime         time.Duration // Min time to start a net call (default: 1s)
 }
 
 // DefaultConfig returns sensible defaults for serverless execution.
@@ -21,6 +23,8 @@ func DefaultConfig() Config {
 		StorageOpTimeout:   3 * time.Second,
 		MinOperationTime:   500 * time.Millisecond,
 		QueueAdmissionTime: 1 * time.Second,
+		NetCallTimeout:     4 * time.Second,
+		MinNetTime:         1 * time.Second,
 	}
 }
 
@@ -69,6 +73,24 @@ func (b *Budget) StorageContext(parent context.Context) (context.Context, contex
 		opTimeout = b.config.StorageOpTimeout
 	}
 
+	ctx, cancel := context.WithTimeout(parent, opTimeout)
+	return ctx, cancel, nil
+}
+
+// NetContext creates a bounded context for one outbound HTTP call.
+// Returns ErrInsufficientTime if there's not enough time remaining.
+func (b *Budget) NetContext(parent context.Context) (context.Context, context.CancelFunc, error) {
+	if b == nil {
+		return nil, nil, fmt.Errorf("net calls not available in this context")
+	}
+	remaining := b.Remaining()
+	if remaining < b.config.MinNetTime {
+		return nil, nil, ErrInsufficientTime
+	}
+	opTimeout := remaining - 500*time.Millisecond // Reserve 500ms for post-call work
+	if opTimeout > b.config.NetCallTimeout {
+		opTimeout = b.config.NetCallTimeout
+	}
 	ctx, cancel := context.WithTimeout(parent, opTimeout)
 	return ctx, cancel, nil
 }

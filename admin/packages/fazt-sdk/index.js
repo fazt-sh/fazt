@@ -114,8 +114,11 @@ export function createClient(options = {}) {
       /** Get server config */
       config: () => http.get('/api/system/config'),
 
-      /** Get resource limits */
+      /** Get resource limits (nested: hardware, storage, runtime, capacity, net) */
       limits: () => http.get('/api/system/limits'),
+
+      /** Get limits schema (labels, descriptions, ranges for admin UI) */
+      limitsSchema: () => http.get('/api/system/limits/schema'),
 
       /** Get VFS cache stats */
       cache: () => http.get('/api/system/cache'),
@@ -123,7 +126,7 @@ export function createClient(options = {}) {
       /** Get database stats */
       db: () => http.get('/api/system/db'),
 
-      /** Get capacity info */
+      /** @deprecated Use limits() instead — returns same nested data */
       capacity: () => http.get('/api/system/capacity')
     },
 

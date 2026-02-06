@@ -31,6 +31,7 @@ import (
 	"github.com/fazt-sh/fazt/internal/auth"
 	"github.com/fazt-sh/fazt/internal/config"
 	"github.com/fazt-sh/fazt/internal/database"
+	"github.com/fazt-sh/fazt/internal/egress"
 	"github.com/fazt-sh/fazt/internal/handlers"
 	"github.com/fazt-sh/fazt/internal/hosting"
 	"github.com/fazt-sh/fazt/internal/listener"
@@ -159,6 +160,10 @@ func main() {
 		handleAliasCommand(os.Args[2:])
 	case "logs":
 		handleLogsCommand(os.Args[2:])
+	case "net":
+		handleNetCommand(os.Args[2:])
+	case "secret":
+		handleSecretCommand(os.Args[2:])
 	default:
 		fmt.Printf("Unknown command: %s\n\n", command)
 		printUsage()
@@ -2755,6 +2760,19 @@ func handleStartCommand() {
 	// Initialize serverless handler with storage support
 	serverlessHandler = jsruntime.NewServerlessHandler(database.GetDB())
 
+	// Initialize egress proxy for fazt.net.fetch()
+	egressAllowlist := egress.NewAllowlist(database.GetDB())
+	egressProxy := egress.NewEgressProxy(egressAllowlist)
+	egressSecrets := egress.NewSecretsStore(database.GetDB())
+	egressProxy.SetSecrets(egressSecrets)
+	egressLogger := egress.NewNetLogger(database.GetDB())
+	egressLogger.Start()
+	defer egressLogger.Stop()
+	egressProxy.SetLogger(egressLogger)
+	egressCache := egress.NewNetCache()
+	egressProxy.SetCache(egressCache)
+	serverlessHandler.SetEgressProxy(egressProxy)
+
 	// Connect auth service to serverless handler for fazt.auth.* bindings
 	serverlessHandler.SetAuthProvider(auth.NewAuthProviderAdapter(authService))
 
@@ -2812,6 +2830,7 @@ func handleStartCommand() {
 	dashboardMux.HandleFunc("DELETE /api/webhooks/{id}", handlers.DeleteWebhookHandler)
 	dashboardMux.HandleFunc("PUT /api/webhooks/{id}", handlers.UpdateWebhookHandler)
 	dashboardMux.HandleFunc("GET /api/system/limits", handlers.SystemLimitsHandler)
+	dashboardMux.HandleFunc("GET /api/system/limits/schema", handlers.SystemLimitsSchemaHandler)
 	dashboardMux.HandleFunc("POST /api/sql", handlers.HandleSQL)
 	dashboardMux.HandleFunc("GET /api/system/cache", handlers.SystemCacheHandler)
 	dashboardMux.HandleFunc("GET /api/system/db", handlers.SystemDBHandler)

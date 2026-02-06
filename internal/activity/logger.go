@@ -11,9 +11,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/fazt-sh/fazt/internal/capacity"
 	"github.com/fazt-sh/fazt/internal/database"
 	"github.com/fazt-sh/fazt/internal/storage"
+	"github.com/fazt-sh/fazt/internal/system"
 )
 
 // Weight constants for activity importance (0-9, higher = more important)
@@ -63,11 +63,11 @@ type Config struct {
 
 // DefaultConfig returns safe defaults
 func DefaultConfig() Config {
-	limits := capacity.DefaultLimits()
+	limits := system.GetLimits()
 	return Config{
 		FlushInterval: 10 * time.Second,
 		BatchSize:     500,
-		MaxRows:       limits.MaxActivityLogRows,
+		MaxRows:       limits.Storage.MaxLogRows,
 		CleanupBatch:  10000,
 	}
 }

@@ -114,6 +114,9 @@ func runMigrations() error {
 		{16, "spa_routing", "migrations/016_spa_routing.sql"},
 		{17, "user_scoped_storage", "migrations/017_user_scoped_storage.sql"},
 		{18, "activity_log", "migrations/018_activity_log.sql"},
+		{19, "net_allowlist", "migrations/019_net_allowlist.sql"},
+		{20, "net_secrets", "migrations/020_net_secrets.sql"},
+		{21, "net_log", "migrations/021_net_log.sql"},
 	}
 
 	// Run each migration if not already applied

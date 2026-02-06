@@ -1,5 +1,11 @@
 [
     {
+        "version": "v0.26.0",
+        "title": "Outbound HTTP for Serverless (fazt.net.fetch)",
+        "description": "Secure outbound HTTP for serverless functions. SSRF-hardened proxy with domain allowlist, server-side secrets injection, rate limiting, async logging, and response cache. Restructured system.Limits to nested architecture with schema endpoint.",
+        "created_at": "2026-02-06"
+    },
+    {
         "version": "v0.25.4",
         "title": "Admin UI Health Endpoint Auth Fix",
         "description": "Fixed /api/system/health endpoint to support admin session auth in addition to API key auth. Allows admin UI to fetch health status without 401 errors.",

@@ -1,6 +1,6 @@
 # API Reference
 
-**Updated**: 2026-02-04
+**Updated**: 2026-02-06
 
 ## Global CLI Flags
 
@@ -31,6 +31,8 @@ fazt @zyt sql "..." --verbose       # Verbose + remote execution
 | `/api/apps/{id}/files` | GET | List app files |
 | `/api/apps/{id}/files/{path}` | GET | Get file content |
 | `/api/system/health` | GET | Health check |
+| `/api/system/limits` | GET | System resource limits |
+| `/api/system/limits/schema` | GET | Limits schema with metadata |
 | `/api/system/logs` | GET | Activity logs (with query params) |
 | `/api/system/logs/stats` | GET | Activity log statistics |
 | `/api/system/logs/cleanup` | POST | Delete logs (with filters) |
@@ -133,6 +135,54 @@ fazt @local logs stats
 **Resource Types**: `server`, `session`, `page`, `app`, `kv`, `doc`, `config`
 
 **Actor Types**: `user`, `system`, `api_key`, `anonymous`
+
+### Network Egress (Outbound HTTP)
+
+```bash
+# Allowlist — domains serverless code can fetch
+fazt net allow api.stripe.com             # Allow domain
+fazt net allow *.googleapis.com           # Wildcard
+fazt net allow api.openai.com --app myapp # App-scoped
+fazt net allow example.com --no-https     # Allow HTTP (default: HTTPS-only)
+fazt net list                             # List allowed domains
+fazt net list --app myapp                 # Filter by app
+fazt net remove api.stripe.com            # Remove domain
+```
+
+### Secrets (Server-Side Credential Injection)
+
+```bash
+# Store secrets — JS never sees values, Go proxy injects them
+fazt secret set STRIPE_KEY sk_live_xxx                          # Bearer token (default)
+fazt secret set OPENAI_KEY sk-xxx --as header --key Authorization # Custom header
+fazt secret set MAP_TOKEN abc --as query --key token              # Query param
+fazt secret set KEY val --domain api.stripe.com                   # Domain-restricted
+fazt secret set KEY val --app myapp                               # App-scoped
+fazt secret list                                                  # List (values masked)
+fazt secret remove STRIPE_KEY                                     # Remove
+```
+
+**Serverless JS usage:**
+```js
+// fazt.net.fetch() — available in serverless handlers
+let resp = fazt.net.fetch("https://api.stripe.com/v1/charges", {
+  method: "POST",
+  auth: "STRIPE_KEY",         // secret name, not value
+  headers: {"Content-Type": "application/json"},
+  body: JSON.stringify({amount: 2000, currency: "usd"})
+})
+
+let data = resp.json()        // Parse JSON
+let text = resp.text()        // Raw text
+// resp.status, resp.ok, resp.headers also available
+```
+
+**Limits** (configurable via `system.Limits.Net`):
+- 5 fetch calls per request, 4s total HTTP budget
+- 1MB request/response body, 3 redirect hops
+- SSRF protection: blocked private IPs, no IP literals, redirect re-validation
+- Per-domain rate limiting (disabled by default)
+- Response cache (disabled by default, opt-in per domain)
 
 ### Server Management
 

@@ -132,7 +132,7 @@ export default {
                 </div>
                 <div>
                   <div class="text-heading text-primary">Fazt Admin</div>
-                  <div class="text-caption text-muted">v{{ healthStore.data.version || '0.25.4' }}</div>
+                  <div class="text-caption text-muted">v{{ healthStore.data.version || '0.26.0' }}</div>
                 </div>
               </div>
               <p class="text-caption text-muted">

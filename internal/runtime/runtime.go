@@ -81,6 +81,11 @@ func NewRuntime(poolSize int, timeout time.Duration) *Runtime {
 	return r
 }
 
+// Timeout returns the configured execution timeout.
+func (r *Runtime) Timeout() time.Duration {
+	return r.timeout
+}
+
 // getVM gets a VM from the pool or creates a new one.
 func (r *Runtime) getVM() *goja.Runtime {
 	select {
