@@ -6,7 +6,6 @@ koder/rough.md
 koder/scratch.md
 /server
 /fazt-*
-!.claude/commands/fazt-*.md
 cc-server
 cc-server-*
 *.exe
@@ -66,3 +65,9 @@ servers/
 system/
 stdlib/node_modules
 .tickets/
+
+# Agent skill symlinks (sources tracked in knowledge-base/)
+.claude/skills/
+.agents/skills/
+.codex/skills/
+.opencode/skills/
