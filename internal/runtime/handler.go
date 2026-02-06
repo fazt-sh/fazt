@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"encoding/json"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -15,6 +16,7 @@ import (
 	"github.com/fazt-sh/fazt/internal/egress"
 	"github.com/fazt-sh/fazt/internal/hosting"
 	"github.com/fazt-sh/fazt/internal/storage"
+	"github.com/fazt-sh/fazt/internal/system"
 	"github.com/fazt-sh/fazt/internal/timeout"
 	"github.com/fazt-sh/fazt/internal/worker"
 )
@@ -335,12 +337,30 @@ func buildRequest(r *http.Request) *Request {
 		}
 	}
 
-	// Parse body for JSON requests
+	// Parse body
 	var body interface{}
+	var files map[string]FileUpload
 	if r.Method != "GET" && r.Method != "HEAD" {
 		contentType := r.Header.Get("Content-Type")
 		if strings.Contains(contentType, "application/json") {
 			json.NewDecoder(r.Body).Decode(&body)
+		} else if strings.Contains(contentType, "multipart/form-data") {
+			maxUpload := system.GetLimits().Storage.MaxUpload
+			if err := r.ParseMultipartForm(maxUpload); err == nil {
+				// Extract form fields into body
+				formFields := make(map[string]string)
+				for k, v := range r.MultipartForm.Value {
+					if len(v) > 0 {
+						formFields[k] = v[0]
+					}
+				}
+				if len(formFields) > 0 {
+					body = formFields
+				}
+
+				// Extract files
+				files = parseMultipartFiles(r)
+			}
 		}
 	}
 
@@ -350,7 +370,38 @@ func buildRequest(r *http.Request) *Request {
 		Query:   query,
 		Headers: headers,
 		Body:    body,
+		Files:   files,
 	}
+}
+
+// parseMultipartFiles extracts uploaded files from a multipart request.
+func parseMultipartFiles(r *http.Request) map[string]FileUpload {
+	if r.MultipartForm == nil || len(r.MultipartForm.File) == 0 {
+		return nil
+	}
+	files := make(map[string]FileUpload)
+	for fieldName, fileHeaders := range r.MultipartForm.File {
+		if len(fileHeaders) == 0 {
+			continue
+		}
+		fh := fileHeaders[0] // First file per field
+		f, err := fh.Open()
+		if err != nil {
+			continue
+		}
+		data, err := io.ReadAll(f)
+		f.Close()
+		if err != nil {
+			continue
+		}
+		files[fieldName] = FileUpload{
+			Name: fh.Filename,
+			Type: fh.Header.Get("Content-Type"),
+			Size: len(data),
+			Data: data,
+		}
+	}
+	return files
 }
 
 // persistLogs saves execution logs to the database

@@ -80,7 +80,8 @@ if (request.path === '/api/hello') {
 | Admin Dashboard | React SPA at admin.* |
 | Serverless Runtime | JavaScript via Goja |
 | OAuth (Google) | App-level user auth |
-| Storage API | KV, Docs, Blobs |
+| Storage API | KV, Docs, Blobs (shared + user-scoped) |
+| File Uploads | Multipart parsing, user-scoped blob storage |
 | Private Files | Auth-gated HTTP + serverless access |
 | Analytics | Event tracking |
 | Remote Management | `fazt peer` CLI |

@@ -4,8 +4,10 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"net/http"
+	"strings"
 
 	"github.com/fazt-sh/fazt/internal/config"
+	"github.com/fazt-sh/fazt/internal/system"
 )
 
 // MaxBodySize is the default maximum request body size (1MB)
@@ -17,6 +19,15 @@ func BodySizeLimit(maxBytes int64) func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Skip for paths that have their own limits (deploy has 100MB)
 			if r.URL.Path == "/api/deploy" {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			// Allow larger bodies for multipart file uploads
+			contentType := r.Header.Get("Content-Type")
+			if strings.Contains(contentType, "multipart/form-data") {
+				maxUpload := system.GetLimits().Storage.MaxUpload
+				r.Body = http.MaxBytesReader(w, r.Body, maxUpload)
 				next.ServeHTTP(w, r)
 				return
 			}

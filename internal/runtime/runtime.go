@@ -33,6 +33,15 @@ type Request struct {
 	Query   map[string]string      `json:"query"`
 	Headers map[string]string      `json:"headers"`
 	Body    interface{}            `json:"body"`
+	Files   map[string]FileUpload  `json:"files,omitempty"`
+}
+
+// FileUpload represents an uploaded file from a multipart form.
+type FileUpload struct {
+	Name string `json:"name"` // Original filename
+	Type string `json:"type"` // MIME type
+	Size int    `json:"size"` // Byte count
+	Data []byte `json:"-"`    // Raw bytes (injected as ArrayBuffer in VM)
 }
 
 // Response represents the response from JavaScript execution.
@@ -176,6 +185,18 @@ func (r *Runtime) injectGlobals(vm *goja.Runtime, req *Request, result *ExecuteR
 	reqObj.Set("query", req.Query)
 	reqObj.Set("headers", req.Headers)
 	reqObj.Set("body", req.Body)
+	if len(req.Files) > 0 {
+		filesObj := vm.NewObject()
+		for name, file := range req.Files {
+			fileObj := vm.NewObject()
+			fileObj.Set("name", file.Name)
+			fileObj.Set("type", file.Type)
+			fileObj.Set("size", file.Size)
+			fileObj.Set("data", vm.NewArrayBuffer(file.Data))
+			filesObj.Set(name, fileObj)
+		}
+		reqObj.Set("files", filesObj)
+	}
 	vm.Set("request", reqObj)
 
 	// Inject respond helper

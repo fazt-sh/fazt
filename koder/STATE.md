@@ -107,13 +107,22 @@ admin/packages/fazt-sdk/index.js  # limitsSchema()
 
 ---
 
-## Next Session — Polish & Release
+## Next Session
 
-### Remaining cleanup:
-1. Delete `internal/capacity/` (dead code, nothing imports it)
-2. Update `knowledge-base/agent-context/api.md` with new endpoints
-3. Integration test with real serverless app (deploy test app that uses `fazt.net.fetch()`)
-4. Consider version bump for this feature
+### Remaining:
+1. Integration test with real serverless app (deploy test app that uses `fazt.net.fetch()`)
+2. App file upload feature (see below)
+
+### Pre-existing flaky tests (to fix):
+
+**`hosting/TestStressMessageThroughput`** — Stress test asserts 85% WS delivery
+across 100 clients, but VM consistently hits 75-79%. Has `testing.Short()` skip
+but `go test ./...` doesn't pass `-short`. Fix: lower threshold to 70%.
+
+**`worker/TestPoolList`** — SQLite `:memory:` connection pool race. Each new
+connection to `:memory:` gets an independent blank DB. Table creation on one
+connection, query on another. Fix: `db.SetMaxOpenConns(1)` in test helper.
+Same issue may affect other test helpers using `:memory:`.
 
 ### Key resources:
 - `koder/plans/40_fazt_http.md` — the plan

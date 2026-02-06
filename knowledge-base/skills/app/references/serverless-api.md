@@ -17,8 +17,9 @@ my-app/
 request.method      // "GET", "POST", "PUT", "DELETE"
 request.path        // "/api/items/123"
 request.query       // { session: "cat-blue-river", limit: "10" }
-request.body        // Parsed JSON body (POST/PUT)
+request.body        // Parsed JSON or form fields (POST/PUT)
 request.headers     // Request headers (lowercase keys)
+request.files       // Uploaded files (multipart/form-data only)
 ```
 
 ## Response Function
@@ -34,6 +35,61 @@ respond(404, { error: "Not found" })
 // Headers (optional third argument)
 respond(200, data, { "X-Custom": "value" })
 ```
+
+## File Uploads
+
+Apps can receive file uploads via `multipart/form-data`. Uploaded files appear on `request.files`.
+
+### HTML Form
+
+```html
+<form action="/api/upload" method="POST" enctype="multipart/form-data">
+  <input type="file" name="photo" />
+  <input type="text" name="caption" value="My photo" />
+  <button>Upload</button>
+</form>
+```
+
+### Handler
+
+```javascript
+// api/main.js
+if (request.method === 'POST' && request.files) {
+  fazt.auth.requireLogin()
+  var file = request.files.photo  // { name, type, size, data }
+  var caption = request.body.caption  // "My photo"
+
+  // Store in user-scoped storage (isolated per user)
+  fazt.app.user.s3.put('uploads/' + file.name, file.data, file.type)
+  respond({ stored: file.name, size: file.size })
+}
+```
+
+### File Object
+
+Each entry in `request.files` has:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `name` | string | Original filename (`"photo.jpg"`) |
+| `type` | string | MIME type (`"image/jpeg"`) |
+| `size` | number | Byte count |
+| `data` | ArrayBuffer | Binary data (pass directly to `s3.put()`) |
+
+Non-file form fields go into `request.body` as a key-value map.
+
+### Storage Scoping
+
+| API | Isolation | Use for |
+|-----|-----------|---------|
+| `fazt.app.user.s3` | Per-user | User uploads (profile photos, documents) |
+| `fazt.app.s3` | Shared | App-wide assets (public uploads, admin content) |
+
+Use `fazt.app.user.s3` for user uploads — files are automatically isolated so users can't access each other's data.
+
+### Limits
+
+Upload size is controlled by `system.Limits.Storage.MaxUpload` (default ~10MB, max 100MB depending on server RAM).
 
 ## Storage APIs
 
@@ -359,5 +415,5 @@ function genId() {
 
 - **No async/await** - Goja is synchronous
 - **No npm modules** - Built-in APIs only
-- **No network calls** - Can't fetch external URLs
 - **ES5 syntax** - Use `var`, not `let`/`const`
+- **Upload size** - Bounded by `system.Limits.Storage.MaxUpload` (default ~10MB)
