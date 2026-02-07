@@ -207,35 +207,45 @@ func cmdAppList(db interface{}, args []string) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+
+	// Collect rows first to release the DB connection before querying aliases.
+	// Nested queries with an open rows cursor deadlocks on single-connection pools.
+	type appRow struct {
+		id, title, visibility, tags, forkedFrom string
+	}
+	var appRows []appRow
+	for rows.Next() {
+		var r appRow
+		if rows.Scan(&r.id, &r.title, &r.visibility, &r.tags, &r.forkedFrom) == nil {
+			appRows = append(appRows, r)
+		}
+	}
+	rows.Close()
 
 	var apps []map[string]interface{}
-	for rows.Next() {
-		var id, title, visibility, tags, forkedFrom string
-		if rows.Scan(&id, &title, &visibility, &tags, &forkedFrom) == nil {
-			app := map[string]interface{}{
-				"id":         id,
-				"title":      title,
-				"visibility": visibility,
-			}
-
-			var tagsList []string
-			if json.Unmarshal([]byte(tags), &tagsList) == nil && len(tagsList) > 0 {
-				app["tags"] = tagsList
-			}
-
-			if forkedFrom != "" {
-				app["forked_from"] = forkedFrom
-			}
-
-			// Get aliases
-			aliases := getAliasesForApp(sqlDB, id)
-			if len(aliases) > 0 {
-				app["aliases"] = aliases
-			}
-
-			apps = append(apps, app)
+	for _, r := range appRows {
+		app := map[string]interface{}{
+			"id":         r.id,
+			"title":      r.title,
+			"visibility": r.visibility,
 		}
+
+		var tagsList []string
+		if json.Unmarshal([]byte(r.tags), &tagsList) == nil && len(tagsList) > 0 {
+			app["tags"] = tagsList
+		}
+
+		if r.forkedFrom != "" {
+			app["forked_from"] = r.forkedFrom
+		}
+
+		// Get aliases (safe now — rows cursor is closed)
+		aliases := getAliasesForApp(sqlDB, r.id)
+		if len(aliases) > 0 {
+			app["aliases"] = aliases
+		}
+
+		apps = append(apps, app)
 	}
 
 	return apps, nil

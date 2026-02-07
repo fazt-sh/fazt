@@ -5,9 +5,9 @@
 
 ## Status
 
-State: BLOCKED — Issue 05 (Test DB Connection Hang)
-Working on: Plan 46 Phase 1 mostly complete, blocked by database connection hang in CMD gateway tests
-Next: Fix Issue 05, then finish Phase 1.4 edge cases
+State: ACTIVE — Plan 46 Phase 1.4
+Working on: Issue 05 RESOLVED. Full test suite passing (64 handler tests, 2.6s). Handler coverage at 14.2%.
+Next: Finish Phase 1.4 edge cases, then measure overall coverage
 
 ---
 
