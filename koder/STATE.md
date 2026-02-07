@@ -5,8 +5,9 @@
 
 ## Status
 
-State: IN PROGRESS — Plan 46 Phase 1 (Test Coverage Overhaul)
-Working on: Phase 1.1 COMPLETE ✅, Phase 1.2 next
+State: BLOCKED — Issue 05 (Test DB Connection Hang)
+Working on: Plan 46 Phase 1 mostly complete, blocked by database connection hang in CMD gateway tests
+Next: Fix Issue 05, then finish Phase 1.4 edge cases
 
 ---
 
@@ -82,233 +83,222 @@ Created **Plan 46** (`koder/plans/46_test_coverage_overhaul.md`):
 
 **Key Fixes During Implementation**:
 1. **Auth schema mismatch** — Test schema had `id` but production uses `token_hash` + `user_id TEXT`
-2. **Session cookie name** — Changed from `"session"` to `"fazt_session"`
+2. **Session cookie name** — Changed from "session" to "fazt_session"
 3. **User ID type** — Changed from `INTEGER` to `TEXT` (UUIDs)
 4. **Session creation** — Use `authService.CreateSession()` not manual INSERT (handles token hashing)
 5. **User creation** — Use `authService.CreateUser()` not manual INSERT (generates UUIDs)
 6. **Hosting init** — Call `hosting.Init(db)` to initialize VFS (files table queries)
 7. **Handler init** — Call `handlers.InitAuth()` to initialize rate limiter
 
-**What This Achieves**:
-- ✅ Routing config changes will break tests
-- ✅ Auth bypass changes will break tests
-- ✅ Middleware order changes will break tests
-- ✅ Path precedence validated
-- ✅ Host routing validated
-
 **Coverage Impact**: Routing coverage 1.4% → ~90% (estimated, will measure)
 
 ---
 
-## What's Next — Phase 1.2: Middleware Tests
+### What Was Done — Phase 1.2: Auth Middleware Tests (COMPLETE ✅)
 
-**Goal**: Test `internal/middleware/auth.go` (146 lines, currently 11.9% coverage)
+**Created**: `internal/middleware/auth_test.go` (529 lines)
 
-**Target File**: `internal/middleware/auth_test.go` (expand existing)
-
-**Functions to Test** (currently 0% coverage):
-
-1. **`AuthMiddleware()`** — Core auth enforcement
-   ```go
-   TestAuthMiddleware_NoAuthRequired()     // Public paths pass through
-   TestAuthMiddleware_BearerToken_Valid()  // API key auth succeeds
-   TestAuthMiddleware_BearerToken_Invalid() // Bad token → redirect/401
-   TestAuthMiddleware_Session_Valid()      // Session cookie auth succeeds
-   TestAuthMiddleware_Session_Expired()    // Expired → redirect/401
-   TestAuthMiddleware_Session_Invalid()    // Bad session → redirect/401
-   TestAuthMiddleware_NoAuth()             // No auth → redirect/401
-   TestAuthMiddleware_APIvsHTML()          // /api/* → 401 JSON, HTML → redirect
-   ```
-
-2. **`AdminMiddleware()`** — Role-based access control
-   ```go
-   TestAdminMiddleware_NoSession()         // No auth → 401 JSON
-   TestAdminMiddleware_UserRole()          // User role → 403 JSON
-   TestAdminMiddleware_AdminRole()         // Admin role → 200
-   TestAdminMiddleware_OwnerRole()         // Owner role → 200
-   TestAdminMiddleware_InvalidSession()    // Invalid session → 401
-   ```
-
-3. **`requiresAuth()`** — Path whitelist logic
-   ```go
-   TestRequiresAuth_PublicPaths()          // /, /login.html, /health, etc.
-   TestRequiresAuth_PublicPrefixes()       // /track, /r/, /webhook/, /static/, /assets/
-   TestRequiresAuth_AuthPaths()            // /auth/*, /api/login, /api/deploy
-   TestRequiresAuth_ProtectedPaths()       // /api/*, /dashboard/*, etc.
-   TestRequiresAuth_CaseSensitivity()      // Path matching is case-sensitive
-   TestRequiresAuth_TrailingSlash()        // /static vs /static/
-   ```
-
-4. **Edge Cases**
-   ```go
-   TestAuthMiddleware_EmptyBearerHeader()  // "Bearer " with no token
-   TestAuthMiddleware_MalformedBearer()    // "Bearer" without space, "Token xyz", etc.
-   TestAuthMiddleware_PathTraversal()      // /../api/login, /static/../api/apps
-   TestRequiresAuth_EdgeCases()            // Empty path, ., .., etc.
-   ```
-
-**Implementation Pattern** (follow routing tests):
-```go
-func TestAuthMiddleware_BearerToken_Valid(t *testing.T) {
-    db := setupTestDB(t)
-    authService := auth.NewService(db, "test.local", false)
-
-    // Create API key
-    apiKey := createTestAPIKey(t, db)
-
-    // Create middleware
-    handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-        w.WriteHeader(200)
-        w.Write([]byte("success"))
-    })
-    authMW := middleware.AuthMiddleware(authService)
-
-    // Test request
-    req := httptest.NewRequest("GET", "/api/apps", nil)
-    req.Header.Set("Authorization", "Bearer "+apiKey)
-
-    rr := httptest.NewRecorder()
-    authMW(handler).ServeHTTP(rr, req)
-
-    if rr.Code != 200 {
-        t.Errorf("Expected 200, got %d", rr.Code)
-    }
-}
-```
-
-**Estimated Time**: 4-6 hours (as per Plan 46)
-**Expected Coverage**: Middleware 11.9% → ~95%
+**Coverage Added**:
+- `AuthMiddleware()`:
+  - Public path bypass, valid/invalid bearer token, empty/malformed bearer
+  - Valid/invalid/expired session cookies
+  - No auth (HTML redirect), API vs HTML response split
+- `AdminMiddleware()`:
+  - No session, invalid session, user role → 403, admin/owner → 200
+- `requiresAuth()`:
+  - Exact public paths, public prefixes, protected paths
+  - Case sensitivity, trailing slash behavior, edge cases, path traversal
 
 ---
 
-## What's After That — Phase 1.3 & 1.4
+### What Was Done — Phase 1.3: Schema Sync (COMPLETE ✅)
 
-### Phase 1.3: Schema Sync (~4-6 hours)
+**Goal**: Ensure tests use production migrations instead of handwritten schema.
 
-**Goal**: Test DB schema === Production DB schema
+**Changes**:
+- Added `database.RunMigrations(db)` helper (exposed in `internal/database/db.go`).
+- `internal/handlers/handlers_test.go` now uses embedded migrations for setup.
+- `internal/handlers/auth_test.go` now reuses `setupTestDB()`.
+- Added `internal/handlers/schema_test.go`:
+  - FK enforcement (auth_sessions → auth_users)
+  - UNIQUE constraints (auth_users.email)
+  - DEFAULT values (apps.visibility/source)
 
-**Current Problem**: Tests use handwritten schema, missing tables:
-- `apps`, `aliases`, `peers`, `auth_users`, `auth_sessions`
-- `storage_keys`, `storage_objects`, `activity_log`
-- `net_allowlist`, `net_secrets`, `net_log`, `workers`
-
-**Solution**: Use production migrations in tests
-```go
-// OLD approach (handlers_test.go)
-schema := `CREATE TABLE ...`  // Handwritten, drifts over time
-
-// NEW approach
-func setupTestDB(t *testing.T) *sql.DB {
-    db := createMemoryDB()
-    // Run all migrations in order
-    RunMigrations(db, "../../database/migrations")
-    return db
-}
-```
-
-**Tests to Add**:
-- `TestSchemaEquality()` — Test DB columns === Production DB columns
-- `TestForeignKeyConstraints()` — All FKs enforced
-- `TestUniqueConstraints()` — All UNIQUE constraints work
-- `TestDefaultValues()` — DEFAULT values match production
-
-**File**: `internal/handlers/handlers_test.go` (modify setup)
-
-### Phase 1.4: Critical Handlers (~16-20 hours)
-
-Test 4 highest-risk handlers (by security + untested lines):
-
-1. **`auth_handlers.go`** (462 lines)
-   - Login rate limiting, password verification, session creation
-   - Invalid credentials, SQL injection attempts
-   - Session token validation, expiry handling
-
-2. **`deploy.go`** (170 lines)
-   - API key validation, rate limiting (5/min)
-   - File upload size limits, path traversal
-   - ZIP bomb protection, malicious archives
-
-3. **`sql.go`** (169 lines) — ADMIN SQL (!!)
-   - Admin-only access (non-admin rejected)
-   - SQL injection prevention (parameterized queries)
-   - Read-only enforcement (if applicable)
-
-4. **`agent_handler.go`** (474 lines)
-   - Agent authentication, authorization
-   - API key scoping, resource access control
-
-**Pattern**: Follow existing handler tests (`cmd_gateway_test.go`, `aliases_test.go`)
+**Note**: Full schema equality diff test still not implemented (future work if needed).
 
 ---
 
-## Files Changed (Not Committed Yet)
+### What Was Done — Phase 1.4: Critical Handlers (PARTIAL ✅)
 
-```
-cmd/server/main_routing_test.go          (NEW, 1,045 lines)
-```
+**Added Tests**:
+- `internal/handlers/auth_admin_test.go`:
+  - `requireAPIKeyAuth` (missing/invalid/valid)
+  - `requireAdminAuth` (no session, user/admin/owner roles, API key)
+- `internal/handlers/deploy_handler_test.go`:
+  - Method not allowed, missing auth, bad auth format, invalid API key
+  - Missing site_name, invalid file type, success path
+- `internal/handlers/sql_handler_test.go`:
+  - Method not allowed, invalid JSON, empty query
+  - Write requires `write: true`, select success, write success
+- `internal/handlers/agent_handler_test.go`:
+  - info missing header + success
+  - storage get not found + JSON value
+  - snapshot + restore end-to-end
+
+**Fix Applied**:
+- `internal/hosting/deploy.go`: close API key rows before updating `last_used_at` to avoid SQLite locks in tests.
 
 ---
 
-## Commit Plan
+## What Was Done — Rate Limiter Goroutine Leak Fix (COMPLETE ✅)
 
-```bash
-# Commit routing tests
-git add cmd/server/main_routing_test.go
-git commit -m "test: add comprehensive routing tests (Plan 46 Phase 1.1)
+**Problem**: Full test suite was timing out after ~60s due to goroutine leaks
+- Each `auth.NewRateLimiter()` started a background cleanup goroutine
+- Tests never stopped these goroutines, causing accumulation
+- Eventually exhausted resources and hung
 
-- 20 test functions, 60+ subtests, ~200 test cases
-- Host routing: admin, root, 404, subdomains, localhost
-- Auth bypass: 9 endpoints tested
-- AdminMiddleware: role enforcement validated
-- Local-only routes: /_app/<id>/ IP filtering
-- Edge cases: port stripping, IPv6, case sensitivity
-- All tests passing ✅
+**Solution** (Commit 82329bc):
+- Added `done` channel to `RateLimiter` and `DeployLimiter` structs
+- Added `Stop()` methods to gracefully shutdown cleanup goroutines
+- Updated cleanup loops to `select` on ticker and done channels
+- Updated 11+ test files to call `limiter.Stop()` in `t.Cleanup()`
 
-Coverage: Routing 1.4% → ~90% (est)
+**Results**:
+- ✅ Individual tests pass cleanly
+- ✅ Middleware tests pass (0.211s)
+- ✅ Routing tests pass (0.049s)
+- ❌ Full suite still hangs (different issue - see below)
 
-Part of Plan 46: Test Coverage Overhaul (31% → 85%)
-Ref: koder/plans/46_test_coverage_overhaul.md"
-```
+---
+
+## BLOCKER — Issue 05: Test Database Connection Hang
+
+**Discovered during rate limiter fix verification**.
+
+**Symptoms**:
+- `go test ./internal/handlers -count=1` times out after 28s
+- Hangs on `TestCmdGateway_AcceptsValidAPIKey`
+- Stuck waiting for database connection in `getAliasesForApp()`
+
+**Not related to rate limiters** - This is a separate database connection leak issue.
+
+**Impact**:
+- ❌ Cannot run full handler test suite
+- ❌ Blocks Plan 46 Phase 1.4 completion
+- ❌ Cannot measure coverage improvements
+
+**Details**: See `koder/issues/05_test-db-connection-hang.md`
+
+**Assignment**: **OPUS** - Needs deep investigation
+
+---
+
+## What's Next — FOR OPUS
+
+### Priority 1: Fix Issue 05 (Database Connection Hang)
+
+**File**: `koder/issues/05_test-db-connection-hang.md`
+
+**Quick summary**:
+- Tests that fail auth early → PASS
+- Tests that execute commands → HANG on database query
+- Likely: connection not returned to pool after `ValidateAPIKey()` or cmd execution
+- Setup: In-memory SQLite with `SetMaxOpenConns(1)`
+
+**Suggested investigation**:
+1. Add debug logging around `db.Query()` / `rows.Close()` lifecycle
+2. Check if `ValidateAPIKey()` truly releases connection (despite commit 4836058 fix)
+3. Look for unclosed transactions in cmd gateway flow
+4. Consider increasing `SetMaxOpenConns` for tests (workaround)
+
+### Priority 2: Finish Phase 1.4 Edge Cases (after Issue 05 fixed)
+
+Once full suite can run:
+- Expand `auth_handlers.go` tests (rate limiter exhaustion, remember_me TTL)
+- Add deploy handler ZIP/path traversal/oversize tests
+- Add SQL handler error-path tests
+- Measure actual coverage (not just estimates)
 
 ---
 
 ## Quick Reference
 
 ```bash
-# Run routing tests
+# Routing
 go test -v ./cmd/server -run TestRouting
 
-# Run all tests
-go test ./... -short -count=1
+# Middleware
+go test ./internal/middleware -count=1
 
-# Check coverage
-go test ./cmd/server -coverprofile=coverage.out
-go tool cover -html=coverage.out
+# Handlers (targeted)
+go test ./internal/handlers -run TestRequireAPIKeyAuth -count=1 -v
+go test ./internal/handlers -run TestRequireAdminAuth -count=1 -v
+go test ./internal/handlers -run TestDeployHandler -count=1 -v
+go test ./internal/handlers -run TestHandleSQL -count=1 -v
+go test ./internal/handlers -run TestAgent -count=1 -v
 
-# Next: Implement middleware tests
-# File: internal/middleware/auth_test.go
-# Pattern: Follow routing tests approach
+# Full handlers suite
+go test ./internal/handlers -count=1
 ```
 
 ---
 
-## Session Notes
+## Session Summary (2026-02-07)
 
-**Time Spent**: ~3 hours (routing tests)
-**Tests Written**: 20 functions, ~200 cases
-**All Passing**: ✅
+### Codex Session (Phase 1.2-1.4)
+**Tests Added** (all committed):
+- ✅ Middleware auth tests (`internal/middleware/auth_test.go`) - 529 lines
+- ✅ Schema sync + constraint tests - migrations in tests
+- ✅ Admin/API key gate tests (`internal/handlers/auth_admin_test.go`) - 209 lines
+- ✅ Deploy handler tests (`internal/handlers/deploy_handler_test.go`) - 184 lines
+- ✅ SQL handler tests (`internal/handlers/sql_handler_test.go`) - 148 lines
+- ✅ Agent handler tests (`internal/handlers/agent_handler_test.go`) - 162 lines
 
-**Next Agent**:
-1. Read this STATE.md
-2. Read Plan 46 Phase 1.2 section (lines 98-122)
-3. Implement middleware tests in `internal/middleware/auth_test.go`
-4. Follow pattern from `cmd/server/main_routing_test.go`
-5. Aim for ~95% middleware coverage
-6. Run tests, commit, update STATE.md
+**Issues Found**:
+- ❌ Goroutine leaks (rate limiters not stopped) - **FIXED by Claude**
+- ❌ Database connection hang in CMD tests - **OPEN (Issue 05)**
 
-**Key Learnings**:
-- Always use `authService.CreateUser()` and `authService.CreateSession()` instead of manual DB inserts
-- Auth schema uses `token_hash` (not `id`), `user_id TEXT` (not INTEGER)
-- Session cookie name is `"fazt_session"`
-- Initialize hosting (`hosting.Init(db)`) and handlers (`handlers.InitAuth()`) in test setup
-- Test routing logic, not handler implementation (routing tests shouldn't need to mock everything)
+### Claude Session (Review + Fix)
+**Reviewed Codex's work**:
+- Code quality: 7/10 - Good patterns, comprehensive coverage
+- Integration testing: Missing - didn't verify full suite runs
+- Found critical goroutine leak preventing full suite execution
+
+**Fixed**:
+- ✅ Added `Stop()` methods to rate limiters (commit 82329bc)
+- ✅ Updated all test files with proper cleanup
+- ✅ Documented DB hang issue (koder/issues/05)
+
+**Handoff to Opus**:
+- 🎯 **Primary task**: Fix Issue 05 (database connection hang)
+- 🎯 **Secondary**: Complete Phase 1.4 edge cases after unblocking
+- 📊 **Goal**: Get full test suite passing, measure coverage
+
+---
+
+## Key Learnings
+
+1. **Always run full test suite** - Individual tests passing ≠ suite passing
+2. **Goroutine cleanup is critical** - Background goroutines need explicit Stop()
+3. **Database connection limits** - `SetMaxOpenConns(1)` + leaks = deadlock
+4. **Test isolation matters** - Global state (`database.SetDB()`) can cause races
+5. **Rate limiters in tests** - Need cleanup or tests accumulate goroutines
+
+---
+
+## For Opus: Quick Start
+
+```bash
+# Reproduce the hang:
+go test ./internal/handlers -run TestCmdGateway_AcceptsValidAPIKey -timeout=10s
+
+# Read the issue:
+cat koder/issues/05_test-db-connection-hang.md
+
+# Check Plan 46:
+cat koder/plans/46_test_coverage_overhaul.md
+
+# When fixed, measure coverage:
+go test ./internal/handlers -coverprofile=coverage.out
+go tool cover -func=coverage.out | grep "total:"
+```
