@@ -50,13 +50,27 @@ admin/src/client.js            # Updated import path
 
 ---
 
+### Also Done
+- **Bundle script** — `packages/fazt-sdk/build.sh` → `dist/fazt-sdk.mjs` (32KB, unminified)
+- **Plan 44** — Drop app idea documented (`koder/plans/44_drop_app.md`)
+  - `fazt upload ./file.zip` → `https://drop.zyt.app/<hash>/file.zip`
+  - Folder support, content-type detection
+  - Simple short hashes for now; CID-compatible URLs for when v0.9 storage lands
+- Admin build verified (538ms, 70 modules, passes clean)
+
+---
+
 ## Next Session
 
 ### Priority
-- **Verify admin build** — `cd admin && npm run build` + test with `?mock=true`
-- **Test against real server** — Auth, apps, aliases all work
+- **Test admin against real server** — Auth, apps, aliases all work after SDK move
+- **Test admin with `?mock=true`** — All pages load, data renders
 - **Migrate Preview app** — Use `createAppClient()` instead of hand-rolled `api.js`
 - **Document media APIs in KB** — `fazt.app.media.{probe,transcode,serve,resize}`
+
+### Direction
+- **Plan 44: Drop app** — File/folder hosting via fazt (idea stage)
+- **SDK external consumption** — Relative imports for now; Drop will host the bundle later
 
 ### Known Issues
 - **`fazt @local app list`** — Returns empty error (pre-existing bug)
