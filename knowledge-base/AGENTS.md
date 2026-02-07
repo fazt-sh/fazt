@@ -10,9 +10,8 @@ Fazt uses **unified versioning** - all components share the same version for gua
 
 **Components:**
 - **fazt-binary** (`internal/`) - Core Go binary [stable, 100%]
-- **admin** (`admin/`) - Web admin UI [alpha, 15%] ; fazt-app that follows BFBB
-  (fazt-app principles are available as a skill)
-- **fazt-sdk** (`admin/packages/fazt-sdk/`) - JavaScript API client [alpha, 20%]
+- **admin** (`admin/`) - Vue 3 + Pinia + Vite admin UI, deployed as fazt-app (BFBB) [alpha, 15%]
+- **fazt-sdk** (`admin/packages/fazt-sdk/`) - Framework-agnostic JS API client [alpha, 20%]
 - **knowledge-base/** - Documentation [stable, 80%]
 
 **Versioning:**
@@ -32,28 +31,30 @@ Fazt uses **unified versioning** - all components share the same version for gua
 - **Static hosting first** - Serverless is enhancement, never blocks static deploy.
 - **Core vs test apps** - `admin/` is core (tracked in git). `servers/` are test/demo apps (gitignored).
 
-## Architecture: fazt-sdk (The Core Engine)
+## Architecture: fazt-sdk
 
-**fazt-sdk is the foundation** - Admin UI can change tomorrow, but fazt-sdk must be rock solid. It will power:
-- Admin web UI (React)
-- Mobile apps (React Native)
-- CLI tools (Node.js)
-- Third-party integrations
+**fazt-sdk is the foundation** — framework-agnostic JavaScript API client.
+Currently powers the Admin UI; planned to also serve fazt-apps (see Plan 43).
 
-**Principles:**
-1. **Platform-agnostic core** - HTTP client + cache layer work anywhere (browser, Node, RN)
-2. **Smart caching** - Stale-while-revalidate pattern, no count=0 flicker
-3. **Request deduplication** - 10 components requesting same data = 1 network call
-4. **Type safety** - Full TypeScript, strict types
-5. **Framework adapters** - React hooks, Vue composables wrap the core
+**Current state** (`admin/packages/fazt-sdk/`):
+- 737 lines, zero dependencies, pure JS
+- HTTP client + mock adapter + JSDoc types
+- Admin API namespaces: auth, apps, aliases, system, stats, events, logs
+- Admin UI uses it exclusively via Pinia stores — no direct `fetch()` anywhere
 
 **Architecture:**
 ```
 fazt-sdk/
-├── core/           # Platform-agnostic (client, cache, types)
-├── adapters/       # fetch, mock, react-native
-└── integrations/   # React hooks (uses @tanstack/react-query)
+├── index.js        # Client factory + admin API namespaces
+├── client.js       # HTTP adapter (fetch-based, framework-agnostic)
+├── mock.js         # Mock adapter for development (?mock=true)
+├── types.js        # JSDoc type definitions
+└── fixtures/       # Mock response data (7 JSON files)
 ```
+
+**Planned evolution** (Plan 43): Extend with `app.js` namespace for fazt-apps
+(auth, uploads with progress, pagination helpers). One SDK, two surfaces — admin
+and app — gated by server-side credentials.
 
 **Critical rule:** Admin UI MUST use fazt-sdk, never duplicate HTTP logic. The SDK owns all API communication.
 
@@ -124,9 +125,9 @@ internal/
 ├── hosting/          # VFS, deploy logic
 ├── auth/             # OAuth, sessions
 └── storage/          # KV, Docs, Blobs
-admin/                # Official Admin UI (TRACKED)
-├── packages/         # fazt-sdk, zap, fazt-ui
-├── src/              # Pages, stores, routes
+admin/                # Official Admin UI — Vue 3 + Pinia (TRACKED)
+├── packages/         # fazt-sdk, fazt-ui
+├── src/              # Vue pages, Pinia stores, router
 └── version.json      # Version tracking
 koder/
 ├── STATE.md          # Current work
@@ -176,7 +177,8 @@ Read these **as needed**, not every session:
 - Always check workflows **before** implementing features to validate backend support
 - Check the `updated:` date in frontmatter - if doc is >2 days old, verify info is still accurate
 - If doc seems stale, update it and change the `updated:` date
-- for koder/(issues|plans)/ following indexing that follows files inside it
+- Plans use sequential numbering: `koder/plans/NN_short_label.md` (check highest existing number, increment)
+- Issues use same pattern: `koder/issues/NN_short_label.md`
 
 ## Quick Reference
 
