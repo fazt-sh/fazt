@@ -5,9 +5,9 @@
 
 ## Status
 
-State: IDLE — Plan 46 fully complete
+State: READY — Plan 47 queued
 Working on: —
-Next: Nomenclature cleanup — rename `site_id` → `app_id` in VFS/hosting code (Sonnet-suitable: mechanical refactoring, find-and-replace across files, update tests)
+Next: Plan 47 Codebase Cleanup (`koder/plans/47_codebase_cleanup.md`) — Sonnet, 4 phases: nomenclature, dead code removal, legacy migration, security hardening
 
 ---
 
