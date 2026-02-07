@@ -1520,7 +1520,8 @@ func createRootHandler(cfg *config.Config, dashboardMux *http.ServeMux, authHand
 				r.URL.Path == "/api/system/health" ||
 				strings.HasPrefix(r.URL.Path, "/api/system/logs") ||
 				r.URL.Path == "/api/sql" ||
-				r.URL.Path == "/api/upgrade" {
+				r.URL.Path == "/api/upgrade" ||
+				r.URL.Path == "/api/cmd" {
 				dashboardMux.ServeHTTP(w, r)
 				return
 			}
