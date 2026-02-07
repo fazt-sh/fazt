@@ -70,18 +70,20 @@
  */
 
 /**
+ * @typedef {Object} AppUser
+ * @property {string} id - User ID
+ * @property {string} email - User email
+ * @property {string} name - Display name
+ * @property {string} [avatar] - Avatar URL
+ * @property {string} provider - Auth provider (google, github, etc.)
+ */
+
+/**
  * @typedef {Object} ApiResponse
  * @template T
  * @property {boolean} success - Request success
  * @property {T} [data] - Response data
- * @property {ApiError} [error] - Error details
- */
-
-/**
- * @typedef {Object} ApiError
- * @property {string} code - Error code
- * @property {string} message - Error message
- * @property {string} [details] - Additional details
+ * @property {Object} [error] - Error details
  */
 
 /**
@@ -97,8 +99,34 @@
  * @typedef {Object} RequestOptions
  * @property {string} [method] - HTTP method
  * @property {Object} [headers] - Request headers
- * @property {Object|string} [body] - Request body
+ * @property {Object|string|FormData} [body] - Request body
+ * @property {Object} [params] - Query parameters
  * @property {AbortSignal} [signal] - Abort signal
+ */
+
+/**
+ * @typedef {Object} UploadOptions
+ * @property {Function} [onProgress] - Progress callback: ({ loaded, total, percent }) => void
+ * @property {AbortSignal} [signal] - Abort signal
+ */
+
+/**
+ * @typedef {Object} UploadProgress
+ * @property {number} loaded - Bytes uploaded
+ * @property {number} total - Total bytes
+ * @property {number} percent - Upload percentage (0-100)
+ */
+
+/**
+ * @typedef {Object} PaginateOptions
+ * @property {number} [limit=50] - Items per page
+ * @property {Object} [params] - Additional query parameters
+ */
+
+/**
+ * @typedef {Object} PaginatedResult
+ * @property {Function} next - Fetch next page: () => Promise<{ items: any[], done: boolean }>
+ * @property {Function} reset - Reset pagination to start
  */
 
 export {}

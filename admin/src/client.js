@@ -2,7 +2,7 @@
  * Shared API client instance
  * All stores import this to make API calls
  */
-import { createClient, mockAdapter } from '../packages/fazt-sdk/index.js'
+import { createClient, mockAdapter } from '../../packages/fazt-sdk/index.js'
 
 const useMock = new URLSearchParams(window.location.search).get('mock') === 'true'
 

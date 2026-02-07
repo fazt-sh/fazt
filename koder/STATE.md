@@ -1,131 +1,77 @@
 # Fazt Implementation State
 
 **Last Updated**: 2026-02-07
-**Current Version**: v0.26.0
+**Current Version**: v0.27.0
 
 ## Status
 
 State: CLEAN
-Plan 41 (Video Support) and Plan 42 (Preview App Production) both implemented.
-Preview app deployed to local with video upload, probe, transcode, filters, accent themes.
+Plan 43 (fazt-sdk evolution) implemented.
 
 ---
 
-## Last Session (2026-02-07) — Video Support + Preview App Polish
+## Last Session (2026-02-07) — Plan 43: fazt-sdk Universal Client
 
-### Plan 41: Video Support (Backend)
+### What Changed
 
-#### 1. Video Probe — Pure Go MP4 Parser
-- **`internal/services/media/probe.go`** (NEW) — ~300 line pure Go ISO BMFF box
-  parser. Walks ftyp/moov/trak/mdia/hdlr/stbl/stsd boxes to extract codec info.
-  Supports MP4/MOV/WebM. Returns `VideoInfo{Container, VideoCodec, AudioCodec,
-  Width, Height, Duration, Compatible}`. Compatible = h264 + (aac or none).
+Evolved fazt-sdk from admin-only to universal client serving both Admin UI and fazt-apps.
 
-#### 2. system.Limits.Video
-- **`internal/system/probe.go`** — Added `Video` struct to `Limits` with
-  `FFmpegAvailable`, `Concurrency`, `MaxDurationSec`, `MaxInputMB`,
-  `OutputMaxHeight`. Auto-detects ffmpeg via `exec.LookPath`. Scales with RAM.
+#### SDK Restructured
+- **Moved** `admin/packages/fazt-sdk/` → `packages/fazt-sdk/` (repo root)
+- **`errors.js`** (NEW) — `ApiError` class extending `Error` with status helpers
+  (`.isAuth`, `.isForbidden`, `.isNotFound`, `.isRateLimit`, `.isServer`)
+- **`admin.js`** (NEW) — Extracted admin namespace from old `index.js`
+- **`app.js`** (NEW) — App namespace: `auth.me()`, `auth.login()`, `auth.logout()`,
+  `http` (direct access), `upload()` (file + progress), `paginate()` (offset-based)
+- **`client.js`** — FormData-aware `request()`, XHR `upload()` with progress tracking,
+  `ApiError` instead of plain objects
+- **`index.js`** — Thin re-export: `createClient()` (admin), `createAppClient()` (apps)
+- **`mock.js`** — Added `GET /api/me` route for app auth
+- **`types.js`** — Added `UploadOptions`, `PaginateOptions`, `PaginatedResult`, `AppUser`
 
-#### 3. Worker-based Transcoding
-- **`internal/services/media/transcode.go`** (NEW) — Background ffmpeg transcoding.
-  `QueueTranscode()` probes video, checks limits, queues goroutine with semaphore
-  concurrency. `TranscodeToH264()` runs `nice -n 19 ffmpeg` with libx264/aac.
-  `VariantPath()` convention: `_v/h264/{original_path}`.
+#### Admin Import Updated
+- **`admin/src/client.js`** — Import path updated to `../../packages/fazt-sdk/index.js`
 
-#### 4. JS Bindings
-- **`internal/storage/app_bindings.go`** — Added `fazt.app.media.probe(ArrayBuffer)`,
-  `fazt.app.media.transcode(blobPath)`, and user-scoped variants. Updated
-  `media.serve()` to prefer H.264 variant for video content types.
+#### Backward Compatible
+- `createClient()` returns identical shape — all admin stores work unchanged
+- `ApiError` extends `Error` so `.message` and `.code` access patterns compatible
 
-#### 5. Tests
-- **`internal/services/media/probe_test.go`** (NEW) — 12 test cases with
-  `buildMP4`/`buildTrack` helpers. Covers H264, HEVC, MOV, VP9, AV1, WebM,
-  not-video, too-short, duration parsing.
-
-#### 6. Flaky Test Fixes
-- **`internal/hosting/ws_stress_test.go`** — Lowered WS delivery threshold 85%→70%
-- **`internal/worker/pool_test.go`** — Added `db.SetMaxOpenConns(1)` for `:memory:` DB
-
-### Plan 42: Preview App Production (Frontend)
-
-Upgraded the Preview photo gallery app to support video and added polish:
-
-#### Backend (API)
-- **`servers/local/preview/api/main.js`** — Video upload + probe + auto-transcode.
-  Time-based filtering (today/yesterday/week/month). Video metadata (codec, duration,
-  resolution, compatible). Changed blob prefix from `photos/` to `media/`.
-
-#### Frontend Components (all in `servers/local/preview/src/`)
-- **`lib/theme.js`** — 6 accent color themes (slate/blue/emerald/violet/amber/rose)
-  via CSS custom properties
-- **`main.css`** — Accent CSS variables, skeleton shimmer animation
-- **`main.js`** — Added `applyAccent()` on startup
-- **`stores/settings.js`** — Added accent + filter state
-- **`stores/photos.js`** — Video support, 100MB limit, filter param
-- **`lib/api.js`** — Filter query param support
-- **`components/PhotoCard.vue`** — Video overlays (play button, duration badge,
-  codec warning with transcode spinner), skeleton loading
-- **`components/Lightbox.vue`** — Video `<video>` playback, touch swipe navigation,
-  video info panel (duration, resolution, codec, compatible)
-- **`components/UploadFab.vue`** — Accepts video files, accent-colored FAB
-- **`pages/GalleryPage.vue`** — Filter chip row, skeleton loading grid, accent colors
-  for sign-in/drag overlay
-- **`pages/SettingsPage.vue`** — Accent color picker (6 color swatches with ring indicator)
-
-#### Deployed
-- `fazt @local app deploy ./servers/local/preview` — builds and deploys to local
-- Preview live at `http://preview.192.168.64.3.nip.io:8080`
-
-### Unreleased Commits
-
-```
-ebaa814 Implement resillent image serving
-73c6ea4 Support large file uploads
-+ Plan 41 video support (uncommitted)
-+ Plan 42 preview app (gitignored — servers/)
+### Key Files
+```bash
+packages/fazt-sdk/index.js    # Entry point
+packages/fazt-sdk/client.js   # HTTP client + upload
+packages/fazt-sdk/errors.js   # ApiError class
+packages/fazt-sdk/admin.js    # Admin namespace
+packages/fazt-sdk/app.js      # App namespace
+packages/fazt-sdk/mock.js     # Mock adapter
+packages/fazt-sdk/types.js    # JSDoc types
+admin/src/client.js            # Updated import path
 ```
 
 ---
 
 ## Next Session
 
-### Implement Plan 43
-
 ### Priority
-- **Test video upload end-to-end** — Upload a real video file via Preview app, verify probe/transcode works
-- **Document media APIs in KB** — `fazt.app.media.{probe,transcode,serve,resize}` are undocumented in `knowledge-base/skills/app/references/serverless-api.md`
-- **Consider releasing v0.27.0** — 5 unreleased commits since v0.26.0 (file upload + video support)
+- **Verify admin build** — `cd admin && npm run build` + test with `?mock=true`
+- **Test against real server** — Auth, apps, aliases all work
+- **Migrate Preview app** — Use `createAppClient()` instead of hand-rolled `api.js`
+- **Document media APIs in KB** — `fazt.app.media.{probe,transcode,serve,resize}`
 
-### Known issues
-- **`fazt @local app list`** — Returns empty error (pre-existing bug, not from this session)
-
-### Key files
-```bash
-# Video probe + transcode (Plan 41)
-internal/services/media/probe.go
-internal/services/media/transcode.go
-internal/services/media/probe_test.go
-internal/system/probe.go        # Video limits
-internal/storage/app_bindings.go # JS bindings
-
-# Preview app (Plan 42 — gitignored)
-servers/local/preview/
-```
+### Known Issues
+- **`fazt @local app list`** — Returns empty error (pre-existing bug)
 
 ---
 
 ## Quick Reference
 
 ```bash
-# Test video probe
-go test ./internal/services/media/... -v -run TestProbe
+# Test admin build
+cd admin && npm run build
 
-# Test all
+# Test all Go
 go test ./... -short -count=1
 
 # Deploy preview
 fazt @local app deploy ./servers/local/preview
-
-# Preview URL
-http://preview.192.168.64.3.nip.io:8080
 ```

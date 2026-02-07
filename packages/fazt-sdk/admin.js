@@ -1,34 +1,14 @@
 /**
- * fazt-sdk
- * API client for the Fazt Admin UI
- *
- * Usage:
- *   import { createClient } from './packages/fazt-sdk/index.js'
- *
- *   const client = createClient()
- *   const apps = await client.apps.list()
- *
- * Mock mode:
- *   import { createClient, mockAdapter } from './packages/fazt-sdk/index.js'
- *   const client = createClient({ adapter: mockAdapter })
+ * fazt-sdk Admin Namespace
+ * API surface for the Fazt Admin UI
  */
-
-import { createHttpClient } from './client.js'
-export { createMockAdapter, mockAdapter } from './mock.js'
 
 /**
- * Create Fazt API client
- * @param {import('./types.js').ClientOptions} [options]
+ * Create admin API namespace
+ * @param {import('./client.js').createHttpClient} http
  */
-export function createClient(options = {}) {
-  const http = createHttpClient(options)
-
+export function createAdminNamespace(http) {
   return {
-    /**
-     * Get underlying HTTP client
-     */
-    http,
-
     /**
      * Auth / User endpoints
      */
@@ -171,18 +151,4 @@ export function createClient(options = {}) {
       // filters: same as list()
     }
   }
-}
-
-// Default client instance
-let defaultClient = null
-
-/**
- * Get or create default client
- * @param {import('./types.js').ClientOptions} [options]
- */
-export function getClient(options) {
-  if (!defaultClient || options) {
-    defaultClient = createClient(options)
-  }
-  return defaultClient
 }

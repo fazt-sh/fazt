@@ -19,10 +19,10 @@
       "goal": "Full API surface coverage with polished UX"
     },
     "fazt-sdk": {
-      "path": "admin/packages/fazt-sdk/",
+      "path": "packages/fazt-sdk/",
       "status": "alpha",
-      "completeness": "20%",
-      "description": "JavaScript API client with mock adapter",
+      "completeness": "35%",
+      "description": "Universal JS API client for admin + apps with upload progress and pagination",
       "goal": "Complete API coverage, types, error handling"
     },
     "knowledge-base": {

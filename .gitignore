@@ -60,6 +60,7 @@ cookies.txt
 
 /admin/node_modules/
 /admin/dist/
+/packages/fazt-sdk/dist/
 .mcp.json
 servers/
 system/

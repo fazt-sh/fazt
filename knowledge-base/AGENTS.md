@@ -11,7 +11,7 @@ Fazt uses **unified versioning** - all components share the same version for gua
 **Components:**
 - **fazt-binary** (`internal/`) - Core Go binary [stable, 100%]
 - **admin** (`admin/`) - Vue 3 + Pinia + Vite admin UI, deployed as fazt-app (BFBB) [alpha, 15%]
-- **fazt-sdk** (`admin/packages/fazt-sdk/`) - Framework-agnostic JS API client [alpha, 20%]
+- **fazt-sdk** (`packages/fazt-sdk/`) - Universal JS API client for admin + apps [alpha, 35%]
 - **knowledge-base/** - Documentation [stable, 80%]
 
 **Versioning:**
@@ -33,28 +33,28 @@ Fazt uses **unified versioning** - all components share the same version for gua
 
 ## Architecture: fazt-sdk
 
-**fazt-sdk is the foundation** — framework-agnostic JavaScript API client.
-Currently powers the Admin UI; planned to also serve fazt-apps (see Plan 43).
+**fazt-sdk is the foundation** — universal JavaScript API client for both Admin UI and fazt-apps.
 
-**Current state** (`admin/packages/fazt-sdk/`):
-- 737 lines, zero dependencies, pure JS
-- HTTP client + mock adapter + JSDoc types
+**Current state** (`packages/fazt-sdk/`):
+- ~950 lines, zero dependencies, pure JS
+- Two surfaces: `createClient()` for admin, `createAppClient()` for apps
+- HTTP client with fetch + XHR upload (progress tracking)
+- `ApiError` class with status helpers (`.isAuth`, `.isNotFound`, etc.)
 - Admin API namespaces: auth, apps, aliases, system, stats, events, logs
-- Admin UI uses it exclusively via Pinia stores — no direct `fetch()` anywhere
+- App API: auth (me/login/logout), http access, upload with progress, pagination
 
 **Architecture:**
 ```
-fazt-sdk/
-├── index.js        # Client factory + admin API namespaces
-├── client.js       # HTTP adapter (fetch-based, framework-agnostic)
-├── mock.js         # Mock adapter for development (?mock=true)
+packages/fazt-sdk/
+├── index.js        # Re-exports createClient + createAppClient
+├── client.js       # HTTP client: fetch + XHR upload w/ progress
+├── errors.js       # ApiError class with status helpers
+├── admin.js        # Admin namespace factory
+├── app.js          # App namespace: auth, http, upload, paginate
+├── mock.js         # Mock adapter + /api/me route
 ├── types.js        # JSDoc type definitions
 └── fixtures/       # Mock response data (7 JSON files)
 ```
-
-**Planned evolution** (Plan 43): Extend with `app.js` namespace for fazt-apps
-(auth, uploads with progress, pagination helpers). One SDK, two surfaces — admin
-and app — gated by server-side credentials.
 
 **Critical rule:** Admin UI MUST use fazt-sdk, never duplicate HTTP logic. The SDK owns all API communication.
 
@@ -125,8 +125,9 @@ internal/
 ├── hosting/          # VFS, deploy logic
 ├── auth/             # OAuth, sessions
 └── storage/          # KV, Docs, Blobs
+packages/
+└── fazt-sdk/         # Universal JS API client (admin + apps)
 admin/                # Official Admin UI — Vue 3 + Pinia (TRACKED)
-├── packages/         # fazt-sdk, fazt-ui
 ├── src/              # Vue pages, Pinia stores, router
 └── version.json      # Version tracking
 koder/

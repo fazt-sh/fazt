@@ -61,6 +61,7 @@ const routes = {
   }),
   'GET /auth/session': () => ({ authenticated: true, user }),
   'POST /auth/logout': () => ({ message: 'Logged out' }),
+  'GET /api/me': () => user,
   'GET /api/stats': () => ({
     total_events_today: 847,
     total_events_week: 5234,
