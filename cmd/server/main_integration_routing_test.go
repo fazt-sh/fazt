@@ -88,11 +88,14 @@ func TestHostRoutingFlow(t *testing.T) {
 func TestSubdomainAppServing(t *testing.T) {
 	s := setupIntegrationTest(t)
 
-	// Create a test app
+	// Create a test app (app record only, no files under appID)
 	s.createTestApp(t, "myapp", "My App")
 
 	// Create an alias pointing to the app
 	s.createTestAlias(t, "blog", "myapp", "app")
+
+	// Deploy files under the subdomain (production deploy stores files by subdomain, not appID)
+	s.deployFiles(t, "blog", "My App")
 
 	// Request the app via subdomain
 	resp := s.makeRequest(t, "GET", "/",
@@ -189,8 +192,8 @@ func TestSubdomainAppServing_Redirect(t *testing.T) {
 	s := setupIntegrationTest(t)
 
 	// Create a redirect alias
-	// Schema: subdomain, type, targets (JSON with redirect_url)
-	targets := `{"redirect_url":"https://example.com"}`
+	// Schema: subdomain, type, targets (JSON with "url" key, matching RedirectTarget struct)
+	targets := `{"url":"https://example.com"}`
 	_, err := s.db.Exec(`
 		INSERT INTO aliases (subdomain, type, targets, created_at)
 		VALUES (?, 'redirect', ?, datetime('now'))
@@ -229,27 +232,59 @@ func TestSubdomainAppServing_Redirect(t *testing.T) {
 	}
 }
 
-// TestLocalhostSpecialCase tests that localhost routes to dashboard with auth
+// TestLocalhostSpecialCase tests that localhost routes API requests through AuthMiddleware to dashboardMux
+// Note: localhost serves the API only (for CLI/dev). The admin UI is served via admin.* subdomain.
+// GET / on localhost returns 404 because dashboardMux has no root handler — this is by design.
 func TestLocalhostSpecialCase(t *testing.T) {
 	s := setupIntegrationTest(t)
 
 	// Create a session
 	sessionID := s.createSession(t, "localhost@test.com", "admin")
 
-	// Request localhost (should go through AuthMiddleware)
-	resp := s.makeRequest(t, "GET", "/",
-		nil,
-		withHost("localhost"),
-		withSession(sessionID),
-	)
-	defer resp.Body.Close()
+	t.Run("authenticated API request succeeds", func(t *testing.T) {
+		resp := s.makeRequest(t, "GET", "/api/system/config",
+			nil,
+			withHost("localhost"),
+			withSession(sessionID),
+		)
+		defer resp.Body.Close()
 
-	// Should succeed with auth
-	if resp.StatusCode >= 400 {
-		body := readBody(t, resp)
-		t.Fatalf("Expected successful response for authenticated localhost request, got %d. Body: %s",
-			resp.StatusCode, body)
-	}
+		if resp.StatusCode != http.StatusOK {
+			body := readBody(t, resp)
+			t.Fatalf("Expected 200 for authenticated localhost API request, got %d. Body: %s",
+				resp.StatusCode, body)
+		}
+	})
+
+	t.Run("unauthenticated API request rejected", func(t *testing.T) {
+		resp := s.makeRequest(t, "GET", "/api/system/config",
+			nil,
+			withHost("localhost"),
+		)
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusUnauthorized {
+			body := readBody(t, resp)
+			t.Fatalf("Expected 401 for unauthenticated localhost request, got %d. Body: %s",
+				resp.StatusCode, body)
+		}
+	})
+
+	t.Run("root path returns 404 (no admin UI on localhost)", func(t *testing.T) {
+		resp := s.makeRequest(t, "GET", "/",
+			nil,
+			withHost("localhost"),
+			withSession(sessionID),
+		)
+		defer resp.Body.Close()
+
+		// localhost serves API only; admin UI is at admin.* subdomain
+		if resp.StatusCode != http.StatusNotFound {
+			body := readBody(t, resp)
+			t.Fatalf("Expected 404 for localhost root (no UI handler), got %d. Body: %s",
+				resp.StatusCode, body)
+		}
+	})
 }
 
 // TestRoutingAuthBypassEndpoints tests public endpoints that bypass authentication
@@ -303,25 +338,27 @@ func TestMiddlewareOrder(t *testing.T) {
 	}
 }
 
-// TestPathPrecedence tests that specific paths take precedence over wildcards
+// TestPathPrecedence tests that admin.* API routes take precedence over subdomain app serving
 func TestPathPrecedence(t *testing.T) {
 	s := setupIntegrationTest(t)
 
-	// Create an app and alias
+	// Create an app with a subdomain alias (not "api" — that's reserved by migration 012)
 	s.createTestApp(t, "testapp", "Test App")
-	s.createTestAlias(t, "api", "testapp", "app")
+	s.createTestAlias(t, "myapi", "testapp", "app")
+	s.deployFiles(t, "myapi", "Test App")
 
-	// Request /api/something on root domain
-	// This should NOT go to the "api" app, but to the dashboard API routing
+	// Request /api/stats on admin domain
+	// Even though "myapi" alias exists, admin.* routes /api/* to dashboardMux (not subdomain serving)
 	resp := s.makeRequest(t, "GET", "/api/stats",
 		nil,
 		withHost("admin.testdomain.com"),
 	)
 	defer resp.Body.Close()
 
-	// Should be handled by API routing (requires auth), not app serving
+	// Should be handled by AdminMiddleware → dashboardMux (requires admin auth), not app serving
 	if resp.StatusCode != http.StatusUnauthorized {
 		body := readBody(t, resp)
-		t.Logf("Status: %d, Body: %s", resp.StatusCode, body)
+		t.Fatalf("Expected 401 from admin middleware on admin.* /api/* route, got %d. Body: %s",
+			resp.StatusCode, body)
 	}
 }

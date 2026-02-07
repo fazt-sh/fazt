@@ -5,9 +5,9 @@
 
 ## Status
 
-State: ACTIVE — Plan 46 Phase 3 MOSTLY COMPLETE
-Working on: Integration tests - Auth flows 100% complete, Routing flows 60% complete
-Next: Fix 4 failing routing tests OR move to Phase 4 security testing
+State: ACTIVE — Plan 46 Phase 3 COMPLETE, Phase 4 ready
+Working on: Phase 4 security tests (Sonnet-delegable)
+Next: See "Sonnet Work Queue" below
 
 ---
 
@@ -102,63 +102,92 @@ Continuing Plan 46 test coverage overhaul. Phase 2 achieved 47.6% handler covera
 - Sessions need `last_seen` timestamp
 - Admin subdomain requires admin role; localhost only requires auth
 
-#### 3. Routing Integration Tests (`main_integration_routing_test.go`) - **10 tests, 6 passing** ⚠️
-- ✅ TestHostRoutingFlow - Host-based routing with auth (6 subtests passing)
-- ⚠️ TestSubdomainAppServing - App serving via alias (FAIL - VFS serving issue)
+#### 3. Routing Integration Tests (`main_integration_routing_test.go`) - **ALL 10 PASSING** ✅
+- ✅ TestHostRoutingFlow - Host-based routing with auth (6 subtests)
+- ✅ TestSubdomainAppServing - App serving via alias (fixed: deploy files by subdomain)
 - ✅ TestSubdomainAppServing_NotFound - Non-existent subdomains → 404
 - ✅ TestSubdomainAppServing_RootDomain - Root domain routing (2 subtests)
-- ⚠️ TestSubdomainAppServing_Reserved - Reserved aliases → 404 (FAIL - alias schema)
-- ⚠️ TestSubdomainAppServing_Redirect - Redirect aliases work (FAIL - targets JSON)
-- ⚠️ TestLocalhostSpecialCase - Localhost routes to dashboard (FAIL - 404)
-- ✅ TestRoutingAuthBypassEndpoints - Public endpoints (4 subtests passing)
+- ✅ TestSubdomainAppServing_Reserved - Reserved aliases → 404
+- ✅ TestSubdomainAppServing_Redirect - Redirect aliases → 301 (fixed: JSON `"url"` not `"redirect_url"`)
+- ✅ TestLocalhostSpecialCase - Localhost API access (fixed: tests API paths, not `/` which is correctly 404)
+- ✅ TestRoutingAuthBypassEndpoints - Public endpoints (4 subtests)
 - ✅ TestMiddlewareOrder - Auth middleware before handlers
-- ⚠️ TestPathPrecedence - Specific paths over wildcards (FAIL - unique constraint)
+- ✅ TestPathPrecedence - Admin routes take precedence (fixed: avoid reserved "api" subdomain)
 
-**Failing Tests** (4):
-1. TestSubdomainAppServing - VFS not serving app files correctly
-2. TestSubdomainAppServing_Reserved - Alias schema mismatch
-3. TestSubdomainAppServing_Redirect - Redirect targets JSON format
-4. TestLocalhostSpecialCase - 404 on localhost root path
+**Fixes Applied** (this session):
+1. `createTestApp` no longer writes VFS files; new `deployFiles(siteID)` writes by subdomain (matching production deploy)
+2. Redirect test: `{"redirect_url":"..."}` → `{"url":"..."}` (matches `RedirectTarget` struct)
+3. Localhost test: tests API paths (not `/`); localhost serves API only, admin UI is at `admin.*`
+4. PathPrecedence: uses "myapi" subdomain (not "api" which is reserved by migration 012)
 
-**Schema Fixes Applied**:
-- `files` table: `mime_type` (not `content_type`), requires `size_bytes` and `hash`
-- `aliases` table: `subdomain` (not `alias`), `targets` JSON (not `app_id`, `redirect_url`)
-- Proper JSON targets format: `{"app_id":"..."}`
-
-### Remaining Work — Phase 3
-
-**To Complete**:
-1. Fix 4 failing routing tests:
-   - Debug VFS serving in test environment
-   - Verify alias resolution for reserved/redirect types
-   - Fix localhost root path serving
-
-2. Data Flow Integration Tests (NOT STARTED):
-   - TestDeployToServing - Deploy → VFS → Serving
-   - TestStorageAccessControl - User A → User B's data → Rejected
-   - TestAliasToAppResolution - Alias → ResolveAlias → App serving
+**Key Insight**: Production deploy stores files by `site_id = subdomain`, not by `app_id`. The `siteHandler` uses subdomain for VFS lookups and appID only for analytics.
 
 ---
 
-## What's Next
+## Sonnet Work Queue
 
-### Priority 1: Plan 46 Phase 3 — Integration Tests
+Tasks delegated to Sonnet (formulaic, well-scoped, don't require architectural judgment):
 
-Integration tests and database layer coverage:
-- Cross-handler integration (deploy → alias → serve)
-- Database migration testing
-- End-to-end request flows
+### Priority 1: Plan 46 Phase 4 — Security Tests
 
-### Priority 2: Plan 46 Phase 4 — Security Tests
+All tests go in `internal/handlers/` or `cmd/server/`. Use existing test infrastructure.
 
-Security-focused testing:
-- Auth bypass scenarios
-- Input validation edge cases
-- CORS and header security
+#### 1a. Injection Tests (new file: `internal/handlers/security_test.go`)
+- SQL injection on all handlers accepting string params (`/api/stats?domain='; DROP TABLE--`)
+- Path traversal on file endpoints (`/api/sites/{id}/files/../../etc/passwd`)
+- XSS in user input fields (event tracking, webhook URLs, alias names)
+- **Pattern**: Table-driven tests with known injection payloads, assert no 500s and no data leakage
 
-### Priority 3: Fix nested query deadlocks
+#### 1b. Auth Bypass Tests (new file: `cmd/server/main_integration_security_test.go`)
+- Invalid/expired/tampered session tokens
+- Missing cookies with valid headers (and vice versa)
+- Token replay after logout
+- Brute force rate limiting on `/api/login`
+- **Pattern**: Use existing `setupIntegrationTest()` infrastructure
 
-Multiple handlers still have the Issue 05 pattern (nested `db.Query()` inside rows iteration):
+#### 1c. Resource Exhaustion Tests (in `internal/handlers/security_test.go`)
+- Oversized request bodies (exceeding BodySizeLimit middleware)
+- Oversized JSON payloads
+- Very long URL paths / query strings
+- **Pattern**: Send large payloads, assert 413 or graceful rejection
+
+#### 1d. SSRF Tests (in `internal/egress/`)
+- Private IP blocking (127.0.0.1, 10.0.0.0/8, 192.168.0.0/16, 172.16.0.0/12)
+- IPv6 bypass attempts (::1, IPv4-mapped IPv6)
+- DNS rebinding scenarios
+- **Pattern**: Tests already exist in `egress/`, extend coverage
+
+### Priority 2: Data Flow Integration Tests
+
+#### 2a. TestStorageAccessControl (`cmd/server/main_integration_test.go`)
+- Create two users with sessions
+- User A stores data, User B tries to access → rejected
+- **Pattern**: Use existing `createSession()`, test storage API endpoints
+
+### Priority 3: Nomenclature Cleanup (future)
+
+- Rename `site_id` → `app_id` in VFS/hosting code (files table, hosting functions)
+- This is a production code change — touches many files
+- Should be its own focused session, not mixed with test work
+
+### Not for Sonnet (keep for Opus)
+
+- TestDeployToServing integration test (complex multi-system: zip upload → extract → VFS → alias → serve)
+- TestAliasToAppResolution (overlaps with VFS serving architecture)
+- Creative auth bypass scenarios (non-formulaic adversarial thinking)
+- Nested query deadlock fixes (Issue 05 pattern — architectural)
+
+---
+
+## Background Issues
+
+### Flaky test: TestStressMessageThroughput
+- In `internal/hosting` — WebSocket stress test
+- Fails ~1/3 runs, passes 2/3 — timing-dependent
+- Not blocking, but should be stabilized eventually
+
+### Nested query deadlocks (Issue 05)
+Multiple handlers have `db.Query()` inside rows iteration:
 - `buildLineageTree` in apps_handler_v2.go
 - `AppsListHandlerV2` in apps_handler_v2.go
 - `AppForksHandler` in apps_handler_v2.go

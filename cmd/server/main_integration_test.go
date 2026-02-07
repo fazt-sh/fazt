@@ -254,11 +254,11 @@ func withJSON() requestOption {
 	}
 }
 
-// createTestApp creates a test app in the database and VFS
+// createTestApp creates a test app record in the database (no files).
+// Use deployFiles() to add VFS files under a subdomain — matching production deploy behavior.
 func (s *integrationTestServer) createTestApp(t *testing.T, appID, title string) {
 	t.Helper()
 
-	// Insert app into database
 	_, err := s.db.Exec(`
 		INSERT INTO apps (id, title, created_at, updated_at)
 		VALUES (?, ?, datetime('now'), datetime('now'))
@@ -266,25 +266,29 @@ func (s *integrationTestServer) createTestApp(t *testing.T, appID, title string)
 	if err != nil {
 		t.Fatalf("Failed to insert test app: %v", err)
 	}
+}
 
-	// Write files to VFS (database-backed)
-	// Schema: site_id, path, content, size_bytes, mime_type, hash
+// deployFiles writes VFS files under a site_id (subdomain).
+// In production, deploy stores files keyed by subdomain, not app ID.
+func (s *integrationTestServer) deployFiles(t *testing.T, siteID, title string) {
+	t.Helper()
+
 	indexContent := fmt.Sprintf("<html><body><h1>%s</h1></body></html>", title)
 	indexHash := fmt.Sprintf("%x", sha256.Sum256([]byte(indexContent)))
-	_, err = s.db.Exec(`
+	_, err := s.db.Exec(`
 		INSERT INTO files (site_id, path, content, size_bytes, mime_type, hash, updated_at)
 		VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
-	`, appID, "index.html", indexContent, len(indexContent), "text/html", indexHash)
+	`, siteID, "index.html", indexContent, len(indexContent), "text/html", indexHash)
 	if err != nil {
 		t.Fatalf("Failed to write index.html to VFS: %v", err)
 	}
 
-	manifestContent := fmt.Sprintf(`{"name":"%s"}`, appID)
+	manifestContent := fmt.Sprintf(`{"name":"%s"}`, siteID)
 	manifestHash := fmt.Sprintf("%x", sha256.Sum256([]byte(manifestContent)))
 	_, err = s.db.Exec(`
 		INSERT INTO files (site_id, path, content, size_bytes, mime_type, hash, updated_at)
 		VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
-	`, appID, "manifest.json", manifestContent, len(manifestContent), "application/json", manifestHash)
+	`, siteID, "manifest.json", manifestContent, len(manifestContent), "application/json", manifestHash)
 	if err != nil {
 		t.Fatalf("Failed to write manifest.json to VFS: %v", err)
 	}
