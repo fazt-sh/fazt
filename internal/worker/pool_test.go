@@ -18,6 +18,10 @@ func testDB(t *testing.T) *sql.DB {
 		t.Fatalf("Failed to open test database: %v", err)
 	}
 
+	// SQLite :memory: databases are per-connection. With multiple open connections,
+	// each gets an independent blank DB. Limit to 1 connection to avoid races.
+	db.SetMaxOpenConns(1)
+
 	// Create worker_jobs table
 	_, err = db.Exec(`
 		CREATE TABLE worker_jobs (

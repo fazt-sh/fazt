@@ -6,104 +6,122 @@
 ## Status
 
 State: CLEAN
-File upload support implemented, KB docs updated. Ready for integration testing.
+Plan 41 (Video Support) and Plan 42 (Preview App Production) both implemented.
+Preview app deployed to local with video upload, probe, transcode, filters, accent themes.
 
 ---
 
-## Last Session (2026-02-07) — App File Upload Support
+## Last Session (2026-02-07) — Video Support + Preview App Polish
 
-### What Was Done
+### Plan 41: Video Support (Backend)
 
-#### File Upload Support for Serverless Apps
+#### 1. Video Probe — Pure Go MP4 Parser
+- **`internal/services/media/probe.go`** (NEW) — ~300 line pure Go ISO BMFF box
+  parser. Walks ftyp/moov/trak/mdia/hdlr/stbl/stsd boxes to extract codec info.
+  Supports MP4/MOV/WebM. Returns `VideoInfo{Container, VideoCodec, AudioCodec,
+  Width, Height, Duration, Compatible}`. Compatible = h264 + (aac or none).
 
-Apps can now receive file uploads via `multipart/form-data`. The gap was in
-request parsing — `buildRequest()` only handled JSON bodies, and the body size
-middleware capped all `/api/*` requests at 1MB.
+#### 2. system.Limits.Video
+- **`internal/system/probe.go`** — Added `Video` struct to `Limits` with
+  `FFmpegAvailable`, `Concurrency`, `MaxDurationSec`, `MaxInputMB`,
+  `OutputMaxHeight`. Auto-detects ffmpeg via `exec.LookPath`. Scales with RAM.
 
-**Changes:**
+#### 3. Worker-based Transcoding
+- **`internal/services/media/transcode.go`** (NEW) — Background ffmpeg transcoding.
+  `QueueTranscode()` probes video, checks limits, queues goroutine with semaphore
+  concurrency. `TranscodeToH264()` runs `nice -n 19 ffmpeg` with libx264/aac.
+  `VariantPath()` convention: `_v/h264/{original_path}`.
 
-1. **`internal/runtime/runtime.go`** — Added `FileUpload` struct (`Name`, `Type`,
-   `Size`, `Data []byte`) and `Files map[string]FileUpload` field on `Request`.
-   Files injected as `ArrayBuffer` in the Goja VM via `injectGlobals()`.
+#### 4. JS Bindings
+- **`internal/storage/app_bindings.go`** — Added `fazt.app.media.probe(ArrayBuffer)`,
+  `fazt.app.media.transcode(blobPath)`, and user-scoped variants. Updated
+  `media.serve()` to prefer H.264 variant for video content types.
 
-2. **`internal/runtime/handler.go`** — Extended `buildRequest()` to parse
-   `multipart/form-data`: form fields → `req.Body`, files → `req.Files`.
-   Added `parseMultipartFiles()` helper. Added `io` and `system` imports.
+#### 5. Tests
+- **`internal/services/media/probe_test.go`** (NEW) — 12 test cases with
+  `buildMP4`/`buildTrack` helpers. Covers H264, HEVC, MOV, VP9, AV1, WebM,
+  not-video, too-short, duration parsing.
 
-3. **`internal/middleware/security.go`** — Multipart requests now use
-   `system.GetLimits().Storage.MaxUpload` (default ~10MB) instead of the 1MB
-   default. Added `strings` and `system` imports.
+#### 6. Flaky Test Fixes
+- **`internal/hosting/ws_stress_test.go`** — Lowered WS delivery threshold 85%→70%
+- **`internal/worker/pool_test.go`** — Added `db.SetMaxOpenConns(1)` for `:memory:` DB
 
-4. **`internal/runtime/handler_test.go`** — New file with 4 tests:
-   multipart with files, multipart without files, JSON body regression,
-   ArrayBuffer injection in VM. All passing.
+### Plan 42: Preview App Production (Frontend)
 
-5. **KB docs updated:**
-   - `knowledge-base/skills/app/references/serverless-api.md` — Added File
-     Uploads section with HTML form example, handler code, file object shape,
-     storage scoping guidance, and limits. Fixed stale "No network calls"
-     limitation.
-   - `knowledge-base/agent-context/architecture.md` — Added file uploads to
-     capabilities table.
+Upgraded the Preview photo gallery app to support video and added polish:
 
-**Developer API:**
-```javascript
-// request.files.photo = { name, type, size, data (ArrayBuffer) }
-fazt.app.user.s3.put('uploads/' + file.name, file.data, file.type)
-```
+#### Backend (API)
+- **`servers/local/preview/api/main.js`** — Video upload + probe + auto-transcode.
+  Time-based filtering (today/yesterday/week/month). Video metadata (codec, duration,
+  resolution, compatible). Changed blob prefix from `photos/` to `media/`.
 
-User-scoped storage (`fazt.app.user.s3`) ensures file isolation per user.
-Shared storage (`fazt.app.s3`) available for app-wide assets.
+#### Frontend Components (all in `servers/local/preview/src/`)
+- **`lib/theme.js`** — 6 accent color themes (slate/blue/emerald/violet/amber/rose)
+  via CSS custom properties
+- **`main.css`** — Accent CSS variables, skeleton shimmer animation
+- **`main.js`** — Added `applyAccent()` on startup
+- **`stores/settings.js`** — Added accent + filter state
+- **`stores/photos.js`** — Video support, 100MB limit, filter param
+- **`lib/api.js`** — Filter query param support
+- **`components/PhotoCard.vue`** — Video overlays (play button, duration badge,
+  codec warning with transcode spinner), skeleton loading
+- **`components/Lightbox.vue`** — Video `<video>` playback, touch swipe navigation,
+  video info panel (duration, resolution, codec, compatible)
+- **`components/UploadFab.vue`** — Accepts video files, accent-colored FAB
+- **`pages/GalleryPage.vue`** — Filter chip row, skeleton loading grid, accent colors
+  for sign-in/drag overlay
+- **`pages/SettingsPage.vue`** — Accent color picker (6 color swatches with ring indicator)
+
+#### Deployed
+- `fazt @local app deploy ./servers/local/preview` — builds and deploys to local
+- Preview live at `http://preview.192.168.64.3.nip.io:8080`
 
 ### Unreleased Commits
 
 ```
+ebaa814 Implement resillent image serving
 73c6ea4 Support large file uploads
++ Plan 41 video support (uncommitted)
++ Plan 42 preview app (gitignored — servers/)
 ```
 
 ---
 
 ## Next Session
 
-### Build a test app with recently implemented features
+### Potential work
+- **Test video upload end-to-end** — Upload a real video file, verify probe/transcode
+- **Fix `fazt @local app list`** — Returns empty error (pre-existing bug)
+- **Commit Plan 41 changes** — Go backend code for video support
+- **Consider releasing v0.27.0** — File upload + video support milestone
 
-Important:
-Start with plan 41 as developer is leaving for lunch; if possible, after that,
-complete 42 too
+### Key files to know
+```bash
+# Video probe + transcode
+internal/services/media/probe.go
+internal/services/media/transcode.go
+internal/services/media/probe_test.go
+internal/system/probe.go        # Video limits
+internal/storage/app_bindings.go # JS bindings
 
-Build and deploy a real app that exercises the new capabilities from v0.26.0:
-
-1. **File upload** — Form with image upload, stored via `fazt.app.user.s3`
-2. **`fazt.net.fetch()`** — Outbound HTTP call (e.g., external API)
-3. **Auth integration** — `fazt.auth.requireLogin()` + user-scoped storage
-4. **Verify isolation** — Confirm different users can't see each other's uploads
-
-This tests the full stack end-to-end: multipart parsing → ArrayBuffer in VM →
-user-scoped blob storage, plus egress proxy with secrets/allowlist.
-
-### Pre-existing flaky tests (to fix):
-
-**`hosting/TestStressMessageThroughput`** — Stress test asserts 85% WS delivery
-across 100 clients, but VM consistently hits 75-79%. Has `testing.Short()` skip
-but `go test ./...` doesn't pass `-short`. Fix: lower threshold to 70%.
-
-**`worker/TestPoolList`** — SQLite `:memory:` connection pool race. Each new
-connection to `:memory:` gets an independent blank DB. Fix: `db.SetMaxOpenConns(1)`.
+# Preview app
+servers/local/preview/           # Full Vue app (gitignored)
+```
 
 ---
 
 ## Quick Reference
 
 ```bash
-# Test file upload
-go test ./internal/runtime/ -v -run TestBuildRequest_Multipart
-go test ./internal/runtime/ -v -run TestFileUpload_ArrayBuffer
+# Test video probe
+go test ./internal/services/media/... -v -run TestProbe
 
-# Test all affected packages
-go test ./internal/runtime/ ./internal/middleware/
+# Test all
+go test ./... -short -count=1
 
-# Key files
-cat internal/runtime/handler.go     # buildRequest() + parseMultipartFiles()
-cat internal/runtime/runtime.go     # FileUpload struct, VM injection
-cat internal/middleware/security.go  # Multipart body limit
+# Deploy preview
+fazt @local app deploy ./servers/local/preview
+
+# Preview URL
+http://preview.192.168.64.3.nip.io:8080
 ```

@@ -73,6 +73,8 @@ func InjectAppNamespace(vm *goja.Runtime, db *sql.DB, writer *WriteQueue, appID,
 	// fazt.app.media (shared)
 	mediaObj := vm.NewObject()
 	mediaObj.Set("serve", makeMediaServe(vm, storage.Blobs, appID, db, ctx, budget))
+	mediaObj.Set("probe", makeMediaProbe(vm))
+	mediaObj.Set("transcode", makeMediaTranscode(vm, storage.Blobs, appID, ctx, budget))
 	appObj.Set("media", mediaObj)
 
 	// Create user-scoped storage: fazt.app.user.*
@@ -113,6 +115,8 @@ func InjectAppNamespace(vm *goja.Runtime, db *sql.DB, writer *WriteQueue, appID,
 		// fazt.app.user.media
 		userMediaObj := vm.NewObject()
 		userMediaObj.Set("serve", makeUserMediaServe(vm, userBlobs, appID, userID, db, ctx, budget))
+		userMediaObj.Set("probe", makeMediaProbe(vm))
+		userMediaObj.Set("transcode", makeUserMediaTranscode(vm, userBlobs, appID, ctx, budget))
 		userObj.Set("media", userMediaObj)
 	} else {
 		// User not logged in - create stub bindings that throw errors
@@ -734,7 +738,7 @@ func makeMediaServe(vm *goja.Runtime, blobs BlobStore, appID string, db *sql.DB,
 			opts = media.ParseTransformQuery(q)
 		}
 
-		// No transform → serve original as-is
+		// No transform → serve original (prefer H.264 variant for video)
 		if !opts.HasTransform() {
 			blob, err := blobs.Get(opCtx, appID, path)
 			if err != nil {
@@ -743,6 +747,19 @@ func makeMediaServe(vm *goja.Runtime, blobs BlobStore, appID string, db *sql.DB,
 			if blob == nil {
 				return goja.Null()
 			}
+
+			// For video: prefer H.264 variant if available
+			if media.IsVideoContentType(blob.MimeType) {
+				variant, err := blobs.Get(opCtx, appID, media.VariantPath(path))
+				if err == nil && variant != nil {
+					return vm.ToValue(map[string]interface{}{
+						"data": base64.StdEncoding.EncodeToString(variant.Data),
+						"mime": variant.MimeType,
+						"size": variant.Size,
+					})
+				}
+			}
+
 			return vm.ToValue(map[string]interface{}{
 				"data": base64.StdEncoding.EncodeToString(blob.Data),
 				"mime": blob.MimeType,
@@ -790,6 +807,113 @@ func makeMediaServe(vm *goja.Runtime, blobs BlobStore, appID string, db *sql.DB,
 	}
 }
 
+// makeMediaTranscode creates fazt.app.media.transcode(path) for shared blobs.
+// Fetches the blob, checks compatibility, and queues background transcoding if needed.
+func makeMediaTranscode(vm *goja.Runtime, blobs BlobStore, appID string, ctx context.Context, budget *timeout.Budget) func(goja.FunctionCall) goja.Value {
+	return func(call goja.FunctionCall) goja.Value {
+		if len(call.Arguments) < 1 {
+			panic(vm.NewGoError(fmt.Errorf("media.transcode requires a path")))
+		}
+
+		opCtx, cancel, err := getOpContext(vm, ctx, budget)
+		if err != nil {
+			panic(vm.NewGoError(err))
+		}
+		defer cancel()
+
+		path := call.Argument(0).String()
+
+		blob, err := blobs.Get(opCtx, appID, path)
+		if err != nil {
+			panic(vm.NewGoError(err))
+		}
+		if blob == nil {
+			panic(vm.NewGoError(fmt.Errorf("blob not found: %s", path)))
+		}
+
+		storeFunc := func(ctx context.Context, variantPath string, data []byte, mime string) error {
+			return blobs.Put(ctx, appID, variantPath, data, mime)
+		}
+
+		result := media.QueueTranscode(appID, path, blob.Data, blob.MimeType, storeFunc)
+		return vm.ToValue(map[string]interface{}{
+			"status": result.Status,
+		})
+	}
+}
+
+// makeUserMediaTranscode creates fazt.app.user.media.transcode(path) for user-scoped blobs.
+func makeUserMediaTranscode(vm *goja.Runtime, blobs *UserScopedBlobs, appID string, ctx context.Context, budget *timeout.Budget) func(goja.FunctionCall) goja.Value {
+	return func(call goja.FunctionCall) goja.Value {
+		if len(call.Arguments) < 1 {
+			panic(vm.NewGoError(fmt.Errorf("media.transcode requires a path")))
+		}
+
+		opCtx, cancel, err := getOpContext(vm, ctx, budget)
+		if err != nil {
+			panic(vm.NewGoError(err))
+		}
+		defer cancel()
+
+		path := call.Argument(0).String()
+
+		blob, err := blobs.Get(opCtx, path)
+		if err != nil {
+			panic(vm.NewGoError(err))
+		}
+		if blob == nil {
+			panic(vm.NewGoError(fmt.Errorf("blob not found: %s", path)))
+		}
+
+		storeFunc := func(ctx context.Context, variantPath string, data []byte, mime string) error {
+			return blobs.Put(ctx, variantPath, data, mime)
+		}
+
+		result := media.QueueTranscode(appID, path, blob.Data, blob.MimeType, storeFunc)
+		return vm.ToValue(map[string]interface{}{
+			"status": result.Status,
+		})
+	}
+}
+
+// makeMediaProbe creates fazt.app.media.probe(data) / fazt.app.user.media.probe(data).
+// Accepts an ArrayBuffer of video data and returns codec/dimension/duration info.
+func makeMediaProbe(vm *goja.Runtime) func(goja.FunctionCall) goja.Value {
+	return func(call goja.FunctionCall) goja.Value {
+		if len(call.Arguments) < 1 {
+			panic(vm.NewGoError(fmt.Errorf("media.probe requires video data")))
+		}
+
+		var data []byte
+		arg := call.Argument(0).Export()
+		switch v := arg.(type) {
+		case goja.ArrayBuffer:
+			data = v.Bytes()
+		default:
+			if ab, ok := call.Argument(0).Export().(goja.ArrayBuffer); ok {
+				data = ab.Bytes()
+			} else {
+				panic(vm.NewGoError(fmt.Errorf("media.probe requires ArrayBuffer, got %T", arg)))
+			}
+		}
+
+		info, err := media.ProbeVideo(data)
+		if err != nil {
+			panic(vm.NewGoError(err))
+		}
+
+		return vm.ToValue(map[string]interface{}{
+			"container":  info.Container,
+			"videoCodec": info.VideoCodec,
+			"audioCodec": info.AudioCodec,
+			"width":      info.Width,
+			"height":     info.Height,
+			"duration":   info.Duration,
+			"compatible": info.Compatible,
+		})
+	}
+}
+
 // makeUserMediaServe creates fazt.app.user.media.serve(path) for user-scoped blobs.
 // Same as makeMediaServe but uses user-scoped storage and cache.
 func makeUserMediaServe(vm *goja.Runtime, blobs *UserScopedBlobs, appID, userID string, db *sql.DB, ctx context.Context, budget *timeout.Budget) func(goja.FunctionCall) goja.Value {
@@ -812,7 +936,7 @@ func makeUserMediaServe(vm *goja.Runtime, blobs *UserScopedBlobs, appID, userID 
 			opts = media.ParseTransformQuery(q)
 		}
 
-		// No transform → serve original as-is
+		// No transform → serve original (prefer H.264 variant for video)
 		if !opts.HasTransform() {
 			blob, err := blobs.Get(opCtx, path)
 			if err != nil {
@@ -821,6 +945,19 @@ func makeUserMediaServe(vm *goja.Runtime, blobs *UserScopedBlobs, appID, userID 
 			if blob == nil {
 				return goja.Null()
 			}
+
+			// For video: prefer H.264 variant if available
+			if media.IsVideoContentType(blob.MimeType) {
+				variant, err := blobs.Get(opCtx, media.VariantPath(path))
+				if err == nil && variant != nil {
+					return vm.ToValue(map[string]interface{}{
+						"data": base64.StdEncoding.EncodeToString(variant.Data),
+						"mime": variant.MimeType,
+						"size": variant.Size,
+					})
+				}
+			}
+
 			return vm.ToValue(map[string]interface{}{
 				"data": base64.StdEncoding.EncodeToString(blob.Data),
 				"mime": blob.MimeType,

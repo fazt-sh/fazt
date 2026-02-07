@@ -3,6 +3,7 @@ package system
 import (
 	"bufio"
 	"os"
+	"os/exec"
 	"runtime"
 	"strconv"
 	"strings"
@@ -26,6 +27,7 @@ type Limits struct {
 	Capacity Capacity `json:"capacity"`
 	Net      Net      `json:"net"`
 	Media    Media    `json:"media"`
+	Video    Video    `json:"video"`
 }
 
 // Hardware holds detected hardware characteristics.
@@ -93,6 +95,16 @@ type Media struct {
 	CacheMemoryMB  int   `json:"cache_memory_mb"   label:"Cache Memory"    desc:"In-memory LRU for variants"     unit:"MB" range:"0,512"`
 }
 
+// Video holds video processing limits. Transcoding degrades gracefully:
+// no ffmpeg → serve original, no error.
+type Video struct {
+	FFmpegAvailable bool `json:"ffmpeg_available" label:"FFmpeg"          desc:"FFmpeg detected at startup"    readonly:"true"`
+	Concurrency     int  `json:"concurrency"      label:"Transcode Slots" desc:"Max concurrent transcodes"     range:"1,4"`
+	MaxDurationSec  int  `json:"max_duration"     label:"Max Duration"    desc:"Max input video duration"      unit:"s" range:"30,600"`
+	MaxInputMB      int  `json:"max_input_mb"     label:"Max Input"       desc:"Max input video size"          unit:"MB" range:"50,500"`
+	OutputMaxHeight int  `json:"output_max_height" label:"Max Height"      desc:"Output max vertical resolution" range:"480,1080"`
+}
+
 var cachedLimits *Limits
 
 // GetLimits probes the system and returns resource limits.
@@ -156,6 +168,28 @@ func GetLimits() *Limits {
 		netConcurrency = 100
 	}
 
+	// Video: detect ffmpeg, scale limits with hardware
+	ffmpegAvailable := false
+	if _, err := exec.LookPath("ffmpeg"); err == nil {
+		ffmpegAvailable = true
+	}
+
+	videoConcurrency := 1
+	videoMaxDuration := 120  // 2 min on small VPS
+	videoMaxInputMB := 100
+	videoMaxHeight := 720
+
+	if totalRAM >= 2*1024*1024*1024 { // 2GB+
+		videoMaxDuration = 300
+		videoMaxInputMB = 200
+		videoMaxHeight = 1080
+	}
+	if totalRAM >= 4*1024*1024*1024 { // 4GB+
+		videoConcurrency = 2
+		videoMaxDuration = 600
+		videoMaxInputMB = 500
+	}
+
 	cachedLimits = &Limits{
 		Hardware: Hardware{
 			TotalRAM:     totalRAM,
@@ -188,6 +222,13 @@ func GetLimits() *Limits {
 			MaxSourceBytes: 20 * 1024 * 1024, // 20MB — large phone photos are ~12MB
 			WidthStep:      50,
 			CacheMemoryMB:  mediaCacheMB,
+		},
+		Video: Video{
+			FFmpegAvailable: ffmpegAvailable,
+			Concurrency:     videoConcurrency,
+			MaxDurationSec:  videoMaxDuration,
+			MaxInputMB:      videoMaxInputMB,
+			OutputMaxHeight: videoMaxHeight,
 		},
 		Net: Net{
 			MaxCalls:       5,
