@@ -3,7 +3,6 @@ package handlers
 import (
 	"database/sql"
 	"net/http/httptest"
-	"os"
 	"testing"
 
 	"github.com/fazt-sh/fazt/internal/auth"
@@ -14,52 +13,7 @@ import (
 
 // setupAuthTestDB creates a test database with auth tables
 func setupAuthTestDB(t *testing.T) *sql.DB {
-	tmpFile, err := os.CreateTemp("", "handlers_test_*.db")
-	if err != nil {
-		t.Fatalf("Failed to create temp file: %v", err)
-	}
-	tmpFile.Close()
-	t.Cleanup(func() { os.Remove(tmpFile.Name()) })
-
-	db, err := sql.Open("sqlite", tmpFile.Name())
-	if err != nil {
-		t.Fatalf("Failed to open database: %v", err)
-	}
-	t.Cleanup(func() { db.Close() })
-
-	// Create required tables
-	// Note: name and picture use DEFAULT '' to avoid NULL scan issues
-	_, err = db.Exec(`
-		CREATE TABLE auth_users (
-			id TEXT PRIMARY KEY,
-			email TEXT UNIQUE NOT NULL,
-			name TEXT DEFAULT '',
-			picture TEXT DEFAULT '',
-			provider TEXT NOT NULL,
-			provider_id TEXT,
-			password_hash TEXT,
-			role TEXT DEFAULT 'user',
-			invited_by TEXT,
-			created_at INTEGER NOT NULL DEFAULT (unixepoch()),
-			last_login INTEGER
-		);
-		CREATE TABLE auth_sessions (
-			token_hash TEXT PRIMARY KEY,
-			user_id TEXT NOT NULL,
-			created_at INTEGER NOT NULL DEFAULT (unixepoch()),
-			expires_at INTEGER NOT NULL,
-			last_seen INTEGER
-		);
-		CREATE TABLE configurations (
-			key TEXT PRIMARY KEY,
-			value TEXT NOT NULL
-		);
-	`)
-	if err != nil {
-		t.Fatalf("Failed to create tables: %v", err)
-	}
-
-	return db
+	return setupTestDB(t)
 }
 
 // setupTestAuthService creates a test auth service with a test user
