@@ -78,6 +78,14 @@ func Init(dbPath string) error {
 
 // runMigrations executes SQL migration files in order
 func runMigrations() error {
+	if db == nil {
+		return fmt.Errorf("database not initialized")
+	}
+	return RunMigrations(db)
+}
+
+// RunMigrations executes SQL migration files in order against the provided DB.
+func RunMigrations(target *sql.DB) error {
 	// Create migrations tracking table if it doesn't exist
 	createMigrationsTable := `
 	CREATE TABLE IF NOT EXISTS migrations (
@@ -87,7 +95,7 @@ func runMigrations() error {
 		applied_at DATETIME DEFAULT CURRENT_TIMESTAMP
 	);
 	`
-	if _, err := db.Exec(createMigrationsTable); err != nil {
+	if _, err := target.Exec(createMigrationsTable); err != nil {
 		return fmt.Errorf("failed to create migrations table: %w", err)
 	}
 
@@ -123,7 +131,7 @@ func runMigrations() error {
 	for _, migration := range migrations {
 		// Check if migration has been applied
 		var count int
-		err := db.QueryRow("SELECT COUNT(*) FROM migrations WHERE version = ?", migration.version).Scan(&count)
+		err := target.QueryRow("SELECT COUNT(*) FROM migrations WHERE version = ?", migration.version).Scan(&count)
 		if err != nil {
 			return fmt.Errorf("failed to check migration status: %w", err)
 		}
@@ -142,12 +150,12 @@ func runMigrations() error {
 		}
 
 		// Execute migration
-		if _, err := db.Exec(string(migrationSQL)); err != nil {
+		if _, err := target.Exec(string(migrationSQL)); err != nil {
 			return fmt.Errorf("failed to execute migration %d (%s): %w", migration.version, migration.name, err)
 		}
 
 		// Record migration
-		_, err = db.Exec("INSERT INTO migrations (version, name) VALUES (?, ?)", migration.version, migration.name)
+		_, err = target.Exec("INSERT INTO migrations (version, name) VALUES (?, ?)", migration.version, migration.name)
 		if err != nil {
 			return fmt.Errorf("failed to record migration: %w", err)
 		}

@@ -489,3 +489,243 @@ func TestCompressionDisabled(t *testing.T) {
 		t.Error("expected DisableCompression to be true")
 	}
 }
+
+// --- Extended SSRF Tests ---
+
+func TestBlockedIPRanges_IPv4MappedIPv6(t *testing.T) {
+	// IPv4-mapped IPv6 addresses should be blocked if they map to private/loopback IPs
+	tests := []struct {
+		name   string
+		ip     string
+		want   bool
+		reason string
+	}{
+		{"ipv4-mapped-loopback", "::ffff:127.0.0.1", true, "IPv4-mapped loopback should be blocked"},
+		{"ipv4-mapped-private-10", "::ffff:10.0.0.1", true, "IPv4-mapped private (10.x) should be blocked"},
+		{"ipv4-mapped-private-192", "::ffff:192.168.1.1", true, "IPv4-mapped private (192.168.x) should be blocked"},
+		{"ipv4-mapped-metadata", "::ffff:169.254.169.254", true, "IPv4-mapped metadata IP should be blocked"},
+		{"ipv4-mapped-public", "::ffff:1.1.1.1", false, "IPv4-mapped public IP should be allowed"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ip := net.ParseIP(tt.ip)
+			if ip == nil {
+				t.Fatalf("failed to parse IP: %s", tt.ip)
+			}
+			if got := isBlockedIP(ip); got != tt.want {
+				t.Errorf("%s: isBlockedIP(%s) = %v, want %v", tt.reason, tt.ip, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestBlockedIPRanges_IPv6EdgeCases(t *testing.T) {
+	tests := []struct {
+		name string
+		ip   string
+		want bool
+	}{
+		// IPv6 loopback variations
+		{"ipv6-loopback-full", "0000:0000:0000:0000:0000:0000:0000:0001", true},
+		{"ipv6-loopback-short", "::1", true},
+
+		// IPv6 link-local (fe80::/10)
+		{"ipv6-link-local-start", "fe80::1", true},
+		{"ipv6-link-local-mid", "fe80::ffff:ffff:ffff:ffff", true},
+		{"ipv6-link-local-upper", "febf:ffff:ffff:ffff:ffff:ffff:ffff:ffff", true},
+
+		// IPv6 unique local (fc00::/7)
+		{"ipv6-unique-local-fc", "fc00::1", true},
+		{"ipv6-unique-local-fd", "fd00::1", true},
+		{"ipv6-unique-local-upper", "fdff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", true},
+
+		// IPv6 documentation (should NOT be blocked - used for examples only)
+		{"ipv6-doc-2001-db8", "2001:db8::1", false},
+
+		// Public IPv6
+		{"ipv6-google-dns", "2001:4860:4860::8888", false},
+		{"ipv6-cloudflare-dns", "2606:4700:4700::1111", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ip := net.ParseIP(tt.ip)
+			if ip == nil {
+				t.Fatalf("failed to parse IP: %s", tt.ip)
+			}
+			if got := isBlockedIP(ip); got != tt.want {
+				t.Errorf("isBlockedIP(%s) = %v, want %v", tt.ip, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestIPLiteralDetection_EdgeCases(t *testing.T) {
+	tests := []struct {
+		host string
+		want bool
+	}{
+		// IPv4 variations
+		{"127.0.0.1", true},
+		{"0.0.0.0", true},
+		{"255.255.255.255", true},
+
+		// IPv6 variations
+		{"::1", true},
+		{"[::1]", true},
+		{"2001:db8::1", true},
+		{"[2001:db8::1]", true},
+		{"::ffff:127.0.0.1", true},
+		{"[::ffff:127.0.0.1]", true},
+
+		// Not IP literals
+		{"localhost", false},
+		{"example.com", false},
+		{"192-168-1-1.nip.io", false}, // looks like IP but is domain
+		{"127.0.0.1.nip.io", false},
+		{"::1.example.com", false}, // domain with :: in it (edge case)
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.host, func(t *testing.T) {
+			if got := isIPLiteral(tt.host); got != tt.want {
+				t.Errorf("isIPLiteral(%q) = %v, want %v", tt.host, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestFetchBlocksIPv6Loopback(t *testing.T) {
+	db := testDB(t)
+	defer db.Close()
+
+	proxy := testProxy(t, db, "")
+
+	ctx := context.Background()
+
+	ipv6Loopbacks := []string{
+		"http://[::1]/api",
+		"http://[0:0:0:0:0:0:0:1]/api",
+		"https://[::1]/test",
+	}
+
+	for _, url := range ipv6Loopbacks {
+		t.Run(url, func(t *testing.T) {
+			_, err := proxy.Fetch(ctx, "test-app", url, FetchOptions{})
+			if err == nil {
+				t.Fatalf("expected error for IPv6 loopback URL: %s", url)
+			}
+			ee, ok := err.(*EgressError)
+			if !ok {
+				t.Fatalf("expected EgressError, got %T: %v", err, err)
+			}
+			if ee.Code != CodeBlocked {
+				t.Errorf("error code: got %s, want %s for %s", ee.Code, CodeBlocked, url)
+			}
+		})
+	}
+}
+
+func TestFetchBlocksIPv6PrivateRanges(t *testing.T) {
+	db := testDB(t)
+	defer db.Close()
+
+	proxy := testProxy(t, db, "")
+
+	ctx := context.Background()
+
+	privateIPv6URLs := []string{
+		"http://[fc00::1]/api",            // unique local
+		"http://[fd00::1]/api",            // unique local
+		"http://[fe80::1]/api",            // link local
+		"http://[::ffff:127.0.0.1]/api",   // IPv4-mapped loopback
+		"http://[::ffff:192.168.1.1]/api", // IPv4-mapped private
+	}
+
+	for _, url := range privateIPv6URLs {
+		t.Run(url, func(t *testing.T) {
+			_, err := proxy.Fetch(ctx, "test-app", url, FetchOptions{})
+			if err == nil {
+				t.Fatalf("expected error for private IPv6 URL: %s", url)
+			}
+			ee, ok := err.(*EgressError)
+			if !ok {
+				t.Fatalf("expected EgressError, got %T: %v", err, err)
+			}
+			if ee.Code != CodeBlocked {
+				t.Errorf("error code: got %s, want %s for %s", ee.Code, CodeBlocked, url)
+			}
+		})
+	}
+}
+
+func TestFetchBlocksMetadataService(t *testing.T) {
+	db := testDB(t)
+	defer db.Close()
+
+	proxy := testProxy(t, db, "")
+
+	ctx := context.Background()
+
+	// Cloud metadata service IPs
+	metadataURLs := []string{
+		"http://169.254.169.254/latest/meta-data/", // AWS, Azure, GCP
+		"http://[fe80::1]/metadata",                 // IPv6 link-local (some cloud providers)
+	}
+
+	for _, url := range metadataURLs {
+		t.Run(url, func(t *testing.T) {
+			_, err := proxy.Fetch(ctx, "test-app", url, FetchOptions{})
+			if err == nil {
+				t.Fatalf("expected error for metadata service URL: %s", url)
+			}
+			ee, ok := err.(*EgressError)
+			if !ok {
+				t.Fatalf("expected EgressError, got %T: %v", err, err)
+			}
+			if ee.Code != CodeBlocked {
+				t.Errorf("error code: got %s, want %s for %s", ee.Code, CodeBlocked, url)
+			}
+		})
+	}
+}
+
+func TestFetchBlocksAlternativeSchemes(t *testing.T) {
+	db := testDB(t)
+	defer db.Close()
+
+	proxy := testProxy(t, db, "example.com")
+
+	ctx := context.Background()
+
+	unsupportedSchemes := []string{
+		"ftp://example.com/file",
+		"file:///etc/passwd",
+		"gopher://example.com/",
+		"data:text/plain,hello",
+		"javascript:alert(1)",
+		"ws://example.com/socket",
+		"wss://example.com/socket",
+	}
+
+	for _, url := range unsupportedSchemes {
+		t.Run(url, func(t *testing.T) {
+			_, err := proxy.Fetch(ctx, "test-app", url, FetchOptions{})
+			if err == nil {
+				t.Fatalf("expected error for unsupported scheme: %s", url)
+			}
+			ee, ok := err.(*EgressError)
+			if !ok {
+				t.Fatalf("expected EgressError, got %T: %v", err, err)
+			}
+			if ee.Code != CodeBlocked {
+				t.Errorf("error code: got %s, want %s for %s", ee.Code, CodeBlocked, url)
+			}
+		})
+	}
+}
+
+// Note: DNS rebinding protection is tested via DialContext resolver check
+// The proxy resolves DNS and validates ALL returned IPs before connecting
+// This prevents time-of-check-time-of-use attacks where DNS changes between validation and connection

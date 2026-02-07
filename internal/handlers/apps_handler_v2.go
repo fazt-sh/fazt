@@ -95,6 +95,8 @@ func AppsListHandlerV2(w http.ResponseWriter, r *http.Request) {
 	}
 	defer rows.Close()
 
+	// Collect all apps first, then close cursor before querying aliases
+	// (avoids nested query deadlock — Issue 05)
 	var apps []AppV2
 	for rows.Next() {
 		var app AppV2
@@ -135,10 +137,13 @@ func AppsListHandlerV2(w http.ResponseWriter, r *http.Request) {
 			app.UpdatedAt = formatTime(updatedAt)
 		}
 
-		// Get aliases for this app
-		app.Aliases = getAliasesForApp(db, app.ID)
-
 		apps = append(apps, app)
+	}
+	rows.Close()
+
+	// Now safe to query aliases — cursor is closed
+	for i := range apps {
+		apps[i].Aliases = getAliasesForApp(db, apps[i].ID)
 	}
 
 	api.Success(w, http.StatusOK, apps)
@@ -706,16 +711,28 @@ func AppForksHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer rows.Close()
 
-	var forks []map[string]interface{}
+	// Collect fork data first, then close cursor before querying aliases
+	// (avoids nested query deadlock — Issue 05)
+	type forkData struct {
+		id, title string
+	}
+	var forkList []forkData
 	for rows.Next() {
 		var id, title string
 		if rows.Scan(&id, &title) == nil {
-			forks = append(forks, map[string]interface{}{
-				"id":      id,
-				"title":   title,
-				"aliases": getAliasesForApp(db, id),
-			})
+			forkList = append(forkList, forkData{id, title})
 		}
+	}
+	rows.Close()
+
+	// Now safe to query aliases — cursor is closed
+	var forks []map[string]interface{}
+	for _, f := range forkList {
+		forks = append(forks, map[string]interface{}{
+			"id":      f.id,
+			"title":   f.title,
+			"aliases": getAliasesForApp(db, f.id),
+		})
 	}
 
 	api.Success(w, http.StatusOK, forks)
@@ -826,19 +843,25 @@ func buildLineageTree(db *sql.DB, appID string, visited map[string]bool) *Lineag
 		Aliases: getAliasesForApp(db, appID),
 	}
 
-	// Find direct forks
+	// Collect fork IDs first, then close cursor before recursing
+	// (avoids nested query deadlock — Issue 05)
 	rows, err := db.Query("SELECT id FROM apps WHERE forked_from_id = ?", appID)
 	if err != nil {
 		return node
 	}
-	defer rows.Close()
-
+	var forkIDs []string
 	for rows.Next() {
 		var forkID string
 		if rows.Scan(&forkID) == nil {
-			if fork := buildLineageTree(db, forkID, visited); fork != nil {
-				node.Forks = append(node.Forks, *fork)
-			}
+			forkIDs = append(forkIDs, forkID)
+		}
+	}
+	rows.Close()
+
+	// Now safe to recurse — cursor is closed
+	for _, forkID := range forkIDs {
+		if fork := buildLineageTree(db, forkID, visited); fork != nil {
+			node.Forks = append(node.Forks, *fork)
 		}
 	}
 

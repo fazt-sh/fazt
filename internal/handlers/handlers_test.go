@@ -9,6 +9,7 @@ import (
 
 	"github.com/fazt-sh/fazt/internal/auth"
 	"github.com/fazt-sh/fazt/internal/config"
+	"github.com/fazt-sh/fazt/internal/database"
 
 	_ "modernc.org/sqlite"
 )
@@ -30,113 +31,18 @@ func setupTestDB(t *testing.T) *sql.DB {
 		t.Fatalf("Failed to open test database: %v", err)
 	}
 
+	// Allow multiple connections for in-memory DBs in tests.
+	// Note: In-memory DBs are isolated per connection normally, but with a shared
+	// cache mode, multiple connections can work. We use 1 for migrations to avoid
+	// race conditions, but tests can use more.
+	db.SetMaxOpenConns(1)
+
 	// Enable WAL and foreign keys
 	db.Exec("PRAGMA journal_mode=WAL")
 	db.Exec("PRAGMA foreign_keys=ON")
 
-	// Create full schema (based on migrations)
-	schema := `
-	-- Events/Analytics
-	CREATE TABLE events (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		domain TEXT NOT NULL,
-		event_type TEXT NOT NULL,
-		source_type TEXT,
-		path TEXT,
-		referrer TEXT,
-		user_agent TEXT,
-		ip_address TEXT,
-		tags TEXT,
-		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-	);
-
-	-- Redirects
-	CREATE TABLE redirects (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		slug TEXT UNIQUE NOT NULL,
-		destination TEXT NOT NULL,
-		click_count INTEGER DEFAULT 0,
-		tags TEXT,
-		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-	);
-
-	-- Webhooks
-	CREATE TABLE webhooks (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		name TEXT NOT NULL,
-		endpoint TEXT UNIQUE NOT NULL,
-		secret TEXT,
-		is_active BOOLEAN DEFAULT 1,
-		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-	);
-
-	-- Files (VFS)
-	CREATE TABLE files (
-		site_id TEXT NOT NULL,
-		path TEXT NOT NULL,
-		content BLOB,
-		size_bytes INTEGER NOT NULL,
-		mime_type TEXT,
-		hash TEXT NOT NULL,
-		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-		app_id TEXT,
-		PRIMARY KEY (site_id, path)
-	);
-	CREATE INDEX IF NOT EXISTS idx_files_app_id ON files(app_id);
-
-	-- API Keys
-	CREATE TABLE api_keys (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		name TEXT NOT NULL,
-		key_hash TEXT NOT NULL,
-		scopes TEXT,
-		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-		last_used_at DATETIME
-	);
-
-	-- Deployments
-	CREATE TABLE deployments (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		site_id TEXT NOT NULL,
-		size_bytes INTEGER,
-		file_count INTEGER,
-		deployed_by TEXT,
-		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-	);
-
-	-- Environment Variables
-	CREATE TABLE env_vars (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		site_id TEXT NOT NULL,
-		name TEXT NOT NULL,
-		value TEXT NOT NULL,
-		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-		UNIQUE(site_id, name)
-	);
-
-	-- Site Logs
-	CREATE TABLE site_logs (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		site_id TEXT NOT NULL,
-		level TEXT NOT NULL,
-		message TEXT NOT NULL,
-		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-	);
-
-	-- Config
-	CREATE TABLE config (
-		key TEXT PRIMARY KEY,
-		value TEXT NOT NULL,
-		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-	);
-	`
-
-	if _, err := db.Exec(schema); err != nil {
-		t.Fatalf("Failed to create test schema: %v", err)
+	if err := database.RunMigrations(db); err != nil {
+		t.Fatalf("Failed to run migrations: %v", err)
 	}
 
 	return db
@@ -223,8 +129,8 @@ func createTestWebhook(t *testing.T, db *sql.DB, name, endpoint string) int64 {
 	t.Helper()
 
 	result, err := db.Exec(`
-		INSERT INTO webhooks (name, endpoint, is_active)
-		VALUES (?, ?, 1)
+		INSERT INTO webhooks (name, endpoint, secret, is_active)
+		VALUES (?, ?, '', 1)
 	`, name, endpoint)
 
 	if err != nil {

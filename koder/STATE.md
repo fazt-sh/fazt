@@ -1,314 +1,233 @@
 # Fazt Implementation State
 
-**Last Updated**: 2026-02-07
+**Last Updated**: 2026-02-08
 **Current Version**: v0.28.0
 
 ## Status
 
-State: IN PROGRESS — Plan 46 Phase 1 (Test Coverage Overhaul)
-Working on: Phase 1.1 COMPLETE ✅, Phase 1.2 next
+State: READY — Plan 47 queued
+Working on: —
+Next: Plan 47 Codebase Cleanup (`koder/plans/47_codebase_cleanup.md`) — Sonnet, 4 phases: nomenclature, dead code removal, legacy migration, security hardening
 
 ---
 
-## Current Session (2026-02-07) — Plan 46: Test Coverage Overhaul
+## Current Session (2026-02-08) — Plan 46: Phase 7 Adversarial Security Tests
 
 ### Context
 
-Two production bugs escaped because tests didn't catch them:
-1. `/api/cmd` routing bug (auth bypass misconfiguration) — v0.28.0
-2. `ResolveAlias` 'app' type bug (schema mismatch) — admin deployment
+Plan 46 Phases 1-6 complete. Creative security work identified in STATE.md — adversarial thinking that simulates real attacker behavior rather than formulaic checklist testing.
 
-Deep coverage audit revealed **31% overall coverage** with critical gaps:
-- **Routing**: 1.4% (140+ untested lines in `createRootHandler`)
-- **Auth Middleware**: 11.9% (146 lines, zero coverage on core functions)
-- **Handlers**: 7.3% (17 handlers completely untested, 2,900+ lines)
-- **Database**: 4.4%
+### Completed — Phase 7: Adversarial Security Tests ✅
 
-Created **Plan 46** (`koder/plans/46_test_coverage_overhaul.md`):
-- **Goal**: 31% → 85% coverage over 5 weeks
-- **Priority**: Security > Reliability > Performance > Features
-- **4 Phases**: Week 1 (critical), Weeks 2-3 (systematic), Week 4 (integration), Week 5 (security)
+**File**: `cmd/server/main_integration_adversarial_test.go` — 12 test functions, all passing.
 
-### What Was Done — Phase 1.1: Routing Tests (COMPLETE ✅)
+#### Vulnerabilities Discovered & Documented
 
-**Created**: `cmd/server/main_routing_test.go` (1,045 lines)
+1. **Invite Code TOCTOU** — `RedeemInvite` has no transaction: GetInvite → IsValid → CreateUser → UPDATE. 10 goroutines all redeemed a single-use invite. Fix: wrap in transaction.
+2. **OAuth State TOCTOU** — `ValidateState` does SELECT → DELETE as separate statements. Multiple goroutines validated same token. Fix: DELETE...RETURNING or transaction.
+3. **Login Timing Side Channel** — Invalid username returns ~260µs, valid username + wrong password ~800µs (bcrypt). 3x difference enables username enumeration.
+4. **Rate Limit IP Spoofing** — `getClientIP()` trusts X-Forwarded-For unconditionally. 20/20 spoofed requests bypassed rate limiting.
 
-**20 comprehensive test functions** covering all critical routing paths:
+#### Security Properties Verified
 
-1. **Host Routing Tests**
-   - `TestRouting_AdminDomain_APIBypass` — 9 bypass endpoints (deploy, cmd, sql, upgrade, health, logs, users, aliases, apps/*/status)
-   - `TestRouting_AdminDomain_AdminMiddleware` — Auth + role enforcement (no auth → 401, user role → 403, admin role → 200)
-   - `TestRouting_AdminDomain_TrackEndpoint` — Public endpoint (no auth required)
-   - `TestRouting_LocalhostSpecialCase` — Localhost always serves dashboard
-   - `TestRouting_RootDomain` — Both `root.domain` and bare `domain` serve root site
-   - `TestRouting_404Domain` — `404.domain` serves 404 site
-   - `TestRouting_SubdomainRouting` — `app.domain` routing
-
-2. **Local-Only Routes** (`/_app/<id>/`)
-   - `TestRouting_LocalOnlyRoutes_FromLocal` — Local IPs allowed (127.0.0.1, ::1, 192.168.*, 10.*)
-   - `TestRouting_LocalOnlyRoutes_FromPublic` — Public IPs blocked (404, not 401 to avoid revealing route)
-
-3. **Auth Routes** (`/auth/*`)
-   - `TestRouting_AuthRoutes_AvailableEverywhere` — Available on all hosts (admin, root, subdomains, localhost)
-   - `TestRouting_LoginRoute_PostOnly` — POST /auth/login routing
-
-4. **Middleware Order**
-   - `TestRouting_MiddlewareOrder_AuthBeforeAdmin` — AdminMiddleware checks auth first
-
-5. **Port Stripping**
-   - `TestRouting_PortStripping` — Handles :8080, :443, :3000
-   - `TestRouting_IPv6_PortStripping` — IPv6 [::1]:8080 doesn't crash
-
-6. **Edge Cases**
-   - `TestRouting_EmptyHost` — Doesn't crash
-   - `TestRouting_UnknownSubdomain_Fallback` — Serves 404 site
-   - `TestRouting_CaseSensitivity` — Documents case behavior
-   - `TestRouting_PathPrecedence_BypassBeforeAdmin` — /api/deploy bypasses AdminMiddleware
-   - `TestRouting_PathPrecedence_AppsStatusBypass` — /api/apps/*/status bypasses, /api/apps/* requires admin
-   - `TestRouting_AdminDomain_Fallthrough` — Non-API paths on admin.* fall through to app serving
-
-**Test Statistics**:
-- 20 parent test functions
-- 60+ subtests (via t.Run)
-- ~200 test cases total (as planned in Plan 46)
-- All tests passing ✅
-
-**Infrastructure Created**:
-- `setupRoutingTestDB()` — In-memory SQLite with full auth schema (auth_users, auth_sessions, files)
-- `setupRoutingTestConfig()` — Test config with domain "test.local"
-- `setupTestHandlers()` — Initializes handler globals (auth service, rate limiter)
-- `createTestUser()` — Uses `authService.CreateUser()` (proper UUID generation)
-- `createTestSession()` — Uses `authService.CreateSession()` (proper token hashing)
-
-**Key Fixes During Implementation**:
-1. **Auth schema mismatch** — Test schema had `id` but production uses `token_hash` + `user_id TEXT`
-2. **Session cookie name** — Changed from `"session"` to `"fazt_session"`
-3. **User ID type** — Changed from `INTEGER` to `TEXT` (UUIDs)
-4. **Session creation** — Use `authService.CreateSession()` not manual INSERT (handles token hashing)
-5. **User creation** — Use `authService.CreateUser()` not manual INSERT (generates UUIDs)
-6. **Hosting init** — Call `hosting.Init(db)` to initialize VFS (files table queries)
-7. **Handler init** — Call `handlers.InitAuth()` to initialize rate limiter
-
-**What This Achieves**:
-- ✅ Routing config changes will break tests
-- ✅ Auth bypass changes will break tests
-- ✅ Middleware order changes will break tests
-- ✅ Path precedence validated
-- ✅ Host routing validated
-
-**Coverage Impact**: Routing coverage 1.4% → ~90% (estimated, will measure)
+5. **Cookie Fixation → DoS only** — Attacker's cookie shadows victim's (Go returns first match), but cannot escalate privileges
+6. **Cookie Attributes** — HttpOnly, SameSite=Lax, Path=/, positive MaxAge all verified
+7. **No 500s Under Concurrent Invalidation** — 5 workers × 20 requests during session deletion: zero 500s, clean 200→401 transition
+8. **Host Header Bypass Blocked** — Uppercase, suffix attack, unicode confusables, null bytes all return 404
+9. **Path Confusion Blocked** — Traversal, case variation, encoded slashes all blocked by Go's ServeMux
+10. **FK CASCADE Works** — Deleting user removes sessions; HTTP returns 401
+11. **Role Downgrade Immediate** — No stale cache; demotion to "user" returns 403 on next request
+12. **Token Entropy** — 50 tokens: zero collisions, 65 unique chars, 44-char length (32 bytes base64url)
 
 ---
 
-## What's Next — Phase 1.2: Middleware Tests
+## Previous Sessions
 
-**Goal**: Test `internal/middleware/auth.go` (146 lines, currently 11.9% coverage)
+### Phase 6 (2026-02-08) — Complex Integration Tests ✅
 
-**Target File**: `internal/middleware/auth_test.go` (expand existing)
+**File**: `cmd/server/main_integration_deploy_test.go` — 18 sub-tests, all passing first run.
 
-**Functions to Test** (currently 0% coverage):
+#### 1. TestDeployToServing (11 sub-tests)
 
-1. **`AuthMiddleware()`** — Core auth enforcement
-   ```go
-   TestAuthMiddleware_NoAuthRequired()     // Public paths pass through
-   TestAuthMiddleware_BearerToken_Valid()  // API key auth succeeds
-   TestAuthMiddleware_BearerToken_Invalid() // Bad token → redirect/401
-   TestAuthMiddleware_Session_Valid()      // Session cookie auth succeeds
-   TestAuthMiddleware_Session_Expired()    // Expired → redirect/401
-   TestAuthMiddleware_Session_Invalid()    // Bad session → redirect/401
-   TestAuthMiddleware_NoAuth()             // No auth → redirect/401
-   TestAuthMiddleware_APIvsHTML()          // /api/* → 401 JSON, HTML → redirect
-   ```
+Full deploy pipeline: ZIP → extract → VFS → alias creation → static file serving.
 
-2. **`AdminMiddleware()`** — Role-based access control
-   ```go
-   TestAdminMiddleware_NoSession()         // No auth → 401 JSON
-   TestAdminMiddleware_UserRole()          // User role → 403 JSON
-   TestAdminMiddleware_AdminRole()         // Admin role → 200
-   TestAdminMiddleware_OwnerRole()         // Owner role → 200
-   TestAdminMiddleware_InvalidSession()    // Invalid session → 401
-   ```
+**DB verification:**
+- App record created with correct `fazt_app_` ID prefix, title, source type
+- Alias auto-created pointing subdomain → app_id
+- 6 files stored in VFS with correct SHA-256 hashes
 
-3. **`requiresAuth()`** — Path whitelist logic
-   ```go
-   TestRequiresAuth_PublicPaths()          // /, /login.html, /health, etc.
-   TestRequiresAuth_PublicPrefixes()       // /track, /r/, /webhook/, /static/, /assets/
-   TestRequiresAuth_AuthPaths()            // /auth/*, /api/login, /api/deploy
-   TestRequiresAuth_ProtectedPaths()       // /api/*, /dashboard/*, etc.
-   TestRequiresAuth_CaseSensitivity()      // Path matching is case-sensitive
-   TestRequiresAuth_TrailingSlash()        // /static vs /static/
-   ```
+**HTTP serving verified:**
+- index.html at root: Content-Type text/html, Cache-Control no-cache, ETag present
+- CSS: text/css MIME, max-age=300 (5min cache)
+- JS: application/javascript MIME
+- Hashed assets (assets/main-abc123.js): immutable, max-age=31536000 (1yr)
+- Directory index fallback: /about → about/index.html
+- ETag → If-None-Match → 304 Not Modified
+- Non-existent file → 404
+- Redeploy: old files cleaned, new content served
 
-4. **Edge Cases**
-   ```go
-   TestAuthMiddleware_EmptyBearerHeader()  // "Bearer " with no token
-   TestAuthMiddleware_MalformedBearer()    // "Bearer" without space, "Token xyz", etc.
-   TestAuthMiddleware_PathTraversal()      // /../api/login, /static/../api/apps
-   TestRequiresAuth_EdgeCases()            // Empty path, ., .., etc.
-   ```
+#### 2. TestAliasToAppResolution (7 sub-tests)
 
-**Implementation Pattern** (follow routing tests):
-```go
-func TestAuthMiddleware_BearerToken_Valid(t *testing.T) {
-    db := setupTestDB(t)
-    authService := auth.NewService(db, "test.local", false)
+Alias → app resolution through VFS serving architecture.
 
-    // Create API key
-    apiKey := createTestAPIKey(t, db)
+- **Site isolation**: Two subdomains (alpha, beta) serve completely isolated content; cross-subdomain file access → 404
+- **Architecture invariant**: Files keyed by site_id (subdomain), NOT app_id
+- **Trailing slash**: /about/ → 301 redirect to /about
+- **SPA fallback**: Route-like paths (/dashboard, /settings/profile) → index.html when SPA enabled; real files still served directly; file extensions don't trigger SPA
+- **Private files**: /private/ → 401 without auth, 200 with valid session
+- **API paths**: /api/ without serverless → 404
+- **Analytics injection**: sendBeacon script injected into HTML responses
 
-    // Create middleware
-    handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-        w.WriteHeader(200)
-        w.Write([]byte("success"))
-    })
-    authMW := middleware.AuthMiddleware(authService)
-
-    // Test request
-    req := httptest.NewRequest("GET", "/api/apps", nil)
-    req.Header.Set("Authorization", "Bearer "+apiKey)
-
-    rr := httptest.NewRecorder()
-    authMW(handler).ServeHTTP(rr, req)
-
-    if rr.Code != 200 {
-        t.Errorf("Expected 200, got %d", rr.Code)
-    }
-}
-```
-
-**Estimated Time**: 4-6 hours (as per Plan 46)
-**Expected Coverage**: Middleware 11.9% → ~95%
-
----
-
-## What's After That — Phase 1.3 & 1.4
-
-### Phase 1.3: Schema Sync (~4-6 hours)
-
-**Goal**: Test DB schema === Production DB schema
-
-**Current Problem**: Tests use handwritten schema, missing tables:
-- `apps`, `aliases`, `peers`, `auth_users`, `auth_sessions`
-- `storage_keys`, `storage_objects`, `activity_log`
-- `net_allowlist`, `net_secrets`, `net_log`, `workers`
-
-**Solution**: Use production migrations in tests
-```go
-// OLD approach (handlers_test.go)
-schema := `CREATE TABLE ...`  // Handwritten, drifts over time
-
-// NEW approach
-func setupTestDB(t *testing.T) *sql.DB {
-    db := createMemoryDB()
-    // Run all migrations in order
-    RunMigrations(db, "../../database/migrations")
-    return db
-}
-```
-
-**Tests to Add**:
-- `TestSchemaEquality()` — Test DB columns === Production DB columns
-- `TestForeignKeyConstraints()` — All FKs enforced
-- `TestUniqueConstraints()` — All UNIQUE constraints work
-- `TestDefaultValues()` — DEFAULT values match production
-
-**File**: `internal/handlers/handlers_test.go` (modify setup)
-
-### Phase 1.4: Critical Handlers (~16-20 hours)
-
-Test 4 highest-risk handlers (by security + untested lines):
-
-1. **`auth_handlers.go`** (462 lines)
-   - Login rate limiting, password verification, session creation
-   - Invalid credentials, SQL injection attempts
-   - Session token validation, expiry handling
-
-2. **`deploy.go`** (170 lines)
-   - API key validation, rate limiting (5/min)
-   - File upload size limits, path traversal
-   - ZIP bomb protection, malicious archives
-
-3. **`sql.go`** (169 lines) — ADMIN SQL (!!)
-   - Admin-only access (non-admin rejected)
-   - SQL injection prevention (parameterized queries)
-   - Read-only enforcement (if applicable)
-
-4. **`agent_handler.go`** (474 lines)
-   - Agent authentication, authorization
-   - API key scoping, resource access control
-
-**Pattern**: Follow existing handler tests (`cmd_gateway_test.go`, `aliases_test.go`)
-
----
-
-## Files Changed (Not Committed Yet)
-
-```
-cmd/server/main_routing_test.go          (NEW, 1,045 lines)
-```
-
----
-
-## Commit Plan
+### Full Test Suite: ALL GREEN
 
 ```bash
-# Commit routing tests
-git add cmd/server/main_routing_test.go
-git commit -m "test: add comprehensive routing tests (Plan 46 Phase 1.1)
-
-- 20 test functions, 60+ subtests, ~200 test cases
-- Host routing: admin, root, 404, subdomains, localhost
-- Auth bypass: 9 endpoints tested
-- AdminMiddleware: role enforcement validated
-- Local-only routes: /_app/<id>/ IP filtering
-- Edge cases: port stripping, IPv6, case sensitivity
-- All tests passing ✅
-
-Coverage: Routing 1.4% → ~90% (est)
-
-Part of Plan 46: Test Coverage Overhaul (31% → 85%)
-Ref: koder/plans/46_test_coverage_overhaul.md"
+go test ./... -count=1  # All packages pass
 ```
+
+---
+
+### Phase 5 (2026-02-08) — Architectural Fixes ✅
+
+Deadlock fixes in apps_handler_v2.go (collect-close-query pattern). Flaky WebSocket stress test stabilized (done+drain replaces idle timeouts). 4 unskipped tests.
+
+### Phase 4 (2026-02-08) — Security Tests ✅
+
+32 security tests: SQL injection, path traversal, XSS, resource exhaustion, auth bypass, SSRF, storage access control. All passing.
+
+### Phase 3 (2026-02-08) — Integration Tests ✅
+
+21 integration tests: auth flows (11), routing (10). Full test server with real routing/middleware.
+
+### Phase 2 (2026-02-07) — Systematic Handler Coverage ✅
+
+10 test files, ~160 functions. Handler coverage: 15.7% → 47.6%.
+
+### Phase 1 — Critical Path Tests ✅
+
+Initial test infrastructure. Handler coverage to 15.7%.
+
+---
+
+## Remaining Work
+
+### Nomenclature Cleanup (Future Session)
+
+- Rename `site_id` → `app_id` in VFS/hosting code
+  - Files table, hosting functions, deploy pipeline
+  - Large refactoring: touches many files across codebase
+  - Should be dedicated session with comprehensive testing
+
+### Future Enhancements (Noted in Tests)
+
+- **Rate limiting** — No rate limiting on auth checks (commented test ready)
+- **IP binding** — Sessions not bound to IPs (TestAuthBypass_SessionHijacking documents this)
+- **Timestamp validation** — Future-dated sessions accepted (no created_at checks)
+- **Invite TOCTOU** — RedeemInvite needs transaction to prevent double-spend
+- **OAuth state TOCTOU** — ValidateState needs DELETE...RETURNING or transaction
+- **Timing side channel** — LoginHandler leaks username validity via bcrypt timing
+- **IP spoofing** — getClientIP() trusts X-Forwarded-For without validation
+
+---
+
+## Background Issues
+
+### V1 handlers stale
+- `AppsListHandler`, `AppDetailHandler` broken post-migration 012
+- Query `a.name` and `a.manifest` which no longer exist
+- Only method guards tested
 
 ---
 
 ## Quick Reference
 
 ```bash
-# Run routing tests
-go test -v ./cmd/server -run TestRouting
+# Full suite
+go test ./... -count=1
 
-# Run all tests
-go test ./... -short -count=1
+# Handlers only
+go test ./internal/handlers -count=1
 
-# Check coverage
-go test ./cmd/server -coverprofile=coverage.out
-go tool cover -html=coverage.out
+# Coverage report
+go test ./internal/handlers -coverprofile=coverage.out
+go tool cover -func=coverage.out | grep "total:"
 
-# Next: Implement middleware tests
-# File: internal/middleware/auth_test.go
-# Pattern: Follow routing tests approach
+# Specific test groups
+go test ./internal/handlers -run "TestTrackHandler" -v
+go test ./internal/handlers -run "TestLogsHandler" -v
 ```
 
----
+## Quick Reference - Integration Tests
 
-## Session Notes
+```bash
+# Run all integration tests
+go test ./cmd/server -run "^Test.*" -v -count=1
 
-**Time Spent**: ~3 hours (routing tests)
-**Tests Written**: 20 functions, ~200 cases
-**All Passing**: ✅
+# Run only auth tests
+go test ./cmd/server -run "TestLogin|TestSession|TestRole|TestAuth" -v -count=1
 
-**Next Agent**:
-1. Read this STATE.md
-2. Read Plan 46 Phase 1.2 section (lines 98-122)
-3. Implement middleware tests in `internal/middleware/auth_test.go`
-4. Follow pattern from `cmd/server/main_routing_test.go`
-5. Aim for ~95% middleware coverage
-6. Run tests, commit, update STATE.md
+# Run only routing tests
+go test ./cmd/server -run "TestHost|TestSubdomain|TestLocalhost|TestRouting" -v -count=1
+```
 
-**Key Learnings**:
-- Always use `authService.CreateUser()` and `authService.CreateSession()` instead of manual DB inserts
-- Auth schema uses `token_hash` (not `id`), `user_id TEXT` (not INTEGER)
-- Session cookie name is `"fazt_session"`
-- Initialize hosting (`hosting.Init(db)`) and handlers (`handlers.InitAuth()`) in test setup
-- Test routing logic, not handler implementation (routing tests shouldn't need to mock everything)
+## Quick Reference - Deploy & VFS Tests
+
+```bash
+# Run deploy pipeline + alias resolution tests
+go test ./cmd/server -run "TestDeployToServing|TestAliasToAppResolution" -v -count=1
+```
+
+## Quick Reference - Security Tests
+
+```bash
+# Run all security tests
+go test ./internal/handlers -run "^TestSQLInjection|^TestPathTraversal|^TestXSS|^TestResourceExhaustion" -v -count=1
+go test ./cmd/server -run "TestAuthBypass" -v -count=1
+go test ./internal/egress -run "IPv4MappedIPv6|IPv6EdgeCases|IPv6Loopback|MetadataService|AlternativeSchemes" -v -count=1
+go test ./cmd/server -run "TestStorageAccessControl" -v -count=1
+
+# Run adversarial security tests
+go test ./cmd/server -run "TestAdversarial" -v -count=1
+```
+
+## Key Learnings
+
+### From Phase 2 (Handler Tests)
+1. **Always run full test suite** — Individual tests passing ≠ suite passing
+2. **Goroutine cleanup is critical** — Background goroutines need explicit Stop()
+3. **Never nest queries with open cursors** — Collect rows first, close, then query more
+4. **Test isolation matters** — Global state (`database.SetDB()`) can cause races
+5. **SetMaxOpenConns(1) in tests is valuable** — Exposes connection lifecycle bugs that hide in production
+6. **V1 handlers are stale** — Migration 012 broke v1 app handlers; they reference removed columns
+7. **Nullable columns bite** — Always insert empty strings in test helpers, not NULL, for columns scanned into `string`
+
+### From Phase 3 (Integration Tests)
+8. **Session tokens require SHA-256 hashing** — Use `sha256.Sum256()` before storing in `auth_sessions.token_hash`
+9. **User records need non-NULL fields** — Set `name` and `picture` to empty strings, not NULL (scan fails otherwise)
+10. **Sessions need last_seen** — Insert with `last_seen` timestamp, not NULL
+11. **Schema matters in tests** — Files table uses `mime_type`/`size_bytes`/`hash`, Aliases uses `subdomain`/`targets` JSON
+12. **Targets JSON format** — `{"app_id":"..."}` for proxy/app aliases, `{"redirect_url":"..."}` for redirects
+13. **Host-based routing differs** — `admin.*` requires role checks, `localhost` only requires auth
+
+### From Phase 4 (Security Tests)
+14. **URL-encode injection payloads** — Use `url.QueryEscape()` for query params, `url.PathEscape()` for path segments
+15. **TrackHandler returns 204** — Not 200; analytics buffered via `analytics.Add()`, not immediate DB writes
+16. **Foreign key constraints prevent orphan sessions** — Cannot create session without valid user
+17. **Storage uses double isolation** — Both user_id column AND key prefix (`u:{userID}:{key}`)
+18. **DNS resolution protects against rebinding** — `DialContext` checks EVERY resolved IP before connecting
+
+### From Phase 5 (Architectural Fixes)
+19. **Done+drain > idle timeouts for stress tests** — Idle timeouts are flaky under scheduler jitter; done signal + drain is deterministic
+20. **Collect-close-query pattern** — Always collect rows, close cursor, then do additional queries. Never nest queries inside open cursors.
+
+### From Phase 6 (Complex Integration Tests)
+21. **App IDs use `fazt_app_` prefix** — Not `app_`; generated by `appid.GenerateApp()`
+22. **EnsureApp auto-creates alias** — Deploy creates both app record AND alias; no manual alias creation needed
+23. **site_id = subdomain, NOT app_id** — VFS files keyed by subdomain; app_id only for analytics/identity
+24. **Analytics injection modifies HTML** — Use `assertContains` not exact match; sendBeacon script injected before `</body>`
+25. **Deploy is atomic** — DeleteSite (clear old) → EnsureApp → WriteFile for each; cache invalidated on delete
+
+### From Phase 7 (Adversarial Security Tests)
+26. **admin.* blocks /api/login** — Login must go through localhost; admin subdomain routes all /api/ through AdminMiddleware
+27. **database/sql releases conn between statements** — MaxOpenConns(1) doesn't prevent TOCTOU; each QueryRow/Exec acquires and releases independently
+28. **Vulnerability-documenting tests use t.Log** — Tests that expose known weaknesses log findings, not fail; tests verifying correct behavior use t.Error
+29. **bcrypt.MinCost for test speed** — Use bcrypt.MinCost (4) in test setup, not BcryptCost (12), to keep tests fast
