@@ -1,7 +1,7 @@
-import { ref, computed, watch, nextTick, onMounted, onUpdated } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUIStore } from '../stores/ui.js'
-import { refreshIcons } from '../lib/icons.js'
+import { useIcons } from '../lib/useIcons.js'
 
 export default {
   name: 'CommandPalette',
@@ -71,8 +71,7 @@ export default {
       }
     })
 
-    onMounted(() => refreshIcons())
-    onUpdated(() => refreshIcons())
+    useIcons()
 
     return { ui, commandInput, selectedCommandIndex, filteredCommands, close, execute, handleKeydown }
   },

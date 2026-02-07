@@ -1,11 +1,11 @@
-import { computed, onMounted, onUpdated } from 'vue'
+import { computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUIStore } from '../stores/ui.js'
 import { useAppsStore } from '../stores/apps.js'
 import { useAliasesStore } from '../stores/aliases.js'
 import { useHealthStore } from '../stores/health.js'
 import { useLogsStore } from '../stores/logs.js'
-import { refreshIcons } from '../lib/icons.js'
+import { useIcons } from '../lib/useIcons.js'
 
 export default {
   name: 'AppSidebar',
@@ -33,8 +33,7 @@ export default {
       router.push(path)
     }
 
-    onMounted(() => refreshIcons())
-    onUpdated(() => refreshIcons())
+    useIcons()
 
     return { ui, appCount, aliasCount, logCount, healthStatus, version, isCurrentRoute, navigateTo }
   },

@@ -1,9 +1,9 @@
-import { computed, onMounted, onUpdated } from 'vue'
+import { computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUIStore } from '../stores/ui.js'
 import { useAuthStore } from '../stores/auth.js'
 import { client } from '../client.js'
-import { refreshIcons } from '../lib/icons.js'
+import { useIcons } from '../lib/useIcons.js'
 
 export default {
   name: 'HeaderBar',
@@ -45,8 +45,7 @@ export default {
       await auth.signOut(client)
     }
 
-    onMounted(() => refreshIcons())
-    onUpdated(() => refreshIcons())
+    useIcons()
 
     return { ui, auth, breadcrumbs, userName, userRole, userEmail, userRoleFull, navigateTo, handleSignOut }
   },
