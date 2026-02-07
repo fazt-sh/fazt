@@ -5,13 +5,13 @@
 
 ## Status
 
-State: ACTIVE — Plan 46 Phase 3 IN PROGRESS
-Working on: Phase 3 integration tests - Auth & Routing flows complete (17/21 tests passing)
-Next: Complete remaining integration tests, then Phase 4 security testing
+State: ACTIVE — Plan 46 Phase 3 MOSTLY COMPLETE
+Working on: Integration tests - Auth flows 100% complete, Routing flows 60% complete
+Next: Fix 4 failing routing tests OR move to Phase 4 security testing
 
 ---
 
-## Current Session (2026-02-07) — Plan 46: Phase 2 Systematic Handler Coverage
+## Previous Session (2026-02-07) — Plan 46: Phase 2 Systematic Handler Coverage
 
 ### Context
 
@@ -186,8 +186,25 @@ go test ./internal/handlers -run "TestLogsHandler" -v
 
 ---
 
+## Quick Reference - Integration Tests
+
+```bash
+# Run all integration tests
+go test ./cmd/server -run "^Test.*" -v -count=1
+
+# Run only auth tests
+go test ./cmd/server -run "TestLogin|TestSession|TestRole|TestAuth" -v -count=1
+
+# Run only routing tests
+go test ./cmd/server -run "TestHost|TestSubdomain|TestLocalhost|TestRouting" -v -count=1
+
+# Check which tests are failing
+go test ./cmd/server -run "^Test.*" -count=1 2>&1 | grep "FAIL:"
+```
+
 ## Key Learnings
 
+### From Phase 2 (Handler Tests)
 1. **Always run full test suite** — Individual tests passing ≠ suite passing
 2. **Goroutine cleanup is critical** — Background goroutines need explicit Stop()
 3. **Never nest queries with open cursors** — Collect rows first, close, then query more
@@ -195,3 +212,12 @@ go test ./internal/handlers -run "TestLogsHandler" -v
 5. **SetMaxOpenConns(1) in tests is valuable** — Exposes connection lifecycle bugs that hide in production
 6. **V1 handlers are stale** — Migration 012 broke v1 app handlers; they reference removed columns
 7. **Nullable columns bite** — Always insert empty strings in test helpers, not NULL, for columns scanned into `string`
+
+### From Phase 3 (Integration Tests)
+8. **Session tokens require SHA-256 hashing** — Use `sha256.Sum256()` before storing in `auth_sessions.token_hash`
+9. **User records need non-NULL fields** — Set `name` and `picture` to empty strings, not NULL (scan fails otherwise)
+10. **Sessions need last_seen** — Insert with `last_seen` timestamp, not NULL
+11. **Schema matters in tests** — Files table uses `mime_type`/`size_bytes`/`hash`, Aliases uses `subdomain`/`targets` JSON
+12. **Targets JSON format** — `{"app_id":"..."}` for proxy/app aliases, `{"redirect_url":"..."}` for redirects
+13. **Host-based routing differs** — `admin.*` requires role checks, `localhost` only requires auth
+14. **Test helpers must match schema** — Helper functions broke when schema changed in migration 012
