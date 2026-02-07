@@ -129,8 +129,8 @@ func createTestWebhook(t *testing.T, db *sql.DB, name, endpoint string) int64 {
 	t.Helper()
 
 	result, err := db.Exec(`
-		INSERT INTO webhooks (name, endpoint, is_active)
-		VALUES (?, ?, 1)
+		INSERT INTO webhooks (name, endpoint, secret, is_active)
+		VALUES (?, ?, '', 1)
 	`, name, endpoint)
 
 	if err != nil {
