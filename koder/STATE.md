@@ -5,9 +5,9 @@
 
 ## Status
 
-State: ACTIVE — Plan 46 Phase 7 COMPLETE (Adversarial Security Tests)
+State: IDLE — Plan 46 fully complete
 Working on: —
-Next: Nomenclature cleanup
+Next: Nomenclature cleanup — rename `site_id` → `app_id` in VFS/hosting code (Sonnet-suitable: mechanical refactoring, find-and-replace across files, update tests)
 
 ---
 
