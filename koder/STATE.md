@@ -5,19 +5,45 @@
 
 ## Status
 
-State: ACTIVE — Plan 46 Phase 6 COMPLETE (Complex Integration Tests)
+State: ACTIVE — Plan 46 Phase 7 COMPLETE (Adversarial Security Tests)
 Working on: —
-Next: Creative security work, nomenclature cleanup
+Next: Nomenclature cleanup
 
 ---
 
-## Current Session (2026-02-08) — Plan 46: Phase 6 Complex Integration Tests
+## Current Session (2026-02-08) — Plan 46: Phase 7 Adversarial Security Tests
 
 ### Context
 
-Plan 46 Phases 1-5 complete. Two complex integration tests remained that required deep architectural understanding of the deploy pipeline and VFS serving.
+Plan 46 Phases 1-6 complete. Creative security work identified in STATE.md — adversarial thinking that simulates real attacker behavior rather than formulaic checklist testing.
 
-### Completed — Phase 6: Complex Integration Tests ✅
+### Completed — Phase 7: Adversarial Security Tests ✅
+
+**File**: `cmd/server/main_integration_adversarial_test.go` — 12 test functions, all passing.
+
+#### Vulnerabilities Discovered & Documented
+
+1. **Invite Code TOCTOU** — `RedeemInvite` has no transaction: GetInvite → IsValid → CreateUser → UPDATE. 10 goroutines all redeemed a single-use invite. Fix: wrap in transaction.
+2. **OAuth State TOCTOU** — `ValidateState` does SELECT → DELETE as separate statements. Multiple goroutines validated same token. Fix: DELETE...RETURNING or transaction.
+3. **Login Timing Side Channel** — Invalid username returns ~260µs, valid username + wrong password ~800µs (bcrypt). 3x difference enables username enumeration.
+4. **Rate Limit IP Spoofing** — `getClientIP()` trusts X-Forwarded-For unconditionally. 20/20 spoofed requests bypassed rate limiting.
+
+#### Security Properties Verified
+
+5. **Cookie Fixation → DoS only** — Attacker's cookie shadows victim's (Go returns first match), but cannot escalate privileges
+6. **Cookie Attributes** — HttpOnly, SameSite=Lax, Path=/, positive MaxAge all verified
+7. **No 500s Under Concurrent Invalidation** — 5 workers × 20 requests during session deletion: zero 500s, clean 200→401 transition
+8. **Host Header Bypass Blocked** — Uppercase, suffix attack, unicode confusables, null bytes all return 404
+9. **Path Confusion Blocked** — Traversal, case variation, encoded slashes all blocked by Go's ServeMux
+10. **FK CASCADE Works** — Deleting user removes sessions; HTTP returns 401
+11. **Role Downgrade Immediate** — No stale cache; demotion to "user" returns 403 on next request
+12. **Token Entropy** — 50 tokens: zero collisions, 65 unique chars, 44-char length (32 bytes base64url)
+
+---
+
+## Previous Sessions
+
+### Phase 6 (2026-02-08) — Complex Integration Tests ✅
 
 **File**: `cmd/server/main_integration_deploy_test.go` — 18 sub-tests, all passing first run.
 
@@ -60,8 +86,6 @@ go test ./... -count=1  # All packages pass
 
 ---
 
-## Previous Sessions
-
 ### Phase 5 (2026-02-08) — Architectural Fixes ✅
 
 Deadlock fixes in apps_handler_v2.go (collect-close-query pattern). Flaky WebSocket stress test stabilized (done+drain replaces idle timeouts). 4 unskipped tests.
@@ -86,13 +110,6 @@ Initial test infrastructure. Handler coverage to 15.7%.
 
 ## Remaining Work
 
-### Creative Security Work
-
-- **Non-formulaic auth bypass scenarios**
-  - Adversarial thinking: session fixation, CSRF, timing attacks
-  - Race conditions in session validation
-  - Edge cases in middleware ordering
-
 ### Nomenclature Cleanup (Future Session)
 
 - Rename `site_id` → `app_id` in VFS/hosting code
@@ -105,6 +122,10 @@ Initial test infrastructure. Handler coverage to 15.7%.
 - **Rate limiting** — No rate limiting on auth checks (commented test ready)
 - **IP binding** — Sessions not bound to IPs (TestAuthBypass_SessionHijacking documents this)
 - **Timestamp validation** — Future-dated sessions accepted (no created_at checks)
+- **Invite TOCTOU** — RedeemInvite needs transaction to prevent double-spend
+- **OAuth state TOCTOU** — ValidateState needs DELETE...RETURNING or transaction
+- **Timing side channel** — LoginHandler leaks username validity via bcrypt timing
+- **IP spoofing** — getClientIP() trusts X-Forwarded-For without validation
 
 ---
 
@@ -163,6 +184,9 @@ go test ./internal/handlers -run "^TestSQLInjection|^TestPathTraversal|^TestXSS|
 go test ./cmd/server -run "TestAuthBypass" -v -count=1
 go test ./internal/egress -run "IPv4MappedIPv6|IPv6EdgeCases|IPv6Loopback|MetadataService|AlternativeSchemes" -v -count=1
 go test ./cmd/server -run "TestStorageAccessControl" -v -count=1
+
+# Run adversarial security tests
+go test ./cmd/server -run "TestAdversarial" -v -count=1
 ```
 
 ## Key Learnings
@@ -201,3 +225,9 @@ go test ./cmd/server -run "TestStorageAccessControl" -v -count=1
 23. **site_id = subdomain, NOT app_id** — VFS files keyed by subdomain; app_id only for analytics/identity
 24. **Analytics injection modifies HTML** — Use `assertContains` not exact match; sendBeacon script injected before `</body>`
 25. **Deploy is atomic** — DeleteSite (clear old) → EnsureApp → WriteFile for each; cache invalidated on delete
+
+### From Phase 7 (Adversarial Security Tests)
+26. **admin.* blocks /api/login** — Login must go through localhost; admin subdomain routes all /api/ through AdminMiddleware
+27. **database/sql releases conn between statements** — MaxOpenConns(1) doesn't prevent TOCTOU; each QueryRow/Exec acquires and releases independently
+28. **Vulnerability-documenting tests use t.Log** — Tests that expose known weaknesses log findings, not fail; tests verifying correct behavior use t.Error
+29. **bcrypt.MinCost for test speed** — Use bcrypt.MinCost (4) in test setup, not BcryptCost (12), to keep tests fast
