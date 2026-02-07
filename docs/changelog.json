@@ -1,5 +1,11 @@
 [
     {
+        "version": "v0.28.0",
+        "title": "SDK, Admin Rebuild & CLI Fix",
+        "description": "fazt-sdk universal JS API client, admin UI component rebuild with Tailwind CDN, fixed fazt @peer app list empty error (auth bypass for /api/cmd).",
+        "created_at": "2026-02-07"
+    },
+    {
         "version": "v0.27.0",
         "title": "Video Support & Large File Uploads",
         "description": "Pure Go MP4/MOV/WebM video probe, ffmpeg H.264 transcoding with background workers, streaming multipart uploads for large files, and resilient image serving fallbacks.",

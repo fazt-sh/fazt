@@ -2,7 +2,7 @@
 
 **Sovereign compute** - Single Go binary + SQLite database that runs anywhere.
 
-**Version**: 0.27.0 | **State**: `koder/STATE.md`
+**Version**: 0.28.0 | **State**: `koder/STATE.md`
 
 ## Monorepo Structure
 
