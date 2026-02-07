@@ -1,60 +1,75 @@
 # Fazt Implementation State
 
 **Last Updated**: 2026-02-07
-**Current Version**: v0.27.0
+**Current Version**: v0.28.0
 
 ## Status
 
 State: CLEAN
-Plan 43 (fazt-sdk) and Plan 45 (Admin UI Component Rebuild) complete and committed. 5 unreleased commits since v0.27.0.
+Released v0.28.0 with `fazt @peer app list` fix, API key auth, and integration tests. All peers upgraded.
 
 ---
 
-## Last Session (2026-02-07) — Plan 45: Admin UI Tailwind Rebuild
+## Last Session (2026-02-07) — Bug Fix + Security + Tests
 
 ### What Was Done
 
-1. **Plan 43: fazt-sdk** — Universal JS API client for admin + apps
-   - `createClient()` for admin, `createAppClient()` for apps
-   - ~950 lines, zero deps, pure JS
-   - Admin UI migrated to use SDK for all API calls
+1. **Tracked down `fazt @local app list` bug**
+   - Symptom: Empty "Error:" message when running `fazt @local app list`
+   - Root cause: `/api/cmd` endpoint caught by `AdminMiddleware` (requires session auth), but CLI sends Bearer token (API key auth)
+   - Fix: Added `/api/cmd` to auth bypass list in `main.go:1524`
 
-2. **Plan 45: Admin UI Component Rebuild** — Full rebuild of component layer
-   - **8 new components**: FPanel, FTable, FToolbar, FModal, FEmpty, StatCard, FilterDropdown, FPagination
-   - **3 composables**: useIcons, usePanel, palettes
-   - **6 pages rebuilt**: Dashboard, Apps, Aliases, Logs, System, Settings
-   - **3 modals refactored**: NewApp, CreateAlias, EditAlias
-   - **Tailwind CDN** — Deleted ~250 lines of hand-rolled CSS utilities
-   - **deleteApp bug fixed** — `store.deleteApp()` → `store.remove()`
-   - Page JS: ~1,366 → ~1,010 lines | CSS: 897 → 664 lines | Bundle: 325 → 313 KB
+2. **Added API key authentication to CmdGatewayHandler**
+   - Endpoints that bypass `AdminMiddleware` must validate API keys themselves
+   - Followed pattern from `DeployHandler` (Bearer token validation)
+   - Added `database.SetDB()` for test injection
 
-### Commits Since v0.27.0
+3. **Wrote 6 integration tests** (`internal/handlers/cmd_gateway_test.go`)
+   - `TestCmdGateway_RejectsUnauthenticated` — No auth → 401
+   - `TestCmdGateway_RejectsInvalidToken` — Bad token → 401
+   - `TestCmdGateway_AcceptsValidAPIKey` — Valid key → 200
+   - `TestCmdGateway_RejectsInvalidMethod` — GET → 405
+   - `TestCmdGateway_AppListReturnsApps` — Full execution
+   - `TestCmdGateway_UnknownCommand` — Error handling
+   - All tests passing ✅
+
+4. **Released v0.28.0**
+   - Bug fix + security fix + tests
+   - SDK evolution (Plan 43) + Admin rebuild (Plan 45) from previous session
+   - Upgraded: local v0.28.0, zyt v0.28.0
+
+### Commits
 
 ```
-f52e4cb Rebuild admin with tailwind
-e4a329d Add plan 45
-c808b4a docs: session close — Plan 43 SDK evolution complete
-a270ad9 Implement Plan 43: fazt-sdk universal client for admin + apps
-2cd3540 Savepoint
+f8319f2 add API key auth to /api/cmd + integration tests
+ec5f5a6 release: v0.28.0
+7a18dbe fix: add /api/cmd to auth bypass list
 ```
+
+### Why Tests Didn't Catch This Initially
+
+This was an **integration/routing bug** - not a unit test bug:
+- Unit tests for `CmdGatewayHandler` would pass ✓
+- Unit tests for CLI would pass ✓
+- Unit tests for middleware would pass ✓
+- Bug was in **routing configuration** (how components connect)
+- Requires end-to-end tests: real server + real HTTP requests + different auth methods
 
 ---
 
 ## Next Session
 
 ### Priority
-1. **Test admin against real server** — Auth, apps, aliases all work after rebuild
-2. **Test admin with `?mock=true`** — All pages load, data renders
+
+1. **Test admin against real server** — Verify auth, apps, aliases work after rebuild
+2. **Test admin with `?mock=true`** — All pages load, data renders correctly
 3. **Deploy admin to local + zyt** — `fazt @local app deploy ./admin`
-4. **Release v0.28.0** — All unreleased work (SDK + admin rebuild)
 
 ### Direction
+
 - **Migrate Preview app** — Use `createAppClient()` instead of hand-rolled `api.js`
 - **Document media APIs in KB** — `fazt.app.media.{probe,transcode,serve,resize}`
 - **Plan 44: Drop app** — File/folder hosting via fazt (idea stage)
-
-### Known Issues
-- **`fazt @local app list`** — Returns empty error (pre-existing bug)
 
 ---
 
@@ -73,4 +88,9 @@ fazt @zyt app deploy ./admin
 
 # Test mock mode
 # Open admin URL with ?mock=true
+
+# Peer status
+fazt peer list
+fazt @local status
+fazt @zyt status
 ```
