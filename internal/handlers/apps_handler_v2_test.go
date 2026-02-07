@@ -98,14 +98,58 @@ func TestAppsListHandlerV2_Empty(t *testing.T) {
 	}
 }
 
-// TestAppsListHandlerV2_PublicOnly and _ShowAll skipped: getAliasesForApp called
-// inside rows loop causes deadlock with MaxOpenConns(1)
 func TestAppsListHandlerV2_PublicOnly(t *testing.T) {
-	t.Skip("Skipped: nested query deadlock with MaxOpenConns(1) — Issue 05 pattern")
+	setupAppsV2Test(t)
+	createTestAppV2WithVisibility(t, "public-app", "public")
+	createTestAppV2WithVisibility(t, "unlisted-app", "unlisted")
+
+	req := httptest.NewRequest("GET", "/api/v2/apps", nil)
+	resp := httptest.NewRecorder()
+	AppsListHandlerV2(resp, req)
+
+	data := testutil.CheckSuccessArray(t, resp, http.StatusOK)
+	// Should only contain public apps (plus any system apps)
+	for _, item := range data {
+		m, ok := item.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		vis, _ := m["visibility"].(string)
+		source, _ := m["source"].(string)
+		if source == "system" {
+			continue // system apps may have any visibility
+		}
+		if vis != "public" {
+			t.Errorf("Expected only public apps, got visibility=%q for %v", vis, m["title"])
+		}
+	}
 }
 
 func TestAppsListHandlerV2_ShowAll(t *testing.T) {
-	t.Skip("Skipped: nested query deadlock with MaxOpenConns(1) — Issue 05 pattern")
+	setupAppsV2Test(t)
+	createTestAppV2WithVisibility(t, "pub-app", "public")
+	createTestAppV2WithVisibility(t, "unl-app", "unlisted")
+
+	req := httptest.NewRequest("GET", "/api/v2/apps?all=true", nil)
+	resp := httptest.NewRecorder()
+	AppsListHandlerV2(resp, req)
+
+	data := testutil.CheckSuccessArray(t, resp, http.StatusOK)
+	// Should contain both public and unlisted (at least 2 non-system apps)
+	nonSystem := 0
+	for _, item := range data {
+		m, ok := item.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		source, _ := m["source"].(string)
+		if source != "system" {
+			nonSystem++
+		}
+	}
+	if nonSystem < 2 {
+		t.Errorf("Expected at least 2 non-system apps with all=true, got %d", nonSystem)
+	}
 }
 
 func TestAppsListHandlerV2_MethodNotAllowed(t *testing.T) {
@@ -597,10 +641,48 @@ func TestAppForksHandler_Empty(t *testing.T) {
 	}
 }
 
-// TestAppForksHandler_WithForks skipped due to nested query deadlock
-// (AppForksHandler calls getAliasesForApp while iterating rows)
 func TestAppForksHandler_WithForks(t *testing.T) {
-	t.Skip("Skipped: nested query deadlock with MaxOpenConns(1) — Issue 05 pattern")
+	setupAppsV2Test(t)
+	db := database.GetDB()
+
+	parentID := createTestAppV2(t, "forks-parent")
+
+	// Create two forks
+	fork1 := "app_" + testutil.RandStr(8)
+	fork2 := "app_" + testutil.RandStr(8)
+	for _, f := range []struct{ id, title string }{{fork1, "Fork One"}, {fork2, "Fork Two"}} {
+		_, err := db.Exec(`
+			INSERT INTO apps (id, original_id, forked_from_id, title, source, created_at, updated_at)
+			VALUES (?, ?, ?, ?, 'fork', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+		`, f.id, parentID, parentID, f.title)
+		if err != nil {
+			t.Fatalf("Failed to create fork: %v", err)
+		}
+	}
+	// Add alias to one fork
+	createTestAliasForApp(t, "fork-alias", fork1)
+
+	req := httptest.NewRequest("GET", "/api/v2/apps/"+parentID+"/forks", nil)
+	req.SetPathValue("id", parentID)
+	resp := httptest.NewRecorder()
+	AppForksHandler(resp, req)
+
+	data := testutil.CheckSuccessArray(t, resp, http.StatusOK)
+	if len(data) != 2 {
+		t.Fatalf("Expected 2 forks, got %d", len(data))
+	}
+
+	// Verify at least one fork has aliases
+	foundAlias := false
+	for _, item := range data {
+		m, _ := item.(map[string]interface{})
+		if aliases, ok := m["aliases"].([]interface{}); ok && len(aliases) > 0 {
+			foundAlias = true
+		}
+	}
+	if !foundAlias {
+		t.Error("Expected at least one fork to have aliases")
+	}
 }
 
 func TestAppForksHandler_MethodNotAllowed(t *testing.T) {
@@ -687,9 +769,57 @@ func TestBuildLineageTree_Simple(t *testing.T) {
 	}
 }
 
-// TestBuildLineageTree_WithForks is skipped because buildLineageTree calls
-// getAliasesForApp while iterating rows — same nested query deadlock as Issue 05.
-// Needs MaxOpenConns > 1 or code fix (collect rows first, then query aliases).
 func TestBuildLineageTree_WithForks(t *testing.T) {
-	t.Skip("Skipped: nested query deadlock with MaxOpenConns(1) — known Issue 05 pattern")
+	setupAppsV2Test(t)
+	db := database.GetDB()
+
+	rootID := createTestAppV2(t, "tree-root")
+
+	// Create a fork of root
+	forkID := "app_" + testutil.RandStr(8)
+	_, err := db.Exec(`
+		INSERT INTO apps (id, original_id, forked_from_id, title, source, created_at, updated_at)
+		VALUES (?, ?, ?, 'Tree Fork', 'fork', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+	`, forkID, rootID, rootID)
+	if err != nil {
+		t.Fatalf("Failed to create fork: %v", err)
+	}
+
+	// Create a nested fork (fork of fork)
+	nestedForkID := "app_" + testutil.RandStr(8)
+	_, err = db.Exec(`
+		INSERT INTO apps (id, original_id, forked_from_id, title, source, created_at, updated_at)
+		VALUES (?, ?, ?, 'Nested Fork', 'fork', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+	`, nestedForkID, rootID, forkID)
+	if err != nil {
+		t.Fatalf("Failed to create nested fork: %v", err)
+	}
+
+	// Add alias to nested fork
+	createTestAliasForApp(t, "nested-alias", nestedForkID)
+
+	tree := buildLineageTree(db, rootID, nil)
+	if tree == nil {
+		t.Fatal("Expected non-nil tree")
+	}
+	if tree.ID != rootID {
+		t.Errorf("Expected root ID %s, got %s", rootID, tree.ID)
+	}
+	if len(tree.Forks) != 1 {
+		t.Fatalf("Expected 1 fork of root, got %d", len(tree.Forks))
+	}
+	if tree.Forks[0].ID != forkID {
+		t.Errorf("Expected fork ID %s, got %s", forkID, tree.Forks[0].ID)
+	}
+	// Nested fork
+	if len(tree.Forks[0].Forks) != 1 {
+		t.Fatalf("Expected 1 nested fork, got %d", len(tree.Forks[0].Forks))
+	}
+	nestedNode := tree.Forks[0].Forks[0]
+	if nestedNode.ID != nestedForkID {
+		t.Errorf("Expected nested fork ID %s, got %s", nestedForkID, nestedNode.ID)
+	}
+	if len(nestedNode.Aliases) != 1 || nestedNode.Aliases[0] != "nested-alias" {
+		t.Errorf("Expected nested fork aliases [nested-alias], got %v", nestedNode.Aliases)
+	}
 }
