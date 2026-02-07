@@ -1,6 +1,6 @@
 {
-  "version": "0.26.0",
-  "updated_at": "2026-02-06",
+  "version": "0.27.0",
+  "updated_at": "2026-02-07",
   "repository": "monorepo",
   "versioning": "unified",
   "description": "All components share the same version for guaranteed compatibility",

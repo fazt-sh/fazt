@@ -1,5 +1,11 @@
 [
     {
+        "version": "v0.27.0",
+        "title": "Video Support & Large File Uploads",
+        "description": "Pure Go MP4/MOV/WebM video probe, ffmpeg H.264 transcoding with background workers, streaming multipart uploads for large files, and resilient image serving fallbacks.",
+        "created_at": "2026-02-07"
+    },
+    {
         "version": "v0.26.0",
         "title": "Outbound HTTP for Serverless (fazt.net.fetch)",
         "description": "Secure outbound HTTP for serverless functions. SSRF-hardened proxy with domain allowlist, server-side secrets injection, rate limiting, async logging, and response cache. Restructured system.Limits to nested architecture with schema endpoint.",
