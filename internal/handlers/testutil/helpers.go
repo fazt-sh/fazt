@@ -3,9 +3,11 @@ package testutil
 import (
 	"bytes"
 	"encoding/json"
+	"math/rand"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 )
 
 // SuccessResponse represents the standard success envelope
@@ -170,4 +172,15 @@ func AssertFieldExists(t *testing.T, data map[string]interface{}, field string) 
 	if _, exists := data[field]; !exists {
 		t.Errorf("Expected field '%s' to exist in response data", field)
 	}
+}
+
+// RandStr generates a random string of the given length
+func RandStr(length int) string {
+	const charset = "abcdefghijklmnopqrstuvwxyz0123456789"
+	seededRand := rand.New(rand.NewSource(time.Now().UnixNano()))
+	b := make([]byte, length)
+	for i := range b {
+		b[i] = charset[seededRand.Intn(len(charset))]
+	}
+	return string(b)
 }
