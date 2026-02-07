@@ -7,8 +7,10 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -151,9 +153,23 @@ func (c *Client) Apps() ([]App, error) {
 
 // Upgrade checks for or performs an upgrade
 func (c *Client) Upgrade(checkOnly bool) (*UpgradeResponse, error) {
+	return c.UpgradeWithURL(checkOnly, "")
+}
+
+// UpgradeWithURL checks for or performs an upgrade, optionally from a custom URL
+func (c *Client) UpgradeWithURL(checkOnly bool, customURL string) (*UpgradeResponse, error) {
 	path := "/api/upgrade"
+	params := []string{}
+
 	if checkOnly {
-		path += "?check=true"
+		params = append(params, "check=true")
+	}
+	if customURL != "" {
+		params = append(params, "url="+url.QueryEscape(customURL))
+	}
+
+	if len(params) > 0 {
+		path += "?" + strings.Join(params, "&")
 	}
 
 	resp, err := c.doRequest("POST", path, nil)

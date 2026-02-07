@@ -1,21 +1,64 @@
-MIT License
+Fazt Source-Available License
+Version 1.0, February 2026
 
-Copyright (c) 2025 Command Center Contributors
+Copyright (c) 2026 Fazt Project
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+NOTICE: This is NOT an open source license. The source code is visible
+for transparency and learning purposes only.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+## Permissions
+
+You MAY:
+- View and study the source code
+- Use the unmodified software for personal, non-commercial purposes
+- Report bugs and suggest features
+
+## Restrictions
+
+You MAY NOT:
+- Use this software or derivatives for commercial purposes
+- Modify, adapt, or create derivative works
+- Distribute, sublicense, sell, or rebrand this software
+- Remove or modify this license or copyright notices
+- Use this software in any way that generates revenue
+
+## Definitions
+
+"Commercial purposes" includes but is not limited to:
+- Using the software to provide services to others for compensation
+- Integrating the software into a product or service that is sold
+- Using the software in a business or enterprise environment
+- Offering the software as a managed service (SaaS, hosting, etc.)
+
+"Personal, non-commercial purposes" means:
+- Individual use for learning, experimentation, or personal projects
+- Use in educational contexts without commercial application
+- Use that does not directly or indirectly generate revenue
+
+## Warranty Disclaimer
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
 AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+## Future License Changes
+
+This license may change in future versions of the software. Your use of
+any specific version is governed by the license that accompanied that version.
+
+## License History
+
+Prior to commit 51818f6e52feb80f228cf9286a994fbfa9e5314b, this software was
+licensed under the MIT License. Code from those commits remains available
+under MIT terms. This license applies to all code committed after that point.
+
+---
+
+For commercial licensing inquiries, contact: [your-email]
+
+This license was chosen as a temporary measure. A more permissive license
+may be adopted in the future.

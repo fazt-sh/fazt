@@ -4,6 +4,17 @@ All notable changes to fazt.sh will be documented in this file.
 
 ## [Unreleased]
 
+## [0.29.0] - 2026-02-08
+
+### Added
+- **Custom URL upgrade** — `fazt upgrade <url>` downloads binary from any URL instead of GitHub
+- **Domain auto-resolve** — `fazt upgrade fazt-releases.zyt.app` auto-resolves to standard download path
+- **Remote custom upgrade** — `fazt @peer upgrade <url>` passes custom URL to remote peers
+- **Upload release script** — `scripts/upload-release.sh` for uploading binaries to fazt-releases CDN
+
+### Changed
+- **License** — Changed from MIT to source-available license
+
 ## [0.28.0] - 2026-02-07
 
 ### Added

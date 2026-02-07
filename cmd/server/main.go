@@ -1078,12 +1078,18 @@ func handlePeerApps(args []string) {
 func handlePeerUpgrade(args []string) {
 	checkOnly := false
 	var peerName string
+	var customURL string
 
-	for _, arg := range args {
+	for i, arg := range args {
 		if arg == "check" || arg == "--check" {
 			checkOnly = true
 		} else if !strings.HasPrefix(arg, "-") {
-			peerName = arg
+			// First non-flag arg is peer name, second is custom URL
+			if peerName == "" {
+				peerName = arg
+			} else if customURL == "" && i > 0 {
+				customURL = arg
+			}
 		}
 	}
 
@@ -1097,7 +1103,7 @@ func handlePeerUpgrade(args []string) {
 	}
 
 	client := remote.NewClient(peer)
-	result, err := client.Upgrade(checkOnly)
+	result, err := client.UpgradeWithURL(checkOnly, customURL)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 		os.Exit(1)
@@ -2565,7 +2571,13 @@ func handleUpgradeCommand() {
 		fmt.Println()
 	}
 
-	if err := provision.Upgrade(config.Version); err != nil {
+	// Check for custom URL argument: fazt upgrade <url>
+	var customURL string
+	if len(os.Args) > 2 {
+		customURL = os.Args[2]
+	}
+
+	if err := provision.Upgrade(config.Version, customURL); err != nil {
 		fmt.Printf("Error upgrading: %v\n", err)
 		os.Exit(1)
 	}

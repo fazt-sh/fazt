@@ -7,12 +7,30 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
 )
+
+// resolveUpgradeURL normalizes an upgrade URL input.
+// Bare domains like "fazt-releases.zyt.app" resolve to their standard download path.
+func resolveUpgradeURL(input string) string {
+	if !strings.Contains(input, "://") {
+		input = "https://" + input
+	}
+	u, err := url.Parse(input)
+	if err != nil {
+		return input
+	}
+	if u.Path == "" || u.Path == "/" {
+		u.Path = "/api/releases/latest/download"
+		return u.String()
+	}
+	return input
+}
 
 const (
 	repoOwner = "fazt-sh"
@@ -29,33 +47,54 @@ type ReleaseInfo struct {
 }
 
 // Upgrade checks for updates and upgrades the binary
-func Upgrade(currentVersion string) error {
-	fmt.Println("Checking for updates...")
+// If customURL is provided, downloads directly from that URL instead of GitHub
+func Upgrade(currentVersion string, customURL string) error {
+	var assetURL, assetName string
+	var err error
 
-	// 1. Fetch latest release info
-	release, err := getLatestRelease()
-	if err != nil {
-		return fmt.Errorf("failed to fetch release info: %w", err)
-	}
+	// If custom URL provided, use it directly
+	if customURL != "" {
+		customURL = resolveUpgradeURL(customURL)
+		fmt.Printf("Upgrading from: %s\n", customURL)
+		assetURL = customURL
+		assetName = filepath.Base(customURL)
 
-	if release.TagName == currentVersion {
-		fmt.Printf("You are already using the latest version (%s)\n", currentVersion)
-		return nil
-	}
+		fmt.Print("Do you want to upgrade? [y/N] ")
+		var response string
+		fmt.Scanln(&response)
+		if response != "y" && response != "Y" {
+			fmt.Println("Upgrade cancelled.")
+			return nil
+		}
+	} else {
+		// Standard GitHub release flow
+		fmt.Println("Checking for updates...")
 
-	fmt.Printf("New version available: %s (current: %s)\n", release.TagName, currentVersion)
-	fmt.Print("Do you want to upgrade? [y/N] ")
-	var response string
-	fmt.Scanln(&response)
-	if response != "y" && response != "Y" {
-		fmt.Println("Upgrade cancelled.")
-		return nil
-	}
+		// 1. Fetch latest release info
+		release, err := getLatestRelease()
+		if err != nil {
+			return fmt.Errorf("failed to fetch release info: %w", err)
+		}
 
-	// 2. Find matching asset
-	assetURL, assetName, err := findAssetURL(release)
-	if err != nil {
-		return fmt.Errorf("failed to find compatible binary: %w", err)
+		if release.TagName == currentVersion {
+			fmt.Printf("You are already using the latest version (%s)\n", currentVersion)
+			return nil
+		}
+
+		fmt.Printf("New version available: %s (current: %s)\n", release.TagName, currentVersion)
+		fmt.Print("Do you want to upgrade? [y/N] ")
+		var response string
+		fmt.Scanln(&response)
+		if response != "y" && response != "Y" {
+			fmt.Println("Upgrade cancelled.")
+			return nil
+		}
+
+		// 2. Find matching asset
+		assetURL, assetName, err = findAssetURL(release)
+		if err != nil {
+			return fmt.Errorf("failed to find compatible binary: %w", err)
+		}
 	}
 
 	// 3. Download and extract

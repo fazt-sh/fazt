@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -40,6 +41,7 @@ type GitHubRelease struct {
 // Query params:
 //   - check=true: Only check for updates, don't upgrade
 //   - force=true: Force restart even if already on latest version
+//   - url=<url>: Custom URL to download binary from (skips GitHub check)
 func UpgradeHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		api.ErrorResponse(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Method not allowed", "")
@@ -53,19 +55,44 @@ func UpgradeHandler(w http.ResponseWriter, r *http.Request) {
 
 	checkOnly := r.URL.Query().Get("check") == "true"
 	forceRestart := r.URL.Query().Get("force") == "true"
+	customURL := r.URL.Query().Get("url")
 	currentVersion := config.Version
 
-	// Get latest release from GitHub
-	latestRelease, err := getLatestRelease()
-	if err != nil {
-		api.ErrorResponse(w, http.StatusBadGateway, "GITHUB_ERROR", "Failed to check latest release: "+err.Error(), "")
-		return
+	var downloadURL string
+	var latestVersion string
+
+	// If custom URL provided, skip GitHub check and use URL directly
+	if customURL != "" {
+		downloadURL = resolveUpgradeURL(customURL)
+		latestVersion = "custom" // Mark as custom upgrade
+	} else {
+		// Get latest release from GitHub
+		latestRelease, err := getLatestRelease()
+		if err != nil {
+			api.ErrorResponse(w, http.StatusBadGateway, "GITHUB_ERROR", "Failed to check latest release: "+err.Error(), "")
+			return
+		}
+
+		latestVersion = strings.TrimPrefix(latestRelease.TagName, "v")
+
+		// Find the right asset for this platform
+		assetName := fmt.Sprintf("fazt-%s-%s-%s.tar.gz", latestRelease.TagName, runtime.GOOS, runtime.GOARCH)
+		for _, asset := range latestRelease.Assets {
+			if asset.Name == assetName {
+				downloadURL = asset.BrowserDownloadURL
+				break
+			}
+		}
+
+		if downloadURL == "" {
+			api.ErrorResponse(w, http.StatusNotFound, "ASSET_NOT_FOUND",
+				fmt.Sprintf("No release asset found for %s/%s", runtime.GOOS, runtime.GOARCH), "")
+			return
+		}
 	}
 
-	latestVersion := strings.TrimPrefix(latestRelease.TagName, "v")
-
-	// Check if already on latest
-	if latestVersion == currentVersion {
+	// Check if already on latest (only for GitHub releases)
+	if customURL == "" && latestVersion == currentVersion {
 		if forceRestart {
 			// Force restart requested
 			api.Success(w, http.StatusOK, UpgradeResponse{
@@ -110,22 +137,6 @@ func UpgradeHandler(w http.ResponseWriter, r *http.Request) {
 			NewVersion:     latestVersion,
 			Action:         "check_only",
 		})
-		return
-	}
-
-	// Find the right asset for this platform
-	assetName := fmt.Sprintf("fazt-%s-%s-%s.tar.gz", latestRelease.TagName, runtime.GOOS, runtime.GOARCH)
-	var downloadURL string
-	for _, asset := range latestRelease.Assets {
-		if asset.Name == assetName {
-			downloadURL = asset.BrowserDownloadURL
-			break
-		}
-	}
-
-	if downloadURL == "" {
-		api.ErrorResponse(w, http.StatusNotFound, "ASSET_NOT_FOUND",
-			fmt.Sprintf("No release asset found for %s/%s", runtime.GOOS, runtime.GOARCH), "")
 		return
 	}
 
@@ -195,6 +206,23 @@ func UpgradeHandler(w http.ResponseWriter, r *http.Request) {
 			"sudo", "/bin/systemctl", "restart", "fazt").Start()
 		os.Exit(0)
 	}()
+}
+
+// resolveUpgradeURL normalizes an upgrade URL input.
+// Bare domains like "fazt-releases.zyt.app" resolve to their standard download path.
+func resolveUpgradeURL(input string) string {
+	if !strings.Contains(input, "://") {
+		input = "https://" + input
+	}
+	u, err := url.Parse(input)
+	if err != nil {
+		return input
+	}
+	if u.Path == "" || u.Path == "/" {
+		u.Path = "/api/releases/latest/download"
+		return u.String()
+	}
+	return input
 }
 
 func getLatestRelease() (*GitHubRelease, error) {

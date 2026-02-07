@@ -1,5 +1,11 @@
 [
     {
+        "version": "v0.29.0",
+        "title": "Custom URL Upgrade & Self-Hosted Releases",
+        "description": "fazt upgrade now accepts custom URLs and bare domains (fazt upgrade fazt-releases.zyt.app). Self-hosted binary distribution via fazt-releases app. License changed to source-available.",
+        "created_at": "2026-02-08"
+    },
+    {
         "version": "v0.28.0",
         "title": "SDK, Admin Rebuild & CLI Fix",
         "description": "fazt-sdk universal JS API client, admin UI component rebuild with Tailwind CDN, fixed fazt @peer app list empty error (auth bypass for /api/cmd).",
