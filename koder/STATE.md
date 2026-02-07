@@ -89,23 +89,25 @@ ebaa814 Implement resillent image serving
 
 ## Next Session
 
-### Potential work
-- **Test video upload end-to-end** — Upload a real video file, verify probe/transcode
-- **Fix `fazt @local app list`** — Returns empty error (pre-existing bug)
-- **Commit Plan 41 changes** — Go backend code for video support
-- **Consider releasing v0.27.0** — File upload + video support milestone
+### Priority
+- **Test video upload end-to-end** — Upload a real video file via Preview app, verify probe/transcode works
+- **Document media APIs in KB** — `fazt.app.media.{probe,transcode,serve,resize}` are undocumented in `knowledge-base/skills/app/references/serverless-api.md`
+- **Consider releasing v0.27.0** — 5 unreleased commits since v0.26.0 (file upload + video support)
 
-### Key files to know
+### Known issues
+- **`fazt @local app list`** — Returns empty error (pre-existing bug, not from this session)
+
+### Key files
 ```bash
-# Video probe + transcode
+# Video probe + transcode (Plan 41)
 internal/services/media/probe.go
 internal/services/media/transcode.go
 internal/services/media/probe_test.go
 internal/system/probe.go        # Video limits
 internal/storage/app_bindings.go # JS bindings
 
-# Preview app
-servers/local/preview/           # Full Vue app (gitignored)
+# Preview app (Plan 42 — gitignored)
+servers/local/preview/
 ```
 
 ---
