@@ -56,7 +56,7 @@ func DeploySiteWithSource(zipReader *zip.Reader, subdomain string, source *Sourc
 		if strings.HasPrefix(cleanPath, "..") || strings.HasPrefix(cleanPath, "/") || strings.Contains(cleanPath, "\\") {
 			continue // Skip files that try to escape
 		}
-		
+
 		// Normalize path to forward slashes for DB consistency
 		cleanPath = filepath.ToSlash(cleanPath)
 
@@ -104,8 +104,9 @@ func ValidateAPIKey(db *sql.DB, token string) (int64, string, error) {
 	if err != nil {
 		return 0, "", fmt.Errorf("failed to query API keys: %w", err)
 	}
-	defer rows.Close()
 
+	var matchedID int64
+	var matchedName string
 	for rows.Next() {
 		var id int64
 		var name, keyHash string
@@ -115,10 +116,23 @@ func ValidateAPIKey(db *sql.DB, token string) (int64, string, error) {
 
 		// Compare token with hash
 		if err := bcrypt.CompareHashAndPassword([]byte(keyHash), []byte(token)); err == nil {
-			// Update last_used_at
-			db.Exec("UPDATE api_keys SET last_used_at = CURRENT_TIMESTAMP WHERE id = ?", id)
-			return id, name, nil
+			matchedID = id
+			matchedName = name
+			break
 		}
+	}
+
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		return 0, "", fmt.Errorf("failed to read API keys: %w", err)
+	}
+
+	rows.Close()
+
+	if matchedID != 0 {
+		// Update last_used_at after closing rows to avoid locking.
+		db.Exec("UPDATE api_keys SET last_used_at = CURRENT_TIMESTAMP WHERE id = ?", matchedID)
+		return matchedID, matchedName, nil
 	}
 
 	return 0, "", fmt.Errorf("invalid API key")
