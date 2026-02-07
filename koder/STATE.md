@@ -89,6 +89,8 @@ ebaa814 Implement resillent image serving
 
 ## Next Session
 
+### Implement Plan 43
+
 ### Priority
 - **Test video upload end-to-end** — Upload a real video file via Preview app, verify probe/transcode works
 - **Document media APIs in KB** — `fazt.app.media.{probe,transcode,serve,resize}` are undocumented in `knowledge-base/skills/app/references/serverless-api.md`
