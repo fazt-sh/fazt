@@ -33,6 +33,26 @@ func CmdGatewayHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Validate API key (this endpoint bypasses AdminMiddleware)
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		api.Unauthorized(w, "Missing Authorization header")
+		return
+	}
+	token := strings.TrimPrefix(authHeader, "Bearer ")
+	if token == authHeader {
+		api.Unauthorized(w, "Invalid Authorization format, use: Bearer <token>")
+		return
+	}
+	db := database.GetDB()
+	if db != nil {
+		_, _, err := hosting.ValidateAPIKey(db, token)
+		if err != nil {
+			api.InvalidAPIKey(w)
+			return
+		}
+	}
+
 	var req CmdRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		api.BadRequest(w, "invalid request body")

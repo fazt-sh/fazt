@@ -168,6 +168,11 @@ func GetDB() *sql.DB {
 	return db
 }
 
+// SetDB sets the database instance (for testing)
+func SetDB(newDB *sql.DB) {
+	db = newDB
+}
+
 // DBStats holds database statistics
 type DBStats struct {
 	OpenConnections int
