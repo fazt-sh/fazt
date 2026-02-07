@@ -676,7 +676,7 @@ func ResolveAlias(subdomain string) (appID string, aliasType string, err error) 
 	}
 
 	switch aliasType {
-	case "proxy":
+	case "app", "proxy":
 		if targets != nil {
 			var t AliasTarget
 			if err := json.Unmarshal([]byte(*targets), &t); err == nil {
