@@ -4,6 +4,14 @@ All notable changes to fazt.sh will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+- **Admin UI component rebuild** (Plan 45) — New foundational components (FPanel, FTable, FToolbar, FModal, FEmpty, StatCard, FilterDropdown, FPagination), composables (useIcons, usePanel, palettes), rebuilt all 6 pages with ~26% less page JS, ~26% less CSS, deleted redundant AppPanel/DataTable/PanelToolbar
+- **Tailwind CDN** — Admin uses Tailwind CDN directly, deleted ~250 lines of hand-rolled utility CSS
+- **fazt-sdk** (Plan 43) — Universal JS API client for admin + apps (`createClient()` + `createAppClient()`)
+
+### Fixed
+- **deleteApp bug** — `store.deleteApp()` → `store.remove()` in AppsPage
+
 ## [0.27.0] - 2026-02-07
 
 ### Added
