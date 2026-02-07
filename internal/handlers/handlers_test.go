@@ -82,8 +82,10 @@ func setupTestDB(t *testing.T) *sql.DB {
 		hash TEXT NOT NULL,
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		app_id TEXT,
 		PRIMARY KEY (site_id, path)
 	);
+	CREATE INDEX IF NOT EXISTS idx_files_app_id ON files(app_id);
 
 	-- API Keys
 	CREATE TABLE api_keys (
