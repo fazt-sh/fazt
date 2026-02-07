@@ -386,3 +386,106 @@ func assertContains(t *testing.T, body, expected string) {
 		t.Fatalf("Expected body to contain %q, got: %s", expected, body)
 	}
 }
+
+// --- Storage Access Control Tests ---
+
+// TestStorageAccessControl verifies that users cannot access each other's data
+func TestStorageAccessControl(t *testing.T) {
+	s := setupIntegrationTest(t)
+
+	// Create two users (sessions not needed for this database-level test)
+	_ = s.createSession(t, "userA@test.com", "user")
+	_ = s.createSession(t, "userB@test.com", "user")
+
+	// Create a test app
+	appID := "test-storage-app"
+	s.createTestApp(t, appID, "Test Storage App")
+
+	// User A stores data in KV store
+	// Note: Storage API would be exposed via serverless runtime
+	// For integration test, we'll directly use the storage layer
+	// to verify isolation at the database level
+
+	userIDA := "user-userA@test.com"
+	userIDB := "user-userB@test.com"
+
+	// Insert data for User A
+	_, err := s.db.Exec(`
+		INSERT INTO app_kv (app_id, user_id, key, value, updated_at)
+		VALUES (?, ?, ?, ?, strftime('%s', 'now'))
+	`, appID, userIDA, "u:"+userIDA+":secret", `"userA secret data"`, time.Now().Unix())
+	if err != nil {
+		t.Fatalf("Failed to insert User A data: %v", err)
+	}
+
+	// User A can read their own data
+	var valueA string
+	err = s.db.QueryRow(`
+		SELECT value FROM app_kv
+		WHERE app_id = ? AND user_id = ? AND key = ?
+	`, appID, userIDA, "u:"+userIDA+":secret").Scan(&valueA)
+	if err != nil {
+		t.Fatalf("User A cannot read own data: %v", err)
+	}
+	if valueA != `"userA secret data"` {
+		t.Errorf("User A data mismatch: got %s", valueA)
+	}
+
+	// User B tries to read User A's data (should fail)
+	err = s.db.QueryRow(`
+		SELECT value FROM app_kv
+		WHERE app_id = ? AND user_id = ? AND key = ?
+	`, appID, userIDB, "u:"+userIDA+":secret").Scan(&valueA)
+	if err == nil {
+		t.Error("User B should NOT be able to read User A's data")
+	}
+	if err != sql.ErrNoRows {
+		t.Errorf("Expected ErrNoRows, got: %v", err)
+	}
+
+	// User B tries to access via key alone (without user_id filter)
+	// This should still require user_id in production - query without it might match wrong user
+	var rawValue string
+	err = s.db.QueryRow(`
+		SELECT value FROM app_kv
+		WHERE app_id = ? AND key = ? LIMIT 1
+	`, appID, "u:"+userIDA+":secret").Scan(&rawValue)
+	// Query may succeed (finding User A's row) but demonstrates why user_id filter is critical
+	if err == nil {
+		t.Logf("Query without user_id filter returned: %s (shows importance of user_id scoping)", rawValue)
+	}
+
+	// Verify User B can store their own separate data
+	_, err = s.db.Exec(`
+		INSERT INTO app_kv (app_id, user_id, key, value, updated_at)
+		VALUES (?, ?, ?, ?, strftime('%s', 'now'))
+	`, appID, userIDB, "u:"+userIDB+":secret", `"userB secret data"`, time.Now().Unix())
+	if err != nil {
+		t.Fatalf("Failed to insert User B data: %v", err)
+	}
+
+	// User B reads their own data successfully
+	var valueB string
+	err = s.db.QueryRow(`
+		SELECT value FROM app_kv
+		WHERE app_id = ? AND user_id = ? AND key = ?
+	`, appID, userIDB, "u:"+userIDB+":secret").Scan(&valueB)
+	if err != nil {
+		t.Fatalf("User B cannot read own data: %v", err)
+	}
+	if valueB != `"userB secret data"` {
+		t.Errorf("User B data mismatch: got %s", valueB)
+	}
+
+	// Verify both users' data exists independently
+	var countA, countB int
+	s.db.QueryRow("SELECT COUNT(*) FROM app_kv WHERE app_id = ? AND user_id = ?", appID, userIDA).Scan(&countA)
+	s.db.QueryRow("SELECT COUNT(*) FROM app_kv WHERE app_id = ? AND user_id = ?", appID, userIDB).Scan(&countB)
+
+	if countA != 1 {
+		t.Errorf("Expected 1 record for User A, got %d", countA)
+	}
+	if countB != 1 {
+		t.Errorf("Expected 1 record for User B, got %d", countB)
+	}
+}

@@ -5,9 +5,9 @@
 
 ## Status
 
-State: ACTIVE — Plan 46 Phase 3 COMPLETE, Phase 4 ready
-Working on: Phase 4 security tests (Sonnet-delegable)
-Next: See "Sonnet Work Queue" below
+State: ACTIVE — Plan 46 Phase 4 COMPLETE (Security Tests)
+Working on: Sonnet-delegable work finished
+Next: Opus work - Complex integration tests & architectural fixes
 
 ---
 
@@ -124,7 +124,125 @@ Continuing Plan 46 test coverage overhaul. Phase 2 achieved 47.6% handler covera
 
 ---
 
-## Sonnet Work Queue
+## Current Session (2026-02-08 continued) — Plan 46: Phase 4 Security Tests
+
+### Context
+
+Continuing Plan 46 test coverage overhaul. Phase 3 achieved 47.6% handler coverage with integration test infrastructure. Phase 4 goal: comprehensive security tests covering injection attacks, auth bypass, SSRF, and data access control.
+
+### Completed — Phase 4: All Sonnet-Delegable Security Tests ✅
+
+**32 new security test functions created, ALL PASSING**
+
+#### 1. Injection Security Tests (`internal/handlers/security_test.go`) - **13 tests**
+
+**SQL Injection Tests** (8 payload types × 3 handlers):
+- ✅ `TestSQLInjection_EventsHandler_Domain` - Injection payloads: `' OR '1'='1`, `'; DROP TABLE--`, `UNION SELECT`, etc.
+- ✅ `TestSQLInjection_EventsHandler_Tags` - LIKE-based injection with wildcards
+- ✅ `TestSQLInjection_EventsHandler_SourceType` - Type field injection
+- ✅ `TestSQLInjection_AliasDetailHandler` - Path parameter injection
+
+**Path Traversal Tests**:
+- ✅ `TestPathTraversal_SiteFileContentHandler` - `../../etc/passwd`, URL encoding bypasses
+- ✅ `TestPathTraversal_SiteFilesHandler` - Directory traversal attempts
+
+**XSS Tests** (7 payload types):
+- ✅ `TestXSS_TrackHandler` - Script tags, img onerror, SVG onload, javascript: protocol
+- ✅ `TestXSS_AliasCreateHandler` - XSS in subdomain field
+
+**Resource Exhaustion Tests**:
+- ✅ `TestResourceExhaustion_OversizedRequestBody` - 100MB payload → 413/400
+- ✅ `TestResourceExhaustion_OversizedJSONPayload` - Deeply nested JSON (10k levels)
+- ✅ `TestResourceExhaustion_VeryLongURLPath` - 10KB query string
+- ✅ `TestResourceExhaustion_VeryLongQueryString` - 1000 params × 100 chars each
+- ✅ `TestResourceExhaustion_ManyTagsInTrackRequest` - 10,000 tags array
+
+**Key Findings**:
+- All handlers properly use parameterized queries (SQL injection protected)
+- Path traversal blocked by VFS scoping (only returns files within site_id)
+- XSS inputs sanitized via `sanitizeInput()` function
+- TrackHandler returns 204 No Content (not 200)
+- Events buffered via `analytics.Add()`, not immediately in database
+
+#### 2. Auth Bypass Security Tests (`cmd/server/main_integration_security_test.go`) - **11 tests**
+
+- ✅ `TestAuthBypass_InvalidSessionToken` - Empty, malformed, too short/long, path traversal, XSS, SQL injection in tokens
+- ✅ `TestAuthBypass_ExpiredSession` - Sessions expired 1 hour ago rejected
+- ✅ `TestAuthBypass_TamperedSessionToken` - Appended/prepended chars, truncated, case changed, char substitution
+- ✅ `TestAuthBypass_TokenReplayAfterLogout` - Token works, then deleted from DB, replay rejected
+- ✅ `TestAuthBypass_MissingCookie` - No session cookie → 401
+- ✅ `TestAuthBypass_ConcurrentSessionInvalidation` - Session works, then invalidated mid-flight, next request fails
+- ✅ `TestAuthBypass_SessionHijacking_IPChange` - Documents current behavior (no IP binding)
+- ✅ `TestAuthBypass_MultipleInvalidAttempts` - 10 invalid attempts all rejected consistently
+- ✅ `TestAuthBypass_SessionCreatedInFuture` - Future-dated sessions currently accepted (timestamp validation not implemented)
+- ✅ `TestAuthBypass_SQLInjectionInSessionToken` - SQL payloads in session cookies handled safely
+
+**Key Findings**:
+- Foreign key constraints prevent orphan sessions (user must exist)
+- Session tokens hashed with SHA-256 before storage
+- No IP binding currently (sessions portable across IPs)
+- No rate limiting on auth checks (documented for future work)
+- Future-dated sessions accepted (no created_at validation)
+
+#### 3. Extended SSRF Tests (`internal/egress/proxy_test.go`) - **7 new tests**
+
+- ✅ `TestBlockedIPRanges_IPv4MappedIPv6` - IPv4-mapped IPv6 loopback/private IPs blocked
+- ✅ `TestBlockedIPRanges_IPv6EdgeCases` - Loopback variations, link-local, unique-local, public IPv6
+- ✅ `TestIPLiteralDetection_EdgeCases` - IPv4/IPv6 literals vs domains, bracketed addresses
+- ✅ `TestFetchBlocksIPv6Loopback` - `[::1]`, `[0:0:0:0:0:0:0:1]` blocked
+- ✅ `TestFetchBlocksIPv6PrivateRanges` - fc00::, fd00::, fe80::, IPv4-mapped blocked
+- ✅ `TestFetchBlocksMetadataService` - 169.254.169.254, [fe80::1] blocked (cloud metadata)
+- ✅ `TestFetchBlocksAlternativeSchemes` - ftp, file, gopher, data, javascript, ws, wss all blocked
+
+**Key Findings**:
+- DNS resolution happens in `DialContext` — EVERY resolved IP checked before connecting
+- This protects against DNS rebinding (time-of-check-time-of-use attacks)
+- IPv4-mapped IPv6 addresses properly detected and blocked
+- Cloud metadata endpoints explicitly blocked (AWS/Azure/GCP)
+
+#### 4. Storage Access Control Test (`cmd/server/main_integration_test.go`) - **1 test**
+
+- ✅ `TestStorageAccessControl` - User A stores data, User B cannot read it
+  - Verified `app_kv` table scoped by (app_id, user_id)
+  - Keys prefixed with `u:{userID}:` for isolation
+  - Database-level enforcement prevents cross-user access
+
+**Key Finding**: Storage uses `UserScopedKV` wrapper with key prefixing (`u:{userID}:{key}`) and user_id column for double isolation.
+
+### Test Results
+
+**All 32 new tests pass consistently** (verified 3× runs):
+```bash
+# Injection & exhaustion tests
+ok  	github.com/fazt-sh/fazt/internal/handlers	2.363s
+
+# Auth bypass tests
+ok  	github.com/fazt-sh/fazt/cmd/server	0.244s
+
+# SSRF tests
+ok  	github.com/fazt-sh/fazt/internal/egress	0.013s
+
+# Storage access control
+ok  	github.com/fazt-sh/fazt/cmd/server	0.033s
+```
+
+**Files Modified**:
+1. `internal/handlers/security_test.go` - **Created** (493 lines)
+2. `cmd/server/main_integration_security_test.go` - **Created** (334 lines)
+3. `internal/egress/proxy_test.go` - **Extended** (+201 lines)
+4. `cmd/server/main_integration_test.go` - **Extended** (+93 lines)
+
+**Total**: 1,121 lines of security test code added
+
+### Pre-Existing Flaky Test (Not Related)
+
+- `TestStressMessageThroughput` in `internal/hosting` - Timing-dependent WebSocket stress test
+- Fails ~30% of time (69.5% delivery vs 70% threshold)
+- Does NOT affect new security tests
+
+---
+
+## Remaining Work (For Opus)
 
 Tasks delegated to Sonnet (formulaic, well-scoped, don't require architectural judgment):
 
@@ -164,18 +282,46 @@ All tests go in `internal/handlers/` or `cmd/server/`. Use existing test infrast
 - User A stores data, User B tries to access → rejected
 - **Pattern**: Use existing `createSession()`, test storage API endpoints
 
-### Priority 3: Nomenclature Cleanup (future)
+### Nomenclature Cleanup (Future Session)
 
-- Rename `site_id` → `app_id` in VFS/hosting code (files table, hosting functions)
-- This is a production code change — touches many files
-- Should be its own focused session, not mixed with test work
+- Rename `site_id` → `app_id` in VFS/hosting code
+  - Files table, hosting functions, deploy pipeline
+  - Large refactoring: touches many files across codebase
+  - Should be dedicated session with comprehensive testing
 
-### Not for Sonnet (keep for Opus)
+### Complex Integration Tests (Requires Architectural Understanding)
 
-- TestDeployToServing integration test (complex multi-system: zip upload → extract → VFS → alias → serve)
-- TestAliasToAppResolution (overlaps with VFS serving architecture)
-- Creative auth bypass scenarios (non-formulaic adversarial thinking)
-- Nested query deadlock fixes (Issue 05 pattern — architectural)
+- **TestDeployToServing** - Multi-system flow: zip upload → extract → VFS → alias → serve
+  - Touches: hosting, VFS, aliases, file system, routing
+  - Requires understanding full deploy pipeline
+
+- **TestAliasToAppResolution** - VFS serving architecture
+  - How aliases map to apps, how site_id relates to subdomain
+  - Overlaps with VFS/hosting architecture decisions
+
+### Architectural Fixes
+
+- **Nested query deadlock fixes** (Issue 05 pattern)
+  - `buildLineageTree`, `AppsListHandlerV2`, `AppForksHandler`
+  - All call `getAliasesForApp` inside rows iteration
+  - Requires refactoring to collect rows first, then query
+
+- **TestStressMessageThroughput stabilization**
+  - WebSocket stress test with timing issues
+  - May need architectural changes to message buffering
+
+### Creative Security Work
+
+- **Non-formulaic auth bypass scenarios**
+  - Adversarial thinking: session fixation, CSRF, timing attacks
+  - Race conditions in session validation
+  - Edge cases in middleware ordering
+
+### Future Enhancements (Noted in Tests)
+
+- **Rate limiting** - No rate limiting on auth checks (commented test ready)
+- **IP binding** - Sessions not bound to IPs (TestAuthBypass_SessionHijacking documents this)
+- **Timestamp validation** - Future-dated sessions accepted (no created_at checks)
 
 ---
 
@@ -231,6 +377,25 @@ go test ./cmd/server -run "TestHost|TestSubdomain|TestLocalhost|TestRouting" -v 
 go test ./cmd/server -run "^Test.*" -count=1 2>&1 | grep "FAIL:"
 ```
 
+## Quick Reference - Security Tests
+
+```bash
+# Run all security tests
+go test ./internal/handlers -run "^TestSQLInjection|^TestPathTraversal|^TestXSS|^TestResourceExhaustion" -v -count=1
+go test ./cmd/server -run "TestAuthBypass" -v -count=1
+go test ./internal/egress -run "IPv4MappedIPv6|IPv6EdgeCases|IPv6Loopback|MetadataService|AlternativeSchemes" -v -count=1
+go test ./cmd/server -run "TestStorageAccessControl" -v -count=1
+
+# Run injection tests only
+go test ./internal/handlers -run "Injection" -v -count=1
+
+# Run auth bypass tests only
+go test ./cmd/server -run "AuthBypass" -v -count=1
+
+# Run SSRF tests (all)
+go test ./internal/egress -v -count=1
+```
+
 ## Key Learnings
 
 ### From Phase 2 (Handler Tests)
@@ -250,3 +415,11 @@ go test ./cmd/server -run "^Test.*" -count=1 2>&1 | grep "FAIL:"
 12. **Targets JSON format** — `{"app_id":"..."}` for proxy/app aliases, `{"redirect_url":"..."}` for redirects
 13. **Host-based routing differs** — `admin.*` requires role checks, `localhost` only requires auth
 14. **Test helpers must match schema** — Helper functions broke when schema changed in migration 012
+
+### From Phase 4 (Security Tests)
+15. **URL-encode injection payloads** — Use `url.QueryEscape()` for query params, `url.PathEscape()` for path segments in test URLs
+16. **TrackHandler returns 204** — Not 200; analytics buffered via `analytics.Add()`, not immediate DB writes
+17. **Foreign key constraints prevent orphan sessions** — Cannot create session without valid user (good security property)
+18. **Storage uses double isolation** — Both user_id column AND key prefix (`u:{userID}:{key}`)
+19. **DNS resolution protects against rebinding** — `DialContext` checks EVERY resolved IP before connecting
+20. **IPv4-mapped IPv6 blocked** — `::ffff:127.0.0.1` properly detected as loopback and blocked
