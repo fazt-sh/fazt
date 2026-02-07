@@ -5,49 +5,52 @@
 
 ## Status
 
-State: ACTIVE — Plan 46 Phase 5 COMPLETE (Architectural Fixes)
+State: ACTIVE — Plan 46 Phase 6 COMPLETE (Complex Integration Tests)
 Working on: —
-Next: Complex integration tests (TestDeployToServing, TestAliasToAppResolution), creative security work, nomenclature cleanup
+Next: Creative security work, nomenclature cleanup
 
 ---
 
-## Current Session (2026-02-08) — Plan 46: Phase 5 Architectural Fixes
+## Current Session (2026-02-08) — Plan 46: Phase 6 Complex Integration Tests
 
 ### Context
 
-Plan 46 Phases 1-4 complete (handler tests, integration tests, security tests). Two architectural issues remained: nested query deadlocks (Issue 05) and a flaky WebSocket stress test.
+Plan 46 Phases 1-5 complete. Two complex integration tests remained that required deep architectural understanding of the deploy pipeline and VFS serving.
 
-### Completed — Phase 5: Architectural Fixes ✅
+### Completed — Phase 6: Complex Integration Tests ✅
 
-#### 1. Nested Query Deadlock Fixes (`apps_handler_v2.go`) — Issue 05 RESOLVED
+**File**: `cmd/server/main_integration_deploy_test.go` — 18 sub-tests, all passing first run.
 
-**Root cause**: Three functions called `getAliasesForApp(db, ...)` (which does `db.Query()`) while iterating an open cursor from a parent `db.Query()`. With `MaxOpenConns(1)`, this deadlocks.
+#### 1. TestDeployToServing (11 sub-tests)
 
-**Fix pattern**: Collect row data first, `rows.Close()`, then query aliases.
+Full deploy pipeline: ZIP → extract → VFS → alias creation → static file serving.
 
-| Function | Fix |
-|---|---|
-| `AppsListHandlerV2` | Collect apps in loop → `rows.Close()` → get aliases in second pass |
-| `AppForksHandler` | Collect fork id/title → `rows.Close()` → get aliases + build response |
-| `buildLineageTree` | Collect fork IDs → `rows.Close()` → recurse into children |
+**DB verification:**
+- App record created with correct `fazt_app_` ID prefix, title, source type
+- Alias auto-created pointing subdomain → app_id
+- 6 files stored in VFS with correct SHA-256 hashes
 
-**4 previously-skipped tests unskipped with real test bodies, ALL PASSING:**
-- `TestAppsListHandlerV2_PublicOnly` — verifies visibility filtering with aliases
-- `TestAppsListHandlerV2_ShowAll` — verifies all apps returned with aliases
-- `TestAppForksHandler_WithForks` — verifies forks listed with aliases
-- `TestBuildLineageTree_WithForks` — verifies nested lineage tree (root → fork → nested fork with alias)
+**HTTP serving verified:**
+- index.html at root: Content-Type text/html, Cache-Control no-cache, ETag present
+- CSS: text/css MIME, max-age=300 (5min cache)
+- JS: application/javascript MIME
+- Hashed assets (assets/main-abc123.js): immutable, max-age=31536000 (1yr)
+- Directory index fallback: /about → about/index.html
+- ETag → If-None-Match → 304 Not Modified
+- Non-existent file → 404
+- Redeploy: old files cleaned, new content served
 
-#### 2. Flaky TestStressMessageThroughput Stabilized (`ws_stress_test.go`)
+#### 2. TestAliasToAppResolution (7 sub-tests)
 
-**Root cause**: Receivers used 500ms per-message idle timeout. On constrained VMs, goroutine scheduling jitter caused premature timeouts → ~69.5% delivery (below 70% threshold).
+Alias → app resolution through VFS serving architecture.
 
-**Fix**: Replaced idle timeout with done signal + drain pattern:
-- Sender closes `done` channel after sending + 100ms grace period
-- Receivers drain remaining buffered messages on `done`
-- No arbitrary timeouts, no scheduling races
-- Threshold lowered to 50% (generous for fire-and-forget broadcast)
-
-**Result**: 5/5 passes, delivery 96.6%-100% consistently (was failing ~30% of runs).
+- **Site isolation**: Two subdomains (alpha, beta) serve completely isolated content; cross-subdomain file access → 404
+- **Architecture invariant**: Files keyed by site_id (subdomain), NOT app_id
+- **Trailing slash**: /about/ → 301 redirect to /about
+- **SPA fallback**: Route-like paths (/dashboard, /settings/profile) → index.html when SPA enabled; real files still served directly; file extensions don't trigger SPA
+- **Private files**: /private/ → 401 without auth, 200 with valid session
+- **API paths**: /api/ without serverless → 404
+- **Analytics injection**: sendBeacon script injected into HTML responses
 
 ### Full Test Suite: ALL GREEN
 
@@ -58,6 +61,10 @@ go test ./... -count=1  # All packages pass
 ---
 
 ## Previous Sessions
+
+### Phase 5 (2026-02-08) — Architectural Fixes ✅
+
+Deadlock fixes in apps_handler_v2.go (collect-close-query pattern). Flaky WebSocket stress test stabilized (done+drain replaces idle timeouts). 4 unskipped tests.
 
 ### Phase 4 (2026-02-08) — Security Tests ✅
 
@@ -78,16 +85,6 @@ Initial test infrastructure. Handler coverage to 15.7%.
 ---
 
 ## Remaining Work
-
-### Complex Integration Tests (Requires Architectural Understanding)
-
-- **TestDeployToServing** — Multi-system flow: zip upload → extract → VFS → alias → serve
-  - Touches: hosting, VFS, aliases, file system, routing
-  - Requires understanding full deploy pipeline
-
-- **TestAliasToAppResolution** — VFS serving architecture
-  - How aliases map to apps, how site_id relates to subdomain
-  - Overlaps with VFS/hosting architecture decisions
 
 ### Creative Security Work
 
@@ -151,6 +148,13 @@ go test ./cmd/server -run "TestLogin|TestSession|TestRole|TestAuth" -v -count=1
 go test ./cmd/server -run "TestHost|TestSubdomain|TestLocalhost|TestRouting" -v -count=1
 ```
 
+## Quick Reference - Deploy & VFS Tests
+
+```bash
+# Run deploy pipeline + alias resolution tests
+go test ./cmd/server -run "TestDeployToServing|TestAliasToAppResolution" -v -count=1
+```
+
 ## Quick Reference - Security Tests
 
 ```bash
@@ -190,3 +194,10 @@ go test ./cmd/server -run "TestStorageAccessControl" -v -count=1
 ### From Phase 5 (Architectural Fixes)
 19. **Done+drain > idle timeouts for stress tests** — Idle timeouts are flaky under scheduler jitter; done signal + drain is deterministic
 20. **Collect-close-query pattern** — Always collect rows, close cursor, then do additional queries. Never nest queries inside open cursors.
+
+### From Phase 6 (Complex Integration Tests)
+21. **App IDs use `fazt_app_` prefix** — Not `app_`; generated by `appid.GenerateApp()`
+22. **EnsureApp auto-creates alias** — Deploy creates both app record AND alias; no manual alias creation needed
+23. **site_id = subdomain, NOT app_id** — VFS files keyed by subdomain; app_id only for analytics/identity
+24. **Analytics injection modifies HTML** — Use `assertContains` not exact match; sendBeacon script injected before `</body>`
+25. **Deploy is atomic** — DeleteSite (clear old) → EnsureApp → WriteFile for each; cache invalidated on delete
