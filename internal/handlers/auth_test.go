@@ -40,7 +40,9 @@ func setupTestAuthService(t *testing.T) (*auth.Service, string) {
 func TestUserMeHandler_Success(t *testing.T) {
 	silenceTestLogs(t)
 	service, token := setupTestAuthService(t)
-	InitAuth(service, auth.NewRateLimiter(), "v0.8.0-test")
+	limiter := auth.NewRateLimiter()
+	t.Cleanup(func() { limiter.Stop() })
+	InitAuth(service, limiter, "v0.8.0-test")
 
 	req := testutil.JSONRequest("GET", "/api/user/me", nil)
 	req = testutil.WithSession(req, token)
@@ -57,7 +59,9 @@ func TestUserMeHandler_Success(t *testing.T) {
 func TestUserMeHandler_Unauthorized(t *testing.T) {
 	silenceTestLogs(t)
 	service, _ := setupTestAuthService(t)
-	InitAuth(service, auth.NewRateLimiter(), "v0.8.0-test")
+	limiter := auth.NewRateLimiter()
+	t.Cleanup(func() { limiter.Stop() })
+	InitAuth(service, limiter, "v0.8.0-test")
 
 	req := testutil.JSONRequest("GET", "/api/user/me", nil)
 
@@ -71,7 +75,9 @@ func TestUserMeHandler_Unauthorized(t *testing.T) {
 func TestUserMeHandler_InvalidSession(t *testing.T) {
 	silenceTestLogs(t)
 	service, _ := setupTestAuthService(t)
-	InitAuth(service, auth.NewRateLimiter(), "v0.8.0-test")
+	limiter := auth.NewRateLimiter()
+	t.Cleanup(func() { limiter.Stop() })
+	InitAuth(service, limiter, "v0.8.0-test")
 
 	req := testutil.JSONRequest("GET", "/api/user/me", nil)
 	req = testutil.WithSession(req, "invalid-session-token")
@@ -88,6 +94,7 @@ func TestLoginHandler_Success(t *testing.T) {
 	db := setupAuthTestDB(t)
 	service := auth.NewService(db, "test.local", false)
 	limiter := auth.NewRateLimiter()
+	t.Cleanup(func() { limiter.Stop() })
 	InitAuth(service, limiter, "v0.8.0-test")
 
 	// Setup config with known password
@@ -136,6 +143,7 @@ func TestLoginHandler_InvalidCredentials(t *testing.T) {
 	db := setupAuthTestDB(t)
 	service := auth.NewService(db, "test.local", false)
 	limiter := auth.NewRateLimiter()
+	t.Cleanup(func() { limiter.Stop() })
 	InitAuth(service, limiter, "v0.8.0-test")
 
 	passwordHash, _ := auth.HashPassword("correctpassword")
@@ -167,6 +175,7 @@ func TestLoginHandler_InvalidUsername(t *testing.T) {
 	db := setupAuthTestDB(t)
 	service := auth.NewService(db, "test.local", false)
 	limiter := auth.NewRateLimiter()
+	t.Cleanup(func() { limiter.Stop() })
 	InitAuth(service, limiter, "v0.8.0-test")
 
 	passwordHash, _ := auth.HashPassword("testpassword")
@@ -198,6 +207,7 @@ func TestLoginHandler_InvalidJSON(t *testing.T) {
 	db := setupAuthTestDB(t)
 	service := auth.NewService(db, "test.local", false)
 	limiter := auth.NewRateLimiter()
+	t.Cleanup(func() { limiter.Stop() })
 	InitAuth(service, limiter, "v0.8.0-test")
 	setupTestConfig(t)
 
@@ -214,7 +224,9 @@ func TestLoginHandler_InvalidJSON(t *testing.T) {
 func TestLogoutHandler_Success(t *testing.T) {
 	silenceTestLogs(t)
 	service, token := setupTestAuthService(t)
-	InitAuth(service, auth.NewRateLimiter(), "v0.8.0-test")
+	limiter := auth.NewRateLimiter()
+	t.Cleanup(func() { limiter.Stop() })
+	InitAuth(service, limiter, "v0.8.0-test")
 
 	req := testutil.JSONRequest("POST", "/api/logout", nil)
 	req = testutil.WithSession(req, token)
@@ -238,7 +250,9 @@ func TestLogoutHandler_NoSession(t *testing.T) {
 	silenceTestLogs(t)
 	db := setupAuthTestDB(t)
 	service := auth.NewService(db, "test.local", false)
-	InitAuth(service, auth.NewRateLimiter(), "v0.8.0-test")
+	limiter := auth.NewRateLimiter()
+	t.Cleanup(func() { limiter.Stop() })
+	InitAuth(service, limiter, "v0.8.0-test")
 
 	req := testutil.JSONRequest("POST", "/api/logout", nil)
 
@@ -254,7 +268,9 @@ func TestLogoutHandler_NoSession(t *testing.T) {
 func TestAuthStatusHandler_Authenticated(t *testing.T) {
 	silenceTestLogs(t)
 	service, token := setupTestAuthService(t)
-	InitAuth(service, auth.NewRateLimiter(), "v0.8.0-test")
+	limiter := auth.NewRateLimiter()
+	t.Cleanup(func() { limiter.Stop() })
+	InitAuth(service, limiter, "v0.8.0-test")
 
 	req := testutil.JSONRequest("GET", "/api/auth/status", nil)
 	req = testutil.WithSession(req, token)
@@ -276,7 +292,9 @@ func TestAuthStatusHandler_NotAuthenticated(t *testing.T) {
 	silenceTestLogs(t)
 	db := setupAuthTestDB(t)
 	service := auth.NewService(db, "test.local", false)
-	InitAuth(service, auth.NewRateLimiter(), "v0.8.0-test")
+	limiter := auth.NewRateLimiter()
+	t.Cleanup(func() { limiter.Stop() })
+	InitAuth(service, limiter, "v0.8.0-test")
 
 	req := testutil.JSONRequest("GET", "/api/auth/status", nil)
 

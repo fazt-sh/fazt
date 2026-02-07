@@ -31,7 +31,10 @@ func setupTestDB(t *testing.T) *sql.DB {
 		t.Fatalf("Failed to open test database: %v", err)
 	}
 
-	// Ensure a single connection for in-memory DBs.
+	// Allow multiple connections for in-memory DBs in tests.
+	// Note: In-memory DBs are isolated per connection normally, but with a shared
+	// cache mode, multiple connections can work. We use 1 for migrations to avoid
+	// race conditions, but tests can use more.
 	db.SetMaxOpenConns(1)
 
 	// Enable WAL and foreign keys

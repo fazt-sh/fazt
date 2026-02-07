@@ -9,6 +9,7 @@ import (
 type RateLimiter struct {
 	attempts map[string]*loginAttempts
 	mu       sync.RWMutex
+	done     chan struct{}
 }
 
 type loginAttempts struct {
@@ -21,6 +22,7 @@ type loginAttempts struct {
 func NewRateLimiter() *RateLimiter {
 	limiter := &RateLimiter{
 		attempts: make(map[string]*loginAttempts),
+		done:     make(chan struct{}),
 	}
 
 	// Start cleanup goroutine
@@ -95,19 +97,29 @@ func (rl *RateLimiter) GetAttempts(ip string) int {
 	return attempts.count
 }
 
+// Stop gracefully stops the rate limiter cleanup goroutine
+func (rl *RateLimiter) Stop() {
+	close(rl.done)
+}
+
 // cleanup removes old entries periodically
 func (rl *RateLimiter) cleanup() {
 	ticker := time.NewTicker(5 * time.Minute)
 	defer ticker.Stop()
 
-	for range ticker.C {
-		rl.mu.Lock()
-		for ip, attempts := range rl.attempts {
-			if time.Since(attempts.firstAttempt) > 15*time.Minute {
-				delete(rl.attempts, ip)
+	for {
+		select {
+		case <-ticker.C:
+			rl.mu.Lock()
+			for ip, attempts := range rl.attempts {
+				if time.Since(attempts.firstAttempt) > 15*time.Minute {
+					delete(rl.attempts, ip)
+				}
 			}
+			rl.mu.Unlock()
+		case <-rl.done:
+			return
 		}
-		rl.mu.Unlock()
 	}
 }
 
@@ -115,6 +127,7 @@ func (rl *RateLimiter) cleanup() {
 type DeployLimiter struct {
 	deploys map[string][]time.Time
 	mu      sync.RWMutex
+	done    chan struct{}
 }
 
 var (
@@ -127,6 +140,7 @@ func GetDeployLimiter() *DeployLimiter {
 	deployLimiterOnce.Do(func() {
 		deployLimiter = &DeployLimiter{
 			deploys: make(map[string][]time.Time),
+			done:    make(chan struct{}),
 		}
 		go deployLimiter.cleanup()
 	})
@@ -161,27 +175,37 @@ func (dl *DeployLimiter) RecordDeploy(ip string) {
 	dl.deploys[ip] = append(dl.deploys[ip], time.Now())
 }
 
+// Stop gracefully stops the deploy limiter cleanup goroutine
+func (dl *DeployLimiter) Stop() {
+	close(dl.done)
+}
+
 // cleanup removes old entries periodically
 func (dl *DeployLimiter) cleanup() {
 	ticker := time.NewTicker(5 * time.Minute)
 	defer ticker.Stop()
 
-	for range ticker.C {
-		dl.mu.Lock()
-		cutoff := time.Now().Add(-5 * time.Minute)
-		for ip, times := range dl.deploys {
-			recent := []time.Time{}
-			for _, t := range times {
-				if t.After(cutoff) {
-					recent = append(recent, t)
+	for {
+		select {
+		case <-ticker.C:
+			dl.mu.Lock()
+			cutoff := time.Now().Add(-5 * time.Minute)
+			for ip, times := range dl.deploys {
+				recent := []time.Time{}
+				for _, t := range times {
+					if t.After(cutoff) {
+						recent = append(recent, t)
+					}
+				}
+				if len(recent) == 0 {
+					delete(dl.deploys, ip)
+				} else {
+					dl.deploys[ip] = recent
 				}
 			}
-			if len(recent) == 0 {
-				delete(dl.deploys, ip)
-			} else {
-				dl.deploys[ip] = recent
-			}
+			dl.mu.Unlock()
+		case <-dl.done:
+			return
 		}
-		dl.mu.Unlock()
 	}
 }

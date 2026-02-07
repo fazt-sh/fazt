@@ -25,7 +25,11 @@ func setupAdminAuthTest(t *testing.T) *auth.Service {
 	})
 
 	service := auth.NewService(db, "test.local", false)
-	InitAuth(service, auth.NewRateLimiter(), "v0.0.0-test")
+	limiter := auth.NewRateLimiter()
+	t.Cleanup(func() {
+		limiter.Stop()
+	})
+	InitAuth(service, limiter, "v0.0.0-test")
 
 	return service
 }
