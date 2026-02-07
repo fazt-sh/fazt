@@ -67,6 +67,10 @@ Shared storage (`fazt.app.s3`) available for app-wide assets.
 
 ### Build a test app with recently implemented features
 
+Important:
+Start with plan 41 as developer is leaving for lunch; if possible, after that,
+complete 42 too
+
 Build and deploy a real app that exercises the new capabilities from v0.26.0:
 
 1. **File upload** — Form with image upload, stored via `fazt.app.user.s3`
