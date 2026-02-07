@@ -62,6 +62,10 @@ admin/src/client.js            # Updated import path
 
 ## Next Session
 
+### Important
+
+- work on plan 45 before anything
+
 ### Priority
 - **Test admin against real server** — Auth, apps, aliases all work after SDK move
 - **Test admin with `?mock=true`** — All pages load, data renders

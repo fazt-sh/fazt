@@ -1,4 +1,4 @@
-import { createRouter, createWebHashHistory } from 'vue-router'
+import { createRouter, createWebHashHistory, createWebHistory } from 'vue-router'
 import DashboardPage from './pages/DashboardPage.js'
 import AppsPage from './pages/AppsPage.js'
 import AliasesPage from './pages/AliasesPage.js'
@@ -20,6 +20,8 @@ const routes = [
 ]
 
 export const router = createRouter({
-  history: createWebHashHistory(),
+  history: import.meta.env.VITE_SPA_ROUTING === 'true'
+    ? createWebHistory()
+    : createWebHashHistory(),
   routes
 })
