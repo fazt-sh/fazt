@@ -238,16 +238,25 @@ func (r *Runtime) injectGlobals(vm *goja.Runtime, req *Request, result *ExecuteR
 			})
 		}
 
-		// respond(status, body)
+		// respond(status, body) or respond(status, body, headers)
 		status := 200
 		if s, ok := first.Export().(int64); ok {
 			status = int(s)
 		}
 
-		return vm.ToValue(map[string]interface{}{
+		resp := map[string]interface{}{
 			"status": status,
 			"body":   call.Argument(1).Export(),
-		})
+		}
+
+		// Extract headers from 3rd argument if present
+		if len(call.Arguments) >= 3 {
+			if h, ok := call.Argument(2).Export().(map[string]interface{}); ok {
+				resp["headers"] = h
+			}
+		}
+
+		return vm.ToValue(resp)
 	})
 
 	// Inject console

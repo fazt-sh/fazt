@@ -5,10 +5,12 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/dop251/goja"
 	"github.com/fazt-sh/fazt/internal/debug"
+	"github.com/fazt-sh/fazt/internal/services/media"
 	"github.com/fazt-sh/fazt/internal/timeout"
 )
 
@@ -62,11 +64,16 @@ func InjectAppNamespace(vm *goja.Runtime, db *sql.DB, writer *WriteQueue, appID,
 
 	// fazt.app.s3 (shared)
 	s3Obj := vm.NewObject()
-	s3Obj.Set("put", makeS3Put(vm, storage.Blobs, appID, ctx, budget))
+	s3Obj.Set("put", makeS3PutWithMediaInvalidation(vm, storage.Blobs, appID, db, ctx, budget))
 	s3Obj.Set("get", makeS3Get(vm, storage.Blobs, appID, ctx, budget))
-	s3Obj.Set("delete", makeS3Delete(vm, storage.Blobs, appID, ctx, budget))
+	s3Obj.Set("delete", makeS3DeleteWithMediaInvalidation(vm, storage.Blobs, appID, db, ctx, budget))
 	s3Obj.Set("list", makeS3List(vm, storage.Blobs, appID, ctx, budget))
 	appObj.Set("s3", s3Obj)
+
+	// fazt.app.media (shared)
+	mediaObj := vm.NewObject()
+	mediaObj.Set("serve", makeMediaServe(vm, storage.Blobs, appID, db, ctx, budget))
+	appObj.Set("media", mediaObj)
 
 	// Create user-scoped storage: fazt.app.user.*
 	userObj := vm.NewObject()
@@ -97,11 +104,16 @@ func InjectAppNamespace(vm *goja.Runtime, db *sql.DB, writer *WriteQueue, appID,
 
 		// fazt.app.user.s3
 		userS3Obj := vm.NewObject()
-		userS3Obj.Set("put", makeUserS3Put(vm, userBlobs, ctx, budget))
+		userS3Obj.Set("put", makeUserS3PutWithMediaInvalidation(vm, userBlobs, appID, userID, db, ctx, budget))
 		userS3Obj.Set("get", makeUserS3Get(vm, userBlobs, ctx, budget))
-		userS3Obj.Set("delete", makeUserS3Delete(vm, userBlobs, ctx, budget))
+		userS3Obj.Set("delete", makeUserS3DeleteWithMediaInvalidation(vm, userBlobs, appID, userID, db, ctx, budget))
 		userS3Obj.Set("list", makeUserS3List(vm, userBlobs, ctx, budget))
 		userObj.Set("s3", userS3Obj)
+
+		// fazt.app.user.media
+		userMediaObj := vm.NewObject()
+		userMediaObj.Set("serve", makeUserMediaServe(vm, userBlobs, appID, userID, db, ctx, budget))
+		userObj.Set("media", userMediaObj)
 	} else {
 		// User not logged in - create stub bindings that throw errors
 		stubFunc := func(name string) func(goja.FunctionCall) goja.Value {
@@ -132,6 +144,10 @@ func InjectAppNamespace(vm *goja.Runtime, db *sql.DB, writer *WriteQueue, appID,
 		userS3Obj.Set("delete", stubFunc("s3.delete"))
 		userS3Obj.Set("list", stubFunc("s3.list"))
 		userObj.Set("s3", userS3Obj)
+
+		userMediaObj := vm.NewObject()
+		userMediaObj.Set("serve", stubFunc("media.serve"))
+		userObj.Set("media", userMediaObj)
 	}
 
 	appObj.Set("user", userObj)
@@ -625,5 +641,229 @@ func makeUserS3List(vm *goja.Runtime, blobs *UserScopedBlobs, ctx context.Contex
 		}
 
 		return vm.ToValue(result)
+	}
+}
+
+// Media cache invalidation helpers
+
+// makeS3PutWithMediaInvalidation wraps makeS3Put to invalidate media cache
+// when an image blob is overwritten.
+func makeS3PutWithMediaInvalidation(vm *goja.Runtime, blobs BlobStore, appID string, db *sql.DB, ctx context.Context, budget *timeout.Budget) func(goja.FunctionCall) goja.Value {
+	inner := makeS3Put(vm, blobs, appID, ctx, budget)
+	return func(call goja.FunctionCall) goja.Value {
+		result := inner(call)
+		if len(call.Arguments) >= 3 && !goja.IsUndefined(call.Argument(2)) {
+			mime := call.Argument(2).String()
+			if strings.HasPrefix(mime, "image/") {
+				path := call.Argument(0).String()
+				media.InvalidateForPath(db, appID, path, "")
+			}
+		}
+		return result
+	}
+}
+
+// makeUserS3PutWithMediaInvalidation wraps makeUserS3Put to invalidate media cache
+// when an image blob is overwritten.
+func makeUserS3PutWithMediaInvalidation(vm *goja.Runtime, blobs *UserScopedBlobs, appID, userID string, db *sql.DB, ctx context.Context, budget *timeout.Budget) func(goja.FunctionCall) goja.Value {
+	inner := makeUserS3Put(vm, blobs, ctx, budget)
+	return func(call goja.FunctionCall) goja.Value {
+		result := inner(call)
+		if len(call.Arguments) >= 3 && !goja.IsUndefined(call.Argument(2)) {
+			mime := call.Argument(2).String()
+			if strings.HasPrefix(mime, "image/") {
+				path := call.Argument(0).String()
+				media.InvalidateForPath(db, appID, path, userID)
+			}
+		}
+		return result
+	}
+}
+
+// makeS3DeleteWithMediaInvalidation wraps makeS3Delete to invalidate media cache
+// when a blob is deleted.
+func makeS3DeleteWithMediaInvalidation(vm *goja.Runtime, blobs BlobStore, appID string, db *sql.DB, ctx context.Context, budget *timeout.Budget) func(goja.FunctionCall) goja.Value {
+	inner := makeS3Delete(vm, blobs, appID, ctx, budget)
+	return func(call goja.FunctionCall) goja.Value {
+		result := inner(call)
+		if len(call.Arguments) >= 1 {
+			path := call.Argument(0).String()
+			media.InvalidateForPath(db, appID, path, "")
+		}
+		return result
+	}
+}
+
+// makeUserS3DeleteWithMediaInvalidation wraps makeUserS3Delete to invalidate media cache
+// when a blob is deleted.
+func makeUserS3DeleteWithMediaInvalidation(vm *goja.Runtime, blobs *UserScopedBlobs, appID, userID string, db *sql.DB, ctx context.Context, budget *timeout.Budget) func(goja.FunctionCall) goja.Value {
+	inner := makeUserS3Delete(vm, blobs, ctx, budget)
+	return func(call goja.FunctionCall) goja.Value {
+		result := inner(call)
+		if len(call.Arguments) >= 1 {
+			path := call.Argument(0).String()
+			media.InvalidateForPath(db, appID, path, userID)
+		}
+		return result
+	}
+}
+
+// Media serve bindings
+
+// makeMediaServe creates fazt.app.media.serve(path) for shared blobs.
+// Reads transform opts from HTTP query params (via context).
+// On cache hit → returns cached variant. On miss → fetches original, resizes, caches.
+// No transform params → returns original unchanged.
+func makeMediaServe(vm *goja.Runtime, blobs BlobStore, appID string, db *sql.DB, ctx context.Context, budget *timeout.Budget) func(goja.FunctionCall) goja.Value {
+	return func(call goja.FunctionCall) goja.Value {
+		if len(call.Arguments) < 1 {
+			panic(vm.NewGoError(fmt.Errorf("media.serve requires a path")))
+		}
+
+		opCtx, cancel, err := getOpContext(vm, ctx, budget)
+		if err != nil {
+			panic(vm.NewGoError(err))
+		}
+		defer cancel()
+
+		path := call.Argument(0).String()
+
+		// Parse transform opts from HTTP query params
+		opts := media.TransformOpts{}
+		if q := media.QueryFromContext(ctx); q != nil {
+			opts = media.ParseTransformQuery(q)
+		}
+
+		// No transform → serve original as-is
+		if !opts.HasTransform() {
+			blob, err := blobs.Get(opCtx, appID, path)
+			if err != nil {
+				panic(vm.NewGoError(err))
+			}
+			if blob == nil {
+				return goja.Null()
+			}
+			return vm.ToValue(map[string]interface{}{
+				"data": base64.StdEncoding.EncodeToString(blob.Data),
+				"mime": blob.MimeType,
+				"size": blob.Size,
+			})
+		}
+
+		// Has transform — use cache-aware processing
+		cache := media.NewMediaCache(db)
+		if data, mime, err := cache.Get(opCtx, appID, path, opts); err == nil && data != nil {
+			return vm.ToValue(map[string]interface{}{
+				"data": base64.StdEncoding.EncodeToString(data),
+				"mime": mime,
+				"size": len(data),
+			})
+		}
+
+		// Cache miss — fetch original, process, cache
+		blob, err := blobs.Get(opCtx, appID, path)
+		if err != nil {
+			panic(vm.NewGoError(err))
+		}
+		if blob == nil {
+			return goja.Null()
+		}
+
+		if !media.IsImageContentType(blob.MimeType) {
+			return vm.ToValue(map[string]interface{}{
+				"data": base64.StdEncoding.EncodeToString(blob.Data),
+				"mime": blob.MimeType,
+				"size": blob.Size,
+			})
+		}
+
+		processed, mime, err := media.ProcessAndCache(opCtx, cache, appID, path, blob.Data, opts)
+		if err != nil {
+			panic(vm.NewGoError(err))
+		}
+
+		return vm.ToValue(map[string]interface{}{
+			"data": base64.StdEncoding.EncodeToString(processed),
+			"mime": mime,
+			"size": len(processed),
+		})
+	}
+}
+
+// makeUserMediaServe creates fazt.app.user.media.serve(path) for user-scoped blobs.
+// Same as makeMediaServe but uses user-scoped storage and cache.
+func makeUserMediaServe(vm *goja.Runtime, blobs *UserScopedBlobs, appID, userID string, db *sql.DB, ctx context.Context, budget *timeout.Budget) func(goja.FunctionCall) goja.Value {
+	return func(call goja.FunctionCall) goja.Value {
+		if len(call.Arguments) < 1 {
+			panic(vm.NewGoError(fmt.Errorf("media.serve requires a path")))
+		}
+
+		opCtx, cancel, err := getOpContext(vm, ctx, budget)
+		if err != nil {
+			panic(vm.NewGoError(err))
+		}
+		defer cancel()
+
+		path := call.Argument(0).String()
+
+		// Parse transform opts from HTTP query params
+		opts := media.TransformOpts{}
+		if q := media.QueryFromContext(ctx); q != nil {
+			opts = media.ParseTransformQuery(q)
+		}
+
+		// No transform → serve original as-is
+		if !opts.HasTransform() {
+			blob, err := blobs.Get(opCtx, path)
+			if err != nil {
+				panic(vm.NewGoError(err))
+			}
+			if blob == nil {
+				return goja.Null()
+			}
+			return vm.ToValue(map[string]interface{}{
+				"data": base64.StdEncoding.EncodeToString(blob.Data),
+				"mime": blob.MimeType,
+				"size": blob.Size,
+			})
+		}
+
+		// Has transform — use user-scoped cache
+		cache := media.NewUserMediaCache(db, userID)
+		if data, mime, err := cache.Get(opCtx, appID, path, opts); err == nil && data != nil {
+			return vm.ToValue(map[string]interface{}{
+				"data": base64.StdEncoding.EncodeToString(data),
+				"mime": mime,
+				"size": len(data),
+			})
+		}
+
+		// Cache miss — fetch original, process, cache
+		blob, err := blobs.Get(opCtx, path)
+		if err != nil {
+			panic(vm.NewGoError(err))
+		}
+		if blob == nil {
+			return goja.Null()
+		}
+
+		if !media.IsImageContentType(blob.MimeType) {
+			return vm.ToValue(map[string]interface{}{
+				"data": base64.StdEncoding.EncodeToString(blob.Data),
+				"mime": blob.MimeType,
+				"size": blob.Size,
+			})
+		}
+
+		processed, mime, err := media.ProcessAndCache(opCtx, cache, appID, path, blob.Data, opts)
+		if err != nil {
+			panic(vm.NewGoError(err))
+		}
+
+		return vm.ToValue(map[string]interface{}{
+			"data": base64.StdEncoding.EncodeToString(processed),
+			"mime": mime,
+			"size": len(processed),
+		})
 	}
 }

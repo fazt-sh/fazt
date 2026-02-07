@@ -25,6 +25,7 @@ type Limits struct {
 	Runtime  Runtime  `json:"runtime"`
 	Capacity Capacity `json:"capacity"`
 	Net      Net      `json:"net"`
+	Media    Media    `json:"media"`
 }
 
 // Hardware holds detected hardware characteristics.
@@ -84,6 +85,14 @@ type Net struct {
 	CacheMaxBytes int64 `json:"cache_max_bytes" label:"Cache Size"  desc:"Max cache memory"                   unit:"bytes" range:"0,104857600"`
 }
 
+// Media holds on-demand image processing limits.
+type Media struct {
+	Concurrency    int   `json:"concurrency"       label:"Concurrency"     desc:"Max concurrent image resizes"   range:"1,16"`
+	MaxSourceBytes int64 `json:"max_source_bytes"  label:"Max Source"      desc:"Max input image size"           unit:"bytes" range:"1048576,52428800"`
+	WidthStep      int   `json:"width_step"        label:"Width Step"      desc:"Cache widths divisible by this" range:"10,200"`
+	CacheMemoryMB  int   `json:"cache_memory_mb"   label:"Cache Memory"    desc:"In-memory LRU for variants"     unit:"MB" range:"0,512"`
+}
+
 var cachedLimits *Limits
 
 // GetLimits probes the system and returns resource limits.
@@ -118,6 +127,24 @@ func GetLimits() *Limits {
 	scaleFactor := cpuCount
 	if scaleFactor > 4 {
 		scaleFactor = 4 + (cpuCount-4)/2
+	}
+
+	// Media cache: 2% of RAM, min 16MB, max 256MB
+	mediaCacheMB := int(totalRAM / (1024 * 1024) / 50) // 2%
+	if mediaCacheMB < 16 {
+		mediaCacheMB = 16
+	}
+	if mediaCacheMB > 256 {
+		mediaCacheMB = 256
+	}
+
+	// Media concurrency: 2 per CPU core, min 2, max 8
+	mediaConcurrency := 2 * cpuCount
+	if mediaConcurrency < 2 {
+		mediaConcurrency = 2
+	}
+	if mediaConcurrency > 8 {
+		mediaConcurrency = 8
 	}
 
 	// Net global concurrency scales with CPU
@@ -155,6 +182,12 @@ func GetLimits() *Limits {
 			Mixed:       baseMixed * scaleFactor,
 			MaxRequests: 500,
 			Timeout:     5000,
+		},
+		Media: Media{
+			Concurrency:    mediaConcurrency,
+			MaxSourceBytes: 20 * 1024 * 1024, // 20MB — large phone photos are ~12MB
+			WidthStep:      50,
+			CacheMemoryMB:  mediaCacheMB,
 		},
 		Net: Net{
 			MaxCalls:       5,

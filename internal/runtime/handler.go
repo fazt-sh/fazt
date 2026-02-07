@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"database/sql"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"io"
@@ -15,6 +16,8 @@ import (
 	"github.com/fazt-sh/fazt/internal/debug"
 	"github.com/fazt-sh/fazt/internal/egress"
 	"github.com/fazt-sh/fazt/internal/hosting"
+	imgservice "github.com/fazt-sh/fazt/internal/services/image"
+	"github.com/fazt-sh/fazt/internal/services/media"
 	"github.com/fazt-sh/fazt/internal/storage"
 	"github.com/fazt-sh/fazt/internal/system"
 	"github.com/fazt-sh/fazt/internal/timeout"
@@ -74,7 +77,7 @@ func NewServerlessHandlerWithRuntime(db *sql.DB, rt *Runtime) *ServerlessHandler
 func (h *ServerlessHandler) HandleRequest(w http.ResponseWriter, r *http.Request, appID, appName string) {
 	start := time.Now()
 	reqID := generateRequestID()
-	ctx := r.Context()
+	ctx := media.WithQuery(r.Context(), r.URL.Query())
 
 	debug.Log("runtime", "req=%s app=%s path=%s method=%s started", reqID, appName, r.URL.Path, r.Method)
 
@@ -198,10 +201,25 @@ func (h *ServerlessHandler) HandleRequest(w http.ResponseWriter, r *http.Request
 
 	// Write body
 	if result.Response.Body != nil {
-		if str, ok := result.Response.Body.(string); ok {
-			w.Write([]byte(str))
-		} else {
-			json.NewEncoder(w).Encode(result.Response.Body)
+		contentType := w.Header().Get("Content-Type")
+		isJSON := contentType == "" || strings.Contains(contentType, "application/json")
+
+		switch body := result.Response.Body.(type) {
+		case string:
+			// If non-JSON content type, try base64 decode (for s3 blob data)
+			if !isJSON {
+				if decoded, err := base64.StdEncoding.DecodeString(body); err == nil {
+					w.Write(decoded)
+				} else {
+					w.Write([]byte(body))
+				}
+			} else {
+				w.Write([]byte(body))
+			}
+		case []byte:
+			w.Write(body)
+		default:
+			json.NewEncoder(w).Encode(body)
 		}
 	}
 }
@@ -282,7 +300,11 @@ func (h *ServerlessHandler) executeWithFazt(ctx context.Context, code string, re
 		return nil
 	}
 
-	return h.runtime.ExecuteWithInjectors(ctx, code, req, loader, faztInjector, storageInjector, appStorageInjector, realtimeInjector, workerInjector, authInjector, privateInjector, netInjector)
+	imageInjector := func(vm *goja.Runtime) error {
+		return imgservice.InjectImageNamespace(vm)
+	}
+
+	return h.runtime.ExecuteWithInjectors(ctx, code, req, loader, faztInjector, storageInjector, appStorageInjector, realtimeInjector, workerInjector, authInjector, privateInjector, netInjector, imageInjector)
 }
 
 // loadFile loads a file from the VFS for a given app.

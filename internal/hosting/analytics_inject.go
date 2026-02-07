@@ -14,7 +14,8 @@ const analyticsScript = `<script>(function(){
 var h=location.hostname;
 var s=h.split('.').slice(1).join('.');
 var d=(s&&s.includes('.'))?s:h;
-var u=location.protocol+'//admin.'+d+'/track';
+var p=location.port&&location.port!=='80'&&location.port!=='443'?':'+location.port:'';
+var u=location.protocol+'//admin.'+d+p+'/track';
 navigator.sendBeacon(u,JSON.stringify({h:h,p:location.pathname,e:'pageview'}))
 })();</script>`
 
